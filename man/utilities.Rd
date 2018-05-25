@@ -7,6 +7,7 @@
 \alias{loop_dbs}
 \alias{add.alpha}
 \alias{run_TSP}
+\alias{parse_fastaHeader}
 \title{Utility functions}
 \usage{
 make_blocks(map)
@@ -19,6 +20,9 @@ add.alpha(col, alpha = 1)
 
 run_TSP(x, y, unique, rerank = T, tsp.method = "Concorde", max.jump = 5,
   ...)
+
+parse_fastaHeader(fasta.dir, is.peptide = T, pattern = "pep.fa",
+  verbose = T)
 }
 \arguments{
 \item{map}{A `map` object (data.table or data.frame) with the
@@ -57,6 +61,12 @@ apart then this, the block is broken. If a point is isolated by this value,
 it is dropped.}
 
 \item{...}{Other arguments passed on. Just to solve.TSP for now.}
+
+\item{fasta.dir}{Directory containing fasta files to parse}
+
+\item{is.peptide}{Logical, are fasta files peptide?}
+
+\item{pattern}{The string identifying the peptide fastas.}
 }
 \description{
 \code{utilities} Five utilities functions meant for internal calls in compareGeneSpace
@@ -70,6 +80,8 @@ it is dropped.}
 \code{add.alpha} given an alpha value make a color transparent
 
 \code{run_TSP} Traveling salesman problem solver pipeline
+
+\code{parse_fastaHeader} Subset space-delimited fasta header, retaining the "locus" entry
 }
 \note{
 \code{utilities} is a generic name for the functions documented.
