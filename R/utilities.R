@@ -22,6 +22,9 @@
 #' @param tsp.method The method to pass to TSP.solve
 #' @param plotit Logical, should plots be made?
 #' @param unique A unique identifier for the TSP solver
+#' @param fasta.dir Directory containing fasta files to parse
+#' @param is.peptide Logical, are fasta files peptide?
+#' @param pattern The string identifying the peptide fastas.
 #' @param ... Other arguments passed on. Just to solve.TSP for now.
 #'
 #'
@@ -157,6 +160,38 @@ run_TSP = function(x,y,
 
   o = o[unique,]
   return(o$subclus)
+}
+#' @title Parse complex fasta header
+#' @description
+#' \code{parse_fastaHeader} Subset space-delimited fasta header, retaining the "locus" entry
+#' @rdname utilities
+#' @import Biostrings
+#' @export
+parse_fastaHeader = function(fasta.dir, is.peptide = T,
+                             pattern = "pep.fa", verbose = T){
+
+  in.pep = list.files(peptide.dir,
+                      pattern = "pep.fa",
+                      full.names = T)
+
+  if(verbose)
+    cat("Renaming fasta headers ...\n")
+  ss = lapply(in.trs, function(i){
+    if(verbose)
+      cat("...",i,"\n\t")
+    if(is.peptide){
+      x = Biostrings::readAAStringSet(i)
+    }else{
+      x = Biostrings::readDNAStringSet(i)
+    }
+    if(verbose)
+      cat("original names (e.g.):", names(x)[1])
+    names(x)<-sapply(gsub(".*locus=","",names(x)),
+                     function(y) strsplit(y," ")[[1]][1])
+    if(verbose)
+      cat("\n\tparsed names (e.g.):", names(x)[1],"\n")
+    writeXStringSet(x, filepath = i)
+  })
 }
 
 
