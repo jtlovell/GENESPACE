@@ -24,6 +24,7 @@
 #' @param dbs_radii numeric vector of length equal to `dbs_mappingsInRadius`.
 #' @param dbs_mappingsInRadius numeric vector of length equal to `dbs_radius`.
 #' @param mcscan.dir Path to output directory for mcscan input files
+#' @param topPerc The percent threshold for the maximum score to retain a mapping
 #' @param plotit Logical, should a plot be drawn?
 #' @param verbose Logical, should updates be printed?
 #' @param ... Not currently in use
@@ -42,60 +43,15 @@ parse_diamondBlast = function(blast1, blast2,
                               id2, id1,
                               ploidy1 = 2, ploidy2 = 2,
                               abbrev1 = NULL, abbrev2 = NULL,
-                              nmapsPerHaplotype = 2,
+                              nmapsPerHaplotype = 1,
                               plotit = T,
-                              dbs_radii = c(100,50,20),
-                              dbs_mappingsInRadius = c(10,10,5),
+                              dbs_radii = c(100,50,20,40),
+                              dbs_mappingsInRadius = c(10,8,5,10),
                               mcscan.dir,
+                              topPerc = 50,
                               verbose = T){
 
-  parse_quickGff = function(gff){
-    g = suppressWarnings(
-      data.table::fread(gff,showProgress = F, verbose = F))
-    g = g[g$V3 == "gene",c(9,1,4,5,7)]
-    g$V9 = sapply(g$V9, function(x) gsub("Name=","",strsplit(x,";")[[1]][2]))
-    setnames(g, c("id","chr","start","end","strand"))
-    return(g)
-  }
-
-  loop_dbs = function(m, radii, mappings, plotit = T,id1, id2){
-    run_dbs = function(m, eps_radius, minMappings_perBlock){
-      x=data.frame(m)
-      x$x_a = frank(x[,paste0(c("chr_","start_"),id1)],
-                    ties.method = "dense")
-      x$x_b = frank(x[,paste0(c("chr_","start_"),id2)],
-                    ties.method = "dense")
-
-      nn = dbscan::frNN(x[,c("x_a","x_b")], eps = eps_radius)
-      dbs = dbscan::dbscan(nn, minPts = minMappings_perBlock)
-      return(data.frame(rank1 = x$x_a,
-                        rank2 = x$x_b,
-                        cluster = dbs$cluster,
-                        stringsAsFactors = F))
-    }
-    if(length(radii)!=length(mappings))
-      stop("radii and mappings must be same length\n")
-    for(i in 1:length(radii)){
-      dclus = run_dbs(m, eps = radii[i], minMappings_perBlock = mappings[i])
-      mo = cbind(m, data.table(dclus))
-      if(plotit){
-        with(mo, plot(rank1, rank2,
-                      col = ifelse(cluster == 0,rgb(0,0,0,.2),"darkred"),
-                      pch = ".",
-                      xlab = paste(id1, "rank"), ylab = paste(id2, "rank"),
-                      main = paste("radius =", radii[i], "min mapping =", mappings[i])))
-        m = m[mo$cluster !=0,]
-      }
-    }
-    return(m)
-  }
-  add.alpha <- function(col, alpha=1){
-    if(missing(col))
-      stop("Please provide a vector of colours.")
-    apply(sapply(col, col2rgb)/255, 2,
-          function(x)
-            rgb(x[1], x[2], x[3], alpha=alpha))
-  }
+  topProp = topPerc/100
 
   if(verbose)
     cat("\n4. Reading in mapping files ... \n\t",id1)
@@ -110,6 +66,10 @@ parse_diamondBlast = function(blast1, blast2,
   d1[, rank := frank(bitscore, ties.method = "dense"),
      by = list(v1)]
   d1 <- d1[d1$rank <= ploidy1*nmapsPerHaplotype,]
+
+  d1[, prop := bitscore/max(bitscore),
+      by = list(v1)]
+  d1 <- d1[d1$prop >= topProp,]
 
   if(verbose)
     cat(" found", nrow(d1),"with score within the top", ploidy1*nmapsPerHaplotype,"\n\t",id2)
@@ -128,12 +88,18 @@ parse_diamondBlast = function(blast1, blast2,
      by = list(v1)]
   d2 <- d2[d2$rank <= ploidy2*nmapsPerHaplotype,]
 
+  d2[, prop := bitscore/max(bitscore),
+     by = list(v2)]
+
+  d2 <- d2[d2$prop >= topProp,]
+
   if(verbose)
     cat(" found", nrow(d2),"with score within the top", ploidy2*nmapsPerHaplotype,"\n")
 
   if(verbose)
     cat("5. Culling by score ...")
   dat = rbind(d1,d2)
+  setkey(dat, "bitscore")
   dat <- dat[order(dat$v2, dat$v1, -dat$bitscore), ]
   dat <- dat[!duplicated(dat[,1:2]),]
 
@@ -164,10 +130,9 @@ parse_diamondBlast = function(blast1, blast2,
   if(verbose)
     cat("\tretained", nrow(m2), "mappings in total\n")
 
-  outdir = file.path(mcscan.dir,paste0(id1,"_",id2))
+  outdir = file.path(mcscan.dir)
   out.gffish = file.path(outdir, paste0(id1,"_",id2,".gff"))
   out.mapish = file.path(outdir, paste0(id1,"_",id2,".blast"))
-  system(paste("mkdir",outdir))
   if(verbose)
     cat("Writing MCScanX formated output to:\n\t",outdir)
 
@@ -215,8 +180,8 @@ parse_diamondBlast = function(blast1, blast2,
   g1 = allmap[,c(paste0("chr_",id1),id1, paste0(c("start_","end_"),id1))]
   g2 = allmap[,c(paste0("chr_",id2),id2, paste0(c("start_","end_"),id2))]
 
-  g1[,1]<-paste0(abbrev1,as.numeric(gsub("[^0-9]", "", g1[,1])))
-  g2[,1]<-paste0(abbrev2,as.numeric(gsub("[^0-9]", "", g2[,1])))
+  g1[,1]<-paste0(abbrev1,as.numeric(as.factor(g1[,1])))
+  g2[,1]<-paste0(abbrev2,as.numeric(as.factor(g2[,1])))
 
   colnames(g1) = colnames(g2)
   go = rbind(g1, g2)

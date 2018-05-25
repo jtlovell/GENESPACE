@@ -15,6 +15,8 @@
 #' @param minScore The minimum mapping score to be considered
 #' @param ortherDiamondOpts Other diamond options to pass the command
 #' @param nthreads Number of parallel threads to run blast with
+#' @param onlyParseMap Should the mapping step be ignored (e.g. has it already
+#' beed done and the mapping files are in the correct directory?)
 #' @param verbose Logical, should status updates be printed?
 #' @param ... Not currently in use
 #' @details This is the main engine for BLAST mapping and mapping parsing. The
@@ -33,40 +35,46 @@
 #' @import dbscan
 #' @export
 pipe_Diamond2MCScanX = function(inputFileMatrix,
-                                nmapsPerHaplotype = 2,
+                                path_to_diamond,
+                                nmapsPerHaplotype = 1,
                                 plotit = T,
-                                dbs_radii = c(100,50,20),
+                                dbs_radii = c(100,50,15),
                                 dbs_mappingsInRadius = c(10,10,5),
                                 mcscan.dir,
                                 verbose = T,
                                 sensitive.mode = "--more-sensitive",
-                                topPerc = 70,
-                                minScore = 100,
+                                topPerc = 50,
+                                minScore = 200,
                                 ortherDiamondOpts = "--quiet",
-                                nthreads= 1){
+                                nthreads= 1,
+                                onlyParseMap = F){
 
   if(verbose){
-    cat("Running the pipeline for", apply(inputFileMatrix[,1:2], 1,
+    cat("Running the pipeline for:\n", apply(inputFileMatrix[,1:2], 1,
                                           function(x) paste(paste(x, collapse = " vs. "),"\n")),
         "\n\n####################\n")
   }
-  for(i in 1:nrow(inputFileMatrix)){
+  system(paste("rm -r", mcscan.dir))
+  system(paste("mkdir",mcscan.dir))
+  out = lapply(1:nrow(inputFileMatrix), function(i){
     x = inputFileMatrix[i,]
 
-    diamond.calls = align_peptideByDiamond(
-      path_to_diamond = "/Users/jlovell/Documents/comparative_genomics/programs/diamond",
-      id1 = x$id1,
-      id2 = x$id2,
-      pep1 = x$pep1,
-      pep2 = x$pep2,
-      blast1 = x$blast1,
-      blast2 = x$blast2,
-      nthreads = nthreads,
-      sensitive.mode = "--more-sensitive",
-      topPerc = 70,
-      minScore = 100,
-      ortherDiamondOpts = "--quiet",
-      verbose = T)
+    if(!onlyParseMap){
+      diamond.calls = align_peptideByDiamond(
+        path_to_diamond = path_to_diamond,
+        id1 = x$id1,
+        id2 = x$id2,
+        pep1 = x$pep1,
+        pep2 = x$pep2,
+        blast1 = x$blast1,
+        blast2 = x$blast2,
+        nthreads = nthreads,
+        sensitive.mode = "--more-sensitive",
+        topPerc = topPerc,
+        minScore = minScore,
+        ortherDiamondOpts = "--quiet",
+        verbose = T)
+    }
 
     allmap = parse_diamondBlast(
       id1 = x$id1,
@@ -82,8 +90,10 @@ pipe_Diamond2MCScanX = function(inputFileMatrix,
       nmapsPerHaplotype = nmapsPerHaplotype,
       mcscan.dir = mcscan.dir,
       dbs_radii = dbs_radii,
+      topPerc = topPerc,
       dbs_mappingsInRadius = dbs_mappingsInRadius,
       verbose = verbose)
-  }
-
+    return(allmap)
+  })
+  return(out)
 }

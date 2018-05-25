@@ -4,14 +4,16 @@
 \alias{pipe_Diamond2MCScanX}
 \title{Run the first two steps of gene-space alignments}
 \usage{
-pipe_Diamond2MCScanX(inputFileMatrix, nmapsPerHaplotype = 2, plotit = T,
-  dbs_radii = c(100, 50, 20), dbs_mappingsInRadius = c(10, 10, 5),
-  mcscan.dir, verbose = T, sensitive.mode = "--more-sensitive",
-  topPerc = 70, minScore = 100, ortherDiamondOpts = "--quiet",
-  nthreads = 1)
+pipe_Diamond2MCScanX(inputFileMatrix, path_to_diamond, nmapsPerHaplotype = 1,
+  plotit = T, dbs_radii = c(100, 50, 15), dbs_mappingsInRadius = c(10, 10,
+  5), mcscan.dir, verbose = T, sensitive.mode = "--more-sensitive",
+  topPerc = 50, minScore = 200, ortherDiamondOpts = "--quiet",
+  nthreads = 1, onlyParseMap = F)
 }
 \arguments{
 \item{inputFileMatrix}{A dataframe with all the necessary metadata. See details.}
+
+\item{path_to_diamond}{The location of the Diamond program executable}
 
 \item{nmapsPerHaplotype}{see ploidy}
 
@@ -35,7 +37,8 @@ pipe_Diamond2MCScanX(inputFileMatrix, nmapsPerHaplotype = 2, plotit = T,
 
 \item{nthreads}{Number of parallel threads to run blast with}
 
-\item{path_to_diamond}{The location of the Diamond program executable}
+\item{onlyParseMap}{Should the mapping step be ignored (e.g. has it already
+beed done and the mapping files are in the correct directory?)}
 
 \item{...}{Not currently in use}
 }

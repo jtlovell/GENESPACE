@@ -14,6 +14,8 @@ align_peptideByDiamond(path_to_diamond = NULL, pep1, pep2, id1, id2, blast1,
 
 \item{pep1}{Peptide file for genome 1}
 
+\item{pep2}{Peptide file for genome 2}
+
 \item{id1}{ID for genome 1}
 
 \item{id2}{ID for genome 2}
@@ -33,8 +35,6 @@ align_peptideByDiamond(path_to_diamond = NULL, pep1, pep2, id1, id2, blast1,
 \item{nthreads}{Number of parallel threads to run blast with}
 
 \item{verbose}{Logical, should status updates be printed?}
-
-\item{pep1}{Peptide file for genome 2}
 
 \item{...}{Not currently in use}
 }

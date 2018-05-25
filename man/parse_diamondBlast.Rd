@@ -5,9 +5,9 @@
 \title{Process mapping files from reciprocal blasts}
 \usage{
 parse_diamondBlast(blast1, blast2, gff1, gff2, id2, id1, ploidy1 = 2,
-  ploidy2 = 2, abbrev1 = NULL, abbrev2 = NULL, nmapsPerHaplotype = 2,
-  plotit = T, dbs_radii = c(100, 50, 20), dbs_mappingsInRadius = c(10, 10,
-  5), mcscan.dir, verbose = T)
+  ploidy2 = 2, abbrev1 = NULL, abbrev2 = NULL, nmapsPerHaplotype = 1,
+  plotit = T, dbs_radii = c(100, 50, 20, 40), dbs_mappingsInRadius = c(10,
+  8, 5, 10), mcscan.dir, topPerc = 50, verbose = T)
 }
 \arguments{
 \item{blast1}{The file path of the blast result for genome 1 is the querry}
@@ -45,6 +45,8 @@ input files.}
 \item{dbs_mappingsInRadius}{numeric vector of length equal to `dbs_radius`.}
 
 \item{mcscan.dir}{Path to output directory for mcscan input files}
+
+\item{topPerc}{The percent threshold for the maximum score to retain a mapping}
 
 \item{verbose}{Logical, should updates be printed?}
 

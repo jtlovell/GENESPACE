@@ -5,7 +5,7 @@
 \title{Make input metadata for pipe_Diamond2MCScanX}
 \usage{
 make_inputFileMatrix(peptide.dir, mappings.dir, gff.dir, mcscan.dir,
-  abbrev.dict, ploidy.dict)
+  abbrev.dict, ploidy.dict, ref.id)
 }
 \arguments{
 \item{peptide.dir}{The location of the Diamond program executable}
@@ -21,6 +21,9 @@ each genomeID}
 
 \item{ploidy.dict}{Named list of ploidies, where each list element is named
 for the genomeID and the one-element numeric vector is the ploidy}
+
+\item{ref.id}{Identifier of the reference genome. This is the only genome that
+blastst to itself.}
 
 \item{...}{Not currently in use}
 }

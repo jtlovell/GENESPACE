@@ -8,7 +8,7 @@
 #' @param id1 ID for genome 1
 #' @param id2 ID for genome 2
 #' @param pep1 Peptide file for genome 1
-#' @param pep1 Peptide file for genome 2
+#' @param pep2 Peptide file for genome 2
 #' @param blast1 blast output filename for genome 1
 #' @param blast2 blast output filename for genome 2
 #' @param sensitive.mode Diamond sensitivity mode.
