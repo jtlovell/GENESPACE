@@ -55,7 +55,11 @@ make_blocks<-function(map){
                    rankend1 = tapply(rank1, block.id, max),
                    rankend2 = tapply(rank2, block.id, max),
                    stringsAsFactors = F))
-  map = data.frame(mapo, stringsAsFactors = F)
+  orient = sapply(split(map, map$block.id), function(x) cor(x$start1, x$start2))
+  orient = data.frame(block.id = names(orient), orient = ifelse(orient>0,"+","-"))
+  out.blk = merge(out.blk, orient, by = "block.id")
+  out.blk = out.blk[order(out.blk$genome1, out.blk$chr1, out.blk$start1),]
+  map = data.frame(map[order(map$genome1, map$chr1, map$start1),], stringsAsFactors = F)
   blk = data.frame(out.blk, stringsAsFactors = F)
   return(list(block = blk, map = map))
 }
@@ -143,7 +147,7 @@ run_TSP = function(x,y,
   rownames(o)<-unique
   etsp = TSP::TSP(as.ETSP(o), labels = unique)
   etsp = TSP::insert_dummy(etsp, n = 1, label = "cut")
-  tour <- TSP::solve_TSP(etsp, method = tsp.method)
+  tour <- TSP::solve_TSP(etsp, method = tsp.method, control = list(verbose = F,clo = "-V"))
   tour <- TSP::cut_tour(tour, "cut")
 
 
@@ -193,5 +197,120 @@ parse_fastaHeader = function(fasta.dir, is.peptide = T,
     writeXStringSet(x, filepath = i)
   })
 }
+
+
+#' @title Split blocks based on density, iteratively
+#' @description
+#' \code{split_byDensity} takes a mapping object and splits it based on rules.
+#' @rdname utilities
+#' @import dbscan
+#' @export
+split_byDensity<-function(map, max.jump = 5, min.dens = max.jump-1,
+                          zScore2split = 5){
+
+  split_it = function(map, radius,max.jump,min.dens,zScore2split){
+    spl = split(map, map$block.id)
+    out = do.call(rbind, lapply(names(spl), function(i){
+      x = spl[[i]]
+      d1 = diff(x$x_a)
+      d2 = diff(x$x_b)
+      z1 = abs((d1-mean(d1))/(sd(d1)+.000001))
+      z2 = abs((d2-mean(d2))/(sd(d2)+.000001))
+      x$was_split = F
+      if(nrow(x)>10 & max(c(d1,d2))>max.jump & max(c(z1,z2))>zScore2split){
+        nn = dbscan::frNN(x[,c("x_a","x_b")], eps = radius)
+        dbs = dbscan::dbscan(nn, minPts = min.dens)
+
+        x$newclust = dbs$cluster
+        x = x[x$newclust!=0,]
+        x$block.id = paste0(x$block.id, "_",x$newclust)
+        x$was_split = length(unique(dbs$cluster))>1
+        x$newclust = NULL
+      }
+      return(x)
+    }))
+  }
+
+  map$x_a = frank(map[,c("chr1","start1")],
+                  ties.method = "dense")
+  map$x_b = frank(map[,c("chr2","start2")],
+                  ties.method = "dense")
+
+  ntospl = 1
+  map$was_split = TRUE
+  while(any(map$was_split)){
+    if(verbose)
+      cat("checked", sum(map$was_split[!duplicated(map$block.id)]),"blocks\n")
+    map = split_it(map,
+                   max.jump= max.jump,
+                   min.dens = min.dens,
+                   radius = sqrt((max.jump^2)*2),
+                   zScore2split = zScore2split)
+  }
+  out = make_blocks(map)
+  if(verbose)
+    cat("split into",nrow(out$block),"... Done")
+  return(list(map = out$map, block = out$block))
+}
+
+
+
+
+#' @title Plot mapping and blocks
+#' @description
+#' \code{plot_blocksAndMapping} takes a mapping and block object and plots selected genomes / chromosomes.
+#' @rdname utilities
+#' @export
+plot_blocksAndMapping = function(map,
+                                 blk,
+                                 ref.id,
+                                 altGenome2plot,
+                                 chr1toplot,
+                                 chr2toplot,
+                                 main = NULL){
+  tpb = blk[blk$genome1 == ref.id & blk$genome2 == altGenome2plot,]
+  tp = map[map$genome1 == ref.id & map$genome2 == altGenome2plot,]
+  tpb$s1 = with(tpb, ifelse(orient == "+", rankstart1, rankend1))
+  tpb$e1 = with(tpb, ifelse(orient == "+", rankend1, rankstart1))
+  tpb$rankstart1 = tpb$s1
+  tpb$rankend1 = tpb$e1
+  tpb$s1 = NULL
+  tpb$e1 = NULL
+  if(!is.null(chr1toplot)){
+    tpb = tpb[tpb$chr1 %in% chr1toplot,]
+    tp = tp[tp$chr1 %in% chr1toplot,]
+  }
+  if(!is.null(chr2toplot)){
+    tpb = tpb[tpb$chr2 %in% chr2toplot,]
+    tp = tp[tp$chr2 %in% chr2toplot,]
+  }
+  sb1 = split(tpb, tpb$chr1)
+  st1 = split(tp, tp$chr1)
+  for(i in names(sb1)){
+    sb2 = split(sb1[[i]], sb1[[i]]$chr2)
+    st2 = split(st1[[i]], st1[[i]]$chr2)
+    for(j in names(sb2)){
+      t2 = st2[[j]]
+      b2 = sb2[[j]]
+      cols = rep_len(c("red3","salmon","darkorange3","gold",
+                       "grey50","lightgreen","forestgreen","darkgreen",
+                       "cyan","dodgerblue3","violet","purple"), length.out = nrow(b2))
+      with(t2, plot(rank1, rank2,
+                    col = cols[as.numeric(as.factor(block.id))],
+                    pch = 16, cex = .5,
+                    ylab = paste(altGenome2plot,j,"gene order"),
+                    xlab = paste(ref.id,i,"gene order"),
+                    main = main))
+      with(b2, segments(x0 = rankstart1, x1 = rankend1,
+                        y0 = rankstart2, y1 =rankend2,
+                        col = "black", lwd = 1.5))
+      with(b2, text(x = rowMeans(b2[,c("rankstart1","rankend1")]),
+                    y = rowMeans(b2[,c("rankstart2","rankend2")]),
+                    labels = block.id,
+                    col = "black", cex = .5, adj = c(1,-1)))
+    }
+  }
+}
+
 
 

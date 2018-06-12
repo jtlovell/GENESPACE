@@ -8,6 +8,8 @@
 \alias{add.alpha}
 \alias{run_TSP}
 \alias{parse_fastaHeader}
+\alias{split_byDensity}
+\alias{plot_blocksAndMapping}
 \title{Utility functions}
 \usage{
 make_blocks(map)
@@ -23,6 +25,12 @@ run_TSP(x, y, unique, rerank = T, tsp.method = "Concorde", max.jump = 5,
 
 parse_fastaHeader(fasta.dir, is.peptide = T, pattern = "pep.fa",
   verbose = T)
+
+split_byDensity(map, max.jump = 5, min.dens = max.jump - 1,
+  zScore2split = 5)
+
+plot_blocksAndMapping(map, blk, ref.id, altGenome2plot, chr1toplot, chr2toplot,
+  main = NULL)
 }
 \arguments{
 \item{map}{A `map` object (data.table or data.frame) with the
@@ -82,6 +90,10 @@ it is dropped.}
 \code{run_TSP} Traveling salesman problem solver pipeline
 
 \code{parse_fastaHeader} Subset space-delimited fasta header, retaining the "locus" entry
+
+\code{split_byDensity} takes a mapping object and splits it based on rules.
+
+\code{plot_blocksAndMapping} takes a mapping and block object and plots selected genomes / chromosomes.
 }
 \note{
 \code{utilities} is a generic name for the functions documented.

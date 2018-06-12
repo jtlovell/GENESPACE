@@ -4,7 +4,7 @@
 \alias{merge_overlappingBlocks}
 \title{Make input metadata for pipe_Diamond2MCScanX}
 \usage{
-merge_overlappingBlocks(map, blk, verbose = T, buffer = 1)
+merge_overlappingBlocks(map, blk, verbose = T)
 }
 \arguments{
 \item{map}{The map object (data.frame or data.table)}

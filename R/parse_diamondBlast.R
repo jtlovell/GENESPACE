@@ -104,7 +104,7 @@ parse_diamondBlast = function(blast1, blast2,
   dat <- dat[!duplicated(dat[,1:2]),]
 
   if(verbose)
-    cat("found", nrow(dat), "mappings\n")
+    cat("found", nrow(dat), "unique reciporal mappings\n")
 
 
 

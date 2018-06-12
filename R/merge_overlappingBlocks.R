@@ -18,49 +18,60 @@
 #' }
 #' @export
 merge_overlappingBlocks = function(map, blk,
-                                   verbose = T,
-                                   buffer = 1){
-  blk$uniq = paste0(blk$genome1,"_",blk$genome2)
-  map$uniq = paste0(map$genome1,"_",map$genome2)
-
+                                   verbose = T){
   if(verbose)
     cat("Parsing",nrow(blk), "blocks and", nrow(map),"mappings\n")
-  tomergelist = lapply(1:nrow(blk), function(i){
-    x = blk[i,]
-    y = blk[-i,]
-    yt = y[y$uniq == x$uniq &
-             y$chr1 == x$chr1 &
-             y$chr2 == x$chr2,]
-    in1e = yt$rankend1>=x$rankstart1-buffer & yt$rankend1<=x$rankend1+buffer
-    in1s = yt$rankstart1>=x$rankstart1-buffer & yt$rankstart1<=x$rankend1+buffer
-    in2s = yt$rankend2>=x$rankstart2-buffer & yt$rankend2<=x$rankend2+buffer
-    in2e = yt$rankstart2>=x$rankstart2-buffer & yt$rankstart2<=x$rankend2+buffer
-
-    tobind = which((in1e | in1s) & (in2e | in2s))
-
-    return(c(x$block.id,yt$block.id[tobind]))
-  })
-  names(tomergelist)<-blk$block.id
   if(verbose)
-    cat("Merging adjacent blocks ... ")
+    cat("Looking for overlapping blocks ... ")
 
-  check.overlap = sapply(blk$block.id, function(i){
-    x = tomergelist[[i]]
-    g = sapply(tomergelist, function(j) any(j %in% x))
-    return(unique(unlist(tomergelist[g])))
-  })
+  run.it = function(map,blk){
+    blk$block.id = as.character(blk$block.id)
+    blk$uniq = paste0(blk$genome1,"_",blk$genome2,"_",blk$chr1, "_", blk$chr2)
+    spl = split(blk, blk$uniq)
 
-  uoverl = check.overlap[!duplicated(check.overlap)]
-  mapo = map
-  for(i in names(uoverl)){
-    mapo$block.id[map$block.id %in% uoverl[[i]]]<-i
+    for(i in names(spl)){
+      x = spl[[i]]
+      x = x[order(x$start1, x$start2),]
+      x$s1 = frank(x$start1, ties.method = "dense")
+      x$s2 = frank(x$start2, ties.method = "dense")
+      x$e1 = frank(x$end1, ties.method = "dense")
+      x$e2 = frank(x$end2, ties.method = "dense")
+
+      x$tomerge = apply(x[,c("s1","e1")],1,function(y) length(unique(y))>1) &
+        apply(x[,c("s2","e2")],1,function(y) length(unique(y))>1)
+      mlist = lapply(which(x$tomerge), function(i)
+        unique(as.numeric(x[i,c("s1","e1")]))[order(unique(as.numeric(x[i,c("s1","e1")])))])
+      mlist = mlist[!duplicated(mlist)]
+      if(length(mlist)>0){
+        mo = lapply(mlist, function(y) x$block.id[y])
+        for(j in 1:length(mo)){
+          map$block.id[map$block.id %in% mo[[j]]]<-mo[[j]][1]
+        }
+      }
+    }
+    out = make_blocks(map)
+    map = data.frame(out[["map"]], stringsAsFactors = F)
+    blk = data.frame(out[["block"]], stringsAsFactors = F)
+    return(list(block = blk, map = map, novl = novl))
   }
 
-  out.blk = make_blocks(mapo)
-  map = data.frame(mapo[["map"]], stringsAsFactors = F)
-  blk = data.frame(out.blk[["block"]], stringsAsFactors = F)
-
+  novl = 1
+  iter = 1
+  while(novl>0){
+    ninit = nrow(blk)
+    if(verbose)
+      cat("Pass", iter,"(",ninit,")\t")
+    tmp = run.it(map = map, blk = blk)
+    nafter = nrow(tmp$block)
+    novl= ninit-nafter
+    if(verbose)
+      cat("n overlaps = ", novl,"\n")
+    if(novl>0){
+      map = tmp$map
+      blk = tmp$block
+    }
+  }
   if(verbose)
     cat("Done! Returning",nrow(blk), "blocks and", nrow(map),"mappings\n")
-  return(list(block = out.blk, map = map))
+  return(list(block = blk, map = map))
 }

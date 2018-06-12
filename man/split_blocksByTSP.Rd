@@ -5,7 +5,7 @@
 \title{Conduct reciprocal protein alignments between a pair of genomes}
 \usage{
 split_blocksByTSP(map, tsp.method = "Concorde", Concorde.path = NULL,
-  max.jump = 5, plotit = T, verbose = T, ...)
+  max.jump = 5, plotit = T, verbose = T, min.block.size = 5, ...)
 }
 \arguments{
 \item{map}{pairwise mapping file}

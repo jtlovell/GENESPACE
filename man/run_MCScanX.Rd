@@ -4,9 +4,8 @@
 \alias{run_MCScanX}
 \title{Make input metadata for pipe_Diamond2MCScanX}
 \usage{
-run_MCScanX(ref.id, MCScanX.path, mcs_mapping.dir, mapping.obj,
-  MCScanX.params = NULL, verbose = T, plotit = T, chr1toplot = NULL,
-  chr2toplot = NULL, altGenome2plot = NULL, buffer = 4)
+run_MCScanX(ref.id, MCScanX.path, mcs_mapping.dir, MCScanX.params = NULL,
+  verbose = T, buffer = 1)
 }
 \arguments{
 \item{ref.id}{Character, the reference genome identifier}
@@ -15,13 +14,11 @@ run_MCScanX(ref.id, MCScanX.path, mcs_mapping.dir, mapping.obj,
 
 \item{mcs_mapping.dir}{Directory containing the MCScanX-formatted mapping files}
 
-\item{mapping.obj}{The object returned from the mapping pipeline}
-
 \item{MCScanX.params}{Additionally parameters to pass to MCScanX}
 
 \item{verbose}{Logical, should updates be printed?}
 
-\item{plotit}{Logical, hould a plot be made}
+\item{buffer}{Buffer to find overlapping blocks (see merge_overlappingBlocks.R)}
 
 \item{chr1toplot}{The chromosome ids in the reference genome to plot}
 
@@ -29,7 +26,7 @@ run_MCScanX(ref.id, MCScanX.path, mcs_mapping.dir, mapping.obj,
 
 \item{altGenome2plot}{The identifier of the alternative genome to plot}
 
-\item{buffer}{Buffer to find overlapping blocks (see merge_overlappingBlocks.R)}
+\item{plotit}{Logical, hould a plot be made}
 
 \item{...}{Not currently in use}
 }

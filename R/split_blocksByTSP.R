@@ -32,6 +32,7 @@ split_blocksByTSP<-function(map,
                             max.jump = 5,
                             plotit = T,
                             verbose = T,
+                            min.block.size = 5,
                             ...){
 
   if(tsp.method == "Concorde"){
@@ -41,12 +42,23 @@ split_blocksByTSP<-function(map,
   }
 
   spl = split(map, map$block.id)
+  spl = spl[order(-sapply(spl, nrow))]
   if(verbose)
     cat("Read",nrow(map),"pairwise mappings across",length(spl),
-        "blocks\nParsing within blocks:\n")
+        "blocks\nSplitting within blocks via TSP:\n")
+  n = ifelse(length(spl)<50,10,
+             ifelse(length(spl)<200,40,
+                    ifelse(length(spl)<1000,200,
+                           ifelse(length(spl)<2000,400,1000))))
   brk = lapply(names(spl), function(i){
+    if(which(names(spl) == i) %% n ==0)
+      cat("completed",which(names(spl) == i),"/",length(spl),"\n")
     x = spl[[i]]
-    if(nrow(x)>11){
+    r1<-frank(x$rank1, ties.method = "dense")
+    r2<-frank(x$rank2, ties.method = "dense")
+    d1 = diff(r1)
+    d2 = diff(r2)
+    if(nrow(x)>((max.jump*2)+1) & max(c(d1,d2)>max.jump)){
       nna = 1
       while(nna>0){
         tsp.out = run_TSP(x = x$rank1, y = x$rank2,
@@ -83,9 +95,18 @@ split_blocksByTSP<-function(map,
     }
     return(x)
   })
+
+  tmp = rbindlist(brk)
+  tokeep = table(tmp$block.id)
+  tokeep = names(tokeep)[tokeep>=min.block.size]
+  tmp = tmp[tmp$block.id %in% tokeep,]
+
+  tmp = make_blocks(tmp)
+
   if(verbose)
-    cat("Done! Split",nrow(rbindlist(brk)),"pairwise mappings into",
-        length(brk),
+    cat("Done! Split",nrow(tmp$map),"pairwise mappings into",
+        nrow(tmp$block),
         "blocks\n")
-  return(rbindlist(brk))
+
+  return(list(map = tmp$map, block = tmp$block))
 }
