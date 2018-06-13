@@ -11,7 +11,19 @@ library(Biostrings)
 library(wordspace)
 library(TSP)
 
-library(compareGeneSpace)
+## get into py 2.7
+# conda create -n py27 python=2.7 anaconda
+# conda config --add channels defaults
+# conda config --add channels conda-forge
+# conda config --add channels bioconda
+# conda install orthofinder
+# conda install diamond
+
+## make sure to add mcscanx to your path
+# export PATH=$PATH:/Users/jlovell/Documents/comparative_genomics/programs/MCScanX/
+
+
+# library(compareGeneSpace)
 
 peptide.dir = "/Users/jlovell/Documents/comparative_genomics/peptide"
 transcript.dir = "/Users/jlovell/Documents/comparative_genomics/transcript/"
@@ -48,18 +60,19 @@ id.mat = make_inputFileMatrix(
 
 id.mat = id.mat[id.mat$id1 != "Pvirgatum" & id.mat$id2 != "Pvirgatum",]
 
-MCScanX.params = "-a -s 5 -m 5"
+MCScanX.params = "-a -s 5 -m 25"
 buffer = 1
 
 tsp.method = "Concorde"
-Concorde.path = NULL
 max.jump = 5
 ref.id = "PhalliiHAL"
 min.block.size = 5
 
 plotit = T
-chr1toplot = "Chr03"
-chr2toplot = "Chr_03"
+chr1toplot = c("Chr03","Chr07","Chr08")
+chr2toplot = c("Chr_03","Chr_07","Chr_08")
+chr1toplot = c("Chr07","Chr08")
+chr2toplot = c("Chr_07","Chr_08")
 altGenome2plot = "Sviridis"
 
 verbose = T
@@ -67,9 +80,9 @@ verbose = T
 mappings = pipe_Diamond2MCScanX(inputFileMatrix = id.mat,
                                 mcscan.dir = mcscan.dir,
                                 nthreads = 6, onlyParseMap = T,
-                                topPerc = 75,
-                                dbs_radii = c(100, 40, 20),
-                                dbs_mappingsInRadius = c(10, 10, 10))
+                                topPerc = 50,
+                                dbs_radii = c(100, 40, 15),
+                                dbs_mappingsInRadius = c(10, 5, 5))
 
 mcs.out = run_MCScanX(ref.id = ref.id,
                       MCScanX.path = MCScanX.path,
@@ -81,31 +94,36 @@ plot_blocksAndMapping(map = mcs.out$map,
                       blk= mcs.out$block,
                       ref.id = ref.id,
                       altGenome2plot = altGenome2plot,
-                      chr1toplot = chr1toplot,
-                      chr2toplot = chr2toplot,
+                      chr1toplot = paste0("Chr0",9),
+                      chr2toplot =  paste0("Chr_0",9),
                       main = "Raw MCScanX blocks")
 
 merged = merge_overlappingBlocks(map = mcs.out$map,
-                                 blk = mcs.out$block,
+                                 blk = mcs.out$block,buffer = 0,
                                  verbose = verbose)
 plot_blocksAndMapping(map = merged$map,
-                      blk= merged$blk,
+                      blk= merged$block,
                       ref.id = ref.id,
                       altGenome2plot = altGenome2plot,
-                      chr1toplot = chr1toplot,
-                      chr2toplot = chr2toplot,
+                      chr1toplot = paste0("Chr0",1:9),
+                      chr2toplot =  paste0("Chr_0",1:9),
                       main = "Merged MCScanX blocks")
 
 
-tsped <- split_blocksByTSP(map = merged$map,
-                           Concorde.path = Concorde.path)
 
+spled <-split_byDensity(map = merged$map,quantile = .999)
+
+spled2 <-split_byDensity(map = spled$map,quantile = .999,rerank = F)
 if(plotit){
-  plot_blocksAndMapping(map = tsped$map,
-                        blk= tsped$block,
+  plot_blocksAndMapping(map = spled$map,
+                        blk= spled$block,
                         ref.id = ref.id,
                         altGenome2plot = altGenome2plot,
-                        chr1toplot = chr1toplot,
-                        chr2toplot = chr2toplot,
-                        main = "Merged MCScanX blocks")
+                        chr1toplot = paste0("Chr0",1:9),
+                        chr2toplot =  paste0("Chr_0",1:9),
+                        main = "Split MCScanX blocks Final")
+}
+
+final_blocks = chop_genome(gff, fasta, block, map, buffer, ref.id){
+  block = spled$b
 }

@@ -205,21 +205,24 @@ parse_fastaHeader = function(fasta.dir, is.peptide = T,
 #' @rdname utilities
 #' @import dbscan
 #' @export
-split_byDensity<-function(map, max.jump = 5, min.dens = max.jump-1,
-                          zScore2split = 5){
+split_byDensity<-function(map, max.dist = 5,
+                          quantile = 0.999){
 
-  split_it = function(map, radius,max.jump,min.dens,zScore2split){
+  split_it = function(map, radius,quantile){
     spl = split(map, map$block.id)
     out = do.call(rbind, lapply(names(spl), function(i){
       x = spl[[i]]
-      d1 = diff(x$x_a)
-      d2 = diff(x$x_b)
-      z1 = abs((d1-mean(d1))/(sd(d1)+.000001))
-      z2 = abs((d2-mean(d2))/(sd(d2)+.000001))
+      x$x_a = frank(x$start1,  ties.method = "dense")
+      x$x_b = frank(x$start2, ties.method = "dense")
       x$was_split = F
-      if(nrow(x)>10 & max(c(d1,d2))>max.jump & max(c(z1,z2))>zScore2split){
+      if(nrow(x)>radius*2){
         nn = dbscan::frNN(x[,c("x_a","x_b")], eps = radius)
-        dbs = dbscan::dbscan(nn, minPts = min.dens)
+
+        xbar = mean(unlist(nn$dist))
+        xsd = sd(unlist(nn$dist))
+        qthr = qnorm(quantile, mean = xbar, sd = xsd)
+
+        dbs = dbscan::dbscan(nn, minPts = qthr)
 
         x$newclust = dbs$cluster
         x = x[x$newclust!=0,]
@@ -231,22 +234,16 @@ split_byDensity<-function(map, max.jump = 5, min.dens = max.jump-1,
     }))
   }
 
-  map$x_a = frank(map[,c("chr1","start1")],
-                  ties.method = "dense")
-  map$x_b = frank(map[,c("chr2","start2")],
-                  ties.method = "dense")
-
   ntospl = 1
   map$was_split = TRUE
   while(any(map$was_split)){
     if(verbose)
       cat("checked", sum(map$was_split[!duplicated(map$block.id)]),"blocks\n")
     map = split_it(map,
-                   max.jump= max.jump,
-                   min.dens = min.dens,
-                   radius = sqrt((max.jump^2)*2),
-                   zScore2split = zScore2split)
+                   radius = sqrt((max.dist^2)*2),
+                   quantile = quantile)
   }
+  map$block.id = as.character(as.numeric(as.factor(map$block.id)))
   out = make_blocks(map)
   if(verbose)
     cat("split into",nrow(out$block),"... Done")
