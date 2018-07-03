@@ -22,85 +22,93 @@
 #' none yet
 #' }
 #' @export
-run_MCScanX<-function(ref.id, MCScanX.path, mcs_mapping.dir,
-                      MCScanX.params = NULL, verbose = T, buffer = 1){
+run_MCScanX = function(blast.results,
+                       abbrevs,
+                       mcscanx.input.dir,
+                       MCScanX.params = "-a -s 5 -m 25"){
 
-  if(verbose)
-    cat("concatenating gff files\n")
-  ingff=file.path(mcs_mapping.dir,"*gff")
-  outgff = file.path(mcs_mapping.dir,
-                     paste0(ref.id,"_all.gff"))
-  system(paste("cat", ingff,">", outgff))
-
-
-
-  if(verbose)
-    cat("concatenating blast results\n")
-
-  inblast=file.path(mcs_mapping.dir,"*blast")
-  outblast = file.path(mcs_mapping.dir,
-                       paste0(ref.id,"_all.blast"))
-  system(paste("cat", inblast,">", outblast))
-
-  mcscan.input = file.path(mcscan.dir, paste0(ref.id,"_all"))
-  if(is.null(MCScanX.params)){
-    com = paste(file.path(MCScanX.path,"MCScanX"),mcscan.input)
-  }else{
-    com = paste(file.path(MCScanX.path,"MCScanX"),MCScanX.params,mcscan.input)
+  if(file.exists(mcscanx.input.dir)){
+    system(paste("rm -r",mcscanx.input.dir))
   }
-  if(verbose)
-    cat("running MCScanX via:\n\t", com,"\n")
+  system(paste("mkdir",mcscanx.input.dir))
 
+  br = data.frame(blast.results, stringsAsFactors = F)
+  bs = br[!duplicated(br[,c("genome1","genome2")]),c("genome1","genome2")]
+  g1 = names(table(bs$genome1)[order(table(bs$genome1), decreasing = T)])
+  glast = unique(bs$genome2[!bs$genome2 %in% g1])
+  g = 1:length(c(g1,glast))
+  names(g) = c(g1,glast)
+
+  bs$index1 = NA
+  for(i in names(g)) bs$index1[bs$genome1 == i]<-g[i]
+  bs$index2 = NA
+  for(i in names(g)) bs$index2[bs$genome2 == i]<-g[i]
+  bs$abbrev1 = NA
+  for(i in names(g)) bs$abbrev1[bs$genome1 == i]<-abbrevs[i]
+  bs$abbrev2 = NA
+  for(i in names(g)) bs$abbrev2[bs$genome2 == i]<-abbrevs[i]
+
+  bs = bs[order(bs$index1, bs$index2),]
+
+  spl = split(blast.results, paste(blast.results$genome1, blast.results$genome2))
+
+  out = lapply(1:nrow(bs), function(i){
+    id = paste(bs[i,1:2], collapse = " ")
+    x = spl[[id]]
+    gff1 = x[,c("chr1","id1","start1","end1")]
+    chr1 =  as.numeric(as.factor(gff1$chr1))
+    id1 = x$genome1[1]
+    abbrev1 = abbrevs[id1]
+    gff1$chr1 = paste0(abbrev1,chr1)
+
+    gff2 = x[,c("chr2","id2","start2","end2")]
+    chr2 =  as.numeric(as.factor(gff2$chr2))
+    id2 = x$genome2[1]
+    abbrev2 = abbrevs[id2]
+    gff2$chr2 = paste0(abbrev2,chr2)
+    names(gff2) = names(gff1)
+    gff = data.table(rbind(gff1, gff2))
+    gff = gff[order(gff$chr1, gff$start1),]
+
+    blast = x[,c("id1","id2","perc.iden","align.length",
+                 "n.mismatch", "n.gapOpen", "q.start", "q.end",
+                 "s.start", "s.end", "eval", "score")]
+
+    return(list(gff = gff, blast = blast))
+  })
+
+  gff.o = rbindlist(lapply(out, function(x) x$gff))
+  blast.o = rbindlist(lapply(out, function(x) x$blast))
+
+  write.table(gff.o, file = file.path(mcscanx.input.dir,"all.gff"),
+              quote = F, sep = "\t", row.names = F, col.names = F)
+  write.table(blast.o, file = file.path(mcscanx.input.dir, "all.blast"),
+              quote = F, sep = "\t", row.names = F, col.names = F)
+
+  mcscan.input = file.path(mcscanx.input.dir,"all")
+
+  if(is.null(MCScanX.params)){
+    com = paste("MCScanX",mcscan.input)
+  }else{
+    com = paste("MCScanX",MCScanX.params,mcscan.input)
+  }
   system(com)
-  system(paste("rm",outgff))
-  system(paste("rm", outblast))
+  mcscan.raw = read.delim(paste0(mcscan.input,".collinearity"),
+                          sep = "\t", header  =F,
+                          comment.char = "#", strip.white = T,
+                          stringsAsFactors = F)
 
-  if(verbose)
-    cat("Merging output\n")
-  init.mcscan2 = read.delim(paste0(mcscan.input,".collinearity"), sep = "\t", header  =F,
-                     comment.char = "#", strip.white = T, stringsAsFactors = F)
-
-  gff.list = sapply(unique(c(id.mat$gff1, id.mat$gff2)), simplify = F, USE.NAMES = T, parse_quickGff)
-  names(gff.list)<-gsub(".gff3","",gsub(".*gff/","",names(gff.list)))
-
-  gff.ref = as.character(data.frame(gff.list[[ref.id]])[,1])
-  to.switch = which(init.mcscan2$V3 %in% gff.ref)
-  tmp1 = ifelse(init.mcscan2$V3 %in% gff.ref, init.mcscan2$V3, init.mcscan2$V2)
-  tmp2 = ifelse(init.mcscan2$V3 %in% gff.ref, init.mcscan2$V2, init.mcscan2$V3)
-  init.mcscan2$V2 = tmp1
-  init.mcscan2$V3 = tmp2
-
-  gff.index = rbindlist(lapply(names(gff.list), function(x) data.table(genome = x, geneID = gff.list[[x]][,1])))
-  gff.index1 = gff.index
-  gff.index2 = gff.index
-
-  allmap = rbindlist(gff.list)
-  allmap1 = allmap
-  allmap2 = allmap
-
-  setnames(init.mcscan2,c("info","geneID1","geneID2","score"))
-  setnames(allmap2,c("geneID2","chr2","start2","end2","strand2"))
-  mco = merge(allmap2, init.mcscan2, by = "geneID2")
-  setnames(allmap1,c("geneID1","chr1","start1","end1","strand1"))
-  mco = merge(allmap1,mco, by = "geneID1")
-  setnames(gff.index2, c("genome2","geneID2"))
-  mco = merge(gff.index2,mco, by = "geneID2")
-  setnames(gff.index1, c("genome1","geneID1"))
-  mco = merge(gff.index1,mco, by = "geneID1")
-
-  setkey(mco, genome1, genome2, chr1, chr2)
-  mco$block.id = gsub("-.*","",mco$info)
-
-  out.map = mco
-  out.map$rank1 = frank(out.map[,c("genome1","chr1","start1")], ties.method = "dense")
-  out.map$rank2 = frank(out.map[,c("genome2","chr2","start2")], ties.method = "dense")
-
-  out.blk = make_blocks(out.map)
-  map = data.frame(out.blk[["map"]], stringsAsFactors = F)
-  blk = data.frame(out.blk[["block"]], stringsAsFactors = F)
-
-  if(verbose)
-    cat("MCScanX - Done!\n")
-
-  return(list(block = blk, map = map))
+  fac = sapply(as.character(mcscan.raw$V1),function(x) strsplit(x,"-")[[1]][1])
+  m = data.table(mcscan.raw[,2:3])
+  setnames(m, c("id1","id2"))
+  m2 = data.table(m)
+  setnames(m, c("id2","id1"))
+  m$block.id = as.numeric(as.factor(fac))
+  m2$block.id = as.numeric(as.factor(fac))
+  out1 = merge(m, blast.results, by = c("id1","id2"))
+  out2 = merge(m2, blast.results, by = c("id1","id2"))
+  out = rbind(out1, out2)
+  out$rank1 = frank(out[,c("chr1","start1")], ties.method = "dense")
+  out$rank2 = frank(out[,c("chr2","start2")], ties.method = "dense")
+  return(out)
 }

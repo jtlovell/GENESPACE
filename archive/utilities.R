@@ -74,7 +74,7 @@ parse_quickGff = function(gff){
     data.table::fread(gff,showProgress = F, verbose = F))
   g = g[g$V3 == "gene",c(9,1,4,5,7)]
   g$V9 = sapply(g$V9, function(x) gsub("Name=","",strsplit(x,";")[[1]][2]))
-  setnames(g, c("id","chr","start","end","strand"))
+  data.table::setnames(g, c("id","chr","start","end","strand"))
   return(g)
 }
 #' @title Subset mappings by density
@@ -206,7 +206,7 @@ parse_fastaHeader = function(fasta.dir, is.peptide = T,
 #' @import dbscan
 #' @export
 split_byDensity<-function(map, max.dist = 5,
-                          quantile = 0.999){
+                          quantile = 0.999, verbose = T){
 
   split_it = function(map, radius,quantile){
     spl = split(map, map$block.id)

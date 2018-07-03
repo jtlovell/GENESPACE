@@ -23,6 +23,7 @@
 #' }
 #' @export
 make_inputFileMatrix<-function(peptide.dir,
+                               remap.dir,
                                mappings.dir,
                                gff.dir,
                                mcscan.dir,
@@ -61,6 +62,8 @@ make_inputFileMatrix<-function(peptide.dir,
   id.mat$pep2 = file.path(peptide.dir,paste0(id.mat$id2,".pep.fa"))
   id.mat$gff1 = file.path(gff.dir, paste0(id.mat$id1,".gff3"))
   id.mat$gff2 = file.path(gff.dir, paste0(id.mat$id2,".gff3"))
+  id.mat$remap.pep1 = file.path(remap.dir,paste0(id.mat$id1,".pep.fa"))
+  id.mat$remap.pep2 = file.path(remap.dir,paste0(id.mat$id2,".pep.fa"))
 
   id.mat$id2 <- ifelse(id.mat$id1 == id.mat$id2, paste0(id.mat$id2,"_1"),id.mat$id2)
   id.mat$blast1 = file.path(mappings.dir, paste0(id.mat$id1,"_",id.mat$id2,".blast8"))

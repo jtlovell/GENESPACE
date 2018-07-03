@@ -17,63 +17,49 @@
 #' none yet
 #' }
 #' @export
-merge_overlappingBlocks = function(map, blk, buffer = 1.5,
-                                   verbose = T){
+merge_overlappingBlocks = function(map, blk, buffer = 1.5, verbose = T){
   if(verbose)
     cat("Parsing",nrow(blk), "blocks and", nrow(map),"mappings\n")
   if(verbose)
     cat("Looking for overlapping blocks ...\n")
-
-  inrect = function(left,top,right, bottom, points, buffer = 1){
-    apply(points,1, function(k){
-      k[1]>(left+buffer) &
-        k[1]<(right-buffer) &
-        k[2]>(bottom+buffer) &
-        k[2]<(top-buffer)
-    })
-  }
-
-  blk$block.id = as.character(blk$block.id)
-  blk$uniq = paste0(blk$genome1,"_",blk$genome2,"_",blk$chr1, "_", blk$chr2)
-  spl = split(blk, blk$uniq)
-  nr = sapply(spl, nrow)
-  spl = spl[nr>1]
-  for(i in names(spl)){
+  map$block.id = paste(map$block.id,map$genome1, map$genome2, map$chr1, map$chr2)
+  o = make_blocks(map)
+  map = o$map
+  blk = o$block
+  spl = split(blk, paste(blk$genome1, blk$genome2, blk$chr1, blk$chr2))
+  spl2 = split(map, paste(map$genome1, map$genome2, map$chr1, map$chr2))
+  test = lapply(names(spl), function(i){
     x = spl[[i]]
-    x = x[order(x$start1, x$start2),]
+    x = x[order(-x$n.mapping),]
 
-    has.ovl = sapply(1:nrow(x), function(y)
-      rowSums(cbind(inrect(right = x$end1[y], left = x$start1[y],
-                           top = x$end2[y],bottom = x$start2[y],
-                           points = x[,c("start1","start2")]),
-                    inrect(right = x$end1[y], left = x$start1[y],
-                           top = x$end2[y],bottom = x$start2[y],
-                           points = x[,c("end1","start2")]),
-                    inrect(right = x$end1[y], left = x$start1[y],
-                           top = x$end2[y],bottom = x$start2[y],
-                           points = x[,c("start1","end2")]),
-                    inrect(right = x$end1[y], left = x$start1[y],
-                           top = x$end2[y],bottom = x$start2[y],
-                           points = x[,c("end1","end2")]))))
-    colnames(has.ovl)<-x$block.id
-    rownames(has.ovl)<-x$block.id
-    has.ovl = has.ovl>1
+    y = spl2[[i]]
 
-    if(sum(has.ovl)>0){
-      if(sum(colSums(has.ovl)>0)==1){
-        cn = colnames(has.ovl)[colSums(has.ovl)>0]
-        wh = rownames(has.ovl)[which(has.ovl[,colSums(has.ovl)>0])]
-        mlist = list(wh)
-        names(mlist) = cn
-      }else{
-        mlist = apply(has.ovl[,colSums(has.ovl)>0],2,function(y) names(which(y)))
-      }
-      for(j in 1:length(mlist)){
-        map$block.id[map$block.id %in% mlist[[j]]]<-names(mlist)[j]
+    for(j in x$block.id){
+      if(j %in% y$block.id){
+        wh = with(x, which(
+          ((rankstart1 + buffer) >= rankstart1[block.id == j]  &
+             (rankstart2 + buffer) >= rankstart2[block.id == j]  &
+             (rankstart1 - buffer) <= rankend1[block.id == j]  &
+             (rankstart2 - buffer)  <= rankend2[block.id == j]) |
+            ((rankend1 + buffer) >= rankstart1[block.id == j] &
+               (rankend2 + buffer) >= rankstart2[block.id == j]  &
+               (rankend1 - buffer)  <= rankend1[block.id == j] &
+               (rankend2 - buffer)  <= rankend2[block.id == j])))
+        if(length(wh)>0){
+          tomerge = x$block.id[wh]
+          y$block.id[y$block.id %in% tomerge]<-j
+          o = make_blocks(y)
+          y = o$map
+          x = o$block
+        }
       }
     }
-  }
-  out = make_blocks(map)
+    return(y)
+  })
+  tmp = rbindlist(test)
+  tmp$block.id = as.numeric(as.factor(tmp$block.id))
+  out = make_blocks(tmp)
+
   map = data.frame(out[["map"]], stringsAsFactors = F)
   blk = data.frame(out[["block"]], stringsAsFactors = F)
   if(verbose)
