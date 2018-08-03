@@ -1,4 +1,4 @@
-plot_mapping = function(cols = NULL, blk, map, genomes = NULL){
+plot_mapping = function(cols = NULL, blk, map, genomes = NULL, return.coords = F){
   if(is.null(cols))
     cols = rep_len(c("red3","salmon","darkorange3","gold",
                      "grey50","lightgreen","forestgreen","darkgreen",
@@ -36,5 +36,11 @@ plot_mapping = function(cols = NULL, blk, map, genomes = NULL){
              col = "lightgrey", lty = 2)
     segments(y0 = end2, y1 = end2, x0 = min(tmp$rank1), x1 = max(tmp$rank1),
              col = "lightgrey", lty = 2)
+    if(return.coords){
+      return(list(c(0,end1), c(0,end2)))
+    }
   })
+  if(return.coords){
+    return(trsh[[1]])
+  }
 }

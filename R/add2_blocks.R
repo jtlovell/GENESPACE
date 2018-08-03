@@ -1,0 +1,57 @@
+add2_blocks = function(blast.results,map, blk,
+                       buffer = 1, n.iter = 5, verbose = T){
+  for(i in 1:n.iter){
+    inmap = c(paste(map$id1, map$id2),
+              paste(map$id2, map$id1))
+    omap = map
+    test = rbindlist(lapply(1:nrow(blk), function(i){
+      x = blk[i,]
+      tmp = blast.results[with(blast.results,
+                               genome1 == x$genome1 &
+                                 genome2 == x$genome2 &
+                                 chr1 == x$chr1 &
+                                 chr2 == x$chr2),]
+      tmp$rank1 = frank(tmp$start1, ties.method = "dense")
+      tmp$rank2 = frank(tmp$start2, ties.method = "dense")
+      minr1 = max(tmp$rank1[tmp$start1<=x$start1])
+      if(is.null(minr1)){
+        minr1 = min(tmp$rank1)
+      }
+      minr2 = max(tmp$rank2[tmp$start2<=x$start2])
+      if(is.null(minr2)){
+        minr2 = min(tmp$rank2)
+      }
+
+      maxr1 = min(tmp$rank1[tmp$end1>=x$end1])
+      if(is.null(maxr1)){
+        maxr1 = max(tmp$rank1)
+      }
+      maxr2 = min(tmp$rank2[tmp$end2>=x$end2])
+      if(is.null(maxr2)){
+        maxr2 = max(tmp$rank2)
+      }
+      tmp$unique = paste(tmp$id1, tmp$id2)
+      otmp = tmp[tmp$rank1>=minr1-buffer &
+                   tmp$rank1<=maxr1 + buffer &
+                   tmp$rank2>=minr2 - buffer &
+                   tmp$rank2 <= maxr2 + buffer,]
+      otmp = otmp[!otmp$unique %in% inmap,]
+      otmp$block.id = x$block.id
+      return(otmp)
+    }))
+    test = test[!duplicated(test$unique),]
+    test$mapping = paste(test$genome1, test$genome2)
+    test = test[, colnames(map), with = F]
+    map = rbind(test, map)
+
+    map$rank1 = frank(map[,c("mapping","chr1","start1")], ties.method = "dense")
+    map$rank2 = frank(map[,c("mapping","chr2","start2")], ties.method = "dense")
+    map$block.id = as.character(as.numeric(as.factor(map$block.id)))
+    test = make_blocks(map)
+    map = test$map
+    blk = test$block
+    if(verbose) cat("added",nrow(map)-nrow(omap),"mappings\n")
+    if(nrow(map)-nrow(omap) == 0 ) break
+  }
+  return(test)
+}

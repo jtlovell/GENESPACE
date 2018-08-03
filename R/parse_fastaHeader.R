@@ -1,12 +1,12 @@
-#' @title Make input metadata for pipe_Diamond2MCScanX
+#' @title Utility to parse the header line of fasta file
 #'
 #' @description
-#' \code{make_inputFileMatrix} Utility function to build metadata
+#' \code{parse_fastaHeader} Returns a fasta file with the headers
+#' specifying only the locus name and no other info.
 #'
-#' @param map The map object (data.frame or data.table)
-#' @param blk The block object (data.frame)
-#' @param buffer Numeric, the overlapping distance between two blocks.
-#' 0 indicates that blocks that overlap by >=0 should be merged.
+#' @param fasta.dir The path to the directory holding the fasta files to parse.
+#' @param is.peptide Logical, should the sequence be treated as a peptide or DNA
+#' @param pattern Character, the pattern to grep in the files.
 #' @param verbose Logical, should updates be printed.
 #' @param ... Not currently in use
 #' @details Primarily used in the run_MCScanX pipeline.
@@ -18,7 +18,7 @@
 #' }
 #' @export
 parse_fastaHeader = function(fasta.dir, is.peptide = T,
-                             pattern = "fa", verbose = T){
+                             pattern = "fa", verbose = T, ...){
 
   files = list.files(fasta.dir,
                       pattern = pattern,

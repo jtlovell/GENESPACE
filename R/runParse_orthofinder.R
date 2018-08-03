@@ -1,12 +1,27 @@
 #' @title Make input metadata for pipe_Diamond2MCScanX
 #'
 #' @description
-#' \code{make_inputFileMatrix} Utility function to build metadata
+#' \code{runParse_orthofinder} Utility function to build metadata
 #'
-#' @param map The map object (data.frame or data.table)
-#' @param blk The block object (data.frame)
-#' @param buffer Numeric, the overlapping distance between two blocks.
-#' 0 indicates that blocks that overlap by >=0 should be merged.
+#' @param peptide.dir The path to the directory containing the peptide fasta sequence files
+#' @param blast.dir The path to the directory where the blast results should be stored
+#' @param tmp.dir The path to the directory where temporary files will be stored then deleted
+#' @param gff.dir The path to the directory containing the annotations in gff3 format.
+#' @param min.propMax Numeric, A dynamic blast score threshold to retain mappings, where
+#' only mappings with scores > min.propMax of the highest score for each gene
+#' @param min.score Numeric, the hard threshold, below which all mappings are removed.
+#' @param nmapsPerHaplotype Numeric, the number of mappings retained per haplotype. For
+#' example, if set to 1 (default), two mappings are retained for each gene in a diploid
+#' genome, provided the scores satisfy the two score thresholds.
+#' @param eps.radius Numeric, the gene position rank radius within which to count the number
+#' of mappings. If length > 1, must be of same length as n.mappingWithinRadius
+#' @param n.mappingWithinRadius Numeric, see eps.radius.
+#' @param ploidy Named numeric vector, where names match genome ids. Informs the number
+#' of mappings retained for each gene.
+#' @param runOF Logical, should the full orthofinder pipe be run,
+#' or should blast results just be parsed?
+#' @fasta.pattern Character, the character string to grep for in the fasta directory.
+#' Useful if the fasta files are indexed.
 #' @param verbose Logical, should updates be printed.
 #' @param ... Not currently in use
 #' @details Primarily used in the run_MCScanX pipeline.

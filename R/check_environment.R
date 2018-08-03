@@ -1,15 +1,11 @@
-#' @title Make input metadata for pipe_Diamond2MCScanX
+#' @title Make sure everything is setup
 #'
 #' @description
-#' \code{make_inputFileMatrix} Utility function to build metadata
+#' \code{check_environment} Utility function to make sure environment is
+#' correct and files exist
 #'
-#' @param map The map object (data.frame or data.table)
-#' @param blk The block object (data.frame)
-#' @param buffer Numeric, the overlapping distance between two blocks.
-#' 0 indicates that blocks that overlap by >=0 should be merged.
-#' @param verbose Logical, should updates be printed.
 #' @param ... Not currently in use
-#' @details Primarily used in the run_MCScanX pipeline.
+#' @details Needs to be run prior to the pipeline. Makes some objects that are required.
 #' @return Nothing.
 #'
 #' @examples

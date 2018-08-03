@@ -27,7 +27,7 @@
 #' none yet
 #' }
 #' @export
-make_alignmentsInBlocks = function(blk,
+blatExonerate_inblock = function(blk,
                                    gff.dir,
                                    peptide.dir,
                                    tmp.dir,

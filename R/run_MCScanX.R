@@ -108,7 +108,8 @@ run_MCScanX = function(blast.results,
   out1 = merge(m, blast.results, by = c("id1","id2"))
   out2 = merge(m2, blast.results, by = c("id1","id2"))
   out = rbind(out1, out2)
-  out$rank1 = frank(out[,c("chr1","start1")], ties.method = "dense")
-  out$rank2 = frank(out[,c("chr2","start2")], ties.method = "dense")
+  out$mapping = paste(out$genome1, out$genome2)
+  out$rank1 = frank(out[,c("mapping","chr1","start1")], ties.method = "dense")
+  out$rank2 = frank(out[,c("mapping","chr2","start2")], ties.method = "dense")
   return(out)
 }

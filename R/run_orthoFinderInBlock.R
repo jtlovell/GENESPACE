@@ -135,5 +135,11 @@ run_orthoFinderInBlock = function(blk,
   p = merge(p.single, p.2, by = "block.id", all = T)
   p$p.multi = 1-rowSums(p[,-1])
 
-  return(list(orthogroups = og.list, proptype = p))
+  sing = rbindlist(lapply(names(og.list), function(x) data.table(id = og.list[[x]][[1]],
+                                                       block = x)))
+  setnames(sing, c("id","block.id"))
+  sing = merge(gff, sing, by = "id")
+
+  return(list(orthogroups = og.list, proptype = p, single.genes = sing))
 }
+
