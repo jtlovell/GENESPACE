@@ -21,6 +21,7 @@
 #' that the chromosome comes from genomeID1.
 #' @param genome_id2.col The color of a track just inside of the labels, indicating
 #' that the chromosome comes from genomeID2.
+#' @param track.height How wide should the track with genome colors be?
 #' @param ... Not currently in use
 #' @details More here
 #' @return Nothing.
@@ -45,124 +46,151 @@
 #' @import data.table
 #' @import circlize
 #' @export
-plot_linkedCircos = function(blk,
-                             genome_id1,
-                             genome_id2,
-                             chrs1,
-                             chrs2,
-                             chr_order,
-                             chrs1_abbrev,
-                             chrs2_abbrev,
-                             cols,
-                             gap.deg,
-                             assembly.dir,
-                             genome_id1.col = "grey80",
-                             genome_id2.col = "grey50",
-                             ...){
+plot_linkedCircos <- function(blk,
+                              genome_id1,
+                              genome_id2,
+                              chrs1,
+                              chrs2,
+                              chr_order,
+                              chrs1_abbrev,
+                              chrs2_abbrev,
+                              cols,
+                              gap.deg,
+                              assembly.dir,
+                              genome_id1.col = "grey80",
+                              genome_id2.col = "grey50",
+                              track.height = 0.05
+                              ...){
 
   add.alpha <- function(col, alpha=1){
     if(missing(col))
       stop("Please provide a vector of colours.")
     apply(sapply(col, col2rgb)/255, 2,
           function(x)
-            rgb(x[1], x[2], x[3], alpha=alpha))
+            rgb(x[1],
+                x[2],
+                x[3],
+                alpha=alpha))
   }
 
-  fai1 = read.delim(file.path(assembly.dir,paste0(genome_id1,".fa.fai")),
-                    header = F, stringsAsFactors = F,
-                    col.names = c("chr","length","v1","v2","v3"))[,1:2]
-  fai1 = fai1[fai1$chr %in% chrs1,]
-  rownames(fai1)<-fai1$chr
-  fai1 = fai1[chrs1,]
-  fai1$sector_names = chrs1_abbrev
-  fai1$genome = genome_id1
+  fai1 <- read.delim(file.path(assembly.dir,
+                               paste0(genome_id1,
+                                      ".fa.fai")),
+                     header = F,
+                     stringsAsFactors = F,
+                     col.names = c("chr","length","v1","v2","v3"))[,1:2]
+  fai1 <- fai1[fai1$chr %in% chrs1,]
+  rownames(fai1) <- fai1$chr
+  fai1 <- fai1[chrs1,]
+  fai1$sector_names <- chrs1_abbrev
+  fai1$genome <- genome_id1
 
-  fai2 = read.delim(file.path(assembly.dir,paste0(genome_id2,".fa.fai")),
-                    header = F, stringsAsFactors = F,
-                    col.names = c("chr","length","v1","v2","v3"))[,1:2]
-  fai2 = fai2[fai2$chr %in% chrs2,]
-  rownames(fai2)<-fai2$chr
-  fai2 = fai2[chrs2,]
-  fai2$sector_names = chrs2_abbrev
-  fai2$genome = genome_id2
-  fais = rbind(fai1,fai2)
-  fais = fais[chr_order,]
-  fais$color = cols
+  fai2 <- read.delim(file.path(assembly.dir,
+                               paste0(genome_id2,".fa.fai")),
+                     header = F,
+                     stringsAsFactors = F,
+                     col.names = c("chr","length","v1","v2","v3"))[,1:2]
+  fai2 <- fai2[fai2$chr %in% chrs2,]
+  rownames(fai2) <- fai2$chr
+  fai2 <- fai2[chrs2,]
+  fai2$sector_names <- chrs2_abbrev
+  fai2$genome <- genome_id2
+  fais <- rbind(fai1, fai2)
+  fais <- fais[chr_order,]
+  fais$color <- cols
 
 
-  setkey(blk, chr1,chr2,start1,start2)
-  blk = data.frame(blk, stringsAsFactors = F)
-  b0 = blk[with(blk, (genome1 == genome_id1 | genome2 == genome_id1) &
-                  (genome1 == genome_id2 | genome2 == genome_id2)),]
-  b1 = b0[with(b0, genome1 == genome_id1),]
-  b2 = b0[with(b0, genome1 == genome_id2),]
+  setkey(blk,
+         chr1, chr2,
+         start1, start2)
+  blk <- data.frame(blk,
+                    stringsAsFactors = F)
+  b0 <- blk[with(blk, (genome1 == genome_id1 |
+                         genome2 == genome_id1) &
+                   (genome1 == genome_id2 |
+                      genome2 == genome_id2)),]
+  b1 <- b0[with(b0, genome1 == genome_id1),]
+  b2 <- b0[with(b0, genome1 == genome_id2),]
 
-  good_colnames = c("genome1","genome2","chr1","chr2","start1","start2","end1","end2","orient")
-  colnames_2switch = c("genome2","genome1","chr2","chr1","start2","start1","end2","end1","orient")
+  good_colnames <- c("genome1","genome2",
+                     "chr1","chr2",
+                     "start1","start2",
+                     "end1","end2","orient")
+  colnames_2switch <- c("genome2","genome1",
+                        "chr2","chr1",
+                        "start2","start1",
+                        "end2","end1","orient")
   if(nrow(b2) == 0){
-    bed = b1[,good_colnames]
+    bed <- b1[,good_colnames]
   }else{
     if(nrow(b1)==0){
-      bed = b2[,colnames_2switch]
-      colnames(bed)<-good_colnames
+      bed <- b2[,colnames_2switch]
+      colnames(bed) <- good_colnames
     }else{
-      b1t = b1[,good_colnames]
-      b2t = b2[,colnames_2switch]
-      colnames(b2t)<-good_colnames
-      bed = rbind(b1t,b2t)
+      b1t <- b1[,good_colnames]
+      b2t <- b2[,colnames_2switch]
+      colnames(b2t) <- good_colnames
+      bed <- rbind(b1t, b2t)
     }
   }
-  bed = bed[bed$chr1 %in% fai1$chr & bed$chr2 %in% fai2$chr,]
+  bed <- bed[bed$chr1 %in% fai1$chr &
+               bed$chr2 %in% fai2$chr,]
 
 
-  bed$s1 = with(bed, ifelse(orient == "+", start1, end1))
-  bed$e1 = with(bed, ifelse(orient == "+", end1, start1))
-  bed$start1 = bed$s1
-  bed$end1 = bed$e1
-  bed$s1<-NULL
-  bed$e1<-NULL
+  bed$s1 <- with(bed,
+                 ifelse(orient == "+", start1, end1))
+  bed$e1 <- with(bed,
+                 ifelse(orient == "+", end1, start1))
+  bed$start1 <- bed$s1
+  bed$end1 <- bed$e1
+  bed$s1 <- NULL
+  bed$e1 <- NULL
 
 
-  alpha.scale = function(x){
-    ifelse(x > 5e6,.8,
-           ifelse(x > 1e6,.6,
-                  ifelse(x > 5e5, .4,
+  alpha.scale <- function(x){
+    ifelse(x > 5e6,.6,
+           ifelse(x > 1e6,.4,
+                  ifelse(x > 5e5, .3,
                          ifelse(x > 1e5,.2,.1))))
   }
-  bed1 = with(bed,data.frame(chr = chr1,
-                             start = start1,
-                             end = end1,
-                             value = alpha.scale(abs(start1-end1)),
-                             color = NA,
-                             stringsAsFactors = F))
+  bed1 <- with(bed,data.frame(chr = chr1,
+                              start = start1,
+                              end = end1,
+                              value = alpha.scale(abs(start1 - end1)),
+                              color = NA,
+                              stringsAsFactors = F))
   bed2 = with(bed,data.frame(chr = chr2,
                              start = start2,
                              end = end2,
-                             value = alpha.scale(abs(start2-end2)),
+                             value = alpha.scale(abs(start2 - end2)),
                              color = NA,
                              stringsAsFactors = F))
   for(i in 1:length(chrs1)){
-    bed1$color[bed1$chr == chrs1[i]]<- fais$color[fais$chr == chrs1[i] & fais$genome == genome_id1]
-    bed1$chr[bed1$chr == chrs1[i]]<-chrs1_abbrev[i]
+    bed1$color[bed1$chr == chrs1[i]] <- fais$color[fais$chr == chrs1[i] &
+                                                     fais$genome == genome_id1]
+    bed1$chr[bed1$chr == chrs1[i]] <- chrs1_abbrev[i]
   }
 
   for(i in 1:length(chrs2)){
-    bed2$color[bed2$chr == chrs2[i]]<- fais$color[fais$chr == chrs2[i] & fais$genome == genome_id2]
-    bed2$chr[bed2$chr == chrs2[i]]<-chrs2_abbrev[i]
+    bed2$color[bed2$chr == chrs2[i]] <- fais$color[fais$chr == chrs2[i] &
+                                                     fais$genome == genome_id2]
+    bed2$chr[bed2$chr == chrs2[i]] <- chrs2_abbrev[i]
   }
 
-  bed1$link.col = sapply(1:nrow(bed1), function(x) add.alpha(bed1$color[x], bed1$value[x]))
-  bed2$link.col = sapply(1:nrow(bed2), function(x) add.alpha(bed2$color[x], bed2$value[x]))
+  bed1$link.col <- sapply(1:nrow(bed1), function(x)
+    add.alpha(bed1$color[x], bed1$value[x]))
+  bed2$link.col <- sapply(1:nrow(bed2), function(x)
+    add.alpha(bed2$color[x], bed2$value[x]))
 
-  linkcols = bed1$link.col
+  linkcols <- bed1$link.col
 
-  fais$color = ifelse(fais$genome == genome_id1,genome_id1.col,genome_id2.col)
+  fais$color <- ifelse(fais$genome == genome_id1, genome_id1.col, genome_id2.col)
 
   # bed1 = rbind(bed1, bed2)
-  init = data.frame(name = fais$sector_names,
-                    start = 0,
-                    end = fais$length,
-                    stringsAsFactors = F)
+  init <- data.frame(name = fais$sector_names,
+                     start = 0,
+                     end = fais$length,
+                     stringsAsFactors = F)
   circos.par(start.degree = 90,
              clock.wise = TRUE,
              "gap.degree" = gap.deg)
@@ -171,8 +199,11 @@ plot_linkedCircos = function(blk,
   circos.track(ylim = c(0, 1),
                bg.col = fais$color,
                bg.border = NA,
-               track.height = 0.05)
-  circos.genomicLink(bed1, bed2, col= linkcols, border = NA)
+               track.height = track.height)
+  circos.genomicLink(bed1,
+                     bed2,
+                     col = linkcols,
+                     border = NA)
   circos.clear()
 
 }

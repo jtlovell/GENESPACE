@@ -20,44 +20,44 @@
 #' none yet
 #' }
 #' @export
-check_environment = function(directory,
-                             genomeIDs,
-                             abbrevs,
-                             ploidy){
+check_environment <- function(directory,
+                              genomeIDs,
+                              abbrevs,
+                              ploidy){
 
   cat("Making R variables and necessary directories... ")
 
-  tmp.dir <<- file.path(directory,"tmp")
+  tmp.dir <<- file.path(directory, "tmp")
   if(file.exists(tmp.dir))
     system(paste("rm -r", tmp.dir))
-  system(paste("mkdir",tmp.dir))
+  system(paste("mkdir", tmp.dir))
 
-  results.dir <<- file.path(directory,"results")
+  results.dir <<- file.path(directory, "results")
   if(file.exists(results.dir))
     system(paste("rm -r", results.dir))
   system(paste("mkdir",results.dir))
 
-  blast.dir <<- file.path(directory,"blast")
+  blast.dir <<- file.path(directory, "blast")
   if(file.exists(blast.dir))
     system(paste("rm -r", blast.dir))
-  system(paste("mkdir",blast.dir))
+  system(paste("mkdir", blast.dir))
 
-  mcscan.dir <<- file.path(directory,"mcscanx")
+  mcscan.dir <<- file.path(directory, "mcscanx")
   if(file.exists(mcscan.dir))
     system(paste("rm -r", mcscan.dir))
-  system(paste("mkdir",mcscan.dir))
+  system(paste("mkdir", mcscan.dir))
 
   genome.dir <<- file.path(directory,"genome")
 
-  gff.dir <<- file.path(genome.dir,"gff")
-  peptide.dir <<- file.path(genome.dir,"peptide")
-  cds.dir <<- file.path(genome.dir,"cds")
-  transcript.dir <<- file.path(genome.dir,"transcript")
-  assembly.dir <<- file.path(genome.dir,"assembly")
+  gff.dir <<- file.path(genome.dir, "gff")
+  peptide.dir <<- file.path(genome.dir, "peptide")
+  cds.dir <<- file.path(genome.dir, "cds")
+  transcript.dir <<- file.path(genome.dir, "transcript")
+  assembly.dir <<- file.path(genome.dir, "assembly")
 
 
-  abbrevs<<-abbrevs
-  ploidy<<-ploidy
+  abbrevs <<- abbrevs
+  ploidy <<- ploidy
 
   cat("Done!\n")
 
@@ -65,11 +65,12 @@ check_environment = function(directory,
   if(!file.exists(genome.dir))
     stop("Genome directory does not exist, build first\n")
 
-  ftypes <- file.path(genome.dir,c("transcript",
-              "peptide",
-              "cds",
-              "gff",
-              "assembly"))
+  ftypes <- file.path(genome.dir,
+                      c("transcript",
+                        "peptide",
+                        "cds",
+                        "gff",
+                        "assembly"))
 
   for(i in ftypes){
     if(!file.exists(i)){
@@ -77,7 +78,9 @@ check_environment = function(directory,
     }
     sap = sapply(genomeIDs, function(x) any(grepl(x, dir(i))))
     if(any(!sap)){
-      stop("Directory",i, "does not contain files for", genomeIDs[!sap],"\n")
+      stop("Directory", i,
+           "does not contain files for",
+           genomeIDs[!sap], "\n")
     }
   }
   cat("Pass!\n")
@@ -110,7 +113,7 @@ check_environment = function(directory,
 
   cat("Checking for R Package dependencies ... ")
   suppressPackageStartupMessages(
-    fi <- sapply(packages, require ,quietly = T, character.only = T))
+    fi <- sapply(packages, require, quietly = T, character.only = T))
   if(all(fi)){
     cat("Pass!\n")
   }else{
@@ -119,11 +122,12 @@ check_environment = function(directory,
   }
 
   cat("Checking for program dependencies ... ")
-  fi <- sapply(programs, function(x) Sys.which(x) !="")
+  fi <- sapply(programs, function(x) Sys.which(x) != "")
   if(all(fi)){
     cat("Pass!\n")
   }else{
-    cat("Fail!\nThe following programs need to be installed and added to the path:\n", paste(programs[!fi], collapse = "\n"))
+    cat("Fail!\nThe following programs need to be installed and added to the path:\n",
+        paste(programs[!fi], collapse = "\n"))
   }
   names(ploidy) <- genomeIDs
   names(abbrevs) <- genomeIDs

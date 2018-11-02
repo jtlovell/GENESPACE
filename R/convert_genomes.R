@@ -58,7 +58,7 @@ convert_genomes = function(genomeIDs,
       cat("Renaming fasta headers ...\n")
     ss <- lapply(files, function(i){
       if(verbose)
-        cat("...",i,"\n\t")
+        cat("...", i, "\n\t")
       if(is.peptide){
         x <- readAAStringSet(i)
       }else{
@@ -67,7 +67,7 @@ convert_genomes = function(genomeIDs,
       if(verbose)
         cat("original names (e.g.):",
             names(x)[1])
-      names(x) <- sapply(names(x),parse_fastaHeader.FUN)
+      names(x) <- sapply(names(x), parse_fastaHeader.FUN)
       if(verbose)
         cat("\n\tparsed names (e.g.):",
             names(x)[1],"\n")
@@ -75,8 +75,8 @@ convert_genomes = function(genomeIDs,
     })
   }
 
-  raw_assembly.dir = file.path(directory,"raw_assemblies")
-  raw_annot.dir = file.path(directory,"raw_annotations")
+  raw_assembly.dir = file.path(directory, "raw_assemblies")
+  raw_annot.dir = file.path(directory, "raw_annotations")
 
   # 0. Check input
   if(!all(genomeIDs %in% dir(raw_annot.dir))){
@@ -102,7 +102,7 @@ convert_genomes = function(genomeIDs,
     cat("Making genome directories\n")
 
   # 1. make the directories
-  input.dir = file.path(directory,"genome")
+  input.dir = file.path(directory, "genome")
   if(!file.exists(input.dir)){
     system(paste("mkdir", input.dir))
   }else{
@@ -131,9 +131,9 @@ convert_genomes = function(genomeIDs,
     for(j in names(file.lists[[i]])){
       x <- file.lists[[i]][j]
       y <- subdirs[[i]]
-      outname <- file.path(y, ifelse(grepl("gff",x),
-                                     paste0(j,".gff3"),
-                                     paste0(j,".fa")))
+      outname <- file.path(y, ifelse(grepl("gff", x),
+                                     paste0(j, ".gff3"),
+                                     paste0(j, ".fa")))
       if(grepl(".gz$", x)){
         system(paste("gunzip -c", x, ">", outname))
       }else{
@@ -148,11 +148,11 @@ convert_genomes = function(genomeIDs,
 
   assem.dir <- subdirs[["assembly"]]
   system(paste("cp",
-               file.path(raw_assembly.dir,"*"),
+               file.path(raw_assembly.dir, "*"),
                assem.dir))
 
   if(any(grepl("*.fai", list.files(assem.dir)))){
-    system(paste("rm", file.path(assem.dir,"*.fai")))
+    system(paste("rm", file.path(assem.dir, "*.fai")))
   }
   assem.fas <- list.files(assem.dir, full.names = T)
   for(i in assem.fas){
@@ -162,7 +162,7 @@ convert_genomes = function(genomeIDs,
   # 4. re-name annotation fastas with gene name (not model).
   if(verbose)
     cat("Renaming annotation fasta headers\n")
-  tmp <- lapply(subdirs[c("transcript","cds")], function(x){
+  tmp <- lapply(subdirs[c("transcript", "cds")], function(x){
     parse_fastaHeader(fasta.dir = x,
                       is.peptide = F,
                       verbose = F,

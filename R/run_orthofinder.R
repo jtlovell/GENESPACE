@@ -20,19 +20,23 @@
 #' none yet
 #' }
 #' @export
-run_orthofinder<-function(peptide.dir,
-                          tmp.dir,
-                          blast.dir,
-                          verbose = T,
-                          ...){
+run_orthofinder < -function(peptide.dir,
+                            tmp.dir,
+                            blast.dir,
+                            verbose = T,
+                            ...){
   ################   ################   ################
   ################   ################   ################
   if(verbose)
-    cat("Copying peptide fasta files to", tmp.dir,"\n")
+    cat("Copying peptide fasta files to",
+        tmp.dir,
+        "\n")
   if(file.exists(tmp.dir)){
-    system(paste("rm -r", tmp.dir))
+    system(paste("rm -r",
+                 tmp.dir))
   }
-  system(paste("mkdir", tmp.dir))
+  system(paste("mkdir",
+               tmp.dir))
   system(paste("cp",
                file.path(peptide.dir, "*"),
                tmp.dir))
@@ -48,11 +52,15 @@ run_orthofinder<-function(peptide.dir,
   ################   ################   ################
   ################   ################   ################
   if(verbose)
-    cat("Moving blasts results to", blast.dir,"\n")
+    cat("Moving blasts results to",
+        blast.dir,
+        "\n")
   if(file.exists(blast.dir)){
-    system(paste("rm -r", blast.dir))
+    system(paste("rm -r",
+                 blast.dir))
   }
-  system(paste("mkdir", blast.dir))
+  system(paste("mkdir",
+               blast.dir))
 
   blast.loc <- dirname(list.files(tmp.dir,
                                   pattern = "SequenceIDs",
@@ -64,15 +72,19 @@ run_orthofinder<-function(peptide.dir,
                                   full.names = T)[1])
 
   system(paste("cp",
-               file.path(blast.loc, "SequenceIDs.txt"),
+               file.path(blast.loc,
+                         "SequenceIDs.txt"),
                blast.dir))
   system(paste("cp",
-               file.path(blast.loc, "SpeciesIDs.txt"),
+               file.path(blast.loc,
+                         "SpeciesIDs.txt"),
                blast.dir))
   system(paste("cp",
-               file.path(blast.loc, "Blast*"),
+               file.path(blast.loc,
+                         "Blast*"),
                blast.dir))
   system(paste("cp",
-               file.path(ortho.loc, "Orthogroups.txt"),
+               file.path(ortho.loc,
+                         "Orthogroups.txt"),
                blast.dir))
 }
