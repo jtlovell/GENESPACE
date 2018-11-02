@@ -1,9 +1,9 @@
-Package: compareGeneSpace
+Package: GENESPACE
 Type: Package
 Title: Gene-space alignments of whole-genome sequence data. 
 Version: 0.2.1
 Author: JT Lovell
-Maintainer: JT Lovell <jlovell@hudsonalpha.orgt>
+Maintainer: JT Lovell <jlovell@hudsonalpha.org>
 Description: Collinear blocks are formed from parsed BLAST results 
       and fed into MCScanX. These blocks are re-aligned and local
       pairwise matches are validated. The pairwise associations are

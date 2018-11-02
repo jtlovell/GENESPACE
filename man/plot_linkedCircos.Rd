@@ -6,7 +6,8 @@
 \usage{
 plot_linkedCircos(blk, genome_id1, genome_id2, chrs1, chrs2, chr_order,
   chrs1_abbrev, chrs2_abbrev, cols, gap.deg, assembly.dir,
-  genome_id1.col = "grey80", genome_id2.col = "grey50", ...)
+  genome_id1.col = "grey80", genome_id2.col = "grey50",
+  track.height = 0.05, ...)
 }
 \arguments{
 \item{blk}{The block data.frame or data.table}
@@ -38,6 +39,8 @@ that the chromosome comes from genomeID1.}
 
 \item{genome_id2.col}{The color of a track just inside of the labels, indicating
 that the chromosome comes from genomeID2.}
+
+\item{track.height}{How wide should the track with genome colors be?}
 
 \item{...}{Not currently in use}
 }

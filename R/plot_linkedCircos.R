@@ -59,7 +59,7 @@ plot_linkedCircos <- function(blk,
                               assembly.dir,
                               genome_id1.col = "grey80",
                               genome_id2.col = "grey50",
-                              track.height = 0.05
+                              track.height = 0.05,
                               ...){
 
   add.alpha <- function(col, alpha=1){

@@ -20,7 +20,7 @@
 #' none yet
 #' }
 #' @export
-run_orthofinder < -function(peptide.dir,
+run_orthofinder <- function(peptide.dir,
                             tmp.dir,
                             blast.dir,
                             verbose = T,
