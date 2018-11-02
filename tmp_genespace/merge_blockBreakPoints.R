@@ -1,3 +1,24 @@
+#' @title Merge blocks by position
+#'
+#' @description
+#' \code{merge_blockBreakPoints} Concatenate block breakpoints between
+#' genomes.
+#'
+#' @param map The map object (data.frame or data.table)
+#' @param genomeIDs The genomes to consider
+#' @param checkOvl.bp distance in bp to look for a potential breakpoint to merge
+#' @param checkOvl.rank rank distance to look for a potential breakpoint to merge
+#' @param ... Not currently in use
+#' @details Nothing yet
+#' @return Nothing.
+#'
+#' @examples
+#' \dontrun{
+#' none yet
+#' }
+#' @import data.table
+#' @importFrom dbscan dbscan frNN
+#' @export
 merge_blockBreakPoints = function(map,
                                   genomeIDs,
                                   checkOvl.bp = 100000,

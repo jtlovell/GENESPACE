@@ -1,11 +1,9 @@
-#' @title Make input metadata for pipe_Diamond2MCScanX
+#' @title Parse blast files
 #'
 #' @description
-#' \code{runParse_orthofinder} Utility function to build metadata
+#' \code{parse_blast} Parse blast files
 #'
-#' @param peptide.dir The path to the directory containing the peptide fasta sequence files
 #' @param blast.dir The path to the directory where the blast results should be stored
-#' @param tmp.dir The path to the directory where temporary files will be stored then deleted
 #' @param gff.dir The path to the directory containing the annotations in gff3 format.
 #' @param min.propMax Numeric, A dynamic blast score threshold to retain mappings, where
 #' only mappings with scores > min.propMax of the highest score for each gene
@@ -18,10 +16,6 @@
 #' @param n.mappingWithinRadius Numeric, see eps.radius.
 #' @param ploidy Named numeric vector, where names match genome ids. Informs the number
 #' of mappings retained for each gene.
-#' @param runOF Logical, should the full orthofinder pipe be run,
-#' or should blast results just be parsed?
-#' @fasta.pattern Character, the character string to grep for in the fasta directory.
-#' Useful if the fasta files are indexed.
 #' @param verbose Logical, should updates be printed.
 #' @param ... Not currently in use
 #' @details Primarily used in the run_MCScanX pipeline.
@@ -32,59 +26,16 @@
 #' none yet
 #' }
 #' @export
-runParse_orthofinder<-function(peptide.dir,
-                               tmp.dir,
-                               blast.dir,
-                               gff.dir,
-                               min.propMax = .5,
-                               min.score = 50,
-                               nmapsPerHaplotype = 1,
-                               eps.radius = c(100,50,20),
-                               n.mappingWithinRadius = c(10,10,10),
-                               ploidy,
-                               runOF = TRUE,
-                               fasta.pattern = "*.fa",
-                               verbose = T){
-  if(runOF){
-    ################   ################   ################
-    ################   ################   ################
-    if(verbose)
-      cat("Copying peptide fasta files to", tmp.dir,"\n")
-    if(file.exists(tmp.dir)){
-      system(paste("rm -r", tmp.dir))
-    }
-    system(paste("mkdir", tmp.dir))
-    system(paste("cp",
-                 file.path(peptide.dir,
-                           fasta.pattern),
-                 tmp.dir))
-
-    ################   ################   ################
-    ################   ################   ################
-    if(verbose)
-      cat("Running blasts within Orthofinder\n")
-    system(paste("orthofinder -f",
-                 tmp.dir,
-                 "-S diamond -og"))
-
-    ################   ################   ################
-    ################   ################   ################
-    if(verbose)
-      cat("Moving blasts results to", blast.dir,"\n")
-    if(file.exists(blast.dir)){
-      system(paste("rm -r", blast.dir))
-    }
-    system(paste("mkdir", blast.dir))
-
-    blast.loc = dirname(list.files(tmp.dir,pattern = "SequenceIDs", recursive = T, full.names = T)[1])
-    ortho.loc = dirname(list.files(tmp.dir,pattern = "Orthogroups.txt", recursive = T, full.names = T)[1])
-
-    system(paste("cp", file.path(blast.loc, "SequenceIDs.txt"), blast.dir))
-    system(paste("cp", file.path(blast.loc, "SpeciesIDs.txt"), blast.dir))
-    system(paste("cp", file.path(blast.loc, "Blast*"), blast.dir))
-    system(paste("cp", file.path(ortho.loc, "Orthogroups.txt"), blast.dir))
-  }
-
+parse_blast<-function(blast.dir,
+                      gff.dir,
+                      min.propMax = .5,
+                      min.score = 50,
+                      nmapsPerHaplotype = 1,
+                      eps.radius = c(100,50,20),
+                      n.mappingWithinRadius = c(10,10,10),
+                      is.orthofinder = FALSE,
+                      ploidy,
+                      verbose = T){
 
   ################   ################   ################
   ################   ################   ################
@@ -111,20 +62,23 @@ runParse_orthofinder<-function(peptide.dir,
 
   ################   ################   ################
   ################   ################   ################
+  if(is.orthofinder){
+
+  }
   if(verbose)
     cat("Parsing orthofinder blast results\n")
 
   si = read.delim(file.path(blast.dir,"SpeciesIDs.txt"),
-                             sep = ":", stringsAsFactors = F, header = F,
-                             strip.white = T,
-                             col.names = c("genome.num","genome"))
+                  sep = ":", stringsAsFactors = F, header = F,
+                  strip.white = T,
+                  col.names = c("genome.num","genome"))
   si$genome = gsub(".fa$","",si$genome)
   rownames(si)<-si$genome
   si = si[names(ploidy),]
   si$ploidy = ploidy
 
   sm = cbind(expand.grid(si$genome.num,si$genome.num,stringsAsFactors = F),
-                      expand.grid(si$genome,si$genome,stringsAsFactors = F))
+             expand.grid(si$genome,si$genome,stringsAsFactors = F))
   colnames(sm)<-c("n1","n2","genome1","genome2")
   sm = sm[sm$genome1!=sm$genome2,]
   sm$ref = NA
@@ -133,7 +87,7 @@ runParse_orthofinder<-function(peptide.dir,
   sm$alt = ifelse(sm$genome1 == sm$ref, sm$genome2,sm$genome1)
   gz = list.files(blast.dir, pattern = ".gz$")
   if(length(gz)>0){
-    system(paste("gunzip",file.path(blast.dir,"*.gz")))
+    system(paste("gunzip -k",file.path(blast.dir,"*.gz")))
   }
   sm$filename = file.path(blast.dir,paste0("Blast",sm$n1,"_",sm$n2,".txt"))
   sm$unique = paste(sm$ref, sm$alt)
@@ -141,9 +95,9 @@ runParse_orthofinder<-function(peptide.dir,
   sl = split(sm,sm$unique)
 
   sequence.index = fread(file.path(blast.dir,"SequenceIDs.txt"),
-                              sep = ":", stringsAsFactors = F, header = F,
-                              strip.white = T,
-                              col.names = c("gene.num","id"))
+                         sep = ":", stringsAsFactors = F, header = F,
+                         strip.white = T,
+                         col.names = c("gene.num","id"))
 
   og = readLines(file.path(blast.dir,"Orthogroups.txt"))
   og = lapply(og, function(x) strsplit(x," ")[[1]])
@@ -245,8 +199,8 @@ runParse_orthofinder<-function(peptide.dir,
     d$prop = NULL
 
     d = loop_dbs(map = d,
-                   radii = eps.radius,
-                   mappings = n.mappingWithinRadius)
+                 radii = eps.radius,
+                 mappings = n.mappingWithinRadius)
 
     if(verbose)
       cat("Done",d$genome1[1],"vs.",d$genome2[1],": initial hits =",n, "culled to", nrow(d),"\n")
@@ -262,4 +216,3 @@ runParse_orthofinder<-function(peptide.dir,
 
   return(out)
 }
-

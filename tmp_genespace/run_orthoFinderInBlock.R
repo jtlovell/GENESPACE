@@ -23,7 +23,7 @@ run_orthoFinderInBlock = function(blk,
                                   tmp.dir,
                                   results.dir,
                                   buffer = 50000,
-                                  ncores = 8,
+                                  ncores = 4,
                                   onlyParseOF = F){
 
   if(!onlyParseOF){

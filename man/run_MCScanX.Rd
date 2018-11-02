@@ -2,31 +2,21 @@
 % Please edit documentation in R/run_MCScanX.R
 \name{run_MCScanX}
 \alias{run_MCScanX}
-\title{Make input metadata for pipe_Diamond2MCScanX}
+\title{Run MCScanX program}
 \usage{
-run_MCScanX(ref.id, MCScanX.path, mcs_mapping.dir, MCScanX.params = NULL,
-  verbose = T, buffer = 1)
+run_MCScanX(blast.results, abbrevs, mcscanx.input.dir, verbose = T,
+  MCScanX.params = "-a -s 5 -m 25")
 }
 \arguments{
-\item{ref.id}{Character, the reference genome identifier}
+\item{blast.results}{R object contain the blast results}
 
-\item{MCScanX.path}{The path to the MCScanX program}
+\item{abbrevs}{Genome abbreviations}
 
-\item{mcs_mapping.dir}{Directory containing the MCScanX-formatted mapping files}
-
-\item{MCScanX.params}{Additionally parameters to pass to MCScanX}
+\item{mcscanx.input.dir}{Directory containing the MCScanX-formatted mapping files}
 
 \item{verbose}{Logical, should updates be printed?}
 
-\item{buffer}{Buffer to find overlapping blocks (see merge_overlappingBlocks.R)}
-
-\item{chr1toplot}{The chromosome ids in the reference genome to plot}
-
-\item{chr2toplot}{The chromosome ids in the altGenome2plot to plot}
-
-\item{altGenome2plot}{The identifier of the alternative genome to plot}
-
-\item{plotit}{Logical, hould a plot be made}
+\item{MCScanX.params}{Parameters to pass to MCScanX}
 
 \item{...}{Not currently in use}
 }
@@ -34,7 +24,7 @@ run_MCScanX(ref.id, MCScanX.path, mcs_mapping.dir, MCScanX.params = NULL,
 Nothing.
 }
 \description{
-\code{make_inputFileMatrix} Utility function to build metadata
+\code{run_MCScanX} Wrapper to run MCScanX program
 }
 \details{
 See pipe_Diamond2MCScanX for more information.

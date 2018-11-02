@@ -1,17 +1,12 @@
-#' @title Make input metadata for pipe_Diamond2MCScanX
+#' @title Run MCScanX program
 #'
 #' @description
-#' \code{make_inputFileMatrix} Utility function to build metadata
+#' \code{run_MCScanX} Wrapper to run MCScanX program
 #'
-#' @param ref.id Character, the reference genome identifier
-#' @param MCScanX.path The path to the MCScanX program
-#' @param mcs_mapping.dir Directory containing the MCScanX-formatted mapping files
-#' @param MCScanX.params Additionally parameters to pass to MCScanX
-#' @param buffer Buffer to find overlapping blocks (see merge_overlappingBlocks.R)
-#' @param chr1toplot The chromosome ids in the reference genome to plot
-#' @param chr2toplot The chromosome ids in the altGenome2plot to plot
-#' @param altGenome2plot The identifier of the alternative genome to plot
-#' @param plotit Logical, hould a plot be made
+#' @param blast.results R object contain the blast results
+#' @param MCScanX.params Parameters to pass to MCScanX
+#' @param mcscanx.input.dir Directory containing the MCScanX-formatted mapping files
+#' @param abbrevs Genome abbreviations
 #' @param verbose Logical, should updates be printed?
 #' @param ... Not currently in use
 #' @details See pipe_Diamond2MCScanX for more information.
@@ -21,10 +16,12 @@
 #' \dontrun{
 #' none yet
 #' }
+#' @import data.table
 #' @export
 run_MCScanX = function(blast.results,
                        abbrevs,
                        mcscanx.input.dir,
+                       verbose = T,
                        MCScanX.params = "-a -s 5 -m 25"){
 
   if(file.exists(mcscanx.input.dir)){
@@ -88,9 +85,18 @@ run_MCScanX = function(blast.results,
   mcscan.input = file.path(mcscanx.input.dir,"all")
 
   if(is.null(MCScanX.params)){
-    com = paste("MCScanX",mcscan.input)
+    if(verbose){
+      com = paste("MCScanX",mcscan.input)
+    }else{
+      com = paste("MCScanX",mcscan.input,"&> /dev/null")
+    }
   }else{
-    com = paste("MCScanX",MCScanX.params,mcscan.input)
+    if(verbose){
+      com = paste("MCScanX",MCScanX.params,mcscan.input)
+    }else{
+      com = paste("MCScanX",MCScanX.params,mcscan.input,"&> /dev/null")
+    }
+
   }
   system(com)
   mcscan.raw = read.delim(paste0(mcscan.input,".collinearity"),
@@ -111,5 +117,7 @@ run_MCScanX = function(blast.results,
   out$mapping = paste(out$genome1, out$genome2)
   out$rank1 = frank(out[,c("mapping","chr1","start1")], ties.method = "dense")
   out$rank2 = frank(out[,c("mapping","chr2","start2")], ties.method = "dense")
+  if(verbose)
+    cat("Done\n")
   return(out)
 }

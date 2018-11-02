@@ -1,4 +1,30 @@
-plot_mapping = function(cols = NULL, blk, map, genomes = NULL, return.coords = F){
+#' @title Pairwise plot of BLAST hits
+#'
+#' @description
+#' \code{plot_mapping} Make pairwise dotplots in the R base package.
+#'
+#' @param cols Colors to plot
+#' @param blk The block data.frame or data.table
+#' @param map The map data.frame or data.table
+#' @param return.coords Logical, should the coordinates in the plot be returned?
+#' @param genomes The names of genomes to plot.
+#' @param ... Not currently in use
+#' @details Simple dotplots
+
+#' @return Nothing, writes results to the blast.dir directory
+#'
+#' @examples
+#' \dontrun{
+#' none yet
+#' }
+#' @import data.table
+#' @export
+plot_mapping = function(cols = NULL,
+                        blk,
+                        map,
+                        genomes = NULL,
+                        return.coords = F,
+                        ...){
   if(is.null(cols))
     cols = rep_len(c("red3","salmon","darkorange3","gold",
                      "grey50","lightgreen","forestgreen","darkgreen",

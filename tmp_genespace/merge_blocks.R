@@ -1,3 +1,24 @@
+#' @title Merge blocks by position
+#'
+#' @description
+#' \code{merge_blocks} MCScanX often produces erroneous
+#' blocks that overlap coordinates. This merges them.
+#'
+#' @param map The map object (data.frame or data.table)
+#' @param blk The block object (data.frame)
+#' @param buffer Numeric, the overlapping distance between two blocks.
+#' 0 indicates that blocks that overlap by >=0 should be merged.
+#' @param verbose Logical, should updates be printed.
+#' @param ... Not currently in use
+#' @details Primarily used in the run_MCScanX pipeline.
+#' @return Nothing.
+#'
+#' @examples
+#' \dontrun{
+#' none yet
+#' }
+#' @import data.table
+#' @export
 merge_blocks = function(blk, map, buffer = 3, verbose = T){
   if(verbose)
     cat("Parsing",nrow(blk), "blocks and", nrow(map),"mappings\n")
