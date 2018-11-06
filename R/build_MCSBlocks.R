@@ -1,13 +1,16 @@
-#' @title Iteratively run MCScanX program
+#' @title Build out the MCScanX collinear blocks
 #'
 #' @description
 #' \code{build_MCSBlocks} Runs the underlying `run_MCScanX` function both across
 #' and within pairwise genome comparisons.
 #'
 #' @param blast.results R object contain the blast results
-#' @param MCScanX.params Parameters to pass to MCScanX
+#' @param MCScanX.params Final arameters to pass to MCScanX
+#' @param MCScanX.params.init Initial parameters to pass to MCScanX. These should be less stringent
+#' than MCScanX.params
 #' @param mcscanx.input.dir Directory containing the MCScanX-formatted mapping files
 #' @param abbrevs Genome abbreviations
+#' @param onlyPairwise Logical, should the genomes only be considered in a pairwise fashion?
 #' @param verbose Logical, should updates be printed?
 #' @param ... Not currently in use
 #' @details More here
@@ -20,11 +23,14 @@
 #' @import data.table
 #' @export
 build_MCSBlocks <- function(blast.results,
-                            MCScanX.params = "-a -s 10 -m 5 -w 2",
+                            MCScanX.param.init = "-a -s 5 -m 25 -w 5",
+                            MCScanX.params = "-a -s 20 -m 10 -w 5",
                             abbrevs,
                             mcscanx.input.dir,
                             verbose = TRUE,
+                            onlyPairwise = TRUE,
                             ...){
+
 
   find_unmappedBlast <- function(blk,
                                  map,
@@ -60,42 +66,61 @@ build_MCSBlocks <- function(blast.results,
     return(blast[blast$uniq.map %in% allu,])
   }
 
+
   if(verbose)
     cat("Initial MCScanX run on",
         nrow(blast.results),
         "culled BLAST hits... \n\t")
-  mcscan.cull <- run_MCScanX(
-    blast.results = blast.results,
-    abbrevs = abbrevs,
-    mcscanx.input.dir = mcscanx.input.dir,
-    MCScanX.params = MCScanX.params,
-    verbose = FALSE)
-  if(verbose)
-    cat("Clustered",
-        nrow(mcscan.cull),
-        "BLAST hits into",
-        length(unique(mcscan.cull$block.id)),
-        "colinear blocks\n")
+  if(!onlyPairwise){
+    mcscan.cull <- run_MCScanX(
+      blast.results = blast.results,
+      abbrevs = abbrevs,
+      mcscanx.input.dir = mcscanx.input.dir,
+      MCScanX.params = MCScanX.param.init,
+      verbose = FALSE)
+    if(verbose)
+      cat("Clustered",
+          nrow(mcscan.cull),
+          "BLAST hits into",
+          length(unique(mcscan.cull$block.id)),
+          "colinear blocks\n")
 
-  blast.results.mcs <- merge(blast.results,
-                             mcscan.cull[,1:2,with = F])
-  if(verbose)
-    cat("Secondary MCScanX run ...\n\t")
-  mcscan.cull <- run_MCScanX(
-    blast.results = blast.results.mcs,
-    abbrevs = abbrevs,
-    mcscanx.input.dir = mcscanx.input.dir,
-    MCScanX.params = MCScanX.params,
-    verbose = FALSE)
-  if(verbose)
-    cat("Clustered",
-        nrow(mcscan.cull),
-        "BLAST hits into",
-        length(unique(mcscan.cull$block.id)),
-        "colinear blocks\n")
+    blast.results.mcs <- merge(blast.results,
+                               mcscan.cull[,1:2,with = F])
+    if(verbose)
+      cat("Secondary MCScanX run ...\n\t")
+    mcscan.cull <- run_MCScanX(
+      blast.results = blast.results.mcs,
+      abbrevs = abbrevs,
+      mcscanx.input.dir = mcscanx.input.dir,
+      MCScanX.params = MCScanX.param.init,
+      verbose = FALSE)
+    if(verbose)
+      cat("Clustered",
+          nrow(mcscan.cull),
+          "BLAST hits into",
+          length(unique(mcscan.cull$block.id)),
+          "colinear blocks\n")
 
-  blast.results.mcs <- merge(blast.results,
-                             mcscan.cull[,1:2,with = F])
+    blast.results.mcs <- merge(blast.results,
+                               mcscan.cull[,1:2,with = F])
+  }else{
+    mcscan.cull <- rbindlist(
+      lapply(split(blast.results,
+                   with(blast.results,
+                        paste(genome1, genome2))), function(x){
+                          run_MCScanX(
+                            blast.results = x,
+                            abbrevs = abbrevs,
+                            mcscanx.input.dir = mcscanx.input.dir,
+                            MCScanX.params = MCScanX.param.init,
+                            verbose = FALSE)
+                        }))
+
+    blast.results.mcs <- merge(blast.results,
+                               mcscan.cull[,1:2,with = F])
+  }
+
   if(verbose)
     cat("MCScanX run within pairwise genome comparisons...\n\t")
 
@@ -176,8 +201,9 @@ build_MCSBlocks <- function(blast.results,
                                      return(make_blocks(mctmp))
                                    })
 
-  blk <- rbindlist(lapply(mcscan.list, function(x) x$block))
-  map <- rbindlist(lapply(mcscan.list, function(x) x$map))
+  blk <- make_blocks(rbindlist(lapply(mcscan.list, function(x) x$map)))
+  map <- blk$map
+  blk <- blk$block
 
   if(verbose)
     cat("Done! ... Clustered",

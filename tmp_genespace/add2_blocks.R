@@ -20,7 +20,7 @@
 #' }
 #' @import data.table
 #' @export
-add2_blocks = function(blast.results,map, blk,
+add2_blocks = function(blast.results, map, blk,
                        buffer = 1, n.iter = 5, verbose = T){
   for(i in 1:n.iter){
     inmap = c(paste(map$id1, map$id2),

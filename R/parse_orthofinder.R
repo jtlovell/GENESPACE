@@ -42,9 +42,12 @@ parse_orthofinder <- function(blast.dir,
                               ploidy,
                               min.propMax = .5,
                               min.score = 50,
-                              nmapsPerHaplotype = 1,
-                              eps.radius = c(100, 50, 20),
-                              n.mappingWithinRadius = c(10, 10, 10),
+                              nmapsPerHaplotype = 4,
+                              eps.radius = c(100, 50, 40),
+                              n.mappingWithinRadius = c(5, 5, 10),
+                              allOrthoGroups = FALSE,
+                              onlyScore = FALSE,
+                              testScore = TRUE,
                               ...){
 
 
@@ -163,7 +166,7 @@ parse_orthofinder <- function(blast.dir,
     tmp <- parse_gff(gff.files[[i]])
     tmp$genome <- i
     tmp$order <- frank(tmp[,c("chr", "start")],
-                       ties.method = "random")
+                       ties.method = "dense")
     return(tmp)
   }))
   setkey(gff, genome, id)
@@ -179,26 +182,31 @@ parse_orthofinder <- function(blast.dir,
                         eps_radius,
                         mappings){
       x <- data.frame(map)
-      x$x_a <- frank(x[,c("chr1", "start1")],
-                     ties.method = "dense")
-      x$x_b <- frank(x[,c("chr2", "start2")],
-                     ties.method = "dense")
 
-      nn <- frNN(x[,c("x_a", "x_b")],
+      nn <- frNN(x[,c("rank1", "rank2")],
                  eps = eps_radius)
       dbs <- dbscan(nn,
                     minPts = mappings)
-      return(data.frame(rank1 = x$x_a,
-                        rank2 = x$x_b,
-                        cluster = dbs$cluster,
+      return(data.table(cluster = dbs$cluster,
                         stringsAsFactors = F))
     }
     if(length(radii) != length(mappings))
       stop("radii and mappings must be same length\n")
+
+    map[,rank1 := frank(start1,
+                        ties.method = "dense"),
+        by = list(genome1, genome2, chr1)]
+    map[,rank2 := frank(start2,
+                        ties.method = "dense"),
+        by = list(genome1, genome2, chr2)]
+
     for(i in 1:length(radii)){
-      dclus <- run_dbs(map, eps = radii[i], mappings = mappings[i])
-      mo <- cbind(map, data.table(dclus))
-      map <- map[mo$cluster != 0,]
+      spl = split(map, with(map, paste(genome1, genome2, chr1, chr2)))
+      map = rbindlist(lapply(spl, function(x){
+        dclus <- run_dbs(x, eps = radii[i], mappings = mappings[i])
+        mo <- cbind(x, dclus)
+        return(x[mo$cluster != 0,])
+      }))
       if(verbose)
         cat("\t... retained",
             nrow(map),
@@ -207,6 +215,7 @@ parse_orthofinder <- function(blast.dir,
             "hits were found within",
             radii[i],
             "genes\n")
+
     }
     return(map)
   }
@@ -254,58 +263,76 @@ parse_orthofinder <- function(blast.dir,
     setkey(m1, gn2)
     merged <- merge(gff2, m1)
 
-    d <- data.table(merged[with(merged, og1 == og2),])
-    if(verbose)
-      cat("\t... culled to",
-          nrow(d),
-          "mappings in orthogroups\n")
+    if(!onlyScore & !allOrthoGroups){
+      d <- data.table(merged[with(merged, og1 == og2),])
+      if(verbose)
+        cat("\t... culled to",
+            nrow(d),
+            "mappings in orthogroups\n")
+    }else{
+      d<-merged
+    }
 
     d$negscore <- d$score * (-1)
     setkey(d, id1, id2, negscore)
     d <- data.table(d[!duplicated(d[,c("id1", "id2"), with = F]),])
-
 
     if(verbose)
       cat("\t... culled to",
           nrow(d),
           "unique mappings\n")
 
-    ploidy2 <- ploidy[d$genome2[1]]
-    ploidy1 <- ploidy[d$genome1[1]]
+    if(testScore){
+      ploidy2 <- ploidy[d$genome2[1]]
+      ploidy1 <- ploidy[d$genome1[1]]
 
-    d[, rank1 := frank(score, ties.method = "dense"),
-      by = list(id1)]
-    d[, rank2 := frank(score, ties.method = "dense"),
-      by = list(id2)]
-    cullrank <- d[d$rank1 <= ploidy1*nmapsPerHaplotype |
-                    d$rank2 <= ploidy2*nmapsPerHaplotype ,]
+      d[, rank1 := frank(score, ties.method = "dense"),
+        by = list(id1)]
+      d[, rank2 := frank(score, ties.method = "dense"),
+        by = list(id2)]
+      cullrank <- d[d$rank1 <= ploidy1*nmapsPerHaplotype |
+                      d$rank2 <= ploidy2*nmapsPerHaplotype ,]
 
-    cullrank[, prop2 := score/max(score),
-             by = list(id2)]
-    cullrank[, prop1 := score/max(score),
-             by = list(id1)]
+      cullrank[, prop2 := score/max(score),
+               by = list(id2)]
+      cullrank[, prop1 := score/max(score),
+               by = list(id1)]
 
-    cullscore <- cullrank[cullrank$prop1>=min.propMax |
-                            cullrank$prop2>=min.propMax,]
+      cullscore <- cullrank[cullrank$prop1>=min.propMax |
+                              cullrank$prop2>=min.propMax,]
 
-    cullscore$rank1 <- NULL
-    cullscore$prop1 <- NULL
-    cullscore$rank2 <- NULL
-    cullscore$prop2 <- NULL
+      cullscore$rank1 <- NULL
+      cullscore$prop1 <- NULL
+      cullscore$rank2 <- NULL
+      cullscore$prop2 <- NULL
+    }else{
+      cullscore <- d
+    }
 
-    culldbs <- loop_dbs(map = cullscore,
-                        radii = eps.radius,
-                        mappings = n.mappingWithinRadius)
+
+    if(verbose)
+      cat("\t... culled to",
+          nrow(cullscore),
+          "mappings that pass score thresholds\n")
+
+    if(onlyScore){
+      return(cullscore)
+    }else{
+
+      culldbs <- loop_dbs(map = cullscore,
+                          radii = eps.radius,
+                          mappings = n.mappingWithinRadius)
 
 
-    return(culldbs)
+      return(culldbs)
+    }
   })
 
   if(verbose)
     cat("Parsing orthofinder results ... DONE!\n")
   ret <- rbindlist(blast.out)
-  ret$rank1 <- frank(ret, chr1, start1)
-  ret$rank2 <- frank(ret, chr2, start2)
+  ret$rank1 <- frank(ret, chr1, start1, ties.method = "dense")
+  ret$rank2 <- frank(ret, chr2, start2, ties.method = "dense")
   ret <- ret[,c("genome1", "id1", "chr1", "start1", "end1", "rank1",
                 "genome2", "id2", "chr2", "start2", "end2", "rank2",
                 "perc.iden", "align.length", "n.mismatch", "n.gapOpen",

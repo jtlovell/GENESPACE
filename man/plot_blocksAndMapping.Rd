@@ -6,7 +6,8 @@
 \usage{
 plot_blocksAndMapping(map, blk, ref.id, altGenome2plot,
   chr1toplot = NULL, chr2toplot = NULL, main = NULL, plotit = T,
-  returnData = F)
+  returnData = F, colorSegment = T, gff.dir = NULL,
+  blast.results = NULL)
 }
 \arguments{
 \item{map}{The map data.table or data.frame}

@@ -13,17 +13,23 @@
 #' }
 #' @import data.table
 #' @export
-make_blocks<-function(map){
+make_blocks<-function(map, rerank = T, drop.NAs = F){
   map = data.table(map)
-
-  map$rank1 = frank(map, chr1, start1,
-                    ties.method = "dense")
-  map$rank2 = frank(map, chr2, start2,
-                    ties.method = "dense")
+  map$block.id = as.numeric(as.factor(with(map, paste(genome1, genome2, chr1, chr2, block.id))))
   setkey(map, chr1, chr2, start1, start2)
-  out.blk <- map[,list(genome1 = genome1[1],
-                       genome2 = genome2[1],
-                       chr1 = chr1[1],
+  if(rerank){
+    map[,rank1 := frank(start1,
+                      ties.method = "dense"),
+        by = list(genome1, genome2, chr1)]
+    map[,rank2 := frank(start2,
+                        ties.method = "dense"),
+        by = list(genome1, genome2, chr2)]
+  }
+  if(drop.NAs){
+    map <- map[complete.cases(map),]
+  }
+
+  out.blk <- map[,list(chr1 = chr1[1],
                        chr2 = chr2[1],
                        start1 = min(start1),
                        start2 = min(start2),
@@ -33,41 +39,15 @@ make_blocks<-function(map){
                        rankstart2 = min(rank2),
                        rankend1 = max(rank1),
                        rankend2 = max(rank2),
-                       medianscore = median(score),
-                       n.mapping = length(score)),
-                 by=list(block.id)]
+                       n.mapping = length(score),
+                       orient = ifelse(start2[1]<start2[length(start2)],"+","-")),
+                 by=list(block.id, genome1, genome2)]
 
-  out.blk$density = with(out.blk,
-                         n.mapping/((abs(rankend1-rankstart1)+
-                                       abs(rankend2-rankstart2))/2))
-
-  orient = sapply(split(map, map$block.id), function(x) cor(x$start1, x$start2))
-  orient = data.table(block.id = names(orient),
-                      orient = ifelse(orient>0,"+","-"))
-  orient$block.id<-as.numeric(orient$block.id)
-  setkey(out.blk, block.id)
-  setkey(orient, block.id)
-  out.blk = merge(out.blk, orient)
-  out.blk$first1 = with(out.blk,
-                        ifelse(orient == "+", start1, end1))
-  out.blk$first2 = with(out.blk,
-                        ifelse(orient == "+", start2, end2))
-  out.blk$last1 = with(out.blk,
-                       ifelse(orient == "+", end1, start1))
-  out.blk$last2 = with(out.blk,
-                       ifelse(orient == "+", end2, start2))
-  out.blk$firstrank1 = with(out.blk,
-                            ifelse(orient == "+", rankstart1, rankend1))
-  out.blk$firstrank2 = with(out.blk,
-                            ifelse(orient == "+", rankstart2, rankend2))
-  out.blk$lastrank1 = with(out.blk,
-                           ifelse(orient == "+", rankend1, rankstart1))
-  out.blk$lastrank2 = with(out.blk,
-                           ifelse(orient == "+", rankend2, rankstart2))
-  map = data.frame(map[order(map$genome1, map$chr1, map$start1),],
+  map = data.frame(map,
                    stringsAsFactors = F)
   blk = data.frame(out.blk,
                    stringsAsFactors = F)
+
   return(list(block = blk,
               map = map))
 }

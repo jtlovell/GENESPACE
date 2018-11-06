@@ -1,8 +1,8 @@
-#' @title Iteratively run MCScanX program
+#' @title Make a circos plot
 #'
 #' @description
-#' \code{build_MCSBlocks} Runs the underlying `run_MCScanX` function both across
-#' and within pairwise genome comparisons.
+#' \code{plot_linkedCircos} Make a circos plot with links connecting
+#' syntenic / collinear blocks
 #'
 #' @param blk The block data.frame or data.table
 #' @param genome_id1 Identifier of the first genome to plot

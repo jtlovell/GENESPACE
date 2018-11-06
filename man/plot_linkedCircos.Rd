@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_linkedCircos.R
 \name{plot_linkedCircos}
 \alias{plot_linkedCircos}
-\title{Iteratively run MCScanX program}
+\title{Make a circos plot}
 \usage{
 plot_linkedCircos(blk, genome_id1, genome_id2, chrs1, chrs2, chr_order,
   chrs1_abbrev, chrs2_abbrev, cols, gap.deg, assembly.dir,
@@ -48,8 +48,8 @@ that the chromosome comes from genomeID2.}
 Nothing.
 }
 \description{
-\code{build_MCSBlocks} Runs the underlying `run_MCScanX` function both across
-and within pairwise genome comparisons.
+\code{plot_linkedCircos} Make a circos plot with links connecting
+syntenic / collinear blocks
 }
 \details{
 More here

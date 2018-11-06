@@ -26,201 +26,30 @@ Here, we develop a pipeline to accomplish alignemnts in "gene space" (within, or
 4. Block file with coordinates of collinear blocks between each pair of genomes
 3. Multiple sequence alignments for each orthogroup (tested within colinear blocks)
 
-# Getting started
+# Input data
 
-## Loading some data to examine
+Each genome must have five datasets
 
-Here we integrate with phytozome and phytozome-formatted annotations and sequence files.
+1. Annotation file (gff3 format)
+2. Peptide fasta file of the primary transcript for each gene
+3. CDS fasta file of the primary transcript for each gene
+4. Full-length transcript fasta file of the primary transcript for each gene
+5. Genomic assembly fasta
 
-### Genome assembly sequences
+To get started, make a project directory, e.g.:
 
-Place all genome assemblies in a directory:
-`../genomes/assembly/xxxx.fa`
-Where xxxx are the genome IDs. 
+`mkdir /Users/jlovell/Desktop/grass_genespace`
+`cd /Users/jlovell/Desktop/grass_genespace`
 
-### Genome annotation files
+Then make two raw data subdirectories: `raw_annotations` and `raw_assemblies`. 
 
-These are typically stored in a single folder / genome. For example, the *S. viridis* genome annotation (v2.1) contains the following files:
+Copy all the assembly fasta files into the raw_assemblies directory and rename them as `[genomeID].fa`. 
 
-1. Primary CDS -- Sviridis_500_v2.1.cds_primaryTranscriptOnly.fa.gz
-2. Annotation file -- Sviridis_500_v2.1.gene.gff3.gz
-3. Primary peptide -- Sviridis_500_v2.1.protein_primaryTranscriptOnly.fa.gz
-4. Primary transcript -- Sviridis_500_v2.1.transcript_primaryTranscriptOnly.fa.gz
-
-Place at least these four files for every genome in their own directories, for example:
-
-`../raw_annotations/xxxx` 
-
-### Tell R where all these files are located. 
-
-For example:
-
-```{r}
-tmp.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/tmp"
-results.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/results"
-blast.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/blast"
-input.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/genomes"
-mcscan.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/mcscanx"
-raw_annot.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/raw_annotations"
-
-peptide.dir = file.path(input.dir,"peptide")
-cds.dir = file.path(input.dir,"cds")
-assembly.dir = file.path(input.dir,"assembly")
-gff.dir = file.path(input.dir,"gff")
-
-genomeIDs = c("Pvirgatum",
-              "PhalliiHAL",
-              "Sviridis",
-              "Phallii",
-              "Sbicolor",
-              "Bdistachyon")
-ploidy = c(4,2,2,2,2,2)
-abbrevs = c("Pv","Ph","Pa","Sv","Sb","Bd")
-library(data.table)
-library(Biostrings)
-```
+Make a subdirectory named [genomeID] for each `genomeID` in the raw_annotations directory. Place the four annotation files of each genomeID into the respective subdirectories. It doesn't matter what the annotations are named, as long as there is a distinguishing character string in each file name that identifies the type of annotation file. For example, the CDS fastas may all have `cds_primaryTranscriptOnly` in their names. 
 
 
-## Parse these raw files for downstream use
-
-This process, implemented in `convert_genomes`, runs the following pipeline:
-
-1. Check input
-2. Move files into directories, uncompressing if necessary
-3. Index genomes
-4. re-name annotation fastas with gene name (not model).
-
-**samtools must be installed and in the path to run convert_genomes**
-
-For example: 
-
-```{r}
-convert_genomes(raw_annot.dir = raw_annot.dir,
-                assembly.dir = assembly.dir,
-                genomeIDs = genomeIDs,
-                input.dir = input.dir,
-                transcript_str = "transcript_primaryTranscriptOnly",
-                peptide_str = "protein_primaryTranscriptOnly",
-                cds_str = "cds_primaryTranscriptOnly",
-                gff_str = "gene.gff3",
-                verbose = T)
-```
 
 
-## Installation of dependencies
 
-The following programs must be installed and added to your path. All except MCScanX are available on conda
-
-- MCScanX
-- Diamond
-- orthofinder
-- exonerate
-- mafft
-- bedtools
-- samtools
-
-The orthofinder program needs python 2.7 (not 3.--). Make sure that py2.7 is the version you are running.
-
-Also a few R packages are also needed:
-
-- data.table
-- dbscan
-- Biostrings (from bioconductor)
-- GenomicFeatures
-- argparser
-
-Make sure that these are installed by opening R and running:
-
-`R check_environment()`
-
-# Make collinear sequence blocks
-
-## Initial BLASTs and culling
-The first step is accomplishing all reciprocal pairwise blasts. This is accomplished within the following pipeline. 
-
-```{r}
-## 2.2 -- Run initial pairwise BLASTs, using orthofinder and the Diamond blast engine
-blast.results = runParse_orthofinder(
-  peptide.dir = peptide.dir,
-  tmp.dir = tmp.dir,
-  blast.dir = blast.dir,
-  gff.dir = gff.dir,
-  ploidy = ploidy,
-  min.propMax = .3,
-  min.score = 100,
-  nmapsPerHaplotype = 1,
-  eps.radius = c(100,50,20),
-  n.mappingWithinRadius = c(10,10,10),
-  runOF = T,
-  fasta.pattern = "*.fa",
-  verbose = T)
-```
-
-## Formation of blocks
-
-```{r}
-mcscan.cull = run_MCScanX(
-  blast.results = blast.results,
-  abbrevs = abbrevs,
-  mcscanx.input.dir = mcscan.dir,
-  MCScanX.params = "-a -s 10 -m 15")
-```
-
-## Build GENESPACE map and block objects
-
-These are:
-
-1. The `map` object, which contains 
-```{r}
-final = make_blocks(mcscan.cull)
-```
-
-## Merge erroneous MCScanX blocks
-
-There are cases where multiple blocks overlap. Best to do this 2-5x.
-
-```{r}
-for(i in 1:3){
-  final = merge_blocks(
-    map = final$map,
-    blk = final$block,
-    buffer = .5,
-    verbose = T)
-}
-```
-
-## Look for missing BLAST hits that should be included
-
-```{r}
-final = add2_blocks(
-  blast.results = blast.results,
-  map = final$map,
-  blk = final$block,
-  buffer = 0.5, n.iter = 2)
-```
-
-
-# Collapse block breakpoints across species
-
-## Merge physically proximate breakpoints
-
-```{r}
-combined = merge_blockBreakPoints(
-  map = final$map,
-  genomeIDs = genomeIDs,
-  checkOvl.bp = 2e5,
-  checkOvl.rank = 4)
-```
-
-
-## Final checking and merging. 
-
-```{r}
-tosplit = finalize_mappings(
-  blk = final$block,
-  map = final$map,
-  gff.dir = gff.dir,
-  genomeIDs = genomeIDs)
-```
 
 

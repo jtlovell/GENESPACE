@@ -1,198 +1,226 @@
 ---
 title: "README"
 author: "JTLovell"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Vignette Title}
-  %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
+date: "9/11/2018"
+output: html_document
 ---
+# Overview
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval = F)
+A common goal in comparative genomics is to compare gene sequences of many species with reference to the ancestral state. While simple in highly conserved, single copy genes and dipliod/haploid organisms, such alignments are tricky when extending to the biological complexity of most genomes. 
+
+Here, we develop a pipeline to accomplish alignemnts in "gene space" (within, or near gene models) to gain a more complete picture of genomic polymorphism among species. The approach can handle any ploidy, ancient or recent whole-genome duplicates, inversions (and other small-scale rearangements) and most other known complexity. Such flexibility is affordered by accomplishing basic comparative genomes tasks within collinear blocks. Once the blocks are constructed, any basic task can be accomplished, knowing that one is comparing evolutionarily related, diploid sequences. 
+
+## General pipeline
+
+1. pairwise blast search --> colinear blocks of genes
+2. orthofinder within colinear blocks --> genes missing in at least one genome
+3. blat search within blocks for orthologs of missing genes --> regions containing missing sequence
+4. exonerate missing sequence --> pseudo-CDS of unannotated sequence
+5. multiple sequence alignemnt of all sequences --> sequence divergence statistics
+
+## Outputs
+
+1. List of single copy orthologs between each pair of genomes
+2. List of genes without orthologous sequences in each genome
+3. Mapping file with the positions of genes in colinear blocks between each pair of genomes
+4. Block file with coordinates of collinear blocks between each pair of genomes
+3. Multiple sequence alignments for each orthogroup (tested within colinear blocks)
+
+# Getting started
+
+## Loading some data to examine
+
+Here we integrate with phytozome and phytozome-formatted annotations and sequence files.
+
+### Genome assembly sequences
+
+Place all genome assemblies in a directory:
+`../genomes/assembly/xxxx.fa`
+Where xxxx are the genome IDs. 
+
+### Genome annotation files
+
+These are typically stored in a single folder / genome. For example, the *S. viridis* genome annotation (v2.1) contains the following files:
+
+1. Primary CDS -- Sviridis_500_v2.1.cds_primaryTranscriptOnly.fa.gz
+2. Annotation file -- Sviridis_500_v2.1.gene.gff3.gz
+3. Primary peptide -- Sviridis_500_v2.1.protein_primaryTranscriptOnly.fa.gz
+4. Primary transcript -- Sviridis_500_v2.1.transcript_primaryTranscriptOnly.fa.gz
+
+Place at least these four files for every genome in their own directories, for example:
+
+`../raw_annotations/xxxx` 
+
+### Tell R where all these files are located. 
+
+For example:
+
+```{r}
+tmp.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/tmp"
+results.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/results"
+blast.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/blast"
+input.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/genomes"
+mcscan.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/mcscanx"
+raw_annot.dir = "/Users/jlovell/Desktop/Pvirgatum_v5genespace/raw_annotations"
+
+peptide.dir = file.path(input.dir,"peptide")
+cds.dir = file.path(input.dir,"cds")
+assembly.dir = file.path(input.dir,"assembly")
+gff.dir = file.path(input.dir,"gff")
+
+genomeIDs = c("Pvirgatum",
+              "PhalliiHAL",
+              "Sviridis",
+              "Phallii",
+              "Sbicolor",
+              "Bdistachyon")
+ploidy = c(4,2,2,2,2,2)
+abbrevs = c("Pv","Ph","Pa","Sv","Sb","Bd")
+library(data.table)
+library(Biostrings)
 ```
 
-# Setup
 
-## Installation
+## Parse these raw files for downstream use
 
-To install the compareGeneSpace R package, first clone it to a local directory or download the zipball and uncompress it. Then install it via devtools, or whatever other method you use. For example:
+This process, implemented in `convert_genomes`, runs the following pipeline:
 
-`R devtools::install("~/Downloads/compareGeneSpace-master")`, then `R library(compareGeneSpace)`. 
+1. Check input
+2. Move files into directories, uncompressing if necessary
+3. Index genomes
+4. re-name annotation fastas with gene name (not model).
 
-Now, the package is available for use. 
+**samtools must be installed and in the path to run convert_genomes**
+
+For example: 
+
+```{r}
+convert_genomes(raw_annot.dir = raw_annot.dir,
+                assembly.dir = assembly.dir,
+                genomeIDs = genomeIDs,
+                input.dir = input.dir,
+                transcript_str = "transcript_primaryTranscriptOnly",
+                peptide_str = "protein_primaryTranscriptOnly",
+                cds_str = "cds_primaryTranscriptOnly",
+                gff_str = "gene.gff3",
+                verbose = T)
+```
+
 
 ## Installation of dependencies
 
-For now, the program requires a path to the programs on which it depends. This includes:
+The following programs must be installed and added to your path. All except MCScanX are available on conda
 
-1. Diamond (aligner)
-2. MCScanX (collinear block finder)
-3. Concorde (TSP solver to accurately split up blocks)
+- MCScanX
+- Diamond
+- orthofinder
+- exonerate
+- mafft
+- bedtools
+- samtools
 
-Install these programs locally and provide the path to the executable to R
+The orthofinder program needs python 2.7 (not 3.--). Make sure that py2.7 is the version you are running.
 
-```{r}
-Concorde.path = "/Users/jlovell/Documents/comparative_genomics/programs/concorde/TSP/"
-MCScanX.path = "/Users/jlovell/Documents/comparative_genomics/programs/MCScanX"
-Diamond.path = "/Users/jlovell/Documents/comparative_genomics/programs/diamond/
-```
+Also a few R packages are also needed:
 
-## Setting up directories
+- data.table
+- dbscan
+- Biostrings (from bioconductor)
+- GenomicFeatures
+- argparser
 
-To get started, we need to build a set of directories that contain:
+Make sure that these are installed by opening R and running:
 
-`peptide.dir` - fasta-formatted peptide sequences, one/gene for the primary transcript
-`gff.dir` - gff3-formatted annotations for each genome
-`mappings.dir` - an empty directory that stores the blast mappings
-`mcscan.dir` - an empty directory that will contain the MCScanX input files
+`R check_environment()`
 
-## Formatting peptide fastas
+# Make collinear sequence blocks
 
-The names in the peptide files are used to match metdata. These need to be exactly: genomeID.pep.fa. So, for the Sviridis genome, the peptide fasta is Sviridis.pep.fa. This is case sensitive.
-
-The peptide headers must exactly match the gff entries title `gene`. Typically, peptide fastas have a number of identifiers in the headers for each sequence. These need to be parsed and stripped. 
-
-```{r}
-parse_fastaHeader(fasta.dir = peptide.dir, is.peptide = T,
-                  pattern = "pep.fa", verbose = T)
-```
-
-## Gff files
-
-The gff files do not need to be parsed beforehand, they are done internally. Ensure that the gene entries (rows) are labeled "gene" in the third column and the locus identifier in the 9th column matches the fasta headers. If formats are standard, this will be done automatically. 
-
-## Metadata
-
-To run the pipeline we need to know more about the genomes. In particular, we need to set 2-character unique abbreviations and ploidy for each genome. These are supplied in a list
+## Initial BLASTs and culling
+The first step is accomplishing all reciprocal pairwise blasts. This is accomplished within the following pipeline. 
 
 ```{r}
-abbrev.dict = list(Phallii = "Pa",
-                   PhalliiHAL = "Ph",
-                   Sviridis = "Sv",
-                   Sbicolor = "Sb",
-                   Pvirgatum = "Pv")
-ploidy.dict = list(Phallii = 2,
-                   PhalliiHAL = 2,
-                   Sviridis = 2,
-                   Sbicolor = 2,
-                   Pvirgatum = 4)
+## 2.2 -- Run initial pairwise BLASTs, using orthofinder and the Diamond blast engine
+blast.results = runParse_orthofinder(
+  peptide.dir = peptide.dir,
+  tmp.dir = tmp.dir,
+  blast.dir = blast.dir,
+  gff.dir = gff.dir,
+  ploidy = ploidy,
+  min.propMax = .3,
+  min.score = 100,
+  nmapsPerHaplotype = 1,
+  eps.radius = c(100,50,20),
+  n.mappingWithinRadius = c(10,10,10),
+  runOF = T,
+  fasta.pattern = "*.fa",
+  verbose = T)
 ```
 
-We then concatenate all input data into a single matrix
+## Formation of blocks
 
 ```{r}
-id.mat = make_inputFileMatrix(
-  peptide.dir = "/Users/jlovell/Documents/comparative_genomics/peptide",
-  mappings.dir = "/Users/jlovell/Documents/comparative_genomics/mappings",
-  gff.dir = "/Users/jlovell/Documents/comparative_genomics/gff",
-  mcscan.dir = "/Users/jlovell/Documents/comparative_genomics/mcs_mapping",
-  ploidy.dict = ploidy.dict,
-  abbrev.dict = abbrev.dict,
-  ref.id = "PhalliiHAL")
+mcscan.cull = run_MCScanX(
+  blast.results = blast.results,
+  abbrevs = abbrevs,
+  mcscanx.input.dir = mcscan.dir,
+  MCScanX.params = "-a -s 10 -m 15")
 ```
 
-# Pairwise mappings
+## Build GENESPACE map and block objects
 
-To save time in mapping, we do not conduct all intra-genome pairwise mappings. Instead, we focus on a single reference genome, supplied above to `ref.id`. In this example, all unique pairwise inter-genome mappings will be conducted, but only PhalliiHAL will be mapped to itself. If all intra-genome mappings are allowed, it can be A) very slow for polyploids and B) produce mapping files that are huge.
+These are:
 
-To execute pairwise mapping, we pipe our fastas into Diamond:
+1. The `map` object, which contains 
+```{r}
+final = make_blocks(mcscan.cull)
+```
+
+## Merge erroneous MCScanX blocks
+
+There are cases where multiple blocks overlap. Best to do this 2-5x.
 
 ```{r}
-mappings = pipe_Diamond2MCScanX(inputFileMatrix = id.mat,
-                                mcscan.dir = mcscan.dir,
-                                nthreads = 6, onlyParseMap = F)
+for(i in 1:3){
+  final = merge_blocks(
+    map = final$map,
+    blk = final$block,
+    buffer = .5,
+    verbose = T)
+}
 ```
 
-This runs four steps for each pair of reciprocal mapping fastas:
-
-1. Make a database for the reference genome (or a random alternate genome if the reference is not one of the pairs)
-2. Map the alternative fasta to the reference database
-3. Parse the output to dense regions
-4. Format for MCScan
-
-# Collinear block construction
-
-To build collinear blocks, we feed the parsed mapping file into MCScanX. MCScanX's block building is generally good, but it gets confused by local inversions in an otherwise collinear region. Because of this, we cannot only use MCScanX, but must parse the ouput. To conduct this, we run the following:
+## Look for missing BLAST hits that should be included
 
 ```{r}
-init.mcscan2 = run_MCScanX(ref.id = "PhalliiHAL",
-                           mapping.obj = mappings,
-                           MCScanX.path = MCScanX.path,
-                           mcs_mapping.dir = mcscan.dir,
-                           MCScanX.params = "-a -s 5 -m 10", plotit = T,
-                           altGenome2plot = "Sviridis",
-                           chr1toplot = c("Chr08"),
-                           chr2toplot = c("Chr_08"),
-                           buffer = 1)
-
-parsed_mcscan = split_blocksByTSP(map = init.mcscan2$map,
-                                  Concorde.path = Concorde.path,
-                                  max.jump = 5)
-```
-
-The first step builds collinear blocks through `MCScanX`, then merges overlapping blocks (that are buffer rank-orders away).
-
-The second step is slow and is optional. It requires the `TSP R package` and the underlying `Concorde` TSP solver. For each block it asks if neighboring genes are `max.jump` apart. If so, it splits the block accordingly. It will also toss mappings that appear to be non-colinear.
-
-# Stopped here
-
-# Re-mapping within blocks
-
-Subset fastas by block coordinates
-Reciprocal blasts for each pairwise block
-
-# Find orthologous groups in blocks
-
-orthofinder
-
-# Find un-annotated sequences
-
-either local (between neighboring genes) or global (within the entire block) mapping of remaining peptides to assembly. 
-
-define region of best hits and do quick and dirty local alignment. Pull fasta from quick alignment. 
-
-Write sequences without satisfactory alignments to file
-
-
-
-# Align all sequences
-
-Make mapping file across pairwise reciprocal hits
-Concatenate sequences for each mapping cluster into a single file
-Convert peptide to DNA
-Conduct alignments with mafft
-Write alignments to file
-
-# Annotate alignments
-
-...
-
-
-## Using conda
-
-This is not implemented yet, but will be. 
-
-```{bash}
-conda create --yes --name comparegenespace diamond concorde R r-argparser r-data.table r-devtools bioconductor-rsamtools bioconductor-genomicfeatures bioconductor-genomicalignments bioconductor-biostrings bioconductor-rtracklayer bioconductor-GenomeInfoDb bioconductor-genomicranges
+final = add2_blocks(
+  blast.results = blast.results,
+  map = final$map,
+  blk = final$block,
+  buffer = 0.5, n.iter = 2)
 ```
 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+# Collapse block breakpoints across species
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+## Merge physically proximate breakpoints
 
-```{r cars}
-summary(cars)
+```{r}
+combined = merge_blockBreakPoints(
+  map = final$map,
+  genomeIDs = genomeIDs,
+  checkOvl.bp = 2e5,
+  checkOvl.rank = 4)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+## Final checking and merging. 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+tosplit = finalize_mappings(
+  blk = final$block,
+  map = final$map,
+  gff.dir = gff.dir,
+  genomeIDs = genomeIDs)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+

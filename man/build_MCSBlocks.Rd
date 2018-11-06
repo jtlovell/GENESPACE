@@ -2,15 +2,16 @@
 % Please edit documentation in R/build_MCSBlocks.R
 \name{build_MCSBlocks}
 \alias{build_MCSBlocks}
-\title{Iteratively run MCScanX program}
+\title{Build out the MCScanX collinear blocks}
 \usage{
-build_MCSBlocks(blast.results, MCScanX.params = "-a -s 10 -m 5 -w 2",
-  abbrevs, mcscanx.input.dir, verbose = TRUE, ...)
+build_MCSBlocks(blast.results, MCScanX.param.init = "-a -s 5 -m 25 -w 5",
+  MCScanX.params = "-a -s 20 -m 10 -w 5", abbrevs, mcscanx.input.dir,
+  verbose = TRUE, onlyPairwise = TRUE, ...)
 }
 \arguments{
 \item{blast.results}{R object contain the blast results}
 
-\item{MCScanX.params}{Parameters to pass to MCScanX}
+\item{MCScanX.params}{Final arameters to pass to MCScanX}
 
 \item{abbrevs}{Genome abbreviations}
 
@@ -18,7 +19,12 @@ build_MCSBlocks(blast.results, MCScanX.params = "-a -s 10 -m 5 -w 2",
 
 \item{verbose}{Logical, should updates be printed?}
 
+\item{onlyPairwise}{Logical, should the genomes only be considered in a pairwise fashion?}
+
 \item{...}{Not currently in use}
+
+\item{MCScanX.params.init}{Initial parameters to pass to MCScanX. These should be less stringent
+than MCScanX.params}
 }
 \value{
 Nothing.

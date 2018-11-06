@@ -34,7 +34,64 @@ plot_blocksAndMapping <- function(map,
                                   chr2toplot = NULL,
                                   main = NULL,
                                   plotit = T,
-                                  returnData = F){
+                                  returnData = F,
+                                  colorSegment = T,
+                                  gff.dir = NULL,
+                                  blast.results = NULL){
+
+  if(!is.null(gff.dir) & !is.null(blast.results)){
+    gff.files <- list.files(gff.dir,
+                            full.names = T)
+    names(gff.files) <- gsub(".gff3$", "",
+                             basename(gff.files))
+
+    parse_gff <- function(gff){
+      g <- suppressWarnings(
+        data.table::fread(gff,
+                          showProgress = F,
+                          verbose = F))
+      g <- g[g$V3 == "gene", c(9, 1, 4, 5, 7)]
+      g$V9 <- sapply(g$V9, function(x) gsub("Name=", "",
+                                            strsplit(x, ";")[[1]][2]))
+      data.table::setnames(g, c("id", "chr", "start", "end", "strand"))
+      return(g)
+    }
+
+    gff <- rbindlist(lapply(names(gff.files), function(i){
+      tmp <- parse_gff(gff.files[[i]])
+      tmp$genome <- i
+      tmp$order <- frank(tmp[,c("chr", "start")],
+                         ties.method = "random")
+      return(tmp)
+    }))
+    setkey(gff, genome, chr, start)
+
+    gff[,rank := frank(start),
+        by = list(genome,chr)]
+    gff1 = data.table(gff)
+    gff2 = data.table(gff)
+    setnames(gff1, paste0(colnames(gff1),1))
+    setnames(gff2, paste0(colnames(gff2),2))
+    setkey(gff1,genome1,id1)
+    setkey(gff2,genome2,id2)
+
+    blast.simp = blast.results[,c("id1","genome1","id2","genome2"), with = F]
+    setkey(blast.simp, id2, genome2)
+    gffs = merge(gff2, blast.simp)
+    setkey(gffs,genome1,id1)
+    gffs = merge(gff1, gffs)
+
+    map.simp = map[,c("id1","genome1","id2","genome2","block.id","score"),with = F]
+    map.simp$block.id = as.numeric(as.factor(with(map.simp,paste(genome1, genome2, block.id))))
+
+    setkey(map.simp, id1,genome1,id2, genome2)
+    setkey(gffs, id1,genome1,id2, genome2)
+    ms = merge(gffs, map.simp, all = T)
+
+    tb = make_blocks(ms, rerank = F, drop.NAs = T)
+    map <- tb$map
+    blk <- tb$block
+  }
 
   tpb <- blk[blk$genome1 == ref.id &
                blk$genome2 == altGenome2plot,]
@@ -68,17 +125,32 @@ plot_blocksAndMapping <- function(map,
                         "grey50", "lightgreen", "forestgreen", "darkgreen",
                         "cyan", "dodgerblue3", "violet", "purple"),
                       length.out = nrow(b2))
-      with(t2, plot(rank1, rank2,
-                    col = cols[as.numeric(as.factor(block.id))],
-                    pch = 16,
-                    cex = .5,
-                    ylab = paste(altGenome2plot, j, "gene order"),
-                    xlab = paste(ref.id, i, "gene order"),
-                    main = main))
-      with(b2, segments(x0 = rankstart1, x1 = rankend1,
-                        y0 = rankstart2, y1 =rankend2,
-                        col = "black",
-                        lwd = 1.5))
+      if(colorSegment){
+        with(t2, plot(rank1, rank2,
+                      col = rgb(0,0,0,.5),
+                      pch = 16,
+                      cex = .5,
+                      ylab = paste(altGenome2plot, j, "gene order"),
+                      xlab = paste(ref.id, i, "gene order"),
+                      main = main))
+        with(b2, segments(x0 = rankstart1, x1 = rankend1,
+                          y0 = rankstart2, y1 =rankend2,
+                          col = cols[as.numeric(as.factor(block.id))],
+                          lwd = 2))
+      }else{
+        with(t2, plot(rank1, rank2,
+                      col = cols[as.numeric(as.factor(block.id))],
+                      pch = 16,
+                      cex = .5,
+                      ylab = paste(altGenome2plot, j, "gene order"),
+                      xlab = paste(ref.id, i, "gene order"),
+                      main = main))
+        with(b2, segments(x0 = rankstart1, x1 = rankend1,
+                          y0 = rankstart2, y1 =rankend2,
+                          col = "black",
+                          lwd = 1.5))
+      }
+
       with(b2, text(x = rowMeans(b2[,c("rankstart1","rankend1")]),
                     y = rowMeans(b2[,c("rankstart2","rankend2")]),
                     labels = block.id,

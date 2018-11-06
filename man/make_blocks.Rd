@@ -4,7 +4,7 @@
 \alias{make_blocks}
 \title{make blocks from mappings}
 \usage{
-make_blocks(map)
+make_blocks(map, rerank = T, drop.NAs = F)
 }
 \arguments{
 \item{map}{The map object (data.frame or data.table)}
