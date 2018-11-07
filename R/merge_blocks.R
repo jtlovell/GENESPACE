@@ -6,6 +6,8 @@
 #' @param map the map object
 #' @param blk the block object
 #' @param verbose logical, should updates be printed?
+#' @param max.iter numeric, the maximum number of iterations to perform to look for
+#' blocks to merge.
 #' @param reciprocal logical, If TRUE, do not merge blocks entirely within another
 #' @param ... Not currently in use
 #' @details Needs to be run prior to the pipeline. Makes some objects that are required.
@@ -21,7 +23,8 @@ merge_blocks = function(blk,
                         map,
                         buffer = 0,
                         verbose = T,
-                        reciprocal = FALSE){
+                        reciprocal = FALSE,
+                        max.iter = 30){
 
   find_2merge = function(x, buffer, n.match){
     if(nrow(x)==1){

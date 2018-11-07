@@ -26,7 +26,9 @@ Here, we develop a pipeline to accomplish alignemnts in "gene space" (within, or
 4. Block file with coordinates of collinear blocks between each pair of genomes
 3. Multiple sequence alignments for each orthogroup (tested within colinear blocks)
 
-# Input data
+# Getting started
+
+## Input data
 
 Each genome must have five datasets
 
@@ -41,11 +43,81 @@ To get started, make a project directory, e.g.:
 `mkdir /Users/jlovell/Desktop/grass_genespace`
 `cd /Users/jlovell/Desktop/grass_genespace`
 
-Then make two raw data subdirectories: `raw_annotations` and `raw_assemblies`. 
+Then make two raw data subdirectories, e.g.: 
+
+`mkdir raw_annotations`
+`mkdir raw_assemblies`
 
 Copy all the assembly fasta files into the raw_assemblies directory and rename them as `[genomeID].fa`. 
 
 Make a subdirectory named [genomeID] for each `genomeID` in the raw_annotations directory. Place the four annotation files of each genomeID into the respective subdirectories. It doesn't matter what the annotations are named, as long as there is a distinguishing character string in each file name that identifies the type of annotation file. For example, the CDS fastas may all have `cds_primaryTranscriptOnly` in their names. 
+
+
+## Conda environment
+
+Create the conda environment with the basic programs that are required
+```
+conda create -p $SCRATCH/conda_envs/genespace python=2.7 orthofinder samtools diamond blat bedtools R
+source activate genespace
+```
+
+Install the required R packages
+
+```
+conda install -c bioconda bioconductor-biostrings bioconductor-genomicfeatures bioconductor-rsamtools
+conda install -c r r-devtools r-data.table
+```
+
+I recommend running this in R studio, but not necessary. If you want to and don't have Rstudio installed:
+
+```
+conda install rstudio
+```
+
+Install MCScanX from http://chibba.pgml.uga.edu/mcscan2/MCScanX.zip,
+
+If having trouble with installation, see troubleshooting here: https://vcru.wisc.edu/simonlab/bioinformatics/programs/install/mcscanx.htm
+
+Then specify the path to MCSCanX:
+``` 
+export PATH=$PATH:/global/homes/j/jtlovell/MCScanX
+```
+
+
+Otherwise 
+
+```
+open -na Rstudio
+R
+```
+
+Within R, install the GENESPACE package
+
+```
+> library(devtools)
+> devtools::install_github("HudsonAlpha/GENESPACE",
+               auth_token = "6ad39f2df35eff7a5a4990a1abead1ea74dd33dc")
+
+> library(GENESPACE)
+```
+
+## Automatic formatting of input data
+
+GENESPACE requires a very specific naming and file structure of the input data ... within the project directory, there needs to be a folder called `genomes`. This contains five subdirectories:
+
+1. assembly
+2. peptide
+3. cds
+4. transcript
+5. gff
+
+Each of these needs to be populated with a file for each genome named [genomeID].fa, or [genomeID].gff3. Making these files can be annoying, so there is a conveniece function:
+
+```
+> 
+
+
+
 
 
 
