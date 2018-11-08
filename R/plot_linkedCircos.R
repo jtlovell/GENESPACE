@@ -22,6 +22,7 @@
 #' @param genome_id2.col The color of a track just inside of the labels, indicating
 #' that the chromosome comes from genomeID2.
 #' @param track.height How wide should the track with genome colors be?
+#' @param adjust.alpha Logical, should transparency be adjusted based on block size?
 #' @param ... Not currently in use
 #' @details More here
 #' @return Nothing.
@@ -60,6 +61,7 @@ plot_linkedCircos <- function(blk,
                               genome_id1.col = "grey80",
                               genome_id2.col = "grey50",
                               track.height = 0.05,
+                              adjust.alpha = F,
                               ...){
 
   add.alpha <- function(col, alpha=1){
@@ -147,12 +149,19 @@ plot_linkedCircos <- function(blk,
   bed$e1 <- NULL
 
 
-  alpha.scale <- function(x){
-    ifelse(x > 5e6,.6,
-           ifelse(x > 1e6,.4,
-                  ifelse(x > 5e5, .3,
-                         ifelse(x > 1e5,.2,.1))))
+  if(adjust.alpha){
+    alpha.scale <- function(x){
+      ifelse(x > 5e6,.6,
+             ifelse(x > 1e6,.4,
+                    ifelse(x > 5e5, .3,
+                           ifelse(x > 1e5,.2,.1))))
+    }
+  }else{
+    alpha.scale <- function(x){
+      return(.6)
+    }
   }
+
   bed1 <- with(bed,data.frame(chr = chr1,
                               start = start1,
                               end = end1,
