@@ -13,9 +13,12 @@
 #' }
 #' @import data.table
 #' @export
-make_blocks<-function(map, rerank = T, drop.NAs = F){
+make_blocks<-function(map, rerank = T, drop.NAs = F, rename.blocks = T){
   map = data.table(map)
-  map$block.id = as.numeric(as.factor(with(map, paste(genome1, genome2, chr1, chr2, block.id))))
+  if(rename.blocks){
+    map$block.id = as.numeric(as.factor(with(map, paste(genome1, genome2, chr1, chr2, block.id))))
+  }
+
   setkey(map, chr1, chr2, start1, start2)
   if(rerank){
     map[,rank1 := frank(start1,
