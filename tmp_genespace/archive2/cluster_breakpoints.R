@@ -58,7 +58,38 @@ cluster_breakpoints = function(blk,
                        ties.method = "dense")
     return(tmp)
   }))
-  setkey(gff, genome, id)
+  setkey(gff, genome, order)
+
+  chop_gff = function(gff, blk){
+    gff.spl = split(gff, gff$genome)
+    gff.spl = lapply(gff.spl, function(x) split(x, x$chr))
+
+    rblk = blk[blk]
+    lapply(1:nrow(blk), function(i){
+      x = blk[i,]
+      y = gff.spl[[x$genome1]]
+    })
+
+      rbindlist(lapply(names(bp.spl), function(i){
+      x = bp.spl[[i]]
+      z = rbindlist(lapply(1:nrow(x), function(j){
+        y = x[j,]
+        go = gff.spl[[y$genome]][[y$chr]]
+        go = go[go$end >= y$start & go$start <= y$end,]
+        go$block.id = x$block.id[j]
+        return(go)
+      }))
+      mo1 = map[map$id1 %in% z$id,]
+      mo2 = map[map$id2 %in% z$id,]
+
+      mm = rbind(mo1, mo2)
+      mm$block.id = paste0(x$breakpoint.id[1],"_", mm$block.id)
+      mm$breakpoint.id = x$breakpoint.id[1]
+      return(mm)
+    }))
+  }
+
+
 
   cbp = function(b, genomeIDs, verbose, checkOvl.rank){
     r = with(b, cbind(c(rankstart1,rankend1),
@@ -136,8 +167,8 @@ cluster_breakpoints = function(blk,
   bo = rbindlist(out)
 
 
-  rmap = bo[bo$genome1 == genomeIDs[1],]
-  rblk = blk[blk$genome1 == genomeIDs[1],]
+  rmap = map[map$genome1 == genomeIDs[1],]
+  rblk = bo[bo$genome1 == genomeIDs[1],]
 
   brpts = rbind(data.frame(chr = rblk$chr1, pos = rblk$start1,
                            stringsAsFactors = F),
@@ -218,44 +249,47 @@ cluster_breakpoints = function(blk,
   rmap.spl = lapply(1:nrow(brpts.o),function(i){
     x = brpts.o[i,]
     y = rmap[with(rmap, chr1 == x$chr & end1 >= x$start & start1 <= x$end),]
-    o = y[,list(genome = genome2[1],
-                chr = chr2[1],
-                start = min(start2),
-                end = max(end2)),
-          by = list(block.id)]
-    o = rbind(data.table(block.id = NA,genome = genomeIDs[1],
-                         chr = x$chr,
-                         start = x$start, end = x$end),
-              o)
-    o$breakpoint.id = x$brk.id
-    return(o)
+    if(nrow(y)>0){
+      o = y[,list(genome = genome2[1],
+                  chr = chr2[1],
+                  start = min(start2),
+                  end = max(end2)),
+            by = list(block.id)]
+      o = rbind(data.table(block.id = NA,genome = genomeIDs[1],
+                           chr = x$chr,
+                           start = x$start, end = x$end),
+                o)
+      o$breakpoint.id = x$brk.id
+      return(o)
+    }
   })
   brk.out = rbindlist(rmap.spl)
 
   if(verbose)
     cat("Done - ",nrow(blk), "blocks have been assigned to",
         length(unique(brk.out$breakpoint.id)),"breakpoints\n")
-  if(verbose)
-    cat("Building a new map object against the", genomeIDs[1],"reference coordinate system...\n\t",
-        "Original map contained", nrow(rmap),"blast hits\n\t")
-  test = lapply(rmap.spl, function(x){
-    xr = x[x$genome == genomeIDs[1],]
-    y = rmap[rmap$chr1 == xr$chr & rmap$end1 >= xr$start & rmap$start1 <= xr$end,]
-    yspl = rbindlist(lapply(1:nrow(x), function(i){
-      if(x$genome[i] == genomeIDs[1]){
-        z = y[y$genome1 == x$genome[i],]
-        z = z[z$chr1 == x$chr[i],]
-        z = z[z$end1 >= x$start[i] & z$start1 <= x$end[i],]
-        z$breakpoint.id <- x$breakpoint.id[1]
-      }else{
-        z = y[y$genome2 == x$genome[i],]
-        z = z[z$chr2 == x$chr[i],]
-        z = z[z$end2 >= x$start[i] & z$start2 <= x$end[i],]
-        z$breakpoint.id <- x$breakpoint.id[1]
-      }
-      return(z)
-    }))
-  })
+  # if(verbose)
+  #   cat("Building a new map object against the", genomeIDs[1],"reference coordinate system...\n\t",
+  #       "Original map contained", nrow(rmap),"blast hits\n\t")
+  # test = lapply(rmap.spl, function(x){
+  #   xr = x[x$genome == genomeIDs[1],]
+  #   y = rmap[rmap$chr1 == xr$chr & rmap$end1 >= xr$start & rmap$start1 <= xr$end,]
+  #   yspl = rbindlist(lapply(1:nrow(x), function(i){
+  #     if(x$genome[i] == genomeIDs[1]){
+  #       z = y[y$genome1 == x$genome[i],]
+  #       z = z[z$chr1 == x$chr[i],]
+  #       z = z[z$end1 >= x$start[i] & z$start1 <= x$end[i],]
+  #       z$breakpoint.id <- x$breakpoint.id[1]
+  #     }else{
+  #       z = y[y$genome2 == x$genome[i],]
+  #       z = z[z$chr2 == x$chr[i],]
+  #       z = z[z$end2 >= x$start[i] & z$start2 <= x$end[i],]
+  #       z$breakpoint.id <- x$breakpoint.id[1]
+  #     }
+  #     return(z)
+  #   }))
+  # })
+  # print(head(test))
 
   if(verbose)
     cat("\tSplitting gff files by breakpoints\n")
@@ -285,13 +319,12 @@ cluster_breakpoints = function(blk,
     mo1 = map[map$id1 %in% z$id,]
     mo2 = map[map$id2 %in% z$id,]
 
-    mo = rbind(mo1, mo2)
-    mi = make_blocks(mo)
-    mm = mi$map
-    mm$block.id = paste0(x$breakpoint.id,"_", mm$block.id)
+    mm = rbind(mo1, mo2)
+    mm$block.id = paste0(x$breakpoint.id[1],"_", mm$block.id)
     mm$breakpoint.id = x$breakpoint.id[1]
     return(mm)
   }))
+  gff.bp<-gff.bp[!duplicated(gff.bp[,c(1:2,ncol(gff.bp)), with = F]),]
 
   blk = make_blocks(gff.bp, rename.blocks = F)
   map  = blk$map

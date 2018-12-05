@@ -4,7 +4,7 @@
 \alias{check_environment}
 \title{Make sure everything is setup}
 \usage{
-check_environment(directory, genomeIDs, abbrevs, ploidy)
+check_environment(directory, genomeIDs, abbrevs, ploidy, clean = T)
 }
 \arguments{
 \item{directory}{File path, where the subdirectory folders (e.g. raw_assemblies)

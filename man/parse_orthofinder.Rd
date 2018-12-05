@@ -4,10 +4,12 @@
 \alias{parse_orthofinder}
 \title{Process orthofinder results}
 \usage{
-parse_orthofinder(blast.dir, gff.dir, verbose = TRUE, ploidy,
-  min.propMax = 0.5, min.score = 50, nmapsPerHaplotype = 4,
-  eps.radius = c(100, 50, 40), n.mappingWithinRadius = c(5, 5, 10),
-  allOrthoGroups = FALSE, onlyScore = FALSE, testScore = TRUE, ...)
+parse_orthofinder(blast.dir, gff.dir = NULL, gff = NULL,
+  verbose = TRUE, ploidy = NULL, min.propMax = 0.5, min.score = 50,
+  nmapsPerHaplotype = 4, eps.radius = c(100, 50, 40),
+  n.mappingWithinRadius = c(5, 5, 10), checkDBS = TRUE,
+  allOrthoGroups = FALSE, onlyScore = FALSE, testScore = TRUE,
+  strip.numbers = T, replace = c("_p", "_g"), ...)
 }
 \arguments{
 \item{blast.dir}{The path to the directory where the blast results should be stored}

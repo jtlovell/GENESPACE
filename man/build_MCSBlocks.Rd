@@ -6,7 +6,7 @@
 \usage{
 build_MCSBlocks(blast.results, MCScanX.param.init = "-a -s 5 -m 25 -w 5",
   MCScanX.params = "-a -s 20 -m 10 -w 5", abbrevs, mcscanx.input.dir,
-  verbose = TRUE, onlyPairwise = TRUE, ...)
+  verbose = TRUE, onlyPairwise = TRUE, eps.radius = 50000, ...)
 }
 \arguments{
 \item{blast.results}{R object contain the blast results}

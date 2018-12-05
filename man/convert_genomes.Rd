@@ -33,22 +33,51 @@ below.}
 \item{...}{Not currently in use}
 }
 \value{
-nothing
+The function does not return anything to the R console.
 }
 \description{
 \code{convert_genomes} Take phytozome-formatted genomes, rename and reformat them
 for the GENESPACE pipeline
 }
 \details{
-Not required, but makes the formatting for the program a bit easier.
-The raw_assembly subdirectory MUST contain a single fasta file for each
-genomeID, named $genomeID.fa.
-The raw_annotation subdirectory MUST contain a single subdirectory for each
-genomeID, with a label matching the genomeID exactly.
-Each raw_annotation/genomeID subdirectory MUST contain four files: cds.fasta
-peptide.fasta, annotation.gff3 and transcript.fasta. These can be named whatever,
-but must contain a string that can be identified in the specified parameters of
-this function
+While this is not required, GENESPACE needs very specific
+formating of the annotations files in an exact subdirectory structure.
+See documentation for `check_environment` for more information. `convert_genomes`
+makes the formatting for the program easier and ensures that subdirectory
+structure is correct.
+To run this succesfully, the input directory must contain the following
+subdirectories
+ \itemize{
+   \item{**raw_assembly**: which contains a single fasta file for each
+   entry in `genomeIDs``, named $genomeID.fa.}
+   \item{**raw_annotation**: which contains a single subdirectory for each
+   entry in `genomeIDs``, named $genomeID. Within each subdirectory, there
+   needs to be four annotations files : the cds.fasta, peptide.fasta,
+   annotation.gff3 and transcript.fasta.}
+ }
+
+The function runs the following steps:
+\enumerate{
+  \item{**Makes necessary subdirectories**: GENESPACE needs a subdirectory
+  called `genome`, which contains the assemblies, gff annotations and the
+  three annotation fasta files.}
+  \item{**Copies annotation files**: Within each genomeIDs `raw_annotation`
+  subdirectory, searches for the file containing the `gff_str`, `cds_str`,
+  `peptide_str` and `transcript_str`. The files containing these strings
+  are copied into the `genome/gff`, `genome/cds`, `genome/peptide` and
+  `genome/transcript` subdirectories, then renamed with each genomeIDs.}
+  \item{**Copies assembly files**: The assembly files are copied as is
+  into the `genome/assembly` subdirectory. Then, `samtools faidx` is
+  called to index the assembly.}
+  \item{**Rename annotation fasta headers**: Often the fasta headers
+  in annotation files contain a lot of information aside from the
+  gene identifier. To speed up downstream analysis, we want to subset
+  annotation files on exact matches with gff gene IDs. To do this, we
+  simply parse the fasta headers through the function specified in
+  `parse_fastaHeader.FUN`. By default, this drops all text before the
+  first occurance of '*locus=', then takes the first whitespace-separated
+  entry in the header.}
+}
 }
 \examples{
 \dontrun{

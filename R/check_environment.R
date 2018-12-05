@@ -23,7 +23,8 @@
 check_environment <- function(directory,
                               genomeIDs,
                               abbrevs,
-                              ploidy){
+                              ploidy,
+                              clean = T){
 
   cat("Making R variables and necessary directories... ")
 
@@ -33,17 +34,22 @@ check_environment <- function(directory,
   system(paste("mkdir", tmp.dir))
 
   results.dir <<- file.path(directory, "results")
-  if(file.exists(results.dir))
+  if(file.exists(results.dir) & clean)
     system(paste("rm -r", results.dir))
   system(paste("mkdir",results.dir))
 
   blast.dir <<- file.path(directory, "blast")
-  if(file.exists(blast.dir))
+  if(file.exists(blast.dir) & clean)
+    system(paste("rm -r", blast.dir))
+  system(paste("mkdir", blast.dir))
+
+  blast.dir <<- file.path(directory, "block")
+  if(file.exists(blast.dir) & clean)
     system(paste("rm -r", blast.dir))
   system(paste("mkdir", blast.dir))
 
   mcscan.dir <<- file.path(directory, "mcscanx")
-  if(file.exists(mcscan.dir))
+  if(file.exists(mcscan.dir) & clean)
     system(paste("rm -r", mcscan.dir))
   system(paste("mkdir", mcscan.dir))
 

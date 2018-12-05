@@ -26,6 +26,12 @@ Here, we develop a pipeline to accomplish alignemnts in "gene space" (within, or
 4. Block file with coordinates of collinear blocks between each pair of genomes
 3. Multiple sequence alignments for each orthogroup (tested within colinear blocks)
 
+# Simple block construction
+
+Often, we are only interested in building blocks and not in alignments / pseudogene reconstruction. To do this simple analysis, we only need the peptide and gff directories. 
+
+
+
 # Getting started
 
 ## Input data
@@ -57,7 +63,7 @@ Make a subdirectory named [genomeID] for each `genomeID` in the raw_annotations 
 
 Create the conda environment with the basic programs that are required
 ```
-conda create -p $SCRATCH/conda_envs/genespace python=2.7 orthofinder samtools diamond blat bedtools R
+conda create -p $SCRATCH/conda_envs/genespace python=2.7 orthofinder samtools diamond blat bedtools
 source activate genespace
 ```
 
@@ -65,20 +71,15 @@ Install the required R packages
 
 ```
 conda install -c bioconda bioconductor-biostrings bioconductor-genomicfeatures bioconductor-rsamtools
-conda install -c r r-devtools r-data.table
-```
-
-I recommend running this in R studio, but not necessary. If you want to and don't have Rstudio installed:
-
-```
-conda install rstudio
+conda install -c r r-data.table r-devtools r-circlize r-geometry
 ```
 
 Install MCScanX from http://chibba.pgml.uga.edu/mcscan2/MCScanX.zip,
 
-If having trouble with installation, see troubleshooting here: https://vcru.wisc.edu/simonlab/bioinformatics/programs/install/mcscanx.htm
+  If having trouble with installation, see troubleshooting here: https://vcru.wisc.edu/simonlab/bioinformatics/programs/install/mcscanx.htm
 
 Then specify the path to MCSCanX:
+
 ``` 
 export PATH=$PATH:/global/homes/j/jtlovell/MCScanX
 ```
@@ -87,18 +88,30 @@ export PATH=$PATH:/global/homes/j/jtlovell/MCScanX
 Otherwise 
 
 ```
-open -na Rstudio
 R
 ```
 
-Within R, install the GENESPACE package
+Within R, install genespace
+```
+library(devtools)
+devtools::build("/global/projectb/scratch/jtlovell/test_genespace/GENESPACE")
+devtools::install("/global/projectb/scratch/jtlovell/test_genespace/GENESPACE")
+```
+
+If you are not on NERSC, you can do this instead.
 
 ```
 > library(devtools)
 > devtools::install_github("HudsonAlpha/GENESPACE",
                auth_token = "6ad39f2df35eff7a5a4990a1abead1ea74dd33dc")
 
-> library(GENESPACE)
+```
+
+Finally, specify the working data for the project:
+```
+directory = "/Users/jlovell/Desktop/grass_genespace"
+block.dir = file.path(directory,"block.data")
+genomeIDs = c("Pvirgatum",  "PhalliiHAL", "Sviridis")
 ```
 
 ## Automatic formatting of input data
@@ -114,9 +127,54 @@ GENESPACE requires a very specific naming and file structure of the input data .
 Each of these needs to be populated with a file for each genome named [genomeID].fa, or [genomeID].gff3. Making these files can be annoying, so there is a conveniece function:
 
 ```
-> 
+convert_genomes(
+  directory = directory,
+  genomeIDs = genomeIDs,
+  verbose = T)
+```
+
+This parses the fasta and gff files into the correct directory structure
+
+## Check that everything is ready
+
+Since formatting is tricky and there are a lot of dependencies for this pipeline, I have a convenience function to make sure everything is OK.
+
+```
+check_environment(
+  directory = directory,
+  genomeIDs = genomeIDs,
+  abbrevs = c("Pv","Ph","Sv"),
+  ploidy = c(4,2,2))
+```
 
 
+# Run the mapping / synteny pipeline
+
+## Initial BLAST and orthology network construction
+
+The first step is to run pairwise / reciprocal blasts and build initial gene orthology networks. We accomplish this within the orthofinder program, which can be called via:
+
+```
+run_orthofinder(
+  peptide.dir = peptide.dir,
+  tmp.dir = tmp.dir,
+  blast.dir = blast.dir)
+```
+
+## BLAST-result parsing
+
+Orthofinder returns a relatively complex file structure. What we are interested in are blast hits that reside within orthology networks, pass certain score thresholds, etc.
+
+Furthermore, syntenic blocks are identified by regions of dense blast hits on pairwise chromosomal regions. Therefore, to speed up collinear block construction and increase accuracy, we also parse by the 2D density of BLAST hits. This is determined by the gene position rank of the hits on each pairwise set of genomes.
+
+```
+blast.results <- parse_orthofinder(
+  blast.dir = blast.dir,
+  gff.dir = gff.dir,
+  ploidy = ploidy)
+```
+
+The defaults in parse_orthofinder do a good 
 
 
 

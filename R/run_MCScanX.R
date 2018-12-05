@@ -47,9 +47,8 @@ run_MCScanX <- function(blast.results,
   for(i in names(g)) bs$abbrev2[bs$genome2 == i] <- abbrevs[i]
 
   bs <- bs[order(bs$index1, bs$index2),]
-
-  spl <- split(blast.results,
-               paste(blast.results$genome1, blast.results$genome2))
+  blast.results$uniq = paste(blast.results$genome1, blast.results$genome2)
+  spl <- split(blast.results, "uniq")
 
   out <- lapply(1:nrow(bs), function(i){
     id <- paste(bs[i,1:2], collapse = " ")

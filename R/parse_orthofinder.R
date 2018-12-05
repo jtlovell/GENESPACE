@@ -37,17 +37,21 @@
 #' @importFrom dbscan dbscan frNN
 #' @export
 parse_orthofinder <- function(blast.dir,
-                              gff.dir,
+                              gff.dir = NULL,
+                              gff = NULL,
                               verbose = TRUE,
-                              ploidy,
+                              ploidy = NULL,
                               min.propMax = .5,
                               min.score = 50,
                               nmapsPerHaplotype = 4,
                               eps.radius = c(100, 50, 40),
                               n.mappingWithinRadius = c(5, 5, 10),
+                              checkDBS = TRUE,
                               allOrthoGroups = FALSE,
                               onlyScore = FALSE,
                               testScore = TRUE,
+                              strip.numbers = T,
+                              replace = c("_p","_g"),
                               ...){
 
 
@@ -76,7 +80,7 @@ parse_orthofinder <- function(blast.dir,
                                  "genome"))
   si$genome <- gsub(".fa$", "", si$genome)
   rownames(si) <- si$genome
-  si <- si[genomeIDs,]
+  # si <- si[genomeIDs,]
 
   sm <- cbind(expand.grid(si$genome.num,
                           si$genome.num,
@@ -141,36 +145,52 @@ parse_orthofinder <- function(blast.dir,
   si2 <- merge(si1, si.in)
   setkey(si2, genome, id)
 
-  ################   ################   ################
-  ################   ################   ################
-  if(verbose)
-    cat("Parsing gff files\n")
-  gff.files <- list.files(gff.dir,
-                          full.names = T)
-  names(gff.files) <- gsub(".gff3$", "",
-                           basename(gff.files))
-
-  parse_gff <- function(gff){
-    g <- suppressWarnings(
-      data.table::fread(gff,
-                        showProgress = F,
-                        verbose = F))
-    g <- g[g$V3 == "gene", c(9, 1, 4, 5, 7)]
-    g$V9 <- sapply(g$V9, function(x) gsub("Name=", "",
-                                          strsplit(x, ";")[[1]][2]))
-    data.table::setnames(g, c("id", "chr", "start", "end", "strand"))
-    return(g)
+  if(strip.numbers){
+    # si2<- si2[grepl(".1", si2$id, fixed = T) | !grepl(".", si2$id, fixed = T),]
+    si2$id<-gsub("\\..*","", si2$id)
+    si2 <- si2[!duplicated(si2$id),]
+    setkey(si2, genome, id)
+  }
+  if(!is.null(replace)){
+    si2$id <- gsub(replace[1],replace[2], si2$id, fixed = T)
   }
 
-  gff <- rbindlist(lapply(names(gff.files), function(i){
-    tmp <- parse_gff(gff.files[[i]])
-    tmp$genome <- i
-    tmp$order <- frank(tmp[,c("chr", "start")],
-                       ties.method = "dense")
-    return(tmp)
-  }))
-  setkey(gff, genome, id)
+  ################   ################   ################
+  ################   ################   ################
+  if(is.null(gff)){
+    if(verbose)
+      cat("Parsing gff files\n")
+    gff.files <- list.files(gff.dir,
+                            full.names = T)
+    names(gff.files) <- gsub(".gff3$", "",
+                             basename(gff.files))
 
+    parse_gff <- function(gff){
+      g <- suppressWarnings(
+        data.table::fread(gff,
+                          showProgress = F,
+                          verbose = F))
+      g <- g[g$V3 == "gene", c(9, 1, 4, 5, 7)]
+      g$V9 <- sapply(g$V9, function(x) gsub("Name=", "",
+                                            strsplit(x, ";")[[1]][2]))
+      data.table::setnames(g, c("id", "chr", "start", "end", "strand"))
+      return(g)
+    }
+
+    gff <- rbindlist(lapply(names(gff.files), function(i){
+      tmp <- parse_gff(gff.files[[i]])
+      tmp$genome <- i
+      tmp$order <- frank(tmp[,c("chr", "start")],
+                         ties.method = "dense")
+      return(tmp)
+    }))
+    setkey(gff, genome, id)
+  }else{
+    gff = data.table(gff)
+    setkey(gff, genome, id)
+  }
+  setkey(gff, genome, id)
+  setkey(si2, genome, id)
   gff.in = merge(gff, si2)
 
 
@@ -224,7 +244,6 @@ parse_orthofinder <- function(blast.dir,
   ################   ################   ################
   if(verbose)
     cat("Parsing blast files ... \n")
-
   blast.out <- lapply(1:length(sl), function(i){
     x <- sl[[i]]
     if(verbose)
@@ -259,9 +278,15 @@ parse_orthofinder <- function(blast.dir,
     setkey(gff1, gn1)
     setkey(blast.in, gn1)
     m1 <- merge(gff1, blast.in)
+    setkey(m1, gn1, gn2)
+
     setkey(gff2, gn2)
-    setkey(m1, gn2)
-    merged <- merge(gff2, m1)
+    setkey(blast.in, gn2)
+    m2 <- merge(gff2, blast.in)
+    m2 <- m2[,1:11, with = F]
+    setkey(m2, gn1, gn2)
+
+    merged = merge(m1, m2)
 
     if(!onlyScore & !allOrthoGroups){
       d <- data.table(merged[with(merged, og1 == og2),])
@@ -315,7 +340,7 @@ parse_orthofinder <- function(blast.dir,
           nrow(cullscore),
           "mappings that pass score thresholds\n")
 
-    if(onlyScore){
+    if(onlyScore | !checkDBS){
       return(cullscore)
     }else{
 

@@ -4,8 +4,8 @@
 \alias{merge_blocks}
 \title{Merge close blocks}
 \usage{
-merge_blocks(blk, map, buffer = 0, verbose = T, reciprocal = FALSE,
-  max.iter = 30)
+merge_blocks(blk, map, buffer = 0, verbose = T,
+  max.size2merge = 10000, max.iter = 2)
 }
 \arguments{
 \item{blk}{the block object}
@@ -14,7 +14,7 @@ merge_blocks(blk, map, buffer = 0, verbose = T, reciprocal = FALSE,
 
 \item{verbose}{logical, should updates be printed?}
 
-\item{reciprocal}{logical, If TRUE, do not merge blocks entirely within another}
+\item{max.size2merge}{numeric the maximum sized block to be merged}
 
 \item{max.iter}{numeric, the maximum number of iterations to perform to look for
 blocks to merge.}

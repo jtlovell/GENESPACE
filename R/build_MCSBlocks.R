@@ -29,6 +29,7 @@ build_MCSBlocks <- function(blast.results,
                             mcscanx.input.dir,
                             verbose = TRUE,
                             onlyPairwise = TRUE,
+                            eps.radius = 5e4,
                             ...){
 
 
@@ -64,6 +65,43 @@ build_MCSBlocks <- function(blast.results,
 
     allu <- unique(c(map$uniq.map, blast.noblk$uniq.map))
     return(blast[blast$uniq.map %in% allu,])
+  }
+
+  add_gapHits2Block = function(blast,
+                               map,
+                               blk,
+                               eps.radius){
+    test = find_unmappedBlast(blk = blk,
+                              map = map,
+                              blast = all.blast.results)
+    b = blk
+    b$id1 = "block"
+    b$id2 = "block"
+    test = map
+    test$rankstart1 = test$rank1
+    test$rankstart2 = test$rank2
+    test$rankend1 = test$rank1
+    test$rankend2 = test$rank2
+    tmp = rbind(b, test, fill = T)[,1:17,with = F]
+    tmp$unique = with(tmp, paste(genome1, genome2, chr1, chr2))
+    spl = split(tmp, tmp$unique)
+    maps2keep = rbindlist(lapply(spl, function(x){
+      y1 = x[,c("unique","id1","id2","start1","start2")]
+      y2 = x[,c("unique","id1","id2","end1","end2")]
+      setnames(y1,4:5,c("pos1","pos2"))
+      setnames(y2,4:5,c("pos1","pos2"))
+      y = rbind(y1,y2)
+
+      nn = frNN(y[,c("pos1","pos2"), with  =F], eps = eps.radius)
+      dbs = dbscan(nn, minPts = 2)$cluster
+      y$init.clus = dbs
+      grp.clus = unique(y$init.clus[y$id1 == "block"])
+      grp.clus = grp.clus[grp.clus!=0]
+      yo = y[y$init.clus %in% grp.clus,]
+      return(yo[,c("id1","id2"),with = F])
+    }))
+    ret = merge(test,maps2keep)
+    return(ret)
   }
 
 
@@ -164,10 +202,12 @@ build_MCSBlocks <- function(blast.results,
   if(verbose)
     cat("Finding BLAST hits in gaps between blocks...\n\t")
 
-  blast.unmap <- find_unmappedBlast(map = map,
-                                    blk = blk,
-                                    blast = blast.results)
+  blast.unmap <- add_gapHits2Block(map = map,
+                                   blk = blk,
+                                   blast = blast.results,
+                                   eps.radius = eps.radius)
   blast.unmap <- blast.unmap[,colnames(blast.results.mcs), with = F]
+  blast.unmap <- rbind(blast.results.mcs, blast.unmap)
   if(verbose)
     cat("Added",
         nrow(blast.unmap)-nrow(map),

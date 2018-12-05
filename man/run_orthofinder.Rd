@@ -4,7 +4,9 @@
 \alias{run_orthofinder}
 \title{Run the orthofinder program}
 \usage{
-run_orthofinder(peptide.dir, tmp.dir, blast.dir, verbose = T, ...)
+run_orthofinder(peptide.dir = NULL, tmp.dir, blast.dir,
+  blast.threads = 16, og.threads = 1, verbose = T, og.silent = F,
+  ...)
 }
 \arguments{
 \item{peptide.dir}{The path to the directory containing the peptide fasta sequence files}

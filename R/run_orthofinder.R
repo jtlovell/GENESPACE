@@ -20,34 +20,60 @@
 #' none yet
 #' }
 #' @export
-run_orthofinder <- function(peptide.dir,
+run_orthofinder <- function(peptide.dir = NULL,
                             tmp.dir,
                             blast.dir,
+                            blast.threads = 16,
+                            og.threads = 1,
                             verbose = T,
+                            og.silent = F,
                             ...){
   ################   ################   ################
   ################   ################   ################
-  if(verbose)
-    cat("Copying peptide fasta files to",
-        tmp.dir,
-        "\n")
-  if(file.exists(tmp.dir)){
+  if(file.exists(blast.dir)){
     system(paste("rm -r",
-                 tmp.dir))
+                 blast.dir))
   }
   system(paste("mkdir",
-               tmp.dir))
-  system(paste("cp",
-               file.path(peptide.dir, "*"),
-               tmp.dir))
+               blast.dir))
+
+  if(!is.null(peptide.dir)){
+    if(verbose)
+      cat("Copying peptide fasta files to",
+          tmp.dir,
+          "\n")
+    if(file.exists(tmp.dir)){
+      system(paste("rm -r",
+                   tmp.dir))
+    }
+    system(paste("mkdir",
+                 tmp.dir))
+    system(paste("cp",
+                 file.path(peptide.dir, "*"),
+                 tmp.dir))
+    if(verbose)
+      cat("Running blasts within Orthofinder\n")
+    if(og.silent){
+      system(paste("orthofinder -f", tmp.dir,
+                   "-t", blast.threads,
+                   "-a", og.threads,
+                   "-S diamond -og 1>/dev/null 2>&1"))
+    }else{
+      system(paste("orthofinder -f", tmp.dir,
+                   "-t", blast.threads,
+                   "-a", og.threads,
+                   "-S diamond -og"))
+    }
+  }else{
+    system(paste("orthofinder -b", tmp.dir,
+                 "-a", og.threads,
+                 "-S diamond -og"))
+  }
+
 
   ################   ################   ################
   ################   ################   ################
-  if(verbose)
-    cat("Running blasts within Orthofinder\n")
-  system(paste("orthofinder -f",
-               tmp.dir,
-               "-S diamond -og"))
+
 
   ################   ################   ################
   ################   ################   ################
@@ -55,12 +81,6 @@ run_orthofinder <- function(peptide.dir,
     cat("Moving blasts results to",
         blast.dir,
         "\n")
-  if(file.exists(blast.dir)){
-    system(paste("rm -r",
-                 blast.dir))
-  }
-  system(paste("mkdir",
-               blast.dir))
 
   blast.loc <- dirname(list.files(tmp.dir,
                                   pattern = "SequenceIDs",
@@ -86,5 +106,13 @@ run_orthofinder <- function(peptide.dir,
   system(paste("cp",
                file.path(ortho.loc,
                          "Orthogroups.txt"),
+               blast.dir))
+  system(paste("cp",
+               file.path(blast.loc,
+                         "Species*.fa"),
+               blast.dir))
+  system(paste("cp",
+               file.path(blast.loc,
+                         "diamondDBSpecies*.dmnd"),
                blast.dir))
 }
