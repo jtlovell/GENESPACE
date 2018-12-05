@@ -61,18 +61,11 @@ Make a subdirectory named [genomeID] for each `genomeID` in the raw_annotations 
 
 ## Conda environment
 
-Create the conda environment with the basic programs that are required
+Launch the conda environment with the basic programs that are required
 ```
-conda create -p $SCRATCH/conda_envs/genespace python=2.7 orthofinder samtools diamond blat bedtools
-source activate genespace
+source activate /global/dna/projectdirs/plant/geneAtlas/HAGSC_TOOLS/ANACONDA_ENVS/genespace
 ```
 
-Install the required R packages
-
-```
-conda install -c bioconda bioconductor-biostrings bioconductor-genomicfeatures bioconductor-rsamtools
-conda install -c r r-data.table r-devtools r-circlize r-geometry
-```
 
 Install MCScanX from http://chibba.pgml.uga.edu/mcscan2/MCScanX.zip,
 
@@ -81,7 +74,7 @@ Install MCScanX from http://chibba.pgml.uga.edu/mcscan2/MCScanX.zip,
 Then specify the path to MCSCanX:
 
 ``` 
-export PATH=$PATH:/global/homes/j/jtlovell/MCScanX
+export PATH=$PATH:/global/projectb/scratch/jtlovell/MCScanX
 ```
 
 
@@ -91,8 +84,16 @@ Otherwise
 R
 ```
 
+Download the tarball
+```
+
+```
+
 Within R, install genespace
 ```
+install.packages("geometry")
+install.packages("dbscan")
+install.packages("data.table")
 library(devtools)
 devtools::build("/global/projectb/scratch/jtlovell/test_genespace/GENESPACE")
 devtools::install("/global/projectb/scratch/jtlovell/test_genespace/GENESPACE")

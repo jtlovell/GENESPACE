@@ -144,7 +144,7 @@ import_ofResults <- function(gff,
   if(length(gz) > 0){
     if(verbose)
       cat("Decompressing blast results\n")
-    system(paste("gunzip",
+    system(paste("gunzip -f",
                  file.path(blast.dir,
                            "*.gz")))
   }
