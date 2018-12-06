@@ -16,8 +16,6 @@ rerun_orthofinderInBlk(blk, blast.dir, init.results, cull.blast.dir, ...)
 \item{cull.blast.dir}{directory to write new output}
 
 \item{...}{Additional arguments passed on to run_orthofinder}
-
-\item{tmp.dir}{The path to the directory where temporary files will be stored then deleted}
 }
 \value{
 Nothing, writes results to the cull.blast.dir directory

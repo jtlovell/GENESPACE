@@ -1,21 +1,49 @@
-blk = make_blockDir(blk = merged.close$block, block.dir = block.dir)
-sgff = split_gffByBlock(gff = gff, blk = blk)
-# chop_assemblyByBlock(blk = blk, assembly.dir = assembly.dir)
-chop_annotationByBlock(sgff = sgff, blk = blk)
-of_inblock(blk =  blk)
+#' @title Orthofinder utility functions
+#' @description
+#' \code{of_utilities} Six utilities functions meant for internal calls in compareGeneSpace
+#' @name of_utilities
+#' @param gff.dir character, directory containing the gff3 formatted annotation files
+#' @param blast.dir character, directory containing the orthofinder output
+#' @param mcscanx.input.dir character, directory where MCScanX temporary files should be stored
+#' @param gff.file character, gff file name and path
+#' @param genomeIDs character, genome identifiers
+#' @param abbrevs character, genome abbreviations
+#' @param blk data.table containing the block information
+#' @param map data.table containing the map information
+#' @param blast data.table containing blast hits
+#' @param gff data.table containing the parsed gff annotation data
+#' @param orthogroups orthogroup object from import_ofResults
+#' @param gene.index gene index from import_ofResults
+#' @param species.mappings species mapping object from import_ofResults
+#' @param MCScanX.params character, parameters to be passed to MCScanX
+#' @param mcscanx.input.dir directory for mcscan temporary files to be stored
+#' @param n.mappingWithinRadius numeric, number of hits required to be in the radius
+#' @param eps.radius numeric, size of the radius
+#' @param pairs.only logical, should only pairs of hits in orthofinder output be retained
+#' @param min.propMax numeric, minimum proportion of max score for a gene
+#' @param min.score numeric, minimum score for a hit to be retained
+#' @param max.hitsPerGene numeric, maximum number of hits to be retained per gene
+#' @param str2drop character, string in attribute column of gff file to be dropped
+#' @param str2parse character, string in attribute column of gff file to use as the separator
+#' @param whichAttr numeric, which attribute should be returned in the
+#' gff attribute column
+#' @param verbose logical, should updates be reported?
+#' @note \code{of_utilities} is a generic name for the functions documented.
+#' \cr
+#' If called, \code{of_utilities} returns its own arguments.
+#'
 
-od = og.inblk$orthogroup.datatable
-od2 = od[od$og.n.genomes > 1,]
-odsplit = split.data.table(od2, by = "unique")
-odg = rbindlist(lapply(odsplit, function(x) expand.grid(x$id, x$id)))
-g = graph_from_data_frame(data.frame(odg))
-cl = clusters(g)
-mem = cl$membership
-
-
-og.inblk = read_orthoGroups(block.dir = block.dir,
-                            gff = gff,
-                            ncores = 6)
+#' @title Fast split of data.table
+#' @description
+#' \code{split.data.table} Much faster than base split.
+#' @param x data.table
+#' @param f factor
+#' @param by factor
+#' @param drop drop
+#' @param flatten non-recursive unlisting
+#' @rdname utilities
+#' @import data.table
+#' @export
 concatenate_orthoGroups = function(og.inblk, n.iter = 1, verbose){
   og = og.inblk$orthogroup.datatable
   og$unique = paste0(og$block.id, "_", og$og)
@@ -99,32 +127,6 @@ make_blockDir = function(blk,
   return(blk)
 }
 
-split_gffByBlock = function(blk,
-                          gff,
-                          verbose = T){
-  gff$unique = with(gff, paste(genome, chr, sep = "_"))
-  blk$unique1 = with(blk, paste(genome1, chr1, sep = "_"))
-  blk$unique2 = with(blk, paste(genome2, chr2, sep = "_"))
-
-  if(verbose)
-    cat("Splitting gff into", nrow(blk),"blocks ... ")
-  sgff = split.data.table(gff, "unique")
-  gffo <- lapply(1:nrow(blk), function(i){
-    btmp = blk[i,]
-    g1 = sgff[[btmp$unique1]]
-    g2 = sgff[[btmp$unique2]]
-    g1 = g1[g1$start<=btmp$end1 & g1$end>=btmp$start1,]
-    g2 = g2[g2$start<=btmp$end2 & g2$end>=btmp$start2,]
-    go = rbind(g1, g2)
-    # go$blk = btmp$unique
-    return(go)
-  })
-
-  names(gffo)<-with(blk, paste(genome1, genome2, block.id))
-  if(verbose)
-    cat("Done!\n")
-  return(gffo)
-}
 
 chop_assemblyByBlock = function(blk,
                                 assembly.dir,
@@ -222,168 +224,4 @@ of_inblock = function(blk, ncores = 6){
   })
   if(verbose)
     cat("Done!\n")
-}
-
-read_orthoGroups = function(block.dir,
-                            gff,
-                            ncores = 6,
-                            verbose = T){
-  if(verbose)
-    cat("Looking for Orthogroup text files\n")
-
-  ogf = list.files(block.dir, pattern = "Orthogroups.txt", full.names = T, recursive = T)
-  bn <- basename(ogf)
-  ogf<- ogf[bn == "Orthogroups.txt" & grepl("blast/Orthogroups.txt", ogf, fixed = T)]
-  dirs = gsub("/","",gsub("/blast","",gsub(block.dir,"",dirname(ogf), fixed = T),fixed = T), fixed = T)
-  names(ogf)<-dirs
-
-  if(verbose)
-    cat("Reading and parsing", length(ogf),"files\n")
-
-  ogl1 <- rbindlist(mclapply(names(ogf), mc.cores = ncores, mc.preschedule = T, function(i){
-    print(i)
-    og <- readLines(ogf[[i]])
-    og <- lapply(og, function(x) strsplit(x, " ")[[1]])
-    og.name <- sapply(og, function(x) x[1])
-    og.length <- sapply(og, length)-1
-    og.ids <- sapply(og, function(x) x[-1])
-    og2 = data.table(block.id = i,
-                     og = rep(og.name, og.length),
-                     id = unlist(og.ids),
-                     stringsAsFactors = F)
-    return(og2)
-  }))
-
-  if(verbose)
-    cat("Compiling metadata\n")
-
-  gffi = gff[,c("id","genome")]
-  setkey(gffi, id)
-  setkey(ogl1,id)
-  ogo = merge(gffi, ogl1)
-  setkey(ogo, block.id, genome, og, id)
-  ogo[, og.n.genes:=length(unique(id)), by = list(block.id, og)]
-  ogo[, og.n.genomes:=length(unique(genome)), by = list(block.id, og)]
-
-  ogo.meta = ogo[!duplicated(ogo[,-c(1:2),with = F]),-c(1:2), with = F]
-  ogo.sum = ogo.meta[,list(n.og.singleGene = sum(og.n.genes == 1),
-                           n.og.singleGenome = sum(og.n.genomes == 1 & og.n.genes > 1),
-                           n.og.RBHortho = sum(og.n.genes == 2 & og.n.genomes == 2),
-                           n.og.multiOrtho = sum(og.n.genes > 2 & og.n.genomes == 2)),
-                     by = list(block.id)]
-
-  if(verbose)
-    cat("Constructing graphs\n")
-  ogn <- rbindlist(lapply(names(ogf), function(i){
-    print(i)
-    og <- readLines(ogf[[i]])
-    og <- lapply(og, function(x) strsplit(x, " ")[[1]])
-    og.name <- sapply(og, function(x) x[1])
-    og.length <- sapply(og, length)-1
-    og.ids <- sapply(og, function(x) x[-1])
-    ogn = sapply(og.ids, length)
-    ognet1 = unlist(og.ids[ogn == 1])
-    ognet1 = data.table(Var1 = ognet1, Var2 = ognet1, stringsAsFactors = F)
-    ognet2 = rbindlist(lapply(og.ids[ogn > 1], function(x) expand.grid(x,x)))
-    ognet = rbind(ognet1, ognet2)
-    return(ognet)
-  }))
-  if(verbose)
-    cat("\tDone!\n")
-  return(list(metadata = ogo.sum, orthogroup.datatable = ogo))
-}
-
-make_ofInputInBlk <- function(initial.blast.dir,
-                              out.dir,
-                              ogff,
-                              species.mappings,
-                              of.speciesIDs,
-                              verbose = T){
-  if(verbose)
-    cat("Copying orthofinder output to", out.dir,"\n")
-  tmp.blast.dir = file.path(out.dir,"tmp")
-  tmp.blast.dir.files = file.path(out.dir,"tmp","blasts")
-  if(file.exists(tmp.blast.dir)){
-    system(paste("rm -rf", tmp.blast.dir))
-  }
-  system(paste("mkdir", tmp.blast.dir))
-  system(paste("cp -r", initial.blast.dir, out.dir))
-  ogn1 = sapply(names(ogff), function(x) strsplit(x, " ")[[1]][1])
-  ogn2 = sapply(names(ogff), function(x) strsplit(x, " ")[[1]][2])
-  if(verbose)
-    cat("Culling blast hits ...\n\t")
-  for(i in 1:nrow(species.mappings)){
-    x = species.mappings[i,]
-    g = ogff[ogn1 == x$ref & ogn2 == x$alt]
-    xfile = basename(x$filename)
-    if(verbose)
-      cat(xfile)
-    f = fread(file.path(out.dir,xfile), header = F, stringsAsFactors = F, check.names = F)
-    if(verbose)
-      cat(paste0(" (", nrow(f)," hits) ... "))
-    setkey(f, V1, V2)
-    fl = rbindlist(lapply(1:length(g), function(j){
-      y = g[[j]]
-      genes = y$gene.num
-      return(f[f$V1  %in% genes & f$V2 %in% genes,])
-    }))
-    fl = fl[!duplicated(fl[,1:2,with = F]),]
-    if(verbose)
-      cat("retained", nrow(fl),"hits\n\t")
-    write.table(fl,
-                sep = "\t",
-                row.names = F,
-                col.names = F,
-                quote = F,
-                file = file.path(out.dir,xfile))
-  }
-
-  for(i in genomeIDs){
-    ogl = ogff[ogn1 == i | ogn2 == i]
-    ogs = lapply(ogl, function(x) x$gene.num[x$genome == i])
-    ognum = of.speciesIDs$genome.num[of.speciesIDs$genome == i]
-    xfile = paste0("Blast",ognum,"_",ognum,".txt")
-    if(verbose)
-      cat(xfile)
-    f = fread(file.path(out.dir,xfile), header = F, stringsAsFactors = F, check.names = F)
-    if(verbose)
-      cat(paste0(" (", nrow(f)," hits) ... "))
-    setkey(f, V1, V2)
-    fl = rbindlist(lapply(1:length(ogs), function(j){
-      genes = ogs[[j]]
-      return(f[f$V1  %in% genes & f$V2 %in% genes,])
-    }))
-    fl = fl[!duplicated(fl[,1:2,with = F]),]
-    if(verbose)
-      cat("retained", nrow(fl),"hits\n\t")
-    write.table(fl,
-                sep = "\t",
-                row.names = F,
-                col.names = F,
-                quote = F,
-                file = file.path(out.dir,xfile))
-  }
-
-  if(verbose)
-    cat("Done!\n\t")
-}
-
-get_ofIDs = function(sgff, of.geneIDs, of.speciesIDs, verbose = T){
-  if(verbose)
-    cat("Adding orthofinder IDs to gffs ... ")
-  of.geneIDs <- data.table(of.geneIDs)
-  setkey(of.geneIDs, "id")
-  of.speciesIDs <- data.table(of.speciesIDs)
-  setkey(of.speciesIDs, "genome")
-
-  ofg.out = lapply(sgff, function(x){
-    setkey(x,"genome")
-    x1 = merge(of.speciesIDs, x)
-    setkey(x1, "id")
-    x2 = merge(of.geneIDs, x1)
-  })
-  names(ofg.out) <- names(sgff)
-  if(verbose)
-    cat("Done")
-  return(ofg.out)
 }

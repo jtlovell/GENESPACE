@@ -11,11 +11,18 @@ run_orthofinder(peptide.dir = NULL, tmp.dir, blast.dir,
 \arguments{
 \item{peptide.dir}{The path to the directory containing the peptide fasta sequence files}
 
-\item{tmp.dir}{The path to the directory where temporary files will be stored then deleted}
+\item{tmp.dir}{The path to the directory where temporary files will be stored
+then deleted}
 
 \item{blast.dir}{The path to the directory where the blast results should be stored}
 
+\item{blast.threads}{The number of threads for blast run}
+
+\item{og.threads}{The number of threads used for orthogroup construction}
+
 \item{verbose}{Logical, should updates be printed.}
+
+\item{og.silent}{Should orthofinder stout be suppressed?}
 
 \item{...}{Not currently in use}
 }

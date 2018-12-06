@@ -7,7 +7,6 @@
 #' @param blk block file from make blocks or whatever
 #' @param cull.blast.dir directory to write new output
 #' @param blast.dir The path to the directory where the blast results should be stored
-#' @param tmp.dir The path to the directory where temporary files will be stored then deleted
 #' @param ... Additional arguments passed on to run_orthofinder
 #' @details ...
 
@@ -45,8 +44,7 @@ rerun_orthofinderInBlk = function(blk,
     blast.dir = block.dir,
     mcscanx.input.dir = NULL,
     MCScanX.param = NULL,
-    n.mappingWithinRadius = NULL,
-    abbrevs = abbrevs)
+    n.mappingWithinRadius = NULL)
 
   map = culled.results$blast
   gene.list = lapply(sgff, function(x) x$id)

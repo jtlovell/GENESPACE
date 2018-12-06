@@ -4,7 +4,6 @@
 \alias{import_ofResults}
 \alias{import_blast}
 \alias{merge_gffBlast}
-\alias{cull_blastByScore}
 \alias{cull_blast2og}
 \alias{cull_blastByDBS}
 \alias{cull_blastByMCS}
@@ -25,26 +24,22 @@ import_blast(species.mappings, genomeIDs, verbose = T, orthogroups,
 
 merge_gffBlast(gff, blast, verbose = T)
 
-cull_blastByScore(blast, min.propMax = 0.5, min.score = 50,
-  max.hitsPerGene = 4, verbose = T)
-
-cull_blast2og(blast, orthogroups = of.blast$orthogroups,
-  pairs.only = T, verbose = T)
+cull_blast2og(blast, orthogroups, pairs.only = T, verbose = T)
 
 cull_blastByDBS(blast, n.mappingWithinRadius = c(5, 5, 5),
   eps.radius = c(100, 50, 25), verbose = T)
 
-cull_blastByMCS(blast, abbrevs,
+cull_blastByMCS(blast, genomeIDs,
   MCScanX.param = "-a -s 5 -m 50 -w 5 -e 1", mcscanx.input.dir,
   verbose = T)
 
-make_MCSBlocks(blast, abbrevs, genomeIDs, mcscanx.input.dir, verbose = T,
+make_MCSBlocks(blast, genomeIDs, mcscanx.input.dir, verbose = T,
   MCScanX.params = "-a -s 10 -m 10 -w 2", ovl.buffer = 1,
   ovl.max.iter = 5, ovl.max.size2merge = 200, adj.buffer = 9,
   adj.max.iter = 10, adj.max.size2merge = 200)
 
 make_mergedBlocks(blk, map, buffer = -1, max.iter = 10,
-  max.size2merge = 200, verbose = T)
+  max.size2merge = 200, genomeIDs, verbose = T)
 
 split_gffByBlock(blk, gff, verbose = T)
 
@@ -59,8 +54,6 @@ get_ofIDs(ogff, of.geneIDs, of.speciesIDs, verbose = T)
 \code{import_blast} Simple import and processing of orthofinder blast results
 
 \code{merge_gffBlast} Simple merging of imported gff and blast data.tables from orthofinder.
-
-\code{cull_blastByScore} Parse blast results, using score of hit as tiebreakers.
 
 \code{cull_blast2og} Combine orthogroup data with blast results.
 Drop to only ghits within orthogroups if pairs.only = T.

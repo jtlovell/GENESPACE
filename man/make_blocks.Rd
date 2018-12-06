@@ -8,6 +8,13 @@ make_blocks(map, rerank = T, drop.NAs = F, rename.blocks = T)
 }
 \arguments{
 \item{map}{The map object (data.frame or data.table)}
+
+\item{rerank}{Should the ranks of gene order be re-calculated?}
+
+\item{drop.NAs}{Logical, if TRUE, only retain complete cases of the map.}
+
+\item{rename.blocks}{Logical, should the block be re-named according to
+order of the genome, chromosome and block IDs?}
 }
 \value{
 List with blocks and mappings

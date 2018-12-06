@@ -5,9 +5,8 @@
 \title{Make detailed dotplot of mapping and blocks}
 \usage{
 plot_blocksAndMapping(map, blk, ref.id, altGenome2plot,
-  chr1toplot = NULL, chr2toplot = NULL, main = NULL, plotit = T,
-  returnData = F, colorSegment = T, gff.dir = NULL,
-  blast.results = NULL)
+  chr1toplot = NULL, chr2toplot = NULL, main = NULL,
+  colorSegment = T, ...)
 }
 \arguments{
 \item{map}{The map data.table or data.frame}
@@ -26,11 +25,10 @@ on the y axis}
 
 \item{main}{The title of the plot}
 
-\item{plotit}{Logical, Should the plot be drawn?}
+\item{colorSegment}{Logical, should the segments be colored (TRUE) or the
+points (FALSE).}
 
-\item{returnData}{Logical, Should the data used to plot be returned?}
-
-\item{...}{Not currently in use}
+\item{...}{Other arguments passed to plot}
 }
 \value{
 Nothing.

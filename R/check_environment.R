@@ -8,12 +8,10 @@
 #' are found.
 #' @param genomeIDs Character, the vector of genome identifiers to consider
 #' for analysis
-#' @param abbrevs Character vector of length equal to genomeIDs. Must be unique
-#' 2-character words to identify each genome
-#' @param ploidy The ploidy of each genome
+#' @param clean Logical, should the existing directories be cleaned out?
 #' @param ... Not currently in use
 #' @details Needs to be run prior to the pipeline. Makes some objects that are required.
-#' @return Nothing.
+#' @return List of directory names and paths.
 #'
 #' @examples
 #' \dontrun{
@@ -22,48 +20,54 @@
 #' @export
 check_environment <- function(directory,
                               genomeIDs,
-                              abbrevs,
-                              ploidy,
-                              clean = T){
+                              clean = F){
 
   cat("Making R variables and necessary directories... ")
 
-  tmp.dir <<- file.path(directory, "tmp")
+  tmp.dir <- file.path(directory, "tmp")
   if(file.exists(tmp.dir))
     system(paste("rm -r", tmp.dir))
   system(paste("mkdir", tmp.dir))
 
-  results.dir <<- file.path(directory, "results")
+  results.dir <- file.path(directory, "results")
   if(file.exists(results.dir) & clean)
     system(paste("rm -r", results.dir))
   system(paste("mkdir",results.dir))
 
-  blast.dir <<- file.path(directory, "blast")
+  blast.dir <- file.path(directory, "blast")
   if(file.exists(blast.dir) & clean)
     system(paste("rm -r", blast.dir))
   system(paste("mkdir", blast.dir))
 
-  blast.dir <<- file.path(directory, "block")
-  if(file.exists(blast.dir) & clean)
-    system(paste("rm -r", blast.dir))
-  system(paste("mkdir", blast.dir))
+  block.dir <- file.path(directory, "block")
+  if(file.exists(block.dir) & clean)
+    system(paste("rm -r", block.dir))
+  system(paste("mkdir", block.dir))
 
-  mcscan.dir <<- file.path(directory, "mcscanx")
+  mcscan.dir <- file.path(directory, "mcscanx")
   if(file.exists(mcscan.dir) & clean)
     system(paste("rm -r", mcscan.dir))
   system(paste("mkdir", mcscan.dir))
 
-  genome.dir <<- file.path(directory,"genome")
+  genome.dir <- file.path(directory,"genome")
 
-  gff.dir <<- file.path(genome.dir, "gff")
-  peptide.dir <<- file.path(genome.dir, "peptide")
-  cds.dir <<- file.path(genome.dir, "cds")
-  transcript.dir <<- file.path(genome.dir, "transcript")
-  assembly.dir <<- file.path(genome.dir, "assembly")
+  gff.dir <- file.path(genome.dir, "gff")
+  peptide.dir <- file.path(genome.dir, "peptide")
+  cds.dir <- file.path(genome.dir, "cds")
+  transcript.dir <- file.path(genome.dir, "transcript")
+  assembly.dir <- file.path(genome.dir, "assembly")
 
-
-  abbrevs <<- abbrevs
-  ploidy <<- ploidy
+  dirs = list(gff = gff.dir,
+              peptide = peptide.dir,
+              cds = cds.dir,
+              transcript = transcript.dir,
+              assembly = assembly.dir,
+              mcscan = mcscan.dir,
+              genome = genome.dir,
+              blast = blast.dir,
+              block = block.dir,
+              results = results.dir,
+              tmp = tmp.dir)
 
   cat("Done!\n")
 
@@ -102,21 +106,6 @@ check_environment <- function(directory,
                 "Biostrings",
                 "dbscan")
 
-
-  cat("Checking ploidies ... ")
-  if(length(ploidy) == length(genomeIDs)){
-    cat("Pass!\n")
-  }else{
-    cat("Fail!\nPloidy specification is not of the same length as genome IDs\n")
-  }
-
-  cat("Checking abbreviations ... ")
-  if(length(abbrevs) == length(genomeIDs)){
-    cat("Pass!\n")
-  }else{
-    cat("Fail!\nAbbreviation specification is not of the same length as genome IDs\n")
-  }
-
   cat("Checking for R Package dependencies ... ")
   suppressPackageStartupMessages(
     fi <- sapply(packages, require, quietly = T, character.only = T))
@@ -135,8 +124,6 @@ check_environment <- function(directory,
     cat("Fail!\nThe following programs need to be installed and added to the path:\n",
         paste(programs[!fi], collapse = "\n"))
   }
-  names(ploidy) <- genomeIDs
-  names(abbrevs) <- genomeIDs
-  ploidy <<- ploidy
-  abbrevs <<- abbrevs
+
+  return(dirs)
 }

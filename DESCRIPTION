@@ -1,7 +1,7 @@
 Package: GENESPACE
 Type: Package
-Title: Gene-space alignments of whole-genome sequence data. 
-Version: 0.2.1
+Title: Gene-space Alignments of Whole-Genome Sequence Data
+Version: 0.2.2
 Author: JT Lovell
 Maintainer: JT Lovell <jlovell@hudsonalpha.org>
 Description: Collinear blocks are formed from parsed BLAST results 

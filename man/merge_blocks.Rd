@@ -12,6 +12,11 @@ merge_blocks(blk, map, buffer = 0, verbose = T,
 
 \item{map}{the map object}
 
+\item{buffer}{the number of gene hits away from the bound of the block to
+consider an overlap. For example, -1 means that the blocks must overlap by
+at least 1 gene, and 9 means that blocks that are up to 9 genes apart will be
+merged. See details}
+
 \item{verbose}{logical, should updates be printed?}
 
 \item{max.size2merge}{numeric the maximum sized block to be merged}
@@ -28,7 +33,18 @@ Nothing.
 \code{merge_blocks} Checks for overlaps between blocks and merges accordingly.
 }
 \details{
-Needs to be run prior to the pipeline. Makes some objects that are required.
+This step is crucial to ensure that the MCScanX blocks ar in order.
+By default, MCScanX will often join parts of inverted blocks, leading to
+apparently duplicated regions, which are actually just overlapping
+erroneously called block breakpoints. Because of this, we recommend running
+merge_blocks with very large max.size2merge and max.iter. This will
+ensure that all overlapping neighboring blocks are joined.
+
+In structurally diverged species comparisons, there may be many-many small
+blocks that are adjacent, but broken becuase of gaps in BLAST hits or
+real small inversions. To simplify the block structure, we also recommend
+merging 'close' blocks that are separated by no more than the minimum
+block size -1. Therefore, no merging over existing blocks will occur.
 }
 \examples{
 \dontrun{

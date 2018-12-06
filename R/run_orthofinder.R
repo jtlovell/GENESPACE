@@ -5,7 +5,11 @@
 #'
 #' @param peptide.dir The path to the directory containing the peptide fasta sequence files
 #' @param blast.dir The path to the directory where the blast results should be stored
-#' @param tmp.dir The path to the directory where temporary files will be stored then deleted
+#' @param tmp.dir The path to the directory where temporary files will be stored
+#' then deleted
+#' @param blast.threads The number of threads for blast run
+#' @param og.threads The number of threads used for orthogroup construction
+#' @param og.silent Should orthofinder stout be suppressed?
 #' @param verbose Logical, should updates be printed.
 #' @param ... Not currently in use
 #' @details To run successfully, the peptide directory must be populated with a set of

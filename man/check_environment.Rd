@@ -4,7 +4,7 @@
 \alias{check_environment}
 \title{Make sure everything is setup}
 \usage{
-check_environment(directory, genomeIDs, abbrevs, ploidy, clean = T)
+check_environment(directory, genomeIDs, clean = F)
 }
 \arguments{
 \item{directory}{File path, where the subdirectory folders (e.g. raw_assemblies)
@@ -13,15 +13,12 @@ are found.}
 \item{genomeIDs}{Character, the vector of genome identifiers to consider
 for analysis}
 
-\item{abbrevs}{Character vector of length equal to genomeIDs. Must be unique
-2-character words to identify each genome}
-
-\item{ploidy}{The ploidy of each genome}
+\item{clean}{Logical, should the existing directories be cleaned out?}
 
 \item{...}{Not currently in use}
 }
 \value{
-Nothing.
+List of directory names and paths.
 }
 \description{
 \code{check_environment} Utility function to make sure environment is

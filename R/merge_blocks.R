@@ -9,8 +9,23 @@
 #' @param max.iter numeric, the maximum number of iterations to perform to look for
 #' blocks to merge.
 #' @param max.size2merge numeric the maximum sized block to be merged
+#' @param buffer the number of gene hits away from the bound of the block to
+#' consider an overlap. For example, -1 means that the blocks must overlap by
+#' at least 1 gene, and 9 means that blocks that are up to 9 genes apart will be
+#' merged. See details
 #' @param ... Not currently in use
-#' @details Needs to be run prior to the pipeline. Makes some objects that are required.
+#' @details This step is crucial to ensure that the MCScanX blocks ar in order.
+#' By default, MCScanX will often join parts of inverted blocks, leading to
+#' apparently duplicated regions, which are actually just overlapping
+#' erroneously called block breakpoints. Because of this, we recommend running
+#' merge_blocks with very large max.size2merge and max.iter. This will
+#' ensure that all overlapping neighboring blocks are joined.
+#'
+#' In structurally diverged species comparisons, there may be many-many small
+#' blocks that are adjacent, but broken becuase of gaps in BLAST hits or
+#' real small inversions. To simplify the block structure, we also recommend
+#' merging 'close' blocks that are separated by no more than the minimum
+#' block size -1. Therefore, no merging over existing blocks will occur.
 #' @return Nothing.
 #'
 #' @examples
@@ -72,19 +87,18 @@ merge_blocks <- function(blk,
   remap_merge <- function(blk,
                           map,
                           verbose = TRUE,
-                          buffer,
-                          n.match){
+                          buffer){
     if(verbose)
       cat("n. blocks:", nrow(blk), "--> ")
     blk.merge <- blk[blk$n.mapping <= max.size2merge,]
     blk.merge = data.table(blk.merge)
     blk.merge$uniq = with(blk.merge, paste(genome1, genome2, chr1, chr2))
     spl <- split.data.table(blk.merge, "uniq")
-    merge.list <- lapply(spl, function(x)
-      find_2merge(x = x,
+    merge.list <- lapply(spl, function(y)
+      find_2merge(x = y,
                   buffer = buffer))
     merge.list <- merge.list[!sapply(merge.list, is.null)]
-    if(length(merge.list) > 1){
+    if(length(merge.list) >= 1){
       merge.list <- merge.list[sapply(merge.list, length) > 1]
 
       for(i in 1:length(merge.list)){
@@ -136,7 +150,6 @@ merge_blocks <- function(blk,
       }else{
         tmp <- remap_merge(blk = blk,
                            map = map,
-                           n.match = n.match,
                            buffer = buffer)
       }
       blk <- tmp$block

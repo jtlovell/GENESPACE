@@ -6,8 +6,7 @@
 #' @param blast.dir character, directory containing the orthofinder output
 #' @param mcscanx.input.dir character, directory where MCScanX temporary files should be stored
 #' @param genomeIDs character, genome identifiers
-#' @param abbrevs character, genome abbreviations
-#' @param MCScanX.params character, parameters to be passed to MCScanX
+#' @param MCScanX.param character, parameters to be passed to MCScanX
 #' @param n.mappingWithinRadius numeric, number of hits required to be in the radius
 #' @param eps.radius numeric, size of the radius
 #' @param pairs.only logical, should only pairs of hits in orthofinder output be retained
@@ -68,7 +67,6 @@ process_orthofinder = function(gff.dir,
                                genomeIDs,
                                blast.dir,
                                mcscanx.input.dir,
-                               abbrevs,
                                pairs.only = T,
                                str2drop = "Name=",
                                str2parse = ";",
