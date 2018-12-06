@@ -20,9 +20,10 @@
 rerun_orthofinderInBlk = function(blk,
                                   blast.dir,
                                   init.results,
-                                  cull.blast.dir, ...){
+                                  cull.blast.dir,
+                                  ...){
   gff = init.results$gff
-  sgff = with(merged.close, split_gffByBlock(gff = gff, blk = blk))
+  sgff = with(blk, split_gffByBlock(gff = gff, blk = blk))
   ogff = get_ofIDs(ogff = sgff,
                    of.geneIDs = init.results$ortho.info$gene.index,
                    of.speciesIDs = init.results$ortho.info$species.index)
@@ -36,7 +37,8 @@ rerun_orthofinderInBlk = function(blk,
   run_orthofinder(
     peptide.dir = NULL,
     tmp.dir = cull.blast.dir,
-    blast.dir = block.dir, ...)
+    blast.dir = block.dir,
+    ...)
 
   culled.results = process_orthofinder(
     gff.dir = gff.dir,
@@ -60,7 +62,3 @@ rerun_orthofinderInBlk = function(blk,
   bl = make_blocks(ml)
   return(bl)
 }
-
-
-
-

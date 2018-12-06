@@ -615,13 +615,7 @@ make_MCSBlocks <- function(blast,
                            genomeIDs,
                            mcscanx.input.dir,
                            verbose = T,
-                           MCScanX.params = "-a -s 10 -m 10 -w 2",
-                           ovl.buffer = 1,
-                           ovl.max.iter = 5,
-                           ovl.max.size2merge = 200,
-                           adj.buffer = 9,
-                           adj.max.iter =  10,
-                           adj.max.size2merge = 200){
+                           MCScanX.params = "-a -s 10 -m 10 -w 2"){
 
   abbrevs = paste0(LETTERS, letters)[length(genomeIDs)]
 

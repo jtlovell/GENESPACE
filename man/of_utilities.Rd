@@ -33,9 +33,7 @@ cull_blastByMCS(blast, MCScanX.param = "-a -s 5 -m 50 -w 5 -e 1",
   mcscanx.input.dir, verbose = T)
 
 make_MCSBlocks(blast, genomeIDs, mcscanx.input.dir, verbose = T,
-  MCScanX.params = "-a -s 10 -m 10 -w 2", ovl.buffer = 1,
-  ovl.max.iter = 5, ovl.max.size2merge = 200, adj.buffer = 9,
-  adj.max.iter = 10, adj.max.size2merge = 200)
+  MCScanX.params = "-a -s 10 -m 10 -w 2")
 
 make_mergedBlocks(blk, map, buffer = -1, max.iter = 10,
   max.size2merge = 200, genomeIDs, verbose = T)
