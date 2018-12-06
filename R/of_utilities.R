@@ -394,7 +394,6 @@ import_blast <- function(species.mappings,
         !is.null(mcscanx.input.dir)) {
       blo4 <- cull_blastByMCS(
         blast = blo3,
-        genomeIDs = genomeIDs,
         MCScanX.param = MCScanX.param,
         mcscanx.input.dir = mcscanx.input.dir,
         verbose = F)
