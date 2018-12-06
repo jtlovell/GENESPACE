@@ -571,12 +571,9 @@ cull_blastByDBS <- function(blast,
 #' @import data.table
 #' @export
 cull_blastByMCS <- function(blast,
-                            genomeIDs,
                             MCScanX.param = "-a -s 5 -m 50 -w 5 -e 1",
                             mcscanx.input.dir,
                             verbose = T){
-
-  abbrevs = paste0(LETTERS, letters)[length(genomeIDs)]
 
   blast.results <- blast
   if (verbose)
@@ -588,6 +585,9 @@ cull_blastByMCS <- function(blast,
       if (verbose)
         cat(paste0("\t", x$genome1[1]), "-->", x$genome2[1],
             paste0("(initial hits = ", nrow(x), ") "))
+
+      abbrevs = paste0(LETTERS, letters)[1:2]
+      names(abbrevs) = c(x$genome1[1], x$genome1[2])
 
       out = run_MCScanX(blast.results = x,
                         abbrevs = abbrevs,

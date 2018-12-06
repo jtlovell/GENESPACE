@@ -29,9 +29,8 @@ cull_blast2og(blast, orthogroups, pairs.only = T, verbose = T)
 cull_blastByDBS(blast, n.mappingWithinRadius = c(5, 5, 5),
   eps.radius = c(100, 50, 25), verbose = T)
 
-cull_blastByMCS(blast, genomeIDs,
-  MCScanX.param = "-a -s 5 -m 50 -w 5 -e 1", mcscanx.input.dir,
-  verbose = T)
+cull_blastByMCS(blast, MCScanX.param = "-a -s 5 -m 50 -w 5 -e 1",
+  mcscanx.input.dir, verbose = T)
 
 make_MCSBlocks(blast, genomeIDs, mcscanx.input.dir, verbose = T,
   MCScanX.params = "-a -s 10 -m 10 -w 2", ovl.buffer = 1,

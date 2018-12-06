@@ -49,6 +49,12 @@ check_environment <- function(directory,
     system(paste("rm -r", mcscan.dir))
   system(paste("mkdir", mcscan.dir))
 
+  cull.blast.dir <- file.path(directory, "cull.blast")
+  if(file.exists(cull.blast.dir) & clean)
+    system(paste("rm -r", cull.blast.dir))
+  system(paste("mkdir", cull.blast.dir))
+
+
   genome.dir <- file.path(directory,"genome")
 
   gff.dir <- file.path(genome.dir, "gff")
@@ -67,7 +73,8 @@ check_environment <- function(directory,
               blast = blast.dir,
               block = block.dir,
               results = results.dir,
-              tmp = tmp.dir)
+              tmp = tmp.dir,
+              cull.blast = cull.blast.dir)
 
   cat("Done!\n")
 
