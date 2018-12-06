@@ -6,6 +6,7 @@
 #' @param init.results Results from initial orthofinder run (via parse_orthofinder)
 #' @param blk block file from make blocks or whatever
 #' @param cull.blast.dir directory to write new output
+#' @param block.dir directory to store the block output
 #' @param blast.dir The path to the directory where the blast results should be stored
 #' @param ... Additional arguments passed on to run_orthofinder
 #' @details ...
@@ -21,6 +22,7 @@ rerun_orthofinderInBlk = function(blk,
                                   blast.dir,
                                   init.results,
                                   cull.blast.dir,
+                                  block.dir,
                                   ...){
   gff = init.results$gff
   sgff = with(blk, split_gffByBlock(gff = gff, blk = blk))

@@ -4,7 +4,8 @@
 \alias{rerun_orthofinderInBlk}
 \title{Run the orthofinder program}
 \usage{
-rerun_orthofinderInBlk(blk, blast.dir, init.results, cull.blast.dir, ...)
+rerun_orthofinderInBlk(blk, blast.dir, init.results, cull.blast.dir,
+  block.dir, ...)
 }
 \arguments{
 \item{blk}{block file from make blocks or whatever}
@@ -14,6 +15,8 @@ rerun_orthofinderInBlk(blk, blast.dir, init.results, cull.blast.dir, ...)
 \item{init.results}{Results from initial orthofinder run (via parse_orthofinder)}
 
 \item{cull.blast.dir}{directory to write new output}
+
+\item{block.dir}{directory to store the block output}
 
 \item{...}{Additional arguments passed on to run_orthofinder}
 }
