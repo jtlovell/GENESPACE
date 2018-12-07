@@ -4,8 +4,8 @@
 \alias{rerun_orthofinderInBlk}
 \title{Run the orthofinder program}
 \usage{
-rerun_orthofinderInBlk(blk, blast.dir, init.results, cull.blast.dir,
-  block.dir, ...)
+rerun_orthofinderInBlk(map, blk, gff.dir, blast.dir, init.results,
+  cull.blast.dir, block.dir, tmp.dir, genomeIDs, ...)
 }
 \arguments{
 \item{blk}{block file from make blocks or whatever}

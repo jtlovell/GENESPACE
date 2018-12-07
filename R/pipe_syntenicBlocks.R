@@ -56,12 +56,12 @@ pipe_syntenicBlocks = function(genomeIDs,
     stop("Either a directory list or each directory parameter must be specified\n")
   }
 
-  if (!all.dirs) {
+  if (!is.null(dir.list)) {
     peptide.dir = dir.list$peptide
     gff.dir = dir.list$gff
     tmp.dir = dir.list$tmp
     blast.dir = dir.list$blast
-    cull.blast.dir = dir.list$blast
+    cull.blast.dir = dir.list$cull.blast
     block.dir = dir.list$block
     results.dir = dir.list$results
     mcscan.dir = dir.list$mcscan
@@ -73,13 +73,14 @@ pipe_syntenicBlocks = function(genomeIDs,
     cat("##########\n# - Part 1: Parsing orthofinder ...\n#\tProgress:\n")
 
   mcsp <- paste("-a -s",min.block.size,
-                "-m", min.block.size*5,
+                "-m", min.block.size*20,
                 "-w 2 -e 1")
   init.results <- process_orthofinder(
     gff.dir = gff.dir,
     genomeIDs = genomeIDs,
     blast.dir = blast.dir,
     mcscanx.input.dir = mcscan.dir,
+    n.mappingWithinRadius = c(min.block.size,min.block.size,min.block.size/2),
     MCScanX.param = mcsp)
   #######################################################
 
@@ -141,38 +142,55 @@ pipe_syntenicBlocks = function(genomeIDs,
     blk = data.table(merged.overlaps$block),
     map = data.table(merged.overlaps$map),
     buffer = (sqrt((min.block.size^2)+(min.block.size^2))-.1),
-    n.iter = 3,
+    n.iter = 5,
     max.size2merge = max.hits/8)
 
   if(plotit)
-    plot_blocksAndMapping(map = data.frame(merged.close$map),
-                          blk = data.frame(merged.close$block),
+    plot_blocksAndMapping(map = data.frame(merged.overlaps$map),
+                          blk = data.frame(merged.overlaps$block),
                           ref.id = genomeIDs[1], altGenome2plot = genomeIDs[2])
+
   #######################################################
 
   #######################################################
-  if (verbose)
-    cat("##########\n# - Part 5: Re-running overlap-merged block-constrained orthofinder...\n")
+  # if (verbose)
+  #   cat("##########\n# - Part 5: Re-running overlap-merged block-constrained orthofinder...\n")
   rerun.ovlp = rerun_orthofinderInBlk(
     genomeIDs = genomeIDs,
     blk = merged.overlaps$block,
+    map = merged.overlaps$map,
+    tmp.dir = tmp.dir,
+    gff.dir = gff.dir,
     blast.dir = blast.dir,
     block.dir = block.dir,
     init.results = init.results,
     cull.blast.dir = cull.blast.dir)
 
-  # #######################################################
-  #
-  # #######################################################
-  # if (verbose)
-  #   cat("##########\n# - Part 6: Re-running adjacent-merged block-constrained orthofinder...\n")
-  # rerun.close = rerun_orthofinderInBlk(
-  #   blk = merged.close$block,
-  #   blast.dir = blast.dir,
-  #   init.results = init.results,
-  #   cull.blast.dir = file.path(directory,"cullblast"),
-  #   block.dir = block.dir)
-  #
+  if(plotit)
+    plot_blocksAndMapping(map = data.frame(rerun.ovlp$map),
+                          blk = data.frame(rerun.ovlp$block),
+                          ref.id = genomeIDs[1], altGenome2plot = genomeIDs[2])
+
+  #######################################################
+
+  rerun.close = rerun_orthofinderInBlk(
+    genomeIDs = genomeIDs,
+    blk = merged.close$block,
+    map = merged.close$map,
+    tmp.dir = tmp.dir,
+    gff.dir = gff.dir,
+    blast.dir = blast.dir,
+    block.dir = block.dir,
+    init.results = init.results,
+    cull.blast.dir = cull.blast.dir)
+
+  if(plotit)
+    plot_blocksAndMapping(map = data.frame(rerun.close$map),
+                          blk = data.frame(rerun.close$block),
+                          ref.id = genomeIDs[1], altGenome2plot = genomeIDs[2])
+
+  return(list(merged.close, init.results, rerun.ovlp, rerun.close))
+
   # #######################################################
   # if (verbose)
   #   cat("##########\n# - Part 7: Writing results and diagnostic plots...\n")

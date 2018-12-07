@@ -18,34 +18,37 @@
 #' none yet
 #' }
 #' @export
-rerun_orthofinderInBlk = function(blk,
+rerun_orthofinderInBlk = function(map, blk,
+                                  gff.dir,
                                   blast.dir,
                                   init.results,
                                   cull.blast.dir,
                                   block.dir,
+                                  tmp.dir,
+                                  genomeIDs,
                                   ...){
 
   gff = init.results$gff
-  sgff = with(merged.close, split_gffByBlock(gff = gff, blk = block))
+  sgff = split_gffByBlock(gff = gff, blk = blk)
   ogff = get_ofIDs(ogff = sgff,
                    of.geneIDs = init.results$ortho.info$gene.index,
                    of.speciesIDs = init.results$ortho.info$species.index)
 
-  make_ofInputInBlk(blast.dir = dirs$blast,
-                    tmp.dir = dirs$tmp,
+  make_ofInputInBlk(blast.dir = blast.dir,
+                    tmp.dir = tmp.dir,
                     ogff = ogff,
                     species.mappings = init.results$ortho.info$species.mappings,
                     of.speciesIDs = init.results$ortho.info$species.index)
 
   run_orthofinder(
     peptide.dir = NULL,
-    tmp.dir = dirs$tmp,
-    blast.dir = dirs$block)
+    tmp.dir = tmp.dir,
+    blast.dir = cull.blast.dir)
 
   culled.results = process_orthofinder(
-    gff.dir = dirs$gff,
+    gff.dir = gff.dir,
     genomeIDs = genomeIDs,
-    blast.dir = dirs$block,
+    blast.dir = cull.blast.dir,
     mcscanx.input.dir = NULL,
     MCScanX.param = NULL,
     n.mappingWithinRadius = NULL)
@@ -54,16 +57,16 @@ rerun_orthofinderInBlk = function(blk,
   gene.list = lapply(sgff, function(x) x$id)
   names(gene.list) = names(sgff)
 
-  ml = rbindlist(lapply(names(gene.list), function(i){
+  rr = rbindlist(lapply(names(gene.list), function(i){
     tmp = map[map$id1 %in% gene.list[[i]] &
                 map$id2 %in% gene.list[[i]],]
     tmp$block.id = i
     return(tmp)
   }))
 
-  mlo = ml[,colnames(synteny.results$map)[1:29],with = F]
-
-  bl = make_blocks(ml,rename.blocks = T, rerank = T)
+  rr$rank1 = frank(rr, chr1, start1, ties.method = "dense")
+  rr$rank2 = frank(rr, chr2, start2, ties.method = "dense")
+  bl = make_blocks(data.frame(rr),rename.blocks = T)
 
   return(bl)
 }
