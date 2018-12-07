@@ -660,39 +660,24 @@ make_MCSBlocks <- function(blast,
 make_mergedBlocks <- function(blk,
                               map,
                               buffer = -1,
-                              max.iter = 10,
                               max.size2merge = 200,
-                              genomeIDs,
+                              n.iter = 2,
                               verbose = T){
-  map$unique <- paste(map$genome1, map$genome2)
-  blk$unique <- paste(blk$genome1, blk$genome2)
-  spl.blk <- split.data.table(blk, "unique")
-  spl.map <- split.data.table(map, "unique")
-  comb <- combn(genomeIDs, 2, simplify = F)
-  merge.list <- lapply(1:length(comb), function(i){
-    if (verbose)
-      cat(comb[[i]][1], "-->", comb[[i]][2])
 
-    xblk <- spl.blk[[paste(comb[[i]], collapse = " ")]]
-    xmap <- spl.map[[paste(comb[[i]], collapse = " ")]]
-    if (verbose)
-      cat(" ...", nrow(xmap), "hits in", nrow(xblk), "blocks\n")
-
-    small.blocks <- merge_blocks(blk = xblk,
-                                 map = xmap,
-                                 buffer = buffer,
-                                 max.iter = max.iter,
-                                 max.size2merge = max.size2merge)
-    return(small.blocks)
-  })
-
-  merge.blk <- rbindlist(lapply(merge.list, function(x) x$block))
-  merge.map <- rbindlist(lapply(merge.list, function(x) x$map))
-
-  if (verbose)
-    cat("Done!")
-  return(list(block = merge.blk,
-              map = merge.map))
+  for(i in 1:n.iter){
+    if(verbose & n.iter > 1)
+      cat("Iteration",i,"\n")
+    m = merge_blocks(
+      blk = blk,
+      map = map,
+      buffer = buffer,
+      max.size2merge = max.size2merge)
+    blk = m$block
+    map = m$map
+  }
+  if(verbose)
+    cat("Done!\n")
+  return(list(map = map, block = blk))
 }
 
 #' @title Split gff by block
@@ -736,21 +721,20 @@ split_gffByBlock <- function(blk,
 #' @import data.table
 #' @export
 make_ofInputInBlk <- function(blast.dir,
-                              out.dir,
                               ogff,
                               species.mappings,
                               of.speciesIDs,
+                              tmp.dir,
                               verbose = T){
   if (verbose)
-    cat("Copying orthofinder output to", out.dir,"\n")
-  tmp.blast.dir = file.path(out.dir,"tmp")
-  tmp.blast.dir.files = file.path(out.dir,"tmp","blasts")
+    cat("Copying orthofinder output to", tmp.dir,"\n")
 
-  if (file.exists(tmp.blast.dir)) {
-    system(paste("rm -rf", tmp.blast.dir))
+  if (file.exists(tmp.dir)) {
+    system(paste("rm -rf", tmp.dir))
   }
-  system(paste("mkdir", tmp.blast.dir))
-  system(paste("cp -r", blast.dir, out.dir))
+  system(paste("mkdir", tmp.dir))
+  system(paste("cp -r", blast.dir, tmp.dir))
+
   ogn1 <- sapply(names(ogff), function(x)
     strsplit(x, " ")[[1]][1])
   ogn2 <- sapply(names(ogff), function(x)
@@ -785,7 +769,7 @@ make_ofInputInBlk <- function(blast.dir,
                 row.names = F,
                 col.names = F,
                 quote = F,
-                file = file.path(out.dir,xfile))
+                file = file.path(tmp.dir,xfile))
   }
 
   for (i in genomeIDs){
@@ -815,23 +799,24 @@ make_ofInputInBlk <- function(blast.dir,
                 row.names = F,
                 col.names = F,
                 quote = F,
-                file = file.path(out.dir,xfile))
+                file = file.path(tmp.dir,xfile))
   }
 
   system(paste("cp",
                file.path(blast.dir, "SequenceIDs.txt"),
-               out.dir))
+               tmp.dir))
   system(paste("cp",
                file.path(blast.dir, "SpeciesIDs.txt"),
-               out.dir))
+               tmp.dir))
 
   system(paste("cp",
                file.path(blast.dir, "diamondDB*.dmnd"),
-               out.dir))
+               tmp.dir))
   system(paste("cp",
                file.path(blast.dir, "Species*.fa"),
-               out.dir))
+               tmp.dir))
 
+  system(paste("rm -rf",file.path(tmp.dir,"blast")))
   if (verbose)
     cat("Done!\n\t")
 }

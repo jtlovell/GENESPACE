@@ -53,9 +53,9 @@ make_blocks <- function(map,
                        orient = ifelse(cor(start1, start2) > 0,"+","-")),
                  by = list(block.id, genome1, genome2)]
 
-  map <- data.frame(map,
+  map <- data.table(map,
                     stringsAsFactors = F)
-  blk <- data.frame(out.blk,
+  blk <- data.table(out.blk,
                     stringsAsFactors = F)
 
   return(list(block = blk,

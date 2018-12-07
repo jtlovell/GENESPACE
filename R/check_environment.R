@@ -42,12 +42,6 @@ check_environment <- function(directory,
   if (clean)
     system(paste("mkdir", blast.dir))
 
-  block.dir <- file.path(directory, "block")
-  if(file.exists(block.dir) & clean)
-    system(paste("rm -r", block.dir))
-  if (clean)
-    system(paste("mkdir", block.dir))
-
   mcscan.dir <- file.path(directory, "mcscanx")
   if(file.exists(mcscan.dir) & clean)
     system(paste("rm -r", mcscan.dir))
@@ -59,7 +53,6 @@ check_environment <- function(directory,
     system(paste("rm -r", cull.blast.dir))
   if (clean)
     system(paste("mkdir", cull.blast.dir))
-
 
   genome.dir <- file.path(directory,"genome")
 
@@ -77,7 +70,6 @@ check_environment <- function(directory,
               mcscan = mcscan.dir,
               genome = genome.dir,
               blast = blast.dir,
-              block = block.dir,
               results = results.dir,
               tmp = tmp.dir,
               cull.blast = cull.blast.dir)

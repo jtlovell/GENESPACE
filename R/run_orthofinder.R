@@ -34,14 +34,16 @@ run_orthofinder <- function(peptide.dir = NULL,
                             ...){
   ################   ################   ################
   ################   ################   ################
-  if(file.exists(blast.dir)){
-    system(paste("rm -r",
-                 blast.dir))
-  }
-  system(paste("mkdir",
-               blast.dir))
 
   if(!is.null(peptide.dir)){
+
+    if(file.exists(blast.dir)){
+      system(paste("rm -r",
+                   blast.dir))
+    }
+    system(paste("mkdir",
+                 blast.dir))
+
     if(verbose)
       cat("Copying peptide fasta files to",
           tmp.dir,

@@ -5,7 +5,7 @@
 \title{Merge close blocks}
 \usage{
 merge_blocks(blk, map, buffer = 0, verbose = T,
-  max.size2merge = 10000, max.iter = 2)
+  max.size2merge = 10000)
 }
 \arguments{
 \item{blk}{the block object}
@@ -20,9 +20,6 @@ merged. See details}
 \item{verbose}{logical, should updates be printed?}
 
 \item{max.size2merge}{numeric the maximum sized block to be merged}
-
-\item{max.iter}{numeric, the maximum number of iterations to perform to look for
-blocks to merge.}
 
 \item{...}{Not currently in use}
 }

@@ -35,13 +35,13 @@ cull_blastByMCS(blast, MCScanX.param = "-a -s 5 -m 50 -w 5 -e 1",
 make_MCSBlocks(blast, genomeIDs, mcscanx.input.dir, verbose = T,
   MCScanX.params = "-a -s 10 -m 10 -w 2")
 
-make_mergedBlocks(blk, map, buffer = -1, max.iter = 10,
-  max.size2merge = 200, genomeIDs, verbose = T)
+make_mergedBlocks(blk, map, buffer = -1, max.size2merge = 200,
+  n.iter = 2, verbose = T)
 
 split_gffByBlock(blk, gff, verbose = T)
 
-make_ofInputInBlk(blast.dir, out.dir, ogff, species.mappings,
-  of.speciesIDs, verbose = T)
+make_ofInputInBlk(blast.dir, ogff, species.mappings, of.speciesIDs,
+  tmp.dir, verbose = T)
 
 get_ofIDs(ogff, of.geneIDs, of.speciesIDs, verbose = T)
 }

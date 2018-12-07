@@ -24,28 +24,28 @@ rerun_orthofinderInBlk = function(blk,
                                   cull.blast.dir,
                                   block.dir,
                                   ...){
+
   gff = init.results$gff
-  sgff = with(blk, split_gffByBlock(gff = gff, blk = blk))
+  sgff = with(merged.close, split_gffByBlock(gff = gff, blk = block))
   ogff = get_ofIDs(ogff = sgff,
                    of.geneIDs = init.results$ortho.info$gene.index,
                    of.speciesIDs = init.results$ortho.info$species.index)
 
-  make_ofInputInBlk(blast.dir = blast.dir,
-                    out.dir = cull.blast.dir,
+  make_ofInputInBlk(blast.dir = dirs$blast,
+                    tmp.dir = dirs$tmp,
                     ogff = ogff,
                     species.mappings = init.results$ortho.info$species.mappings,
                     of.speciesIDs = init.results$ortho.info$species.index)
 
   run_orthofinder(
     peptide.dir = NULL,
-    tmp.dir = cull.blast.dir,
-    blast.dir = block.dir,
-    ...)
+    tmp.dir = dirs$tmp,
+    blast.dir = dirs$block)
 
   culled.results = process_orthofinder(
-    gff.dir = gff.dir,
+    gff.dir = dirs$gff,
     genomeIDs = genomeIDs,
-    blast.dir = block.dir,
+    blast.dir = dirs$block,
     mcscanx.input.dir = NULL,
     MCScanX.param = NULL,
     n.mappingWithinRadius = NULL)
@@ -61,6 +61,9 @@ rerun_orthofinderInBlk = function(blk,
     return(tmp)
   }))
 
-  bl = make_blocks(ml)
+  mlo = ml[,colnames(synteny.results$map)[1:29],with = F]
+
+  bl = make_blocks(ml,rename.blocks = T, rerank = T)
+
   return(bl)
 }
