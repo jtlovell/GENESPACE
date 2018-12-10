@@ -42,7 +42,16 @@ pipe_syntenicBlocks = function(genomeIDs,
                                min.block.size = 5,
                                plotit = T,
                                min.hit.density = .2,
+                               initial.mergeBuffer = 1,
+                               final.mergeBuffer = NULL,
+                               return.initial = TRUE,
+                               return.mcscanRaw = FALSE,
+                               return.overlapMerged = FALSE,
                                ...){
+
+  if(is.null(final.mergeBuffer)){
+    final.mergeBuffer = (sqrt((min.block.size^2)+(min.block.size^2))-.1)
+  }
 
   #######################################################
   all.dirs = !any(is.null(peptide.dir),
@@ -96,6 +105,7 @@ pipe_syntenicBlocks = function(genomeIDs,
     genomeIDs = genomeIDs,
     mcscanx.input.dir = mcscan.dir,
     MCScanX.params = mcsp)
+  synteny.results.out = synteny.results
   if(plotit)
     plot_blocksAndMapping(map = data.frame(synteny.results$map),
                           blk = data.frame(synteny.results$block),
@@ -119,13 +129,13 @@ pipe_syntenicBlocks = function(genomeIDs,
   if (verbose)
     cat("##########\n# - Part 3: Merging overlapping blocks...\n")
 
-  max.hits = max(c(table(synteny.results$map$chr1),
+  max.hits = min(c(table(synteny.results$map$chr1),
                    table(synteny.results$map$chr2)))
 
   merged.overlaps = make_mergedBlocks(
     blk = synteny.results$block,
     map = synteny.results$map,
-    buffer = .1,
+    buffer = initial.mergeBuffer,
     n.iter = 1,
     max.size2merge = 1e6)
   if(plotit)
@@ -141,9 +151,9 @@ pipe_syntenicBlocks = function(genomeIDs,
   merged.close = make_mergedBlocks(
     blk = data.table(merged.overlaps$block),
     map = data.table(merged.overlaps$map),
-    buffer = (sqrt((min.block.size^2)+(min.block.size^2))-.1),
+    buffer = final.mergeBuffer,
     n.iter = 5,
-    max.size2merge = max.hits/8)
+    max.size2merge = max.hits/4)
 
   if(plotit)
     plot_blocksAndMapping(map = data.frame(merged.overlaps$map),
@@ -151,28 +161,6 @@ pipe_syntenicBlocks = function(genomeIDs,
                           ref.id = genomeIDs[1], altGenome2plot = genomeIDs[2])
 
   #######################################################
-
-  #######################################################
-  # if (verbose)
-  #   cat("##########\n# - Part 5: Re-running overlap-merged block-constrained orthofinder...\n")
-  rerun.ovlp = rerun_orthofinderInBlk(
-    genomeIDs = genomeIDs,
-    blk = merged.overlaps$block,
-    map = merged.overlaps$map,
-    tmp.dir = tmp.dir,
-    gff.dir = gff.dir,
-    blast.dir = blast.dir,
-    block.dir = block.dir,
-    init.results = init.results,
-    cull.blast.dir = cull.blast.dir)
-
-  if(plotit)
-    plot_blocksAndMapping(map = data.frame(rerun.ovlp$map),
-                          blk = data.frame(rerun.ovlp$block),
-                          ref.id = genomeIDs[1], altGenome2plot = genomeIDs[2])
-
-  #######################################################
-
   rerun.close = rerun_orthofinderInBlk(
     genomeIDs = genomeIDs,
     blk = merged.close$block,
@@ -189,73 +177,16 @@ pipe_syntenicBlocks = function(genomeIDs,
                           blk = data.frame(rerun.close$block),
                           ref.id = genomeIDs[1], altGenome2plot = genomeIDs[2])
 
-  return(list(merged.close, init.results, rerun.ovlp, rerun.close))
-
-  # #######################################################
-  # if (verbose)
-  #   cat("##########\n# - Part 7: Writing results and diagnostic plots...\n")
-  #
-  # write.csv(rerun.ovlp$block,
-  #           file = file.path(results.dir,"finalBlocks.adjacentMerge.csv"),
-  #           row.names = F)
-  # write.csv(rerun.ovlp$map,
-  #           file = file.path(results.dir,"finalMap.adjacentMerge.csv"),
-  #           row.names = F)
-  #
-  # write.csv(rerun.close$block,
-  #           file = file.path(results.dir,"finalBlocks.overlapMerge.csv"),
-  #           row.names = F)
-  # write.csv(rerun.close$map,
-  #           file = file.path(results.dir,"finalMap.overlapMerge.csv"),
-  #           row.names = F)
-  #
-  #
-  # pdf(file.path(results.dir, "overallDiagnostics.OverlapMerge.pdf"),
-  #     height = 11, width = 8.5, useDingbats = F)
-  # comb = combn(genomeIDs,2,simplify = F)
-  # for(i in 1:length(comb)){
-  #   with(rerun.ovlp,
-  #        plot_mapping(blk = block,
-  #                     map = map,
-  #                     genomes = comb[[i]]))
-  # }
-  # dev.off()
-  #
-  # pdf(file.path(results.dir, "overallDiagnostics.adjacentMerge.pdf"),
-  #     height = 11, width = 8.5, useDingbats = F)
-  #
-  # for(i in 1:length(comb)){
-  #   with(rerun.close,
-  #        plot_mapping(blk = block,
-  #                     map = map,
-  #                     genomes = comb[[i]]))
-  # }
-  # dev.off()
-  #
-  # pdf(file.path(results.dir, "byBlockDiagnostics.OverlapMerge.pdf"),
-  #     height = 11, width = 8.5, useDingbats = F)
-  # comb = combn(genomeIDs,2,simplify = F)
-  # for(i in 1:length(comb)){
-  #   with(rerun.ovlp,
-  #        plot_blocksAndMapping(blk = block,
-  #                              map = map,
-  #                              ref.id = comb[[i]][1],
-  #                              altGenome2plot = comb[[i]][2],
-  #                              main = paste(comb[[i]], collapse = " --> ")))
-  # }
-  # dev.off()
-  #
-  # pdf(file.path(results.dir, "byBlockDiagnostics.adjacentMerge.pdf"),
-  #     height = 11, width = 8.5, useDingbats = F)
-  #
-  # for(i in 1:length(comb)){
-  #   with(rerun.close,
-  #        plot_blocksAndMapping(blk = block,
-  #                              map = map,
-  #                              ref.id = comb[[i]][1],
-  #                              altGenome2plot = comb[[i]][2],
-  #                              main = paste(comb[[i]], collapse = " --> ")))
-  # }
-  # dev.off()
-  #
+  out = list(merged.results = merged.close,
+             rerun.results = rerun.close)
+  if(return.initial){
+    out[["initial.results"]] <- init.results
+  }
+  if(return.mcscanRaw){
+    out[["mcscanx.results"]] <- synteny.results.out
+  }
+  if(return.overlapMerged){
+    out[["overlap.results"]] <- merged.overlaps
+  }
+  return(out)
 }
