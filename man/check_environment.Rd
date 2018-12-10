@@ -4,7 +4,8 @@
 \alias{check_environment}
 \title{Make sure everything is setup}
 \usage{
-check_environment(directory, genomeIDs, clean = F)
+check_environment(directory, genomeIDs, clean = FALSE,
+  check.pkgs = TRUE, check.genomes = TRUE)
 }
 \arguments{
 \item{directory}{File path, where the subdirectory folders (e.g. raw_assemblies)
@@ -14,6 +15,10 @@ are found.}
 for analysis}
 
 \item{clean}{Logical, should the existing directories be cleaned out?}
+
+\item{check.pkgs}{Logical, should the package installs be checked?}
+
+\item{check.genomes}{Logical, should the presence of genomes be checked?}
 
 \item{...}{Not currently in use}
 }

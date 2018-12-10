@@ -8,7 +8,10 @@ pipe_syntenicBlocks(genomeIDs, dir.list = NULL, peptide.dir = NULL,
   gff.dir = NULL, tmp.dir = NULL, blast.dir = NULL,
   block.dir = NULL, cull.blast.dir = NULL, mcscan.dir = NULL,
   results.dir = NULL, verbose = TRUE, min.block.size = 5,
-  plotit = T, min.hit.density = 0.2, ...)
+  plotit = T, min.hit.density = 0.2, initial.mergeBuffer = 1,
+  final.mergeBuffer = NULL, return.initial = TRUE,
+  return.mcscanRaw = FALSE, return.overlapMerged = FALSE,
+  max.propSmallChr2Merge = 0.25, n.mergeIter = 5, ...)
 }
 \arguments{
 \item{genomeIDs}{Character vector of genome IDs to consider}
@@ -39,6 +42,32 @@ pipe_syntenicBlocks(genomeIDs, dir.list = NULL, peptide.dir = NULL,
 
 \item{min.hit.density}{Numeric, the proportion of hits possible
 in a block for that block to be retained.}
+
+\item{initial.mergeBuffer}{Numeric, the buffer for an initial scan
+to merge overlapping blocks. Should be set to either 0 or 1, unless
+one is ok with sacraficing speed for accuracy, in which case,
+it can be set anywhere up to min.block.size - 1.}
+
+\item{final.mergeBuffer}{Numeric, the buffer to search for blocks to merge
+in the last merge step. Should not exceed min.block.size -1.}
+
+\item{return.initial}{Logical, should the initial orthofinder results
+be returned?}
+
+\item{return.mcscanRaw}{Logical, should the unmerged results from MCScanX
+be returned?}
+
+\item{return.overlapMerged}{Logical, should the overlap-merged
+orthofinder results be returned?}
+
+\item{max.propSmallChr2Merge}{Numeric, the maximum size of two blocks to be
+merged is set based on this parameter. If set to 1, entire chromosomes
+may be merged, if set to 0, no merging ever happens. Values between 0 and
+1, result in a maximum block size, equal to the proportion of the number of
+blast hits on the smallest chromosome.}
+
+\item{n.mergeIter}{Numeric, the number of iterations that the merge should
+go through.}
 
 \item{...}{Not in use yet.}
 }

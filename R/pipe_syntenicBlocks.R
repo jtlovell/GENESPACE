@@ -13,11 +13,33 @@
 #' @param cull.blast.dir Directory containing peptide fasta files
 #' @param mcscan.dir Directory containing peptide fasta files
 #' @param results.dir Directory containing peptide fasta files
-#' @param verbose Logical, should updates be printed?
 #' @param min.block.size Numeric, minimum required block size
 #' @param plotit Logical, should plots be generated?
 #' @param min.hit.density Numeric, the proportion of hits possible
 #' in a block for that block to be retained.
+#' @param min.unique.hits The number of unique hits required in each genome
+#' for a block to be retained.
+#' @param max.hit.density The maximum hit density in a block
+#' @param initial.mergeBuffer Numeric, the buffer for an initial scan
+#' to merge overlapping blocks. Should be set to either 0 or 1, unless
+#' one is ok with sacraficing speed for accuracy, in which case,
+#' it can be set anywhere up to min.block.size - 1.
+#' @param final.mergeBuffer Numeric, the buffer to search for blocks to merge
+#' in the last merge step. Should not exceed min.block.size -1.
+#' @param max.propSmallChr2Merge Numeric, the maximum size of two blocks to be
+#' merged is set based on this parameter. If set to 1, entire chromosomes
+#' may be merged, if set to 0, no merging ever happens. Values between 0 and
+#' 1, result in a maximum block size, equal to the proportion of the number of
+#' blast hits on the smallest chromosome.
+#' @param n.mergeIter Numeric, the number of iterations that the merge should
+#' go through.
+#' @param return.initial Logical, should the initial orthofinder results
+#' be returned?
+#' @param return.mcscanRaw Logical, should the unmerged results from MCScanX
+#' be returned?
+#' @param return.overlapMerged Logical, should the overlap-merged
+#' orthofinder results be returned?
+#' @param verbose Logical, should updates be printed?
 #' @param ... Not in use yet.
 #' @details More here
 #' @return Nothing.
@@ -40,8 +62,10 @@ pipe_syntenicBlocks <- function(genomeIDs,
                                results.dir = NULL,
                                verbose = TRUE,
                                min.block.size = 5,
+                               min.unique.hits = min.block.size,
                                plotit = T,
                                min.hit.density = .2,
+                               max.hit.density = NULL,
                                initial.mergeBuffer = 1,
                                final.mergeBuffer = NULL,
                                return.initial = TRUE,
@@ -52,7 +76,7 @@ pipe_syntenicBlocks <- function(genomeIDs,
                                ...){
 
   if (is.null(final.mergeBuffer)) {
-    final.mergeBuffer <- (sqrt((min.block.size^2)+(min.block.size^2))-.1)
+    final.mergeBuffer <- (sqrt((min.block.size^2) + (min.block.size^2)) - .1)
   }
 
   #######################################################
@@ -127,12 +151,46 @@ pipe_syntenicBlocks <- function(genomeIDs,
 
   good.blocks <- blk$block.id[with(blk, (n.mapping/length) > min.hit.density)]
   nmap <- map[map$block.id %in% good.blocks,]
+  m1 = nrow(nmap)
+  b1 = length(good.blocks)
+
+  n.unique = map[,list(nu1 = length(unique(id1)),
+                       nu2 = length(unique(id2))),
+                 by = list(block.id)]
+  u.blocks = n.unique$block.id[n.unique$nu1 >= min.unique.hits &
+                                 n.unique$nu2 >= min.unique.hits]
+  nmap <- nmap[nmap$block.id %in% u.blocks,]
+  m2 = nrow(nmap)
+  b2 = length(u.blocks)
+
+
+  if(!is.null(max.hit.density)){
+    n.tot = map[,list(prop1 = length(id1)/length(unique(id1)),
+                      prop2 = length(id2)/length(unique(id2))),
+                   by = list(block.id)]
+    t.blocks = n.tot$block.id[n.tot$nu1 <= max.hit.density &
+                                n.tot$nu2 <= max.hit.density]
+    nmap <- nmap[nmap$block.id %in% t.blocks,]
+    m3 = nrow(nmap)
+    b3 = length(t.blocks)
+  }
+
   synteny.results <- make_blocks(nmap)
 
-  if(verbose)
-    cat("\tRetaining", nrow(synteny.results$map), "hits in",
-        nrow(synteny.results$block), "blocks where >",
+  if (verbose)
+    cat("\tRetaining", m1, "hits in",
+        b1, "blocks where >",
         min.hit.density*100, "% of possible hits are found in block\n")
+  if(verbose)
+    cat("\tRetaining", m2, "hits in",
+        b2, "blocks where each block contains", min.unique.hits,
+        "unique hits in each genome\n")
+
+  if(!is.null(max.hit.density))
+    if(verbose)
+      cat("\tRetaining", m3, "hits in",
+          b3, "blocks where the proportion of unique hits is <=",
+          max.hit.density, "\n")
   #######################################################
 
   #######################################################
@@ -196,14 +254,15 @@ pipe_syntenicBlocks <- function(genomeIDs,
   out <- list(merged.results = merged.close,
              rerun.results = rerun.close)
 
-  if (return.initial){
+  if (return.initial) {
     out[["initial.results"]] <- init.results
   }
-  if (return.mcscanRaw){
+  if (return.mcscanRaw) {
     out[["mcscanx.results"]] <- synteny.results.out
   }
-  if (return.overlapMerged){
+  if (return.overlapMerged) {
     out[["overlap.results"]] <- merged.overlaps
   }
+
   return(out)
 }

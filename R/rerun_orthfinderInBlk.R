@@ -1,12 +1,15 @@
 #' @title Run the orthofinder program
 #'
 #' @description
-#' \code{run_orthofinder} A simple wrapper to run orthofinder from R.
+#' \code{rerun_orthofinderInBlk} A simple wrapper to run orthofinder from R.
 #'
 #' @param init.results Results from initial orthofinder run (via parse_orthofinder)
 #' @param blk block file from make blocks or whatever
+#' @param genomeIDs the genome ids.
 #' @param cull.blast.dir directory to write new output
 #' @param block.dir directory to store the block output
+#' @param gff.dir the path to the gff annotations
+#' @param tmp.dir the temporary directory path.
 #' @param blast.dir The path to the directory where the blast results should be stored
 #' @param ... Additional arguments passed on to run_orthofinder
 #' @details ...
@@ -28,6 +31,7 @@ rerun_orthofinderInBlk = function(map, blk,
                                   genomeIDs,
                                   ...){
 
+  print(cull.blast.dir)
   gff = init.results$gff
   sgff = split_gffByBlock(gff = gff, blk = blk)
   ogff = get_ofIDs(ogff = sgff,

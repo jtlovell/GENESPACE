@@ -9,6 +9,8 @@
 #' @param genomeIDs Character, the vector of genome identifiers to consider
 #' for analysis
 #' @param clean Logical, should the existing directories be cleaned out?
+#' @param check.genomes Logical, should the presence of genomes be checked?
+#' @param check.pkgs Logical, should the package installs be checked?
 #' @param ... Not currently in use
 #' @details Needs to be run prior to the pipeline. Makes some objects that are required.
 #' @return List of directory names and paths.
