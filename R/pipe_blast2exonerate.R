@@ -191,40 +191,59 @@ pipe_blast2exonerate <- function(genomeIDs,
 
     ###################################
     # - Parse blastx results
-    blast1 <- fread(blast1.file)
-    blast2 <- fread(blast2.file)
+    rl1 = length(readLines(blast1.file))
+    rl2 = length(readLines(blast2.file))
+    if(rl1 > 0 | rl2 > 0){
+      if(rl1 > 0 & rl2 > 0){
+        blast1 <- fread(blast1.file)
+        blast2 <- fread(blast2.file)
+        bl = rbind(blast1,blast2)
+      }else{
+        if(rl2 > 0){
+          bl = fread(blast2.file)
+        }else{
+          if(rl1 > 0){
+            bl = fread(blast1.file)
+          }
+        }
+      }
 
-    blast <- parse_blastLoc(rbind(blast1,blast2))
-    hit.reg <- make_blastRegion(bl = blast)
-    if(verbose)
-      cat(", ", sum(hit.reg$genome == blk$genome2),
-          "/", sum(hit.reg$genome == blk$genome1),
-          "(blast) ")
-    hits2exonerate <- add_buffer(bl = hit.reg,
-                                 fais = fais,
-                                 buffer = 1e3)
+      blast <- parse_blastLoc(bl)
+      hit.reg <- make_blastRegion(bl = blast)
+      if(verbose)
+        cat(", ", sum(hit.reg$genome == blk$genome2),
+            "/", sum(hit.reg$genome == blk$genome1),
+            "(blast) ")
+      hits2exonerate <- add_buffer(bl = hit.reg,
+                                   fais = fais,
+                                   buffer = 1e3)
 
-    ###################################
-    # - Run exonerate
-    exon.out <- pipe_exonerate(
-      hit.reg = hits2exonerate,
-      assembly.dir = assembly.dir,
-      genomeIDs = genomeIDs,
-      cds.fastas = cds.fastas,
-      tmp.dir = wd,
-      n.cores = n.cores,
-      min.score = min.exonerate.score,
-      verbose = F)
+      ###################################
+      # - Run exonerate
+      exon.out <- pipe_exonerate(
+        hit.reg = hits2exonerate,
+        assembly.dir = assembly.dir,
+        genomeIDs = genomeIDs,
+        cds.fastas = cds.fastas,
+        tmp.dir = wd,
+        n.cores = n.cores,
+        min.score = min.exonerate.score,
+        verbose = F)
 
-    exc <- exon.out$gff[complete.cases(exon.out$gff), ]
-    exc <- sapply(exc$id, function(x)
-      strsplit(x, "_", fixed = T)[[1]][2])
+      exc <- exon.out$gff[complete.cases(exon.out$gff), ]
+      exc <- sapply(exc$id, function(x)
+        strsplit(x, "_", fixed = T)[[1]][2])
 
-    if (verbose)
-      cat(", ", sum(exc == blk$genome2),
-          "/", sum(exc == blk$genome1),
-          "(exonerate)\n")
-
+      if (verbose)
+        cat(", ", sum(exc == blk$genome2),
+            "/", sum(exc == blk$genome1),
+            "(exonerate)\n")
+    }else{
+      exon.out = NULL
+      hit.reg = NULL
+      if(verbose)
+        cat("... no blast hits found\n")
+    }
     return(list(exonerate.output = exon.out,
                 blast.output = hit.reg))
   })

@@ -84,10 +84,6 @@ merge_blocks <- function(blk,
                 arr.ind = T)
 
     if(nrow(wh) > 1){
-      totsize <- apply(wh, 1, function(z)
-        min(x$n.mapping[z]))
-      totovl <- mat[mat<=buffer]
-      wh = wh[order(totovl, totsize),]
       u = as.numeric(t(wh))
       u = unique(u[duplicated(u)])
       for(k in u){
