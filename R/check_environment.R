@@ -31,8 +31,8 @@ check_environment <- function(directory,
   dirs = file.path(directory,
                    c("tmp","results","blast","mcscanx",
                      "cull.blast","genome"))
-  names(dirs)<-paste0(c("tmp","results","blast","mcscanx",
-                 "cull.blast","genome"),".dir")
+  names(dirs)<-c("tmp","results","blast","mcscanx",
+                 "cull.blast","genome")
 
   dir.out = list()
   for (j in names(dirs)) {
