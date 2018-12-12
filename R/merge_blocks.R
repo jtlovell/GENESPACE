@@ -39,15 +39,13 @@ merge_blocks <- function(blk,
                          map,
                         buffer = 0,
                         verbose = T,
-                        max.size2merge = 1e4){
+                        n.cores = 1,
+                        max.size2merge = 1e6){
 
-  make_ovlMatrix = function(x, buffer){
-    mat <- matrix(NA,
-                  nrow = nrow(x),
-                  ncol = nrow(x))
-    rownames(mat) <- colnames(mat) <- x$block.id
-    for(i in rownames(mat)){
-      for(j in rownames(mat)){
+  make_ovlMatrix = function(x, buffer, n.cores){
+
+    mat = do.call(cbind,mclapply(x$block.id, mc.cores = n.cores, function(i){
+      sapply(x$block.id, function(j){
         p <- x[x$block.id == i,]
         o1 <- min(mesh.drectangle(p = rbind(
           as.numeric(x[x$block.id == j,c("rankstart1","rankstart2")]),
@@ -60,16 +58,27 @@ merge_blocks <- function(blk,
           x2 = p$rankend1,
           y1 = p$rankstart2,
           y2 = p$rankend2))
-        mat[i,j] <- o1
-      }
-    }
+        return(o1)
+      })
+    }))
+    colnames(mat)<-rownames(mat) <-x$block.id
     diag(mat) <- buffer + 1
-    mat[lower.tri(mat)] <- buffer + 1
-    return(mat)
+    mat1 = mat
+    mat2 = t(mat)
+    mato = mat1
+    mato[mato>mat2]<-mat2[mato>mat2]
+    mato[lower.tri(mato)] <- buffer + 1
+    return(mato)
+  }
+
+  find_all2keep = function(mat, buffer){
+    wh = unique(as.numeric(which(mat<buffer,arr.ind = T)))
+    return(unique(rownames(mat)[wh]))
   }
 
 
-  find_wh2merge = function(x, mat, buffer){
+
+  find_wh2merge = function(mat, buffer){
 
     wh <- which(mat <= buffer,
                 arr.ind = T)
@@ -107,48 +116,54 @@ merge_blocks <- function(blk,
   }
 
 
-  blk$unique <- with(blk, paste(genome1, genome2, chr1, chr2))
-  map$unique <- with(map, paste(genome1, genome2, chr1, chr2))
-  splsmap <- split.data.table(map, "unique")
-  splsblk <- split.data.table(blk, "unique")
+  blk$unique = with(blk, paste(genome1, genome2, chr1, chr2))
+  map$unique = with(map, paste(genome1, genome2, chr1, chr2))
 
-  nmaps = sapply(splsblk, nrow)
-  blk1 = unlist(sapply(splsblk, function(x) unique(x$block.id))[nmaps == 1])
-  out.blk = blk[blk$block.id  %in% blk1,]
-  out.map = map[map$block.id  %in% blk1,]
+  blk2check = blk$block.id[blk$n.mapping <= max.size2merge]
+  n.inu = table(blk$unique)
+  single = names(n.inu)[n.inu == 1]
+  drop.these.blocks = blk$block.id[blk$unique %in% single]
+  blk2check = blk2check[!blk2check %in% drop.these.blocks]
+  k = 1
+  while(length(blk2check > 0)){
+    cat("Iteration",k,"... ",nrow(blk),"--> ")
+    k = k+1
+    sblk = split.data.table(blk[blk$block.id %in% blk2check,], "unique")
+    smap = split.data.table(map[map$block.id %in% blk2check,], "unique")
 
-  in.blk = splsblk[names(nmaps)[nmaps > 1]]
-  in.map = splsmap[names(nmaps)[nmaps > 1]]
+    ovl.list = sapply(names(sblk),USE.NAMES = T, simplify = F, function(i){
+      return(make_ovlMatrix(x = sblk[[i]], buffer = buffer, n.cores = 8))
+    })
 
-  for(i in names(in.blk)){
-    tmp.map = in.map[[i]]
-    tmp.blk = in.blk[[i]]
-    merge.it = TRUE
-    if(verbose)
-      cat(i,"\t merging",nrow(tmp.blk),"blocks ")
-    while(merge.it){
-      tblk = tmp.blk[tmp.blk$n.mapping <= max.size2merge, ]
-      mat = make_ovlMatrix(tblk, buffer = buffer)
-      merge.mat = find_wh2merge(x = tblk,  mat, buffer = buffer)
-      if(is.null(merge.mat) | sum(complete.cases(merge.mat)) == 0){
-        merge.it <- FALSE
-      }else{
-        for(j in 1:nrow(merge.mat)){
-          mlj = merge.mat[j,]
-          tmp.map$block.id[tmp.map$block.id %in% mlj] <- mlj[1]
-          tmp.blk<-tmp.blk[tmp.blk$block.id != mlj[2],]
-        }
+    do.merge = names(ovl.list[sapply(ovl.list,min) <= buffer])
+
+    wh.list = sapply(do.merge, USE.NAMES = T, simplify = F, function(i){
+        find_wh2merge(mat = ovl.list[[i]],
+                      buffer = buffer)
+    })
+
+    blk2check = unique(unlist(lapply(do.merge, function(i)
+      find_all2keep(mat = ovl.list[[i]],
+                    buffer = buffer))))
+
+    wh.out = do.call(rbind, wh.list)
+    if(!is.null(wh.out)){
+      for(i in 1:nrow(wh.out)){
+        map$block.id[map$block.id %in% wh.out[i,]]<-wh.out[i,1]
       }
+      out = make_blocks(map, rename.blocks = F, rerank = T)
+      map = data.table(out$map)
+      blk = data.table(out$block)
+      blk$unique = with(blk, paste(genome1, genome2, chr1, chr2))
+      map$unique = with(map, paste(genome1, genome2, chr1, chr2))
+
+      n.inu = table(blk$unique)
+      single = names(n.inu)[n.inu == 1]
+      drop.these.blocks = blk$block.id[blk$unique %in% single]
+      cat(nrow(blk),"blocks\n")
+    }else{
+      cat("no merging possible\n")
     }
-    out.blk<-rbind(out.blk, tmp.blk)
-    out.map<-rbind(out.map,tmp.map)
-    if(verbose)
-      cat("to",nrow(tmp.blk), "\n")
   }
-
-  blk <- make_blocks(out.map)
-  map <- data.table(blk$map)
-  blk <- data.table(blk$block)
-
-  return(list(block = blk, map = map))
+  return(list(map = map, block = blk))
 }

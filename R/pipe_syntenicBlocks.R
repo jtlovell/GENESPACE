@@ -64,15 +64,14 @@ pipe_syntenicBlocks <- function(genomeIDs,
                                min.block.size = 5,
                                min.unique.hits = min.block.size,
                                plotit = T,
-                               min.hit.density = .2,
-                               max.hit.density = NULL,
+                               min.hit.ratio = .2,
                                initial.mergeBuffer = 1,
+                               n.cores = 1,
                                final.mergeBuffer = NULL,
                                return.initial = TRUE,
                                return.mcscanRaw = FALSE,
                                return.overlapMerged = FALSE,
-                               max.propSmallChr2Merge = .25,
-                               n.mergeIter = 5,
+                               max.size2merge = 100,
                                ...){
 
   if (is.null(final.mergeBuffer)) {
@@ -132,7 +131,9 @@ pipe_syntenicBlocks <- function(genomeIDs,
     blast = init.results$blast,
     genomeIDs = genomeIDs,
     mcscanx.input.dir = mcscan.dir,
-    MCScanX.params = mcsp)
+    MCScanX.params = mcsp,
+    min.hit.ratio = min.hit.ratio,
+    min.unique.hits = min.unique.hits)
   synteny.results.out = synteny.results
 
   if (plotit)
@@ -144,53 +145,9 @@ pipe_syntenicBlocks <- function(genomeIDs,
 
   blk <- synteny.results$block
   map <- synteny.results$map
-  rnks <- c("rankend1","rankstart1","rankend2","rankstart2")
-  blk$length <- apply(blk[,rnks, with = F], 1, function(x)
-    max(c(x[1] - x[2],
-          x[3] - x[4])))
 
-  good.blocks <- blk$block.id[with(blk, (n.mapping/length) > min.hit.density)]
-  nmap <- map[map$block.id %in% good.blocks,]
-  m1 = nrow(nmap)
-  b1 = length(good.blocks)
+  synteny.results <- make_blocks(map)
 
-  n.unique = nmap[,list(nu1 = length(unique(id1)),
-                       nu2 = length(unique(id2))),
-                 by = list(block.id)]
-  u.blocks = n.unique$block.id[n.unique$nu1 >= min.unique.hits &
-                                 n.unique$nu2 >= min.unique.hits]
-  nmap <- nmap[nmap$block.id %in% u.blocks,]
-  m2 = nrow(nmap)
-  b2 = length(u.blocks)
-
-
-  if(!is.null(max.hit.density)){
-    n.tot = nmap[,list(prop1 = length(id1)/length(unique(id1)),
-                      prop2 = length(id2)/length(unique(id2))),
-                   by = list(block.id)]
-    t.blocks = n.tot$block.id[n.tot$nu1 <= max.hit.density &
-                                n.tot$nu2 <= max.hit.density]
-    nmap <- nmap[nmap$block.id %in% t.blocks,]
-    m3 = nrow(nmap)
-    b3 = length(t.blocks)
-  }
-
-  synteny.results <- make_blocks(nmap)
-
-  if (verbose)
-    cat("\tRetaining", m1, "hits in",
-        b1, "blocks where >",
-        min.hit.density*100, "% of possible hits are found in block\n")
-  if(verbose)
-    cat("\tRetaining", m2, "hits in",
-        b2, "blocks where each block contains", min.unique.hits,
-        "unique hits in each genome\n")
-
-  if(!is.null(max.hit.density))
-    if(verbose)
-      cat("\tRetaining", m3, "hits in",
-          b3, "blocks where the proportion of unique hits is <=",
-          max.hit.density, "\n")
   #######################################################
 
   #######################################################
@@ -200,11 +157,11 @@ pipe_syntenicBlocks <- function(genomeIDs,
   max.hits <- min(c(table(synteny.results$map$chr1),
                    table(synteny.results$map$chr2)))
 
-  merged.overlaps <- make_mergedBlocks(
+  merged.overlaps <- merge_blocks(
     blk = synteny.results$block,
     map = synteny.results$map,
     buffer = initial.mergeBuffer,
-    n.iter = 1,
+    n.cores =  n.cores,
     max.size2merge = 1e6)
   if (plotit)
     plot_blocksAndMapping(
@@ -218,12 +175,12 @@ pipe_syntenicBlocks <- function(genomeIDs,
   if (verbose)
     cat("##########\n# - Part 4: Merging adjacent blocks...\n")
 
-  merged.close <- make_mergedBlocks(
+  merged.close <- merge_blocks(
     blk = data.table(merged.overlaps$block),
     map = data.table(merged.overlaps$map),
     buffer = final.mergeBuffer,
-    n.iter = n.mergeIter,
-    max.size2merge = max.hits*max.propSmallChr2Merge)
+    n.cores = n.cores,
+    max.size2merge = max.size2merge)
 
   if (plotit)
     plot_blocksAndMapping(
@@ -233,6 +190,8 @@ pipe_syntenicBlocks <- function(genomeIDs,
       altGenome2plot = genomeIDs[2])
 
   #######################################################
+  if (verbose)
+    cat("##########\n# - Part 5: Re-running orthofinder constrained within known syntenic blocks ...\n")
   rerun.close <- rerun_orthofinderInBlk(
     genomeIDs = genomeIDs,
     blk = merged.close$block,

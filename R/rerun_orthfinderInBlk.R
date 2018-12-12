@@ -29,9 +29,9 @@ rerun_orthofinderInBlk = function(map, blk,
                                   block.dir,
                                   tmp.dir,
                                   genomeIDs,
+                                  verbose = T,
                                   ...){
 
-  print(cull.blast.dir)
   gff = init.results$gff
   sgff = split_gffByBlock(gff = gff, blk = blk)
   ogff = get_ofIDs(ogff = sgff,
@@ -44,10 +44,13 @@ rerun_orthofinderInBlk = function(map, blk,
                     species.mappings = init.results$ortho.info$species.mappings,
                     of.speciesIDs = init.results$ortho.info$species.index)
 
+  if(verbose)
+    cat("Running orthofinder algorthm\n")
   run_orthofinder(
     peptide.dir = NULL,
     tmp.dir = tmp.dir,
-    blast.dir = cull.blast.dir)
+    blast.dir = cull.blast.dir,
+    og.silent = T,verbose = F)
 
   culled.results = process_orthofinder(
     gff.dir = gff.dir,

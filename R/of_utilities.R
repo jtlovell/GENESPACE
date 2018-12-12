@@ -615,9 +615,11 @@ make_MCSBlocks <- function(blast,
                            genomeIDs,
                            mcscanx.input.dir,
                            verbose = T,
+                           min.hit.ratio = .2,
+                           min.unique.hits = 5,
                            MCScanX.params = "-a -s 10 -m 10 -w 2"){
 
-  abbrevs = paste0(LETTERS, letters)[length(genomeIDs)]
+  abbrevs = paste0(LETTERS, letters)[1:length(genomeIDs)]
 
   blast.results <- blast
   spl = split.data.table(blast.results, "unique")
@@ -625,7 +627,7 @@ make_MCSBlocks <- function(blast,
 
   mcscan.list = lapply(1:length(comb), function(i){
     if (verbose)
-      cat(comb[[i]][1], "-->", comb[[i]][2])
+      cat(comb[[i]][1], "-->", comb[[i]][2],"\n")
     x = spl[[paste(comb[[i]], collapse = " ")]]
     mctmp = run_MCScanX(
       blast.results = x,
@@ -633,20 +635,32 @@ make_MCSBlocks <- function(blast,
       mcscanx.input.dir = mcscanx.input.dir,
       MCScanX.params = MCScanX.params,
       verbose = FALSE)
-    tmp = make_blocks(mctmp)
-    if (verbose)
-      cat(" ...", nrow(tmp$map), "(of",
-          paste0(nrow(x), ")"),
-          "hits in", nrow(tmp$block), "blocks\n")
+
+    mc.sum = mctmp[,list(n.hits1 = length(unique(id1)),
+                         n.hits2 = length(unique(id2)),
+                         width.hits1 = max(rank1)-min(rank1),
+                         width.hits2 = max(rank2)-min(rank2)),
+                   by = list(genome1, genome2, chr1, chr2, block.id)]
+    mc.sum$pass.unique = with(mc.sum, n.hits1 >= min.unique.hits &
+                                n.hits2 >= min.unique.hits)
+    mc.sum$ratio1 = with(mc.sum, n.hits1 / width.hits1)
+    mc.sum$ratio2 = with(mc.sum, n.hits2 / width.hits2)
+
+    mc.sum$pass.ratio = with(mc.sum, ratio1>min.hit.ratio &
+                                ratio2>min.hit.ratio)
+
+    blks2keep = mc.sum$block.id[with(mc.sum, pass.unique & pass.ratio)]
+    tmp = mctmp[mctmp$block.id %in% blks2keep,]
     return(tmp)
   })
 
-  mcscan.blk <- rbindlist(lapply(mcscan.list, function(x) x$block))
-  mcscan.map <- rbindlist(lapply(mcscan.list, function(x) x$map))
+  mcscan.map <- rbindlist(mcscan.list)
+  mcscan.map$block.id <- as.numeric(as.factor(with(mcscan.map, paste(genome1, genome2, block.id))))
+  out = make_blocks(map = mcscan.map,
+                    rerank = T,
+                    rename.blocks = F)
 
-
-  return(list(block = mcscan.blk,
-              map = mcscan.map))
+  return(out)
 }
 
 #' @title Merge collinear blocks
@@ -662,7 +676,8 @@ make_mergedBlocks <- function(blk,
                               buffer = -1,
                               max.size2merge = 200,
                               n.iter = 2,
-                              verbose = T){
+                              verbose = T,
+                              n.cores = 1){
 
   for(i in 1:n.iter){
     if(verbose & n.iter > 1)
@@ -671,6 +686,7 @@ make_mergedBlocks <- function(blk,
       blk = blk,
       map = map,
       buffer = buffer,
+      n.cores = n.cores,
       max.size2merge = max.size2merge)
     blk = m$block
     map = m$map

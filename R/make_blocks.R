@@ -20,10 +20,10 @@
 make_blocks <- function(map,
                         rerank = T,
                         drop.NAs = F,
-                        rename.blocks = T){
+                        rename.blocks = F){
   map <- data.table(map)
   if(rename.blocks){
-    map$block.id <- as.numeric(as.factor(with(map, paste(genome1, genome2, chr1, chr2, block.id))))
+    map$block.id <- as.numeric(as.factor(with(map, paste(genome1, genome2, block.id))))
   }
 
   setkey(map, chr1, chr2, start1, start2)
