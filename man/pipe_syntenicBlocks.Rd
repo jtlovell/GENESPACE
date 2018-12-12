@@ -8,10 +8,12 @@ pipe_syntenicBlocks(genomeIDs, dir.list = NULL, peptide.dir = NULL,
   gff.dir = NULL, tmp.dir = NULL, blast.dir = NULL,
   block.dir = NULL, cull.blast.dir = NULL, mcscan.dir = NULL,
   results.dir = NULL, verbose = TRUE, min.block.size = 5,
-  plotit = T, min.hit.density = 0.2, initial.mergeBuffer = 1,
-  final.mergeBuffer = NULL, return.initial = TRUE,
-  return.mcscanRaw = FALSE, return.overlapMerged = FALSE,
-  max.propSmallChr2Merge = 0.25, n.mergeIter = 5, ...)
+  min.unique.hits = min.block.size, plotit = T,
+  min.hit.density = 0.2, max.hit.density = NULL,
+  initial.mergeBuffer = 1, final.mergeBuffer = NULL,
+  return.initial = TRUE, return.mcscanRaw = FALSE,
+  return.overlapMerged = FALSE, max.propSmallChr2Merge = 0.25,
+  n.mergeIter = 5, ...)
 }
 \arguments{
 \item{genomeIDs}{Character vector of genome IDs to consider}
@@ -38,10 +40,15 @@ pipe_syntenicBlocks(genomeIDs, dir.list = NULL, peptide.dir = NULL,
 
 \item{min.block.size}{Numeric, minimum required block size}
 
+\item{min.unique.hits}{The number of unique hits required in each genome
+for a block to be retained.}
+
 \item{plotit}{Logical, should plots be generated?}
 
 \item{min.hit.density}{Numeric, the proportion of hits possible
 in a block for that block to be retained.}
+
+\item{max.hit.density}{The maximum hit density in a block}
 
 \item{initial.mergeBuffer}{Numeric, the buffer for an initial scan
 to merge overlapping blocks. Should be set to either 0 or 1, unless

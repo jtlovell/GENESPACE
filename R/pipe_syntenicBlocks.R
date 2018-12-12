@@ -154,7 +154,7 @@ pipe_syntenicBlocks <- function(genomeIDs,
   m1 = nrow(nmap)
   b1 = length(good.blocks)
 
-  n.unique = map[,list(nu1 = length(unique(id1)),
+  n.unique = nmap[,list(nu1 = length(unique(id1)),
                        nu2 = length(unique(id2))),
                  by = list(block.id)]
   u.blocks = n.unique$block.id[n.unique$nu1 >= min.unique.hits &
@@ -165,7 +165,7 @@ pipe_syntenicBlocks <- function(genomeIDs,
 
 
   if(!is.null(max.hit.density)){
-    n.tot = map[,list(prop1 = length(id1)/length(unique(id1)),
+    n.tot = nmap[,list(prop1 = length(id1)/length(unique(id1)),
                       prop2 = length(id2)/length(unique(id2))),
                    by = list(block.id)]
     t.blocks = n.tot$block.id[n.tot$nu1 <= max.hit.density &

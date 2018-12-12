@@ -10,6 +10,8 @@ rerun_orthofinderInBlk(map, blk, gff.dir, blast.dir, init.results,
 \arguments{
 \item{blk}{block file from make blocks or whatever}
 
+\item{gff.dir}{the path to the gff annotations}
+
 \item{blast.dir}{The path to the directory where the blast results should be stored}
 
 \item{init.results}{Results from initial orthofinder run (via parse_orthofinder)}
@@ -18,13 +20,17 @@ rerun_orthofinderInBlk(map, blk, gff.dir, blast.dir, init.results,
 
 \item{block.dir}{directory to store the block output}
 
+\item{tmp.dir}{the temporary directory path.}
+
+\item{genomeIDs}{the genome ids.}
+
 \item{...}{Additional arguments passed on to run_orthofinder}
 }
 \value{
 Nothing, writes results to the cull.blast.dir directory
 }
 \description{
-\code{run_orthofinder} A simple wrapper to run orthofinder from R.
+\code{rerun_orthofinderInBlk} A simple wrapper to run orthofinder from R.
 }
 \details{
 ...
