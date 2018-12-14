@@ -4,6 +4,11 @@
 #' \code{pipe_syntenicBlocks} pipe_syntenicBlocks
 #'
 #' @param genomeIDs Character vector of genome IDs to consider
+#' @param clean.by Character, either 'merge' or 'dbscan'. Alternatively,
+#' if NULL (default), then merge is used if the min.block.size >=5 and
+#' dbscan is used if min.block.size< 5. While dbscan method may be a
+#' bit less sensitive, the massive number of blocks when min.block.size is
+#' small necessitates a non-iterative cleaning procedure.
 #' @param dir.list Directory list, produced by `check_environment`.
 #' @param peptide.dir Directory containing peptide fasta files
 #' @param gff.dir Directory containing peptide fasta files
@@ -72,8 +77,19 @@ pipe_syntenicBlocks <- function(genomeIDs,
                                return.mcscanRaw = FALSE,
                                return.overlapMerged = FALSE,
                                max.size2merge = 100,
+                               clean.by = NULL,
                                ...){
 
+  if(is.null(clean.by)){
+    if(min.block.size<5){
+      clean.by = "dbscan"
+    }else{
+      clean.by = "merge"
+    }
+
+  }
+  if(!clean.by %in% c("merge","dbscan"))
+    stop("Current clean.by methods include only merge and dbscan\n")
   if (is.null(final.mergeBuffer)) {
     final.mergeBuffer <- (sqrt((min.block.size^2) + (min.block.size^2)) - .1)
   }
@@ -107,16 +123,19 @@ pipe_syntenicBlocks <- function(genomeIDs,
     cat("##########\n# - Part 1: Parsing orthofinder ...\n#\tProgress:\n")
 
   mcsp <- paste("-a -s", min.block.size,
-                "-m", min.block.size*20,
+                "-m", min.block.size*5,
                 "-w 2 -e 1")
   init.results <- process_orthofinder(
     gff.dir = gff.dir,
     genomeIDs = genomeIDs,
     blast.dir = blast.dir,
     mcscanx.input.dir = mcscan.dir,
+    eps.radius = c(min.block.size*25,
+                   min.block.size*10,
+                   min.block.size*5),
     n.mappingWithinRadius = c(min.block.size,
                               min.block.size,
-                              min.block.size/2),
+                              min.block.size),
     MCScanX.param = mcsp)
   #######################################################
 
@@ -151,76 +170,91 @@ pipe_syntenicBlocks <- function(genomeIDs,
   #######################################################
 
   #######################################################
-  if (verbose)
-    cat("##########\n# - Part 3: Merging overlapping blocks...\n")
+  if(clean.by == "merge"){
+    if (verbose)
+      cat("##########\n# - Part 3: Merging overlapping blocks...\n")
 
-  max.hits <- min(c(table(synteny.results$map$chr1),
-                   table(synteny.results$map$chr2)))
+    max.hits <- min(c(table(synteny.results$map$chr1),
+                      table(synteny.results$map$chr2)))
 
-  merged.overlaps <- merge_blocks(
-    blk = synteny.results$block,
-    map = synteny.results$map,
-    buffer = initial.mergeBuffer,
-    n.cores =  n.cores,
-    max.size2merge = 1e6)
-  if (plotit)
-    plot_blocksAndMapping(
-      map = data.frame(merged.overlaps$map),
-      blk = data.frame(merged.overlaps$block),
-      ref.id = genomeIDs[1],
-      altGenome2plot = genomeIDs[2])
-  #######################################################
+    merged.overlaps <- merge_blocks(
+      blk = synteny.results$block,
+      map = synteny.results$map,
+      buffer = initial.mergeBuffer,
+      n.cores =  n.cores,
+      max.size2merge = 1e6)
+    if (plotit)
+      plot_blocksAndMapping(
+        map = data.frame(merged.overlaps$map),
+        blk = data.frame(merged.overlaps$block),
+        ref.id = genomeIDs[1],
+        altGenome2plot = genomeIDs[2])
+    #######################################################
 
-  #######################################################
-  if (verbose)
-    cat("##########\n# - Part 4: Merging adjacent blocks...\n")
+    #######################################################
+    if (verbose)
+      cat("##########\n# - Part 4: Merging adjacent blocks...\n")
 
-  merged.close <- merge_blocks(
-    blk = data.table(merged.overlaps$block),
-    map = data.table(merged.overlaps$map),
-    buffer = final.mergeBuffer,
-    n.cores = n.cores,
-    max.size2merge = max.size2merge)
+    merged.close <- merge_blocks(
+      blk = data.table(merged.overlaps$block),
+      map = data.table(merged.overlaps$map),
+      buffer = final.mergeBuffer,
+      n.cores = n.cores,
+      max.size2merge = max.size2merge)
 
-  if (plotit)
-    plot_blocksAndMapping(
-      map = data.frame(merged.overlaps$map),
-      blk = data.frame(merged.overlaps$block),
-      ref.id = genomeIDs[1],
-      altGenome2plot = genomeIDs[2])
+    if (plotit)
+      plot_blocksAndMapping(
+        map = data.frame(merged.overlaps$map),
+        blk = data.frame(merged.overlaps$block),
+        ref.id = genomeIDs[1],
+        altGenome2plot = genomeIDs[2])
+    out <- list(merged.results = merged.close,
+                init.results = init.results,
+                overlap.results = merged.overlaps)
+  }else{
+    if(clean.by == "dbscan"){
+      if (verbose)
+        cat("##########\n# - Part 3: Cleaning / merging via dbscan\n",
+            "initial n blocks / mappings =",
+            nrow(synteny.results$block),
+            "/",
+            nrow(synteny.results$map),"\n\t")
+      tmp = synteny.results$map
+      tmp$unique = with(tmp, paste(genome1, genome2, chr1, chr2))
+      spl.map = split.data.table(tmp, "unique")
 
-  #######################################################
-  if (verbose)
-    cat("##########\n# - Part 5: Re-running orthofinder constrained within known syntenic blocks ...\n")
-  rerun.close <- rerun_orthofinderInBlk(
-    genomeIDs = genomeIDs,
-    blk = merged.close$block,
-    map = merged.close$map,
-    tmp.dir = tmp.dir,
-    gff.dir = gff.dir,
-    blast.dir = blast.dir,
-    block.dir = block.dir,
-    init.results = init.results,
-    cull.blast.dir = cull.blast.dir)
+      min.rad = min.block.size+1
+      merged_map = rbindlist(lapply(spl.map, function(tmp){
+        x <- run_dbs(y = tmp[,c("rank1","rank2"),with = F],
+                     eps.radius = sqrt(min.rad^2+min.rad^2)+.1,
+                     mappings = min.block.size)
+        tmp$block.id = x$cluster
+        cols = sample(rainbow(length(x$cluster)),size = length(x$cluster), replace = F)
+        return(tmp)
+      }))
+      merged_map = merged_map[merged_map$block.id != 0,]
 
-  if (plotit)
-    plot_blocksAndMapping(
-      map = data.frame(rerun.close$map),
-      blk = data.frame(rerun.close$block),
-      ref.id = genomeIDs[1],
-      altGenome2plot = genomeIDs[2])
+      merged_map$block.id = with(merged_map, as.numeric(as.factor(paste(unique, block.id))))
+      merged_blk = make_blocks(merged_map,rename.blocks = F, rerank = T)
 
-  out <- list(merged.results = merged.close,
-             rerun.results = rerun.close)
+      if (verbose)
+        cat("cleaned n blocks / mappings =",
+            nrow(merged_blk$block),
+            "/",
+            nrow(merged_blk$map),"\n")
 
-  if (return.initial) {
-    out[["initial.results"]] <- init.results
-  }
-  if (return.mcscanRaw) {
-    out[["mcscanx.results"]] <- synteny.results.out
-  }
-  if (return.overlapMerged) {
-    out[["overlap.results"]] <- merged.overlaps
+      out <- list(synteny.results = synteny.results,
+                  init.results = init.results,
+                  merged.results = merged_blk)
+
+      if (plotit)
+        plot_blocksAndMapping(
+          map = data.frame(merged_blk$map),
+          blk = data.frame(merged_blk$block),
+          ref.id = genomeIDs[1],
+          altGenome2plot = genomeIDs[2])
+
+    }
   }
 
   return(out)

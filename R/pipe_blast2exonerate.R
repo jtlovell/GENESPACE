@@ -35,7 +35,7 @@ pipe_blast2exonerate <- function(genomeIDs,
                                  tmp.dir,
                                  n.cores = 1,
                                  mode = "sensitive",
-                                 min.blast.score = 50,
+                                 min.blast.score = 10,
                                  min.exonerate.score = 50,
                                  other.blastx.param = NULL,
                                  verbose = T){
