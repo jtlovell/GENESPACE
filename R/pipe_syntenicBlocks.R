@@ -214,6 +214,16 @@ pipe_syntenicBlocks <- function(genomeIDs,
                 overlap.results = merged.overlaps)
   }else{
     if(clean.by == "dbscan"){
+      run_dbs <- function(y,
+                          eps.radius,
+                          mappings){
+        nn <- frNN(data.frame(y[, c("rank1", "rank2"), with = F]),
+                   eps = eps.radius)
+        dbs <- dbscan(nn,
+                      minPts = mappings)
+        y$cluster <- dbs$cluster
+        return(y)
+      }
       if (verbose)
         cat("##########\n# - Part 3: Cleaning / merging via dbscan\n",
             "initial n blocks / mappings =",
