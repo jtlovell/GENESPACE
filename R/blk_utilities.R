@@ -83,31 +83,21 @@ run_diamondBlastx = function(db.file,
                              pep.fa,
                              fa.file,
                              blast.file,
-                             mode = "sensitive",
                              n.cores = 1,
-                             min.score = 1,
-                             other.blastx.param = NULL){
-  system(paste("diamond makedb --quiet --in", pep.fa, "-d",db.file))
-  if(mode == "fast"){
-    system(paste("diamond blastx --quiet",
-                 "--threads",n.cores,
-                 "--max-target-seqs 100000",
-                 "--min-score",min.score,
-                 other.blastx.param,
-                 "-d", db.file,
-                 "-q", fa.file,
-                 "-o",blast.file))
-  }else{
-    system(paste("diamond blastx --quiet",
-                 paste0("--",mode),
-                 "--threads",n.cores,
-                 "--max-target-seqs 100000",
-                 "--min-score",min.score,
-                 other.blastx.param,
-                 "-d", db.file,
-                 "-q", fa.file,
-                 "-o",blast.file))
-  }
+                             max.target.seqs = 10000,
+                             min.score = 20,
+                             diamond.blastx.param = "--quiet"){
+  system(paste("diamond makedb --quiet",
+               "--in", pep.fa,
+               "-d", db.file))
+  system(paste("diamond blastx",
+               "--threads",n.cores,
+               "--max-target-seqs", max.target.seqs,
+               "--min-score", min.score,
+               diamond.blastx.param,
+               "-d", db.file,
+               "-q", fa.file,
+               "-o",blast.file))
 }
 
 #' @title Fast split of data.table
@@ -188,18 +178,12 @@ add_buffer <- function(bl, fais, buffer = 1e3){
 #' @export
 pipe_exonerate <- function(hit.reg,
                            assembly.dir,
-                           cds.fastas,
+                           stas,
                            genomeIDs,
                            tmp.dir,
                            n.cores = 1,
                            min.score = 20,
                            verbose = T){
-
-  if(verbose)
-    cat("Importing CDS fastas\n")
-
-  if(verbose)
-    cat("Running",nrow(hit.reg),"exonerate searches\n\tCompleted: ")
 
   exon.out = mclapply(1:nrow(hit.reg), mc.cores = n.cores, function(i){
     if(verbose)
@@ -210,7 +194,7 @@ pipe_exonerate <- function(hit.reg,
     bed = hit.reg[i,c("chr","start","end","reg.name"),with = F]
     colnames(bed)[4]<-"id"
     tmp <- run_exonerate(assembly.dir = dirs$assembly,
-                         cds.fastas = cds.fastas,
+                         stas = stas,
                          target.gene = target.gene,
                          id = i,
                          genome = genome,
@@ -244,39 +228,27 @@ pipe_exonerate <- function(hit.reg,
 #' @import data.table
 #' @import Biostrings
 #' @export
-run_exonerate <- function(assembly.dir,
-                          id,
-                          cds.fastas,
-                          target.gene,
-                          genome,
-                          cds.genome,
+run_exonerate <- function(ass.fasta.file,
+                          pep.fasta.file,
                           bed,
                           min.score = 20,
                           tmp.dir){
-  faf = file.path(assembly.dir,paste0(genome,".fa"))
-  bedf = file.path(tmp.dir, paste0(id, "tmp.bed"))
-  fab = file.path(tmp.dir,paste0(id,"tmp.fa"))
-  cdsf = file.path(tmp.dir,paste0(id,"tmp.cds.fa"))
-  write.table(bed, file=bedf,
-              quote=F, sep="\t", row.names=F, col.names=F)
-  system(paste("bedtools getfasta -fi",
-               faf, "-bed", bedf,"-name -s -fo",fab))
 
-  cds = cds.fastas[target.gene]
-  Biostrings::writeXStringSet(cds, filepath = cdsf)
 
-  out1 = system(paste("exonerate --model est2genome",
+  out1 = system(paste("exonerate --model protein2genome",
                       "--score",min.score,
                       "--softmasktarget --alignmentwidth 1000000",
                       "--bestn 1",
                       "--dpmemory 2000 --maxintron 10000",
                       "--showalignment no --showtargetgff yes --showvulgar no --showcigar no",
                       '--ryo ">\n%tas\n"',
-                      "--query",cdsf, "--target", fab), intern = T)
+                      "--query",pep.fasta.file,
+                      "--target", ass.fasta.file),
+                intern = T)
 
-  if(length(grep("^>",out1))==0){
+  if(length(grep("^>", out1))==0){
     out1 = DNAStringSet("")
-    names(out1)<-bed$id
+    names(out1) <- bed$id
     gff1 = data.frame(exon.start = NA,
                       exon.end = NA,
                       strand = NA,

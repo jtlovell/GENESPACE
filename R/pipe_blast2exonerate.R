@@ -26,6 +26,81 @@
 #' @import data.table
 #' @import Biostrings
 #' @export
+#'
+#'
+
+
+run_blast2exonerate <- function(bed,
+                                fais,
+                                genomeIDs,
+                                assembly.file,
+                                cds.file,
+                                peptide.file,
+                                tmp.dir,
+                                diamond.blastx.cores = 1,
+                                diamond.blastx.max.targets = 10000,
+                                diamond.blastx.min.score = 20,
+                                diamond.blastx.param = "--quiet",
+                                blast.reg.buffer = 1e3){
+
+  bed.file = file.path(tmp.dir,"blk.bed")
+  db.file = file.path(tmp.dir,"blk.db")
+  blast.file = file.path(tmp.dir, "blk.blast")
+  run_getfasta(bed = bed,
+               bed.file = bed.file,
+               ass.file = assembly.file,
+               fa.file = blk.fa)
+
+  run_diamondBlastx(
+    db.file = db.file,
+    pep.fa = peptide.file,
+    fa.file = blk.fa,
+    blast.file = blast.file,
+    n.cores = diamond.blastx.cores,
+    max.target.seqs = diamond.blastx.max.targets,
+    min.score = diamond.blastx.min.score,
+    diamond.blastx.param = diamond.blastx.param)
+
+  rl = length(readLines(blast.file))
+  if (rl < 1) {
+    exon.out = NA
+    hit.reg = NA
+    if (verbose)
+      cat("no blast hits above threshold\n")
+  }else{
+    bl <- fread(blast1.file)
+    blast <- parse_blastLoc(bl)
+    hit.reg <- make_blastRegion(bl = blast)
+    if(verbose)
+      cat("blast =",nrow(hit.reg), "\n")
+
+    hits2exonerate <- add_buffer(bl = hit.reg,
+                                 fais = fais,
+                                 buffer = blast.reg.buffer)
+
+    exon.out <- pipe_exonerate(
+      hit.reg = hits2exonerate,
+      assembly.dir = assembly.dir,
+      genomeIDs = genomeIDs,
+      cds.fastas = cds.fastas,
+      tmp.dir = tmp.dir,
+      n.cores = n.cores,
+      min.score = min.exonerate.score,
+      verbose = F)
+
+    if(verbose){
+      exc <- exon.out$gff[complete.cases(exon.out$gff), ]
+      exc <- sapply(exc$id, function(x)
+        strsplit(x, "_", fixed = T)[[1]][2])
+
+      cat("exonerate =",length(exc), "\n")
+    }
+  }
+  return(list(exonerate.output = exon.out,
+              blast.output = hit.reg))
+}
+
+
 pipe_blast2exonerate <- function(genomeIDs,
                                  rerun.results,
                                  gff,
