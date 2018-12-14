@@ -32,27 +32,27 @@ run_orthofinder <- function(peptide.dir = NULL,
                             verbose = T,
                             og.silent = F,
                             ...){
-  ################   ################   ################
-  ################   ################   ################
 
-  if(!is.null(peptide.dir)){
+  if (!is.null(peptide.dir)) {
 
-    if(verbose)
+    if (verbose)
       cat("Copying peptide fasta files to",
           tmp.dir,
           "\n")
-    if(file.exists(tmp.dir)){
-      system(paste("rm -r",
-                   tmp.dir))
-    }
-    system(paste("mkdir",
-                 tmp.dir))
-    system(paste("cp",
-                 file.path(peptide.dir, "*"),
-                 tmp.dir))
-    if(verbose)
+
+    if (dir.exists(tmp.dir))
+      unlink(tmp.dir)
+    if (!dir.exists(tmp.dir))
+      dir.create(tmp.dir)
+
+    pep.files <- list.files(peptide.dir,
+                            full.names = T)
+    nu <- file.copy(pep.files,
+                    tmp.dir)
+
+    if (verbose)
       cat("Running blasts within Orthofinder\n")
-    if(og.silent){
+    if (og.silent) {
       system(paste("orthofinder -f", tmp.dir,
                    "-t", blast.threads,
                    "-a", og.threads,
@@ -64,9 +64,17 @@ run_orthofinder <- function(peptide.dir = NULL,
                    "-S diamond -og"))
     }
   }else{
-    system(paste("orthofinder -b", tmp.dir,
+    if (og.silent) {
+      system(paste("orthofinder -b", tmp.dir,
+                 "-t", og.threads,
                  "-a", og.threads,
-                 "-S diamond -og"))
+                 "-S diamond -ot 1>/dev/null 2>&1"))
+    }else{
+      system(paste("orthofinder -b", tmp.dir,
+                   "-t", og.threads,
+                   "-a", og.threads,
+                   "-S diamond -ot 1>/dev/null 2>&1"))
+    }
   }
 
 
@@ -90,28 +98,32 @@ run_orthofinder <- function(peptide.dir = NULL,
                                   recursive = T,
                                   full.names = T)[1])
 
-  system(paste("cp",
-               file.path(blast.loc,
-                         "SequenceIDs.txt"),
-               blast.dir))
-  system(paste("cp",
-               file.path(blast.loc,
-                         "SpeciesIDs.txt"),
-               blast.dir))
-  system(paste("cp",
-               file.path(blast.loc,
-                         "Blast*"),
-               blast.dir))
-  system(paste("cp",
-               file.path(ortho.loc,
-                         "Orthogroups.txt"),
-               blast.dir))
-  system(paste("cp",
-               file.path(blast.loc,
-                         "Species*.fa"),
-               blast.dir))
-  system(paste("cp",
-               file.path(blast.loc,
-                         "diamondDBSpecies*.dmnd"),
-               blast.dir))
+
+  blast.files <- list.files(blast.loc,
+                           pattern = "Blast*",
+                           full.names = T)
+  fa.files <- list.files(blast.loc,
+                        pattern = "Species*",
+                        full.names = T)
+  fa.files <- fa.files[grep(".fa$", fa.files)]
+
+  dmnd.files <- list.files(blast.loc,
+                          pattern = "diamondDBSpecies*",
+                          full.names = T)
+  og.files <- file.path(ortho.loc,
+                       "Orthogroups.txt")
+
+  sp.id.files <- file.path(blast.loc,"SpeciesIDs.txt")
+  seq.id.files <- file.path(blast.loc,"SequenceIDs.txt")
+
+  files <- c(blast.files,
+            fa.files,
+            dmnd.files,
+            og.files,
+            sp.id.files,
+            seq.id.files)
+
+  nu <- file.copy(files,
+                  blast.dir)
+
 }

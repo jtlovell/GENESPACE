@@ -63,7 +63,7 @@
 #' }
 #' @import data.table
 #' @export
-process_orthofinder = function(gff.dir,
+process_orthofinder <- function(gff.dir,
                                genomeIDs,
                                blast.dir,
                                mcscanx.input.dir,
