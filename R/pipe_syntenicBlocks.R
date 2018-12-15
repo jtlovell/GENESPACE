@@ -66,7 +66,7 @@
                                   mcscan.dir = NULL,
                                   results.dir = NULL,
                                   verbose = TRUE,
-                                  min.block.size = 2,
+                                  min.block.size = 3,
                                   min.unique.hits = min.block.size,
                                   plotit = FALSE,
                                   min.hit.ratio = .2,
@@ -84,7 +84,7 @@
                                   clean.byDBscan = T,
                                   cull.byDBscan = T,
                                   cull.byMCscan = T,
-                                  return.ogblast = T,
+                                  return.ogblast = T
                                   ...){
 
 
@@ -238,7 +238,6 @@
 
     }
 
-    if(!return.rawMCScan)
     out <- list(synteny.results = synteny.results,
                 init.results = init.results,
                 merged.dbs = merged_blk.out,
