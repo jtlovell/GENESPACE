@@ -55,9 +55,9 @@ prep_mcs <- function(blast,
               col.names = F,
               quote = F, sep= "\t")
   if(silent.mcs){
-    com <- paste("MCScanX", MCScanX.params, file.path(mcscan.dir,"xyz"),"&> /dev/null")
+    com <- paste("MCScanX", mcscan.param, file.path(mcscan.dir,"xyz"),"&> /dev/null")
   }else{
-    com <- paste("MCScanX", MCScanX.params, file.path(mcscan.dir,"xyz"))
+    com <- paste("MCScanX", mcscan.param, file.path(mcscan.dir,"xyz"))
   }
 
   system(com)
