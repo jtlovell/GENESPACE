@@ -120,7 +120,9 @@ rerun_orthofinderInBlk = function(blk,
   #######################################################
   if (verbose)
     cat("Finding orphan genes in blocks ...")
-
+  return(list(spl.incompleteGff = spl.gff,
+              blk.metadata = blk.md,
+              simple.blk.metadata = blk.md2))
   orphan.md <- with(md.list,
                     find_orphans(spl.gff = spl.incompleteGff,
                                  blk.md2 = simple.blk.metadata,

@@ -55,6 +55,7 @@ subset_blast <- function(blast.file,
   fl <- rbindlist(mclapply(genenum.list, mc.cores = n.cores, function(x){
     return(f[f$V1  %in% x & f$V2 %in% x,])
   }))
+  fl <- fl[!duplicated(fl),]
 
   if (verbose)
     cat("to", nrow(fl),
@@ -102,6 +103,7 @@ remake_blast <- function(blast.dir,
   blast.files <- list.files(cull.blast.dir,
                            full.names = T,
                            pattern = "Blast")
+  blast.files<-blast.files[grep(".txt$",blast.files)]
 
   for (i in blast.files){
     subset_blast(blast.file = i,
@@ -166,7 +168,9 @@ read_allBlast <- function(blast.dir,
 
   blast.files <- list.files(blast.dir,
                             full.names = T,
-                            pattern = "Blast")
+                            pattern = "^Blast")
+  blast.files<-blast.files[grep(".txt$",blast.files)]
+  print(blast.files)
 
   out <- rbindlist(lapply(blast.files, function(x)
     fread(x, header = F,
