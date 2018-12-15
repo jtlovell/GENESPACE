@@ -84,7 +84,7 @@
                                   clean.byDBscan = T,
                                   cull.byDBscan = T,
                                   cull.byMCscan = T,
-                                  return.ogblast = T
+                                  return.ogblast = T.
                                   ...){
 
 
