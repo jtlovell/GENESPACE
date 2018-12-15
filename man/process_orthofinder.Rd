@@ -4,7 +4,7 @@
 \alias{process_orthofinder}
 \title{Prepare orthofinder for block construction.}
 \usage{
-process_orthofinder(gff.dir, genomeIDs, blast.dir, mcscanx.input.dir,
+process_orthofinder(gff.dir, genomeIDs, blast.dir, mcscan.dir,
   pairs.only = T, str2drop = "Name=", str2parse = ";",
   whichAttr = 2, n.mappingWithinRadius = c(2, 2, 2),
   eps.radius = c(50, 20, 10),
@@ -16,8 +16,6 @@ process_orthofinder(gff.dir, genomeIDs, blast.dir, mcscanx.input.dir,
 \item{genomeIDs}{character, genome identifiers}
 
 \item{blast.dir}{character, directory containing the orthofinder output}
-
-\item{mcscanx.input.dir}{character, directory where MCScanX temporary files should be stored}
 
 \item{pairs.only}{logical, should only pairs of hits in orthofinder output be retained}
 
@@ -35,6 +33,8 @@ gff attribute column}
 \item{MCScanX.param}{character, parameters to be passed to MCScanX}
 
 \item{verbose}{logical, should updates be reported?}
+
+\item{mcscanx.input.dir}{character, directory where MCScanX temporary files should be stored}
 }
 \value{
 Returns a list of length 3, containing:

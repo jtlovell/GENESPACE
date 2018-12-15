@@ -119,7 +119,7 @@ convert_genomes <- function(genomeIDs,
   file.lists <- sapply(names(strs), USE.NAMES = T, simplify = F, function(j){
     sapply(genomeIDs, function(i){
         list.files(file.path(raw_annot.dir, i),
-                 pattern = j, full.names = T)
+                 pattern = strs[j], full.names = T)
     })
   })
 

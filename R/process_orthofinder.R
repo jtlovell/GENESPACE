@@ -66,7 +66,7 @@
 process_orthofinder <- function(gff.dir,
                                genomeIDs,
                                blast.dir,
-                               mcscanx.input.dir,
+                               mcscan.dir,
                                pairs.only = T,
                                str2drop = "Name=",
                                str2parse = ";",
