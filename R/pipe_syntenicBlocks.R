@@ -236,7 +236,7 @@ pipe_syntenicBlocks <- function(genomeIDs,
       min.rad = min.block.size
       merged_map = rbindlist(lapply(spl.map, function(tmp){
         x <- run_dbs(y = tmp[,c("rank1","rank2"),with = F],
-                     eps.radius = sqrt(min.rad^2+min.rad^2)+.1,
+                     eps.radius = min.rad+.1,
                      mappings = min.block.size)
         tmp$block.id = x$cluster
         cols = sample(rainbow(length(x$cluster)),size = length(x$cluster), replace = F)
@@ -263,7 +263,7 @@ pipe_syntenicBlocks <- function(genomeIDs,
       merged.overlaps <- merge_blocks(
         blk = merged_blk$block,
         map = merged_blk$map,
-        buffer = initial.mergeBuffer,
+        buffer = 0,
         n.cores =  n.cores,
         max.size2merge = 1e6)
 
@@ -274,39 +274,10 @@ pipe_syntenicBlocks <- function(genomeIDs,
             nrow(merged.overlaps$map),"\n")
 
 
-      if (verbose)
-        cat("##########\n# - Part 5: Merging adjacent blocks\n",
-            "initial n blocks / mappings =",
-            nrow(merged.overlaps$block),
-            "/",
-            nrow(merged.overlaps$map),"\n\t")
-
-      merged.close <- merge_blocks(
-        blk = data.table(merged.overlaps$block),
-        map = data.table(merged.overlaps$map),
-        buffer = final.mergeBuffer,
-        n.cores = n.cores,
-        max.size2merge = max.size2merge)
-
-      if (verbose)
-        cat("merged to n blocks / mappings =",
-            nrow(merged.close$block),
-            "/",
-            nrow(merged.close$map),"\n")
-
-
       out <- list(synteny.results = synteny.results,
                   init.results = init.results,
                   merged.dbs = merged_blk,
-                  merged.results = merged.overlaps,
-                  merged.close = merged.close)
-
-      if (plotit)
-        plot_blocksAndMapping(
-          map = data.frame(merged_blk$map),
-          blk = data.frame(merged_blk$block),
-          ref.id = genomeIDs[1],
-          altGenome2plot = genomeIDs[2])
+                  merged.results = merged.overlaps)
 
     }
   }
