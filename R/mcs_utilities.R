@@ -29,6 +29,9 @@ prep_mcs <- function(blast,
                      mcscan.param,
                      silent.mcs){
 
+  gff$genome = factor(gff$genome, levels = genomeIDs)
+  setkey(gff, genome)
+
   gff[,chr.num := frank(chr, ties.method = "dense"),
       by = genome]
   gff$rank.start = frank(gff, genome, chr, start, ties.method = "random")
@@ -39,7 +42,8 @@ prep_mcs <- function(blast,
   gff$genome.abbrev = paste0(lets[gff$genome.num],1)
 
   gff.in = gff[,c("genome.abbrev","id","rank.start","rank.end")]
-  gff.in = gff.in[with(gff.in, order(genome.abbrev, rank.start)),]
+
+
   blast.in = blast[,c("id1","id2","perc.iden","align.length",
                       "n.mismatch","n.gapOpen", "q.start", "q.end",
                       "s.start", "s.end","eval","score")]
@@ -105,6 +109,7 @@ run_mcs <- function(blast,
   mcs.parsed = parse_mcs(mcs.file)
   blast = data.table(blast)
   setkey(blast, id1, id2)
+  setkey(mcs.parsed, id1, id2)
   map.out <- data.table(merge(mcs.parsed, blast))
   setkey(map.out, block.id, chr1, start1)
   return(map.out)

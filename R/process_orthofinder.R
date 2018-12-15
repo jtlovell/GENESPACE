@@ -73,7 +73,7 @@ process_orthofinder <- function(gff.dir,
                                whichAttr = 2,
                                n.mappingWithinRadius = c(2,2,2),
                                eps.radius = c(50,20,10),
-                               MCScanX.param = "-a -s 2 -m 10 -w 2 -e 1",
+                               mcscan.param = "-a -s 2 -m 10 -w 2 -e 1",
                                verbose = T){
 
   gff <- import_gff(
@@ -105,7 +105,7 @@ process_orthofinder <- function(gff.dir,
   cull.mcs <- pipe_mcs(blast = cull.dbs,
                        gff = gff,
                        mcscan.dir = mcscan.dir,
-                       mcscan.param = MCScanX.param)
+                       mcscan.param = mcscan.param)
 
   return(list(gff = gff,
               ortho.info = of.blast,

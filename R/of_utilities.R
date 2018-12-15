@@ -320,7 +320,7 @@ import_blast <- function(species.mappings,
   blast <- rbindlist(lapply(comb, function(x){
     if (verbose)
       cat(paste0("\t" ,x[1]), "-->",
-          x[2], "... retaining hits:\n\t\t")
+          x[2], "\t")
     smo <- sm[sm$ref == x[1] & sm$alt == x[2],]
     smo <- smo[order(smo$map.rank),]
     suppressWarnings(b1 <- fread(smo$filename[1],
@@ -341,7 +341,7 @@ import_blast <- function(species.mappings,
     blast.out <- blast.in[!duplicated(blast.in[, c("gn1","gn2"), with = F])]
 
     if (verbose)
-      cat(nrow(blast.out), "(unique), ")
+      cat(paste0("(unique hits = ", nrow(blast.out),")"))
 
     blast.cull <- blast.out
 
@@ -355,7 +355,7 @@ import_blast <- function(species.mappings,
 
     bl2 <- data.table(bl2[with(bl2, og1 == og2),])
     if (verbose)
-      cat(nrow(bl2), "(in orthogroups), ")
+      cat("\t",nrow(bl2), "hits in orthogroups\n")
 
     gf1 <- spl.gff1[[x[1]]]
     gf2 <- spl.gff2[[x[2]]]
@@ -367,7 +367,7 @@ import_blast <- function(species.mappings,
     return(blo2)
   }))
   if(verbose)
-    cat("\n\tDone!\n")
+    cat("\tDone!\n")
   return(blast)
 }
 
