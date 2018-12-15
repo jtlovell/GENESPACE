@@ -320,7 +320,7 @@ import_blast <- function(species.mappings,
   blast <- rbindlist(lapply(comb, function(x){
     if (verbose)
       cat(paste0("\t" ,x[1]), "-->",
-          x[2], "\t")
+          x[2], "")
     smo <- sm[sm$ref == x[1] & sm$alt == x[2],]
     smo <- smo[order(smo$map.rank),]
     suppressWarnings(b1 <- fread(smo$filename[1],

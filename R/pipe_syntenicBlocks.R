@@ -79,7 +79,12 @@
                                   max.size2merge = 100,
                                   clean.by = NULL,
                                   gap.multiplier = 8,
+                                  mcscan.m.param = NULL,
                                   merge.overlaps = F,
+                                  clean.byDBscan = T,
+                                  cull.byDBscan = T,
+                                  cull.byMCscan = T,
+                                  return.ogblast = T,
                                   ...){
 
 
@@ -111,9 +116,16 @@
     if (verbose)
       cat("##########\n# - Part 1: Parsing orthofinder ...\n#\tProgress:\n")
 
-    mcsp <- paste("-a -s", min.block.size,
-                  "-m", min.block.size*gap.multiplier,
-                  "-w 2 -e 1")
+    if(!is.null(mcscan.m.param)){
+      mcsp <- paste("-a -s", min.block.size,
+                    "-m", mcscan.m.param,
+                    "-w 2 -e 1")
+    }else{
+      mcsp <- paste("-a -s", min.block.size,
+                    "-m", min.block.size*gap.multiplier,
+                    "-w 2 -e 1")
+    }
+
     init.results <- process_orthofinder(
       gff.dir = gff.dir,
       genomeIDs = genomeIDs,
@@ -125,20 +137,28 @@
       n.mappingWithinRadius = c(min.block.size,
                                 min.block.size,
                                 min.block.size),
-      mcscan.param = mcsp)
+      cull.byDBscan = cull.byDBscan,
+      mcscan.param = mcsp,
+      return.ogblast = return.ogblast)
 
     gff <- init.results$gff
-    init.results <<- init.results
-    mcsp <<- mcsp
+
     #######################################################
 
     #######################################################
     if (verbose)
       cat("##########\n# - Part 2: Building collinear blocks with MCScanX...\n")
 
-    mcsp <- paste("-a -s",min.block.size,
-                  "-m", min.block.size*gap.multiplier,
-                  "-w 2")
+
+    if(!is.null(mcscan.m.param)){
+      mcsp <- paste("-a -s", min.block.size,
+                    "-m", mcscan.m.param,
+                    "-w 2")
+    }else{
+      mcsp <- paste("-a -s", min.block.size,
+                    "-m", min.block.size*gap.multiplier,
+                    "-w 2")
+    }
 
     synteny.results <- pipe_mcs(blast = init.results$blast$map,
                                 gff = gff,
@@ -151,40 +171,50 @@
     synteny.results <- make_blocks(map)
 
     #######################################################
+    #######################################################
+    #######################################################
 
+    if(!clean.byDBscan){
+      merged_blk <- synteny.results
+      merged_blk.out <- NULL
+    }else{
+      if (verbose)
+        cat("##########\n# - Part 3: Cleaning / merging via dbscan\n",
+            "initial n blocks / mappings =",
+            nrow(synteny.results$block),
+            "/",
+            nrow(synteny.results$map),"\n\t")
+      tmp = synteny.results$map
+      tmp$unique = with(tmp, paste(genome1, genome2, chr1, chr2))
+      spl.map = split.data.table(tmp, "unique")
 
-    if (verbose)
-      cat("##########\n# - Part 3: Cleaning / merging via dbscan\n",
-          "initial n blocks / mappings =",
-          nrow(synteny.results$block),
-          "/",
-          nrow(synteny.results$map),"\n\t")
-    tmp = synteny.results$map
-    tmp$unique = with(tmp, paste(genome1, genome2, chr1, chr2))
-    spl.map = split.data.table(tmp, "unique")
+      min.rad = min.block.size
+      merged_map = rbindlist(lapply(spl.map, function(tmp){
+        x <- run_dbs(y = tmp[,c("rank1","rank2"),with = F],
+                     eps.radius = min.rad+.1,
+                     mappings = min.block.size)
+        tmp$block.id = x$cluster
+        cols = sample(rainbow(length(x$cluster)),size = length(x$cluster), replace = F)
+        return(tmp)
+      }))
+      merged_map = merged_map[merged_map$block.id != 0,]
 
-    min.rad = min.block.size
-    merged_map = rbindlist(lapply(spl.map, function(tmp){
-      x <- run_dbs(y = tmp[,c("rank1","rank2"),with = F],
-                   eps.radius = min.rad+.1,
-                   mappings = min.block.size)
-      tmp$block.id = x$cluster
-      cols = sample(rainbow(length(x$cluster)),size = length(x$cluster), replace = F)
-      return(tmp)
-    }))
-    merged_map = merged_map[merged_map$block.id != 0,]
+      merged_map$block.id = with(merged_map, as.numeric(as.factor(paste(unique, block.id))))
+      merged_blk = make_blocks(merged_map,rename.blocks = F, rerank = T)
+      merged_blk.out = merged_blk
+      if (verbose)
+        cat("cleaned n blocks / mappings =",
+            nrow(merged_blk$block),
+            "/",
+            nrow(merged_blk$map),"\n")
+    }
 
-    merged_map$block.id = with(merged_map, as.numeric(as.factor(paste(unique, block.id))))
-    merged_blk = make_blocks(merged_map,rename.blocks = F, rerank = T)
-
-    if (verbose)
-      cat("cleaned n blocks / mappings =",
-          nrow(merged_blk$block),
-          "/",
-          nrow(merged_blk$map),"\n")
+    #######################################################
+    #######################################################
+    #######################################################
 
     if(!merge.overlaps){
-      merged.overlaps<-NULL
+      merged.overlaps <- NULL
     }else{
       if (verbose)
         cat("##########\n# - Part 4: Merging overlapping blocks\n",
@@ -208,9 +238,10 @@
 
     }
 
+    if(!return.rawMCScan)
     out <- list(synteny.results = synteny.results,
                 init.results = init.results,
-                merged.dbs = merged_blk,
+                merged.dbs = merged_blk.out,
                 merged.results = merged.overlaps)
     return(out)
 

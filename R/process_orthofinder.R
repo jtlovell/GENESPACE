@@ -71,6 +71,9 @@ process_orthofinder <- function(gff.dir,
                                str2drop = "Name=",
                                str2parse = ";",
                                whichAttr = 2,
+                               cull.byDBscan = T,
+                               cull.byMCscan = T,
+                               return.ogblast = T,
                                n.mappingWithinRadius = c(2,2,2),
                                eps.radius = c(50,20,10),
                                mcscan.param = "-a -s 2 -m 10 -w 2 -e 1",
@@ -98,16 +101,30 @@ process_orthofinder <- function(gff.dir,
     gene.index = of.blast$gene.index,
     verbose = verbose)
 
-  cull.dbs <- cull_blastByDBS(blast = blast,
-                              n.mappingWithinRadius = n.mappingWithinRadius,
-                              eps.radius = eps.radius,verbose = T)
+  if(cull.byDBscan){
+    cull.dbs <- cull_blastByDBS(blast = blast,
+                                n.mappingWithinRadius = n.mappingWithinRadius,
+                                eps.radius = eps.radius,verbose = T)
+  }else{
+    cull.dbs <- blast
+  }
 
-  cull.mcs <- pipe_mcs(blast = cull.dbs,
-                       gff = gff,
-                       mcscan.dir = mcscan.dir,
-                       mcscan.param = mcscan.param)
+  if(cull.byMCscan){
+    cull.mcs <- pipe_mcs(blast = cull.dbs,
+                         gff = gff,
+                         mcscan.dir = mcscan.dir,
+                         mcscan.param = mcscan.param)
+  }else{
+    cull.mcs <- cull.dbs
+  }
 
+  if(return.ogblast){
+    ogblast = blast
+  }else{
+    ogblast = NULL
+  }
   return(list(gff = gff,
               ortho.info = of.blast,
-              blast = cull.mcs))
+              blast = cull.mcs,
+              orthogroup.blast = ogblast))
 }
