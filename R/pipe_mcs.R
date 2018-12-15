@@ -42,7 +42,7 @@ pipe_mcs <- function(blast,
           paste0("(initial hits = ",nrow(x),")"))
 
     gff.x <- gff[gff$genome %in% genomes,]
-    tmp = run_mscs(blast = x,
+    tmp = run_mcs(blast = x,
                   gff = gff.x,
                   mcscan.dir = mcscan.dir,
                   mcscan.param = mcscan.param,
