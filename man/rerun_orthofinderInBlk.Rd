@@ -4,25 +4,19 @@
 \alias{rerun_orthofinderInBlk}
 \title{Run the orthofinder program}
 \usage{
-rerun_orthofinderInBlk(map, blk, gff.dir, blast.dir, init.results,
-  cull.blast.dir, block.dir, tmp.dir, genomeIDs, ...)
+rerun_orthofinderInBlk(blk, init.results, dir.list, genomeIDs,
+  verbose = T, n.cores = 1, ...)
 }
 \arguments{
 \item{blk}{block file from make blocks or whatever}
 
-\item{gff.dir}{the path to the gff annotations}
-
-\item{blast.dir}{The path to the directory where the blast results should be stored}
-
 \item{init.results}{Results from initial orthofinder run (via parse_orthofinder)}
 
-\item{cull.blast.dir}{directory to write new output}
-
-\item{block.dir}{directory to store the block output}
-
-\item{tmp.dir}{the temporary directory path.}
+\item{dir.list}{List of directories, created by check_environment}
 
 \item{genomeIDs}{the genome ids.}
+
+\item{n.cores}{numeric, number of parallel processes to spawn.}
 
 \item{...}{Additional arguments passed on to run_orthofinder}
 }
@@ -33,7 +27,7 @@ Nothing, writes results to the cull.blast.dir directory
 \code{rerun_orthofinderInBlk} A simple wrapper to run orthofinder from R.
 }
 \details{
-...
+Nothing yet
 }
 \examples{
 \dontrun{

@@ -255,7 +255,7 @@ import_ofResults <- function(gff,
 
   #######################################################
   if (verbose)
-    cat("Done!\n")
+    cat("\tDone!\n")
   return(list(orthogroups = og,
               species.mappings = sm,
               species.index = si,
@@ -275,12 +275,7 @@ import_blast <- function(species.mappings,
                          verbose = T,
                          orthogroups,
                          gene.index,
-                         gff,
-                         mcscanx.input.dir,
-                         MCScanX.param = "-a -s 10 -m 25 -w 2 -e 1",
-                         n.mappingWithinRadius = c(5,5,5),
-                         eps.radius = c(100,50,25),
-                         pairs.only = T){
+                         gff){
 
   if (verbose)
     cat("Parsing gff annotations\n")
@@ -358,14 +353,9 @@ import_blast <- function(species.mappings,
     setkey(bl1, "gn1")
     bl2 <- merge(g1, bl1)
 
-    if (pairs.only) {
-      bl2 <- data.table(bl2[with(bl2, og1 == og2),])
-      if (verbose)
-        cat(nrow(bl2), "(in orthogroups), ")
-    }else{
-      if (verbose)
-        cat(nrow(bl2), "(in orthogroups), ")
-    }
+    bl2 <- data.table(bl2[with(bl2, og1 == og2),])
+    if (verbose)
+      cat(nrow(bl2), "(in orthogroups), ")
 
     gf1 <- spl.gff1[[x[1]]]
     gf2 <- spl.gff2[[x[2]]]
@@ -374,45 +364,13 @@ import_blast <- function(species.mappings,
     blo <- merge(gf2, bl2)
     setkey(blo, "id1")
     blo2 <- merge(gf1, blo)
-
-    if (!is.null(n.mappingWithinRadius) &
-        !is.null(eps.radius)) {
-      blo3 <- cull_blastByDBS(
-        blast = blo2,
-        n.mappingWithinRadius = n.mappingWithinRadius,
-        eps.radius = eps.radius,
-        verbose = F)
-
-      if (verbose)
-        cat(nrow(blo3), "(DBS), ")
-    }else{
-      if (verbose)
-        cat("\n")
-      blo3 <- blo2
-    }
-
-    if (!is.null(MCScanX.param) &
-        !is.null(mcscanx.input.dir)) {
-      blo4 <- cull_blastByMCS(
-        blast = blo3,
-        MCScanX.param = MCScanX.param,
-        mcscanx.input.dir = mcscanx.input.dir,
-        verbose = F)
-
-      if (verbose)
-        cat(nrow(blo4), "(MCScanX)\n")
-    }else{
-      if (verbose)
-        cat("\n")
-      blo4 <- blo3
-    }
-
-    return(blo4)
+    return(blo2)
   }))
-  if (verbose)
-    cat("\tDone!\n")
+  if(verbose)
+    cat("\n\tDone!\n")
   return(blast)
 }
+
 
 #' @title Combine gff and blast files
 #' @description
@@ -627,37 +585,14 @@ make_MCSBlocks <- function(blast,
       cat(comb[[i]][1], "-->", comb[[i]][2],"\n")
 
     x <- spl[[paste(comb[[i]], collapse = " ")]]
-    mctmp <- run_MCScanX(
-      blast.results = x,
+      mctmp <- run_MCScanX(
+      blast.results = blast,
       abbrevs = abbrevs,
       mcscanx.input.dir = mcscanx.input.dir,
       MCScanX.params = MCScanX.params,
-      verbose = FALSE)
-
-    mc.sum <- mctmp[,list(n.hits1 = length(unique(id1)),
-                         n.hits2 = length(unique(id2)),
-                         width.hits1 = max(rank1) - min(rank1),
-                         width.hits2 = max(rank2) - min(rank2)),
-                   by = list(genome1, genome2,
-                             chr1, chr2,
-                             block.id)]
-
-    mc.sum$pass.unique <- with(mc.sum,
-                               n.hits1 >= min.unique.hits &
-                                 n.hits2 >= min.unique.hits)
-    mc.sum$ratio1 <- with(mc.sum,
-                          n.hits1 / width.hits1)
-    mc.sum$ratio2 <- with(mc.sum,
-                          n.hits2 / width.hits2)
-
-    mc.sum$pass.ratio <- with(mc.sum,
-                              ratio1>min.hit.ratio &
-                               ratio2>min.hit.ratio)
-
-    blks2keep <- mc.sum$block.id[with(mc.sum, pass.unique &
-                                        pass.ratio)]
-    tmp <- mctmp[mctmp$block.id %in% blks2keep,]
-    return(tmp)
+      verbose = T)
+    print(nrow(mctmp))
+    return(mctmp)
   })
 
   mcscan.map <- rbindlist(mcscan.list)
@@ -848,7 +783,7 @@ make_ofInputInBlk <- function(blast.dir,
                        pattern = "diamondDB",
                        full.names = T),
             list.files(blast.dir,
-                       pattern = "Species")
+                       pattern = "Species"))
 
   file.copy(file.path(blast.dir, "SequenceIDs.txt"),
             tmp.dir)
@@ -909,3 +844,4 @@ run_dbs <- function(y,
   y$cluster <- dbs$cluster
   return(y)
 }
+

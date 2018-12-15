@@ -71,9 +71,9 @@ process_orthofinder <- function(gff.dir,
                                str2drop = "Name=",
                                str2parse = ";",
                                whichAttr = 2,
-                               n.mappingWithinRadius = c(5,5,5),
-                               eps.radius = c(100,50,25),
-                               MCScanX.param = "-a -s 5 -m 50 -w 2 -e 1",
+                               n.mappingWithinRadius = c(2,2,2),
+                               eps.radius = c(50,20,10),
+                               MCScanX.param = "-a -s 2 -m 10 -w 2 -e 1",
                                verbose = T){
 
   gff <- import_gff(
@@ -96,14 +96,18 @@ process_orthofinder <- function(gff.dir,
     orthogroups = of.blast$orthogroups,
     gff = gff,
     gene.index = of.blast$gene.index,
-    mcscanx.input.dir = mcscanx.input.dir,
-    n.mappingWithinRadius = n.mappingWithinRadius,
-    eps.radius = eps.radius,
-    MCScanX.param = MCScanX.param,
-    pairs.only = pairs.only,
     verbose = verbose)
+
+  cull.dbs <- cull_blastByDBS(blast = blast,
+                              n.mappingWithinRadius = n.mappingWithinRadius,
+                              eps.radius = eps.radius,verbose = T)
+
+  cull.mcs <- pipe_mcs(blast = cull.dbs,
+                       gff = gff,
+                       mcscan.dir = mcscan.dir,
+                       mcscan.param = MCScanX.param)
 
   return(list(gff = gff,
               ortho.info = of.blast,
-              blast = blast))
+              blast = cull.mcs))
 }

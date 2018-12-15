@@ -118,7 +118,8 @@ convert_genomes <- function(genomeIDs,
   names(strs) <- c("transcript","peptide","cds","gff")
   file.lists <- sapply(names(strs), USE.NAMES = T, simplify = F, function(j){
     sapply(genomeIDs, function(i){
-      list.files(file.path(raw_annot.dir, i), pattern = strs[j], full.names = T)
+        list.files(file.path(raw_annot.dir, i),
+                 pattern = j, full.names = T)
     })
   })
 

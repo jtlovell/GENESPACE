@@ -80,7 +80,7 @@ remake_blast <- function(blast.dir,
                          cull.blast.dir,
                          genenum.list,
                          n.cores,
-                         verbose){
+                         verbose = T){
   if (verbose)
     cat("Copying blast results to",cull.blast.dir,"... ")
   if (dir.exists(cull.blast.dir))

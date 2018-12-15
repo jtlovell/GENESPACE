@@ -12,15 +12,13 @@
 \alias{split_gffByBlock}
 \alias{make_ofInputInBlk}
 \alias{get_ofIDs}
+\alias{run_dbs}
 \title{Import orthofinder results}
 \usage{
 import_ofResults(gff, blast.dir, verbose = T, genomeIDs)
 
 import_blast(species.mappings, genomeIDs, verbose = T, orthogroups,
-  gene.index, gff, mcscanx.input.dir,
-  MCScanX.param = "-a -s 10 -m 25 -w 2 -e 1",
-  n.mappingWithinRadius = c(5, 5, 5), eps.radius = c(100, 50, 25),
-  pairs.only = T)
+  gene.index, gff)
 
 merge_gffBlast(gff, blast, verbose = T)
 
@@ -33,10 +31,11 @@ cull_blastByMCS(blast, MCScanX.param = "-a -s 5 -m 50 -w 5 -e 1",
   mcscanx.input.dir, verbose = T)
 
 make_MCSBlocks(blast, genomeIDs, mcscanx.input.dir, verbose = T,
+  min.hit.ratio = 0.2, min.unique.hits = 5,
   MCScanX.params = "-a -s 10 -m 10 -w 2")
 
 make_mergedBlocks(blk, map, buffer = -1, max.size2merge = 200,
-  n.iter = 2, verbose = T)
+  n.iter = 2, verbose = T, n.cores = 1)
 
 split_gffByBlock(blk, gff, verbose = T)
 
@@ -44,6 +43,8 @@ make_ofInputInBlk(blast.dir, ogff, species.mappings, of.speciesIDs,
   tmp.dir, verbose = T)
 
 get_ofIDs(ogff, of.geneIDs, of.speciesIDs, verbose = T)
+
+run_dbs(y, eps.radius, mappings)
 }
 \description{
 \code{import_ofResults} Primary processing and import of orthofinder metadata
@@ -72,4 +73,6 @@ R geometry package.
 block object.
 
 \code{get_ofIDs} Add orthofinder gene ID numbers to gff.
+
+\code{run_dbs} Add orthofinder gene ID numbers to gff.
 }

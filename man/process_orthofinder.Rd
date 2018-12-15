@@ -6,9 +6,9 @@
 \usage{
 process_orthofinder(gff.dir, genomeIDs, blast.dir, mcscanx.input.dir,
   pairs.only = T, str2drop = "Name=", str2parse = ";",
-  whichAttr = 2, n.mappingWithinRadius = c(5, 5, 5),
-  eps.radius = c(100, 50, 25),
-  MCScanX.param = "-a -s 5 -m 50 -w 2 -e 1", verbose = T)
+  whichAttr = 2, n.mappingWithinRadius = c(2, 2, 2),
+  eps.radius = c(50, 20, 10),
+  MCScanX.param = "-a -s 2 -m 10 -w 2 -e 1", verbose = T)
 }
 \arguments{
 \item{gff.dir}{character, directory containing the gff3 formatted annotation files}

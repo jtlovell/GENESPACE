@@ -68,12 +68,12 @@ run_orthofinder <- function(peptide.dir = NULL,
       system(paste("orthofinder -b", tmp.dir,
                  "-t", og.threads,
                  "-a", og.threads,
-                 "-S diamond -ot 1>/dev/null 2>&1"))
+                 "-S diamond -og 1>/dev/null 2>&1"))
     }else{
       system(paste("orthofinder -b", tmp.dir,
                    "-t", og.threads,
                    "-a", og.threads,
-                   "-S diamond -ot 1>/dev/null 2>&1"))
+                   "-S diamond -og 1>/dev/null 2>&1"))
     }
   }
 

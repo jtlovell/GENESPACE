@@ -7,13 +7,12 @@
 pipe_syntenicBlocks(genomeIDs, dir.list = NULL, peptide.dir = NULL,
   gff.dir = NULL, tmp.dir = NULL, blast.dir = NULL,
   block.dir = NULL, cull.blast.dir = NULL, mcscan.dir = NULL,
-  results.dir = NULL, verbose = TRUE, min.block.size = 5,
-  min.unique.hits = min.block.size, plotit = T,
-  min.hit.density = 0.2, max.hit.density = NULL,
-  initial.mergeBuffer = 1, final.mergeBuffer = NULL,
-  return.initial = TRUE, return.mcscanRaw = FALSE,
-  return.overlapMerged = FALSE, max.propSmallChr2Merge = 0.25,
-  n.mergeIter = 5, ...)
+  results.dir = NULL, verbose = TRUE, min.block.size = 2,
+  min.unique.hits = min.block.size, plotit = FALSE,
+  min.hit.ratio = 0.2, initial.mergeBuffer = 1, n.cores = 1,
+  final.mergeBuffer = NULL, return.initial = TRUE,
+  return.mcscanRaw = FALSE, return.overlapMerged = FALSE,
+  max.size2merge = 100, clean.by = NULL, gap.multiplier = 8, ...)
 }
 \arguments{
 \item{genomeIDs}{Character vector of genome IDs to consider}
@@ -45,11 +44,6 @@ for a block to be retained.}
 
 \item{plotit}{Logical, should plots be generated?}
 
-\item{min.hit.density}{Numeric, the proportion of hits possible
-in a block for that block to be retained.}
-
-\item{max.hit.density}{The maximum hit density in a block}
-
 \item{initial.mergeBuffer}{Numeric, the buffer for an initial scan
 to merge overlapping blocks. Should be set to either 0 or 1, unless
 one is ok with sacraficing speed for accuracy, in which case,
@@ -67,6 +61,19 @@ be returned?}
 \item{return.overlapMerged}{Logical, should the overlap-merged
 orthofinder results be returned?}
 
+\item{clean.by}{Character, either 'merge' or 'dbscan'. Alternatively,
+if NULL (default), then merge is used if the min.block.size >=5 and
+dbscan is used if min.block.size< 5. While dbscan method may be a
+bit less sensitive, the massive number of blocks when min.block.size is
+small necessitates a non-iterative cleaning procedure.}
+
+\item{...}{Not in use yet.}
+
+\item{min.hit.density}{Numeric, the proportion of hits possible
+in a block for that block to be retained.}
+
+\item{max.hit.density}{The maximum hit density in a block}
+
 \item{max.propSmallChr2Merge}{Numeric, the maximum size of two blocks to be
 merged is set based on this parameter. If set to 1, entire chromosomes
 may be merged, if set to 0, no merging ever happens. Values between 0 and
@@ -75,8 +82,6 @@ blast hits on the smallest chromosome.}
 
 \item{n.mergeIter}{Numeric, the number of iterations that the merge should
 go through.}
-
-\item{...}{Not in use yet.}
 }
 \value{
 Nothing.

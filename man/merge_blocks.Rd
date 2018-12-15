@@ -4,8 +4,8 @@
 \alias{merge_blocks}
 \title{Merge close blocks}
 \usage{
-merge_blocks(blk, map, buffer = 0, verbose = T,
-  max.size2merge = 10000)
+merge_blocks(blk, map, buffer = 0, verbose = T, n.cores = 1,
+  max.size2merge = 1e+06)
 }
 \arguments{
 \item{blk}{the block object}

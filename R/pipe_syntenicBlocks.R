@@ -124,7 +124,7 @@ pipe_syntenicBlocks <- function(genomeIDs,
     cat("##########\n# - Part 1: Parsing orthofinder ...\n#\tProgress:\n")
 
   mcsp <- paste("-a -s", min.block.size,
-                "-m", min.block.size*5,
+                "-m", min.block.size*gap.multiplier,
                 "-w 2 -e 1")
   init.results <- process_orthofinder(
     gff.dir = gff.dir,
@@ -133,7 +133,7 @@ pipe_syntenicBlocks <- function(genomeIDs,
     mcscanx.input.dir = mcscan.dir,
     eps.radius = c(min.block.size*5*gap.multiplier,
                    min.block.size*2*gap.multiplier,
-                   min.block.size*1.2*gap.multiplier),
+                   min.block.size*1*gap.multiplier),
     n.mappingWithinRadius = c(min.block.size,
                               min.block.size,
                               min.block.size),
@@ -147,14 +147,10 @@ pipe_syntenicBlocks <- function(genomeIDs,
   mcsp <- paste("-a -s",min.block.size,
                 "-m", min.block.size*gap.multiplier,
                 "-w 2")
-  synteny.results <- make_MCSBlocks(
-    blast = init.results$blast,
-    genomeIDs = genomeIDs,
-    mcscanx.input.dir = mcscan.dir,
-    MCScanX.params = mcsp,
-    min.hit.ratio = min.hit.ratio,
-    min.unique.hits = min.unique.hits)
-  synteny.results.out = synteny.results
+  synteny.results <- pipe_mcs(blast = init.results$blast$map,
+                              gff = gff,
+                              mcscan.dir = mcscan.dir,
+                              mcscan.param = mcsp)
 
   if (plotit)
     plot_blocksAndMapping(
@@ -234,7 +230,7 @@ pipe_syntenicBlocks <- function(genomeIDs,
       tmp$unique = with(tmp, paste(genome1, genome2, chr1, chr2))
       spl.map = split.data.table(tmp, "unique")
 
-      min.rad = min.block.size+1
+      min.rad = min.block.size
       merged_map = rbindlist(lapply(spl.map, function(tmp){
         x <- run_dbs(y = tmp[,c("rank1","rank2"),with = F],
                      eps.radius = sqrt(min.rad^2+min.rad^2)+.1,
@@ -254,9 +250,53 @@ pipe_syntenicBlocks <- function(genomeIDs,
             "/",
             nrow(merged_blk$map),"\n")
 
+      if (verbose)
+        cat("##########\n# - Part 4: Merging overlapping blocks\n",
+            "initial n blocks / mappings =",
+            nrow(merged_blk$block),
+            "/",
+            nrow(merged_blk$map),"\n\t")
+
+      merged.overlaps <- merge_blocks(
+        blk = merged_blk$block,
+        map = merged_blk$map,
+        buffer = initial.mergeBuffer,
+        n.cores =  n.cores,
+        max.size2merge = 1e6)
+
+      if (verbose)
+        cat("merged to n blocks / mappings =",
+            nrow(merged.overlaps$block),
+            "/",
+            nrow(merged.overlaps$map),"\n")
+
+
+      if (verbose)
+        cat("##########\n# - Part 5: Merging adjacent blocks\n",
+            "initial n blocks / mappings =",
+            nrow(merged.overlaps$block),
+            "/",
+            nrow(merged.overlaps$map),"\n\t")
+
+      merged.close <- merge_blocks(
+        blk = data.table(merged.overlaps$block),
+        map = data.table(merged.overlaps$map),
+        buffer = final.mergeBuffer,
+        n.cores = n.cores,
+        max.size2merge = max.size2merge)
+
+      if (verbose)
+        cat("merged to n blocks / mappings =",
+            nrow(merged.close$block),
+            "/",
+            nrow(merged.close$map),"\n")
+
+
       out <- list(synteny.results = synteny.results,
                   init.results = init.results,
-                  merged.results = merged_blk)
+                  merged.dbs = merged_blk,
+                  merged.results = merged.overlaps,
+                  merged.close = merged.close)
 
       if (plotit)
         plot_blocksAndMapping(
