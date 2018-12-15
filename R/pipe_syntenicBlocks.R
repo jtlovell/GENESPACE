@@ -138,6 +138,8 @@ pipe_syntenicBlocks <- function(genomeIDs,
                               min.block.size,
                               min.block.size),
     MCScanX.param = mcsp)
+
+  gff <- init.results$gff
   #######################################################
 
   #######################################################
@@ -147,6 +149,7 @@ pipe_syntenicBlocks <- function(genomeIDs,
   mcsp <- paste("-a -s",min.block.size,
                 "-m", min.block.size*gap.multiplier,
                 "-w 2")
+
   synteny.results <- pipe_mcs(blast = init.results$blast$map,
                               gff = gff,
                               mcscan.dir = mcscan.dir,
