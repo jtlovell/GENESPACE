@@ -37,9 +37,9 @@
 #' @import data.table
 #' @export
 subset_blast <- function(blast.file,
-                        genenum.list,
-                        n.cores,
-                        verbose){
+                         genenum.list,
+                         n.cores,
+                         verbose){
   if (verbose)
     cat("Subsetting:",basename(blast.file))
   f <- fread(blast.file,
@@ -90,10 +90,45 @@ remake_blast <- function(blast.dir,
   if (!dir.exists(cull.blast.dir))
     dir.create(cull.blast.dir)
 
-  for (i in list.files(blast.dir,
-                      full.names = T)) {
-    nu <- file.copy(i,cull.blast.dir)
-  }
+  blast.dir <- cull.blast.dir
+  tmp.dir <- blast.dir
+
+  blast.loc <- dirname(list.files(tmp.dir,
+                                  pattern = "SequenceIDs",
+                                  recursive = T,
+                                  full.names = T)[1])
+  ortho.loc <- dirname(list.files(tmp.dir,
+                                  pattern = "Orthogroups.txt",
+                                  recursive = T,
+                                  full.names = T)[1])
+
+
+  blast.files <- list.files(blast.loc,
+                            pattern = "Blast*",
+                            full.names = T)
+  fa.files <- list.files(blast.loc,
+                         pattern = "Species*",
+                         full.names = T)
+  fa.files <- fa.files[grep(".fa$", fa.files)]
+
+  dmnd.files <- list.files(blast.loc,
+                           pattern = "diamondDBSpecies*",
+                           full.names = T)
+  og.files <- file.path(ortho.loc,
+                        "Orthogroups.txt")
+
+  sp.id.files <- file.path(blast.loc,"SpeciesIDs.txt")
+  seq.id.files <- file.path(blast.loc,"SequenceIDs.txt")
+
+  files <- c(blast.files,
+             fa.files,
+             dmnd.files,
+             og.files,
+             sp.id.files,
+             seq.id.files)
+
+  nu <- file.copy(files,
+                  blast.dir)
 
   if (verbose)
     cat("Done!\n")
@@ -325,3 +360,7 @@ load.annotations <- function(genomeIDs,
               chrlen = fais))
 }
 
+
+convert_blast2blk <- function(){
+
+}

@@ -41,7 +41,7 @@ run_orthofinder <- function(peptide.dir = NULL,
           "\n")
 
     if (dir.exists(tmp.dir))
-      unlink(tmp.dir)
+      unlink(tmp.dir, recursive = T)
     if (!dir.exists(tmp.dir))
       dir.create(tmp.dir)
 

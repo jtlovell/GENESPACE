@@ -697,7 +697,7 @@ make_ofInputInBlk <- function(blast.dir,
     cat("Copying orthofinder output to", tmp.dir,"\n")
 
   if (file.exists(tmp.dir))
-    unlink(tmp.dir)
+    unlink(tmp.dir, recursive = T)
   dir.create(tmp.dir)
 
   files <- list.files(blast.dir)

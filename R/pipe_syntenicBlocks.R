@@ -138,6 +138,7 @@
                                 min.block.size,
                                 min.block.size),
       cull.byDBscan = cull.byDBscan,
+      cull.byMCscan = cull.byMCscan,
       mcscan.param = mcsp,
       return.ogblast = return.ogblast)
 

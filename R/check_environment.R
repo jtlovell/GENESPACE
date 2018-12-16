@@ -30,17 +30,16 @@ check_environment <- function(directory,
 
   dirs = file.path(directory,
                    c("tmp","results","blast","mcscanx",
-                     "cull.blast","genome"))
+                     "cull.blast","genome","block"))
   names(dirs)<-c("tmp","results","blast","mcscanx",
-                 "cull.blast","genome")
+                 "cull.blast","genome","block")
 
   dir.out = list()
   for (j in names(dirs)) {
 
     i = dirs[[j]]
-
-    if (dir.exists(i) & clean)
-      unlink(i)
+    if (dir.exists(i) & clean & j != "genome")
+      unlink(i, recursive = TRUE)
 
     if (!dir.exists(i))
       dir.create(i)

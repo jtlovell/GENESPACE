@@ -146,7 +146,7 @@ convert_genomes <- function(genomeIDs,
   subdirs <- sapply(ftypes, USE.NAMES = T, simplify = F, function(x){
     fp <- file.path(input.dir, x)
     if (dir.exists(fp))
-      nu <- unlink(fp)
+      nu <- unlink(fp, recursive = T)
     if (!dir.exists(fp))
       dir.create(fp)
     return(fp)

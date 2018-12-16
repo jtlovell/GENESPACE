@@ -29,19 +29,21 @@ rerun_orthofinderInBlk = function(blk,
   #######################################################
   #######################################################
   if (verbose)
-    cat("Importing annotations ... ")
+    cat("Importing gff annotations ... ")
+
   gff <- init.results$gff
   gff.wNum <- mclapply(1:nrow(blk), mc.cores = n.cores, function(i)
     pull_gff(gff = gff,
              blk.line = blk[i,],
              gene.index = init.results$ortho.info$gene.index))
-  if (verbose)
-    cat("Done!\n")
-
 
   gffn <- gff.wNum
   genenum.list <- lapply(gff.wNum, function(x)
     unique(c(x[[1]]$gene.num, x[[2]]$gene.num)))
+  all.blkgff <- rbindlist(unlist(gff.wNum, recursive = F))
+
+  if (verbose)
+    cat("Done!\n")
 
   #######################################################
   #######################################################
@@ -53,6 +55,7 @@ rerun_orthofinderInBlk = function(blk,
                genenum.list = genenum.list,
                n.cores = n.cores,
                verbose = verbose)
+
   if (verbose)
     cat("Done!\n")
 
@@ -68,6 +71,7 @@ rerun_orthofinderInBlk = function(blk,
     og.threads = n.cores,
     og.silent = F,
     verbose = T)
+
   if (verbose)
     cat("Done!\n")
 
@@ -75,8 +79,9 @@ rerun_orthofinderInBlk = function(blk,
   #######################################################
   if (verbose)
     cat("Reading blast results ...")
+
   all.blasts <- read_allBlast(blast.dir = dir.list$cull.blast)
-  all.blkgff <- rbindlist(unlist(gff.wNum, recursive = F))
+
   if (verbose)
     cat("Done!\n")
 
@@ -120,9 +125,7 @@ rerun_orthofinderInBlk = function(blk,
   #######################################################
   if (verbose)
     cat("Finding orphan genes in blocks ...")
-  return(list(spl.incompleteGff = spl.gff,
-              blk.metadata = blk.md,
-              simple.blk.metadata = blk.md2))
+
   orphan.md <- with(md.list,
                     find_orphans(spl.gff = spl.incompleteGff,
                                  blk.md2 = simple.blk.metadata,
@@ -134,7 +137,7 @@ rerun_orthofinderInBlk = function(blk,
   #######################################################
   #######################################################
   if (verbose)
-    cat("Loading annotations into memory ...")
+    cat("Loading annotation fastas into memory ...")
   annot <- load.annotations(genomeIDs = genomeIDs,
                             cds.dir = dir.list$cds,
                             peptide.dir = dir.list$peptide,
@@ -142,6 +145,7 @@ rerun_orthofinderInBlk = function(blk,
   if (verbose)
     cat("Done!\n")
   return(list(annot = annot,
+              all.blasts = all.blasts,
               orhan.md = orphan.md,
               md.list = md.list,
               cds.md = cds.md,
