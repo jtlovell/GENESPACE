@@ -18,14 +18,14 @@
 import_ofResults(gff, blast.dir, verbose = T, genomeIDs)
 
 import_blast(species.mappings, genomeIDs, verbose = T, orthogroups,
-  gene.index, gff)
+  import.all = F, gene.index, gff)
 
 merge_gffBlast(gff, blast, verbose = T)
 
 cull_blast2og(blast, orthogroups, pairs.only = T, verbose = T)
 
 cull_blastByDBS(blast, n.mappingWithinRadius = c(5, 5, 5),
-  eps.radius = c(100, 50, 25), verbose = T)
+  eps.radius = c(100, 50, 25), verbose = T, run.it = T)
 
 cull_blastByMCS(blast, MCScanX.param = "-a -s 5 -m 50 -w 5 -e 1",
   mcscanx.input.dir, verbose = T)

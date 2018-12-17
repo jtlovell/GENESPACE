@@ -7,12 +7,14 @@
 pipe_syntenicBlocks(genomeIDs, dir.list = NULL, peptide.dir = NULL,
   gff.dir = NULL, tmp.dir = NULL, blast.dir = NULL,
   block.dir = NULL, cull.blast.dir = NULL, mcscan.dir = NULL,
-  results.dir = NULL, verbose = TRUE, min.block.size = 2,
+  results.dir = NULL, verbose = TRUE, min.block.size = 3,
   min.unique.hits = min.block.size, plotit = FALSE,
   min.hit.ratio = 0.2, initial.mergeBuffer = 1, n.cores = 1,
   final.mergeBuffer = NULL, return.initial = TRUE,
   return.mcscanRaw = FALSE, return.overlapMerged = FALSE,
-  max.size2merge = 100, clean.by = NULL, gap.multiplier = 8, ...)
+  max.size2merge = 100, clean.by = NULL, gap.multiplier = 8,
+  mcscan.m.param = NULL, merge.overlaps = F, clean.byDBscan = T,
+  cull.byDBscan = T, cull.byMCscan = T, return.ogblast = T, ...)
 }
 \arguments{
 \item{genomeIDs}{Character vector of genome IDs to consider}

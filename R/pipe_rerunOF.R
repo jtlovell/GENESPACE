@@ -1,4 +1,28 @@
-pipe_rerunOF = function(dir.list,
+#' @title Run block-constrained orthofinder
+#'
+#' @description
+#' \code{pipe_ofInBlk} Cull blast hits to blocks and re-run orthofinder
+#'
+#' @param map The map object (data.frame or data.table)
+#' @param blk The block data.table
+#' @param dir.list List of directories, made by check_environment
+#' @param genomeIDs Character vector of genome IDs
+#' @param gene.index Gene indices from orthofinder. Stored in
+#' output from pipe_syntenicBlocks
+#' @param min.block.size Minimum block size to retain, in number
+#' of orthogrou-contrained blast hits
+#' @param n.cores Number of parallel processes to use
+#' @param verbose Logical, should updates be printed?
+#' @details Nothing yet
+#' @return List with blocks and mappings
+#'
+#' @examples
+#' \dontrun{
+#' none yet
+#' }
+#' @import data.table
+#' @export
+pipe_ofInBlk = function(dir.list,
                         genomeIDs,
                         gene.index,
                         verbose = T,
@@ -14,7 +38,7 @@ pipe_rerunOF = function(dir.list,
 
     fl <- rbindlist(mclapply(names(id.list), mc.cores = n.cores, function(i){
       x = id.list[[i]]
-      tmp = blast[blast$id1  %in% x & blast$id2 %in% x,]
+      tmp = blast[blast$id1 %in% x & blast$id2 %in% x,]
       tmp$block.id = i
       return(tmp)
     }))
@@ -34,7 +58,7 @@ pipe_rerunOF = function(dir.list,
                check.names = F)
 
     if (verbose)
-      cat(paste0(" (initial hits = ",nrow(f),") "))
+      cat(paste0(" (initial hits = ", nrow(f),") "))
 
 
     f$ns = f$V12 * (-1)
@@ -295,9 +319,10 @@ pipe_rerunOF = function(dir.list,
   if(verbose)
     cat("Checking blocks\n\t")
 
+
   new.block.meta = check_blockSize(orig.blk = blk,
                                    new.blk = tmp$block)
-  drop.these = new.block.meta$block.id[new.block.meta$n.mapping2< min.block.size]
+  drop.these = new.block.meta$block.id[new.block.meta$n.mapping2 < min.block.size]
   if(verbose)
     cat("Found", length(drop.these),
         "blocks that are now smaller than", min.block.size)

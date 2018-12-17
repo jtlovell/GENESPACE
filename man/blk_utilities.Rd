@@ -22,6 +22,7 @@
 \alias{make_blockMetadata}
 \alias{find_orphans}
 \alias{load.annotations}
+\alias{convert_blast2blk}
 \title{Orthofinder utility functions}
 \usage{
 run_getfasta(bed, bed.file, ass.file, fa.file)
@@ -64,6 +65,8 @@ make_blockMetadata(cds.md, gffog, blk)
 find_orphans(spl.gff, blk.md2, n.cores)
 
 load.annotations(genomeIDs, cds.dir, peptide.dir, assembly.dir)
+
+convert_blast2blk(blast, gff.wNum)
 }
 \arguments{
 \item{blast.file}{file path for blast output}
@@ -173,6 +176,8 @@ gff attribute column}
 
 \item{blk}{blk object}
 
+\item{blast}{blast data.table}
+
 \item{verbose}{should updates be printed?}
 
 \item{...}{not currently in use}
@@ -219,6 +224,8 @@ gff attribute column}
 \code{find_orphans} find orphan genes in blocks
 
 \code{load.annotations} load annotation to memory
+
+\code{convert_blast2blk} convert blast to block
 }
 \note{
 \code{of_utilities} is a generic name for the functions documented.

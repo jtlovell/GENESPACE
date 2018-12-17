@@ -5,10 +5,10 @@
 \title{Prepare orthofinder for block construction.}
 \usage{
 process_orthofinder(gff.dir, genomeIDs, blast.dir, mcscan.dir,
-  pairs.only = T, str2drop = "Name=", str2parse = ";",
-  whichAttr = 2, n.mappingWithinRadius = c(2, 2, 2),
-  eps.radius = c(50, 20, 10),
-  MCScanX.param = "-a -s 2 -m 10 -w 2 -e 1", verbose = T)
+  str2drop = "Name=", str2parse = ";", whichAttr = 2,
+  cull.byDBscan = T, cull.byMCscan = T, return.ogblast = T,
+  n.mappingWithinRadius = c(2, 2, 2), eps.radius = c(50, 20, 10),
+  mcscan.param = "-a -s 2 -m 10 -w 2 -e 1", verbose = T)
 }
 \arguments{
 \item{gff.dir}{character, directory containing the gff3 formatted annotation files}
@@ -16,8 +16,6 @@ process_orthofinder(gff.dir, genomeIDs, blast.dir, mcscan.dir,
 \item{genomeIDs}{character, genome identifiers}
 
 \item{blast.dir}{character, directory containing the orthofinder output}
-
-\item{pairs.only}{logical, should only pairs of hits in orthofinder output be retained}
 
 \item{str2drop}{character, string in attribute column of gff file to be dropped}
 
@@ -30,11 +28,13 @@ gff attribute column}
 
 \item{eps.radius}{numeric, size of the radius}
 
-\item{MCScanX.param}{character, parameters to be passed to MCScanX}
-
 \item{verbose}{logical, should updates be reported?}
 
 \item{mcscanx.input.dir}{character, directory where MCScanX temporary files should be stored}
+
+\item{MCScanX.param}{character, parameters to be passed to MCScanX}
+
+\item{pairs.only}{logical, should only pairs of hits in orthofinder output be retained}
 }
 \value{
 Returns a list of length 3, containing:
