@@ -67,7 +67,6 @@ process_orthofinder <- function(gff.dir,
                                genomeIDs,
                                blast.dir,
                                mcscan.dir,
-                               pairs.only = T,
                                str2drop = "Name=",
                                str2parse = ";",
                                whichAttr = 2,
@@ -104,9 +103,14 @@ process_orthofinder <- function(gff.dir,
   if(cull.byDBscan){
     cull.dbs <- cull_blastByDBS(blast = blast,
                                 n.mappingWithinRadius = n.mappingWithinRadius,
-                                eps.radius = eps.radius,verbose = T)
+                                eps.radius = eps.radius,
+                                verbose = T)
   }else{
-    cull.dbs <- blast
+    cull.dbs <- cull_blastByDBS(blast = blast,
+                                n.mappingWithinRadius = n.mappingWithinRadius,
+                                eps.radius = eps.radius,
+                                verbose = F,
+                                run.it = F)
   }
 
   if(cull.byMCscan){

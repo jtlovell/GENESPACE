@@ -50,7 +50,7 @@ make_blocks <- function(map,
                        rankend1 = max(rank1),
                        rankend2 = max(rank2),
                        n.mapping = length(score),
-                       orient = ifelse(cor(jitter(start1), jitter(start2)) > 0,"+","-")),
+                       orient = ifelse(length(start1) <= 1, "+", ifelse(cor(jitter(start1), jitter(start2)) > 0,"+","-"))),
                  by = list(block.id, genome1, genome2)]
 
   map <- data.table(map,

@@ -274,6 +274,7 @@ import_blast <- function(species.mappings,
                          genomeIDs,
                          verbose = T,
                          orthogroups,
+                         import.all = F,
                          gene.index,
                          gff){
 
@@ -353,9 +354,11 @@ import_blast <- function(species.mappings,
     setkey(bl1, "gn1")
     bl2 <- merge(g1, bl1)
 
-    bl2 <- data.table(bl2[with(bl2, og1 == og2),])
-    if (verbose)
-      cat("\t",nrow(bl2), "hits in orthogroups\n")
+    if(!import.all){
+      bl2 <- data.table(bl2[with(bl2, og1 == og2),])
+      if (verbose)
+        cat("\t",nrow(bl2), "hits in orthogroups\n")
+    }
 
     gf1 <- spl.gff1[[x[1]]]
     gf2 <- spl.gff2[[x[2]]]
@@ -470,7 +473,8 @@ cull_blast2og <- function(blast,
 cull_blastByDBS <- function(blast,
                             n.mappingWithinRadius = c(5,5,5),
                             eps.radius = c(100,50,25),
-                            verbose = T){
+                            verbose = T,
+                            run.it = T){
   blast.cull <- blast
   if (verbose)
     cat("Culling", nrow(blast.cull),
@@ -494,20 +498,26 @@ cull_blastByDBS <- function(blast,
                  x$genome1[1]), "-->", x$genome2[1],
           paste0("(initial hits = ", nrow(x),") "))
 
-    for (i in 1:length(eps.radius)) {
+    if(run.it){
+      for (i in 1:length(eps.radius)) {
+        x$rank1 <- frank(x, "chr1", "start1",
+                         ties.method = "dense")
+        x$rank2 <- frank(x, "chr2", "start2",
+                         ties.method = "dense")
+        x <- run_dbs(y = x,
+                     eps.radius = eps.radius[i],
+                     mappings = n.mappingWithinRadius[i])
+        x <- x[x$cluster != 0,]
+        if (nrow(x) < min(n.mappingWithinRadius)) {
+          break
+        }
+      }
+    }else{
       x$rank1 <- frank(x, "chr1", "start1",
                        ties.method = "dense")
       x$rank2 <- frank(x, "chr2", "start2",
                        ties.method = "dense")
-      x <- run_dbs(y = x,
-                   eps.radius = eps.radius[i],
-                   mappings = n.mappingWithinRadius[i])
-      x <- x[x$cluster != 0,]
-      if (nrow(x) < min(n.mappingWithinRadius)) {
-        break
-      }
     }
-
     if (verbose)
       cat("culled hits =", nrow(x), "\n")
     return(x)

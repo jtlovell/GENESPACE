@@ -73,7 +73,7 @@ run_orthofinder <- function(peptide.dir = NULL,
       system(paste("orthofinder -b", tmp.dir,
                    "-t", og.threads,
                    "-a", og.threads,
-                   "-S diamond -og 1>/dev/null 2>&1"))
+                   "-S diamond -og"))
     }
   }
 
@@ -122,6 +122,13 @@ run_orthofinder <- function(peptide.dir = NULL,
             og.files,
             sp.id.files,
             seq.id.files)
+
+  print(files)
+
+  if (dir.exists(blast.dir))
+    unlink(blast.dir, recursive = T)
+  if (!dir.exists(blast.dir))
+    dir.create(blast.dir)
 
   nu <- file.copy(files,
                   blast.dir)

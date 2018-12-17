@@ -25,6 +25,7 @@
 #' @param gffog gff object with orthogroup info
 #' @param spl.gff split gff object
 #' @param blk.md2 simplified block metadata object
+#' @param blast blast data.table
 #' @param n.cores number of parallel processes to run
 #' @param verbose should updates be printed?
 #' @param ... not currently in use
@@ -85,50 +86,15 @@ remake_blast <- function(blast.dir,
   if (verbose)
     cat("Copying blast results to",cull.blast.dir,"... ")
   if (dir.exists(cull.blast.dir))
-    unlink(cull.blast.dir)
+    unlink(cull.blast.dir, recursive = T)
 
   if (!dir.exists(cull.blast.dir))
     dir.create(cull.blast.dir)
 
-  blast.dir <- cull.blast.dir
-  tmp.dir <- blast.dir
-
-  blast.loc <- dirname(list.files(tmp.dir,
-                                  pattern = "SequenceIDs",
-                                  recursive = T,
-                                  full.names = T)[1])
-  ortho.loc <- dirname(list.files(tmp.dir,
-                                  pattern = "Orthogroups.txt",
-                                  recursive = T,
-                                  full.names = T)[1])
-
-
-  blast.files <- list.files(blast.loc,
-                            pattern = "Blast*",
-                            full.names = T)
-  fa.files <- list.files(blast.loc,
-                         pattern = "Species*",
-                         full.names = T)
-  fa.files <- fa.files[grep(".fa$", fa.files)]
-
-  dmnd.files <- list.files(blast.loc,
-                           pattern = "diamondDBSpecies*",
-                           full.names = T)
-  og.files <- file.path(ortho.loc,
-                        "Orthogroups.txt")
-
-  sp.id.files <- file.path(blast.loc,"SpeciesIDs.txt")
-  seq.id.files <- file.path(blast.loc,"SequenceIDs.txt")
-
-  files <- c(blast.files,
-             fa.files,
-             dmnd.files,
-             og.files,
-             sp.id.files,
-             seq.id.files)
+  files = list.files(blast.dir, full.names = T)
 
   nu <- file.copy(files,
-                  blast.dir)
+                  cull.blast.dir)
 
   if (verbose)
     cat("Done!\n")
@@ -205,7 +171,6 @@ read_allBlast <- function(blast.dir,
                             full.names = T,
                             pattern = "^Blast")
   blast.files<-blast.files[grep(".txt$",blast.files)]
-  print(blast.files)
 
   out <- rbindlist(lapply(blast.files, function(x)
     fread(x, header = F,
@@ -361,6 +326,25 @@ load.annotations <- function(genomeIDs,
 }
 
 
-convert_blast2blk <- function(){
+#' @title convert data.table formatted blast to map/block
+#' @description
+#' \code{convert_blast2blk} convert blast to block
+#' @rdname blk_utilities
+#' @import data.table
+#' @export
+convert_blast2blk <- function(blast,
+                              gff.wNum){
+  gene.list <- split(gff.wNum$id,
+                     gff.wNum$block.id)
+  blast.list <- lapply(names(gene.list), function(i){
+    blast[blast$id1 %in% gene.list[[i]] | blast$id2 %in% gene.list, ]
+  })
+  blast.out <- rbindlist(blast.list)
 
+  blast.out <- blast.out[!duplicated(blast.out[,c("id1","id2"), with = F])]
+
+  blk <- make_blocks(blast.out,
+                     rename.blocks = F,
+                     rerank = T)
+  return(blk)
 }
