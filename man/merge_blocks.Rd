@@ -19,6 +19,8 @@ merged. See details}
 
 \item{verbose}{logical, should updates be printed?}
 
+\item{n.cores}{The number of parallel processes to run.}
+
 \item{max.size2merge}{numeric the maximum sized block to be merged}
 
 \item{...}{Not currently in use}

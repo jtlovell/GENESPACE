@@ -6,7 +6,7 @@
 #' @param genomeIDs Character vector of genome IDs to consider
 #' @param dir.list Directory list, produced by `check_environment`.
 #' @param orphan.metadata Directory containing peptide fasta files
-#' @param n.cores
+#' @param n.cores Numeric, number of parallel processes to run.
 #' @param verbose Logical, should updates be printed?
 #' @param ... Not in use yet.
 #' @details More here
@@ -18,6 +18,7 @@
 #' }
 #' @import data.table
 #' @import Biostrings
+#' @import parallel
 #' @export
 pipe_orphanBlast <- function(dir.list,
                              genomeIDs,

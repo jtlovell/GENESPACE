@@ -14,6 +14,8 @@ pipe_orphanBlast(dir.list, genomeIDs, orphan.metadata, n.cores = 6,
 
 \item{orphan.metadata}{Directory containing peptide fasta files}
 
+\item{n.cores}{Numeric, number of parallel processes to run.}
+
 \item{verbose}{Logical, should updates be printed?}
 
 \item{...}{Not in use yet.}

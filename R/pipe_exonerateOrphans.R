@@ -3,16 +3,11 @@
 #' @description
 #' \code{pipe_exonerateOrphans} A simple wrapper to run orthofinder from R.
 #'
-#' @param orphan.blast The path to the assembly fasta to search
-#' @param bed.list The path to the directory where the blast results should be stored
-#' @param genome.list The path to the directory where temporary files will be stored
-#' then deleted
-#' @param cds.dir The number of threads for blast run
-#' @param peptide.dir The number of threads used for orthogroup construction
-#' @param assembly.dir
-#' @param block.dir
-#' @param tmp.dir
-#' @param verbose
+#' @param orphan.blast Results from pipe_orphanBlast
+#' @param dir.list List of directories, produced by check_environment
+#' @param buffer numeric, the amount of space around the focal region to feed
+#' to exonerate.
+#' @param verbose Logical, should updates be printed?
 #' @param ... Not currently in use
 #' @details  ...
 
@@ -24,19 +19,13 @@
 #' }
 #' @import data.table
 #' @export
-pipe_exonerateOrphans = function(orphan.blast,
-                                 bed.list,
-                                 genome.list,
+pipe_exonerateOrphans <- function(orphan.blast,
                                  dir.list,
-                                 cds.dir,
-                                 peptide.dir,
-                                 assembly.dir,
-                                 block.dir,
-                                 tmp.dir,
+                                 buffer = 1e3,
                                  verbose = T){
 
   ########################################################
-  pipe_getfasta = function(bed.dt, tmp.dir, ass.dir,
+  pipe_getfasta <- function(bed.dt, tmp.dir, ass.dir,
                            verbose = T){
     if(dir.exists(tmp.dir))
       unlink(tmp.dir, recursive = T)
@@ -47,27 +36,27 @@ pipe_exonerateOrphans = function(orphan.blast,
                  ifelse(n < 5000, 500,
                         ifelse(n < 10000, 1000, 5000)))
 
-    fa.locs = sapply(1:nrow(bed.dt), function(i){
+    fa.locs <- sapply(1:nrow(bed.dt), function(i){
       if (verbose)
         if (i %% nb == 0)
           cat(i,"/",nrow(bed.dt),"\n\t")
 
-      x = bed.dt[i,]
-      bed = x[,c("chr","start","end","reg.name")]
-      ass.file = file.path(assembly.dir,paste0(x$genome,".fa"))
-      fa.file = file.path(tmp.dir,paste0(x$reg.name,".fa"))
-      bed.file = file.path(tmp.dir,paste0(x$reg.name,".bed"))
+      x <- bed.dt[i,]
+      bed <- x[,c("chr","start","end","reg.name")]
+      ass.file <- file.path(assembly.dir,paste0(x$genome,".fa"))
+      fa.file <- file.path(tmp.dir,paste0(x$reg.name,".fa"))
+      bed.file <- file.path(tmp.dir,paste0(x$reg.name,".bed"))
       run_getfasta(bed = bed,
                    ass.file = ass.file,
                    fa.file = fa.file,
                    bed.file = bed.file)
       return(fa.file)
     })
-    bed.dt$fa.file = fa.locs
+    bed.dt$fa.file <- fa.locs
     return(bed.dt)
   }
   ########################################################
-  write_peptideByGene = function(pep.fastas,
+  write_peptideByGene <- function(pep.fastas,
                                  tmp.dir,
                                  bed.dt,
                                  verbose  = T){
@@ -78,21 +67,22 @@ pipe_exonerateOrphans = function(orphan.blast,
                           ifelse(n < 10000, 1000, 5000)))
     }
 
-    ids = unique(bed.dt$id)
+    ids <- unique(bed.dt$id)
 
-    fa.loc = sapply(1:length(ids), function(i){
+    fa.loc <- sapply(1:length(ids), function(i){
       if (verbose)
         if (i %% nb == 0)
           cat(i,"/",length(ids),"\n\t")
-      x = ids[i]
-      out.loc = file.path(tmp.dir, paste0(x,".fa"))
+      x <- ids[i]
+      out.loc <- file.path(tmp.dir, paste0(x,".fa"))
       writeXStringSet(pep.fastas[x], filepath = out.loc)
+      return(out.loc)
     })
 
-    out = data.table(id = ids, pep.file = fa.loc)
+    out <- data.table(id = ids, pep.file = fa.loc)
     setkey(out, id)
     setkey(bed.dt, id)
-    ret = merge(bed.dt, out)
+    ret <- merge(bed.dt, out)
     return(ret)
   }
   ########################################################
@@ -147,59 +137,59 @@ pipe_exonerateOrphans = function(orphan.blast,
     blo <- merge(bs, bl)
 
     ## Generate start and end genomic locations for the hits
-    blo$tend = with(blo, genome.start+q.start)
-    blo$tstart = with(blo, genome.start+q.end)
-    blo$length = with(blo, tend - tstart)
-    blo$start = with(blo, ifelse(length < 0, tend, tstart))
-    blo$end = with(blo, ifelse(length > 0, tend, tstart))
+    blo$tend <- with(blo, genome.start+q.start)
+    blo$tstart <- with(blo, genome.start+q.end)
+    blo$length <- with(blo, tend - tstart)
+    blo$start <- with(blo, ifelse(length < 0, tend, tstart))
+    blo$end <- with(blo, ifelse(length > 0, tend, tstart))
     blo$tend <- NULL
     blo$tstart <- NULL
-    blo$length = with(blo, end - start)
+    blo$length <- with(blo, end - start)
 
     ## Reorder and return
-    blo$neg.score = blo$score * (-1)
-    blo$neg.len = blo$length * (-1)
+    blo$neg.score <- blo$score * (-1)
+    blo$neg.len <- blo$length * (-1)
     setkey(blo, id, neg.score, neg.len)
     return(blo)
   }
   ########################################################
-  make_blastRegion = function(bl,
+  make_blastRegion <- function(bl,
                               max.dist2besthit = 5e3,
                               min.blk.dist2drop = 1e6){
 
     # -- pull the best hits
     bl[,rank := frank(neg.score, ties.method = "random"),
        by = list(id, block.id)]
-    bs = bl[bl$rank == 1,c("block.id","id","start","end")]
+    bs <- bl[bl$rank == 1,c("block.id","id","start","end")]
     setnames(bs, 3:4, c("best.start","best.end"))
 
     # -- Merge best with all hits to calc dist to best
     setkey(bl, id, block.id)
     setkey(bs, id, block.id)
-    bo = merge(bl, bs)
-    bo$dist2best = with(bo, abs(best.start - start))
-    bo = bo[bo$dist2best <= max.dist2besthit,]
+    bo <- merge(bl, bs)
+    bo$dist2best <- with(bo, abs(best.start - start))
+    bo <- bo[bo$dist2best <= max.dist2besthit,]
 
     # --  Generate new coordinates for hits, spanning small gaps
-    bi = bo[,list(start = min(start),
+    bi <- bo[,list(start = min(start),
                   end = max(end),
                   mean.score = mean(score),
                   mean.length = mean(abs(length))),
             by = list(genome, chr, block.id, id)]
-    bi$length = with(bi, end-start)
+    bi$length <- with(bi, end-start)
 
     # toss identical hits
-    bi<-data.table(bi[!duplicated(bi[,c("genome","chr","id","start","end")]),])
+    bi <- data.table(bi[!duplicated(bi[,c("genome","chr","id","start","end")]),])
     return(bi)
   }
   ########################################################
   add_buffer <- function(bl, fais, buffer){
-    bo = merge(fais, bl)
+    bo <- merge(fais, bl)
     bo$start <- bo$start - buffer
     bo$end <- bo$end + buffer
-    bo$end[bo$end>bo$chr.length]<-bo$chr.length[bo$end>bo$chr.length]
-    bo$start[bo$start<=0]<-1
-    bo$reg.name = with(bo, paste0(id,"_",block.id))
+    bo$end[bo$end>bo$chr.length] <- bo$chr.length[bo$end>bo$chr.length]
+    bo$start[bo$start<=0] <- 1
+    bo$reg.name <- with(bo, paste0(id,"_",block.id))
     return(bo)
   }
   ########################################################
@@ -213,14 +203,14 @@ pipe_exonerateOrphans = function(orphan.blast,
                           ifelse(n < 10000, 1000, 5000)))
     }
 
-    exon.out = lapply(1:nrow(locs), function(i){
+    exon.out <- lapply(1:nrow(locs), function(i){
       if (verbose)
         if (i %% nb == 0)
           cat(i,"/",nrow(locs),"\n\t")
-      x = locs[i]
-      bedt = data.frame(x[,c("chr","start","end","reg.name")])
-      colnames(bedt)[4]<-"id"
-      exon = run_exonerate(ass.fasta.file = x$fa.file,
+      x <- locs[i]
+      bedt <- data.frame(x[,c("chr","start","end","reg.name")])
+      colnames(bedt)[4] <- "id"
+      exon <- run_exonerate(ass.fasta.file = x$fa.file,
                            pep.fasta.file = x$pep.file,
                            bed = bedt,
                            min.score = min.score,
@@ -229,8 +219,8 @@ pipe_exonerateOrphans = function(orphan.blast,
     })
     exon.cds <- do.call(c, lapply(exon.out, function(x) x$cds.seq))
     gff.gene <- rbindlist(lapply(exon.out, function(x) x$gff))
-    gff.gene$ex.start = with(gff.gene, as.numeric(start)+as.numeric(exon.start))
-    gff.gene$ex.end = with(gff.gene, as.numeric(start)+as.numeric(exon.end))
+    gff.gene$ex.start <- with(gff.gene, as.numeric(start)+as.numeric(exon.start))
+    gff.gene$ex.end <- with(gff.gene, as.numeric(start)+as.numeric(exon.end))
     gff.out <- gff.gene[,list(start = min(ex.start),
                               end = max(ex.end)),
                         by = list(id, chr, strand)]
@@ -239,38 +229,42 @@ pipe_exonerateOrphans = function(orphan.blast,
                 cds = exon.cds))
   }
   ########################################################
-  calc_weightedId = function(gff.cds, gff.region){
-    gff.cds$length = with(gff.cds, as.numeric(exon.end) - as.numeric(exon.start))
-    gff.cds$identity = sapply(gff.cds$align.info, function(x)
+  calc_weightedId <- function(gff.cds, gff.region){
+    gff.cds$length <- with(gff.cds, as.numeric(exon.end) - as.numeric(exon.start))
+    gff.cds$identity <- sapply(gff.cds$align.info, function(x)
       as.numeric(gsub(" ","",gsub("identity","",strsplit(x,";", fixed = T)[[1]][3]))))
 
     gff.cds[,tot.len := sum(length),
             by = id]
-    gff.cds$identity = as.numeric(gff.cds$identity)
-    gff.cds$tot.len = as.numeric(gff.cds$tot.len)
-    gff.cds$length = as.numeric(gff.cds$length)
-    gff.cds$wt.id = with(gff.cds, identity * (length/tot.len))
+    gff.cds$identity <- as.numeric(gff.cds$identity)
+    gff.cds$tot.len <- as.numeric(gff.cds$tot.len)
+    gff.cds$length <- as.numeric(gff.cds$length)
+    gff.cds$wt.id <- with(gff.cds, identity * (length/tot.len))
 
-    out = gff.cds[,list(weighted.id = sum(wt.id),
+    out <- gff.cds[,list(weighted.id = sum(wt.id),
                         cds.length = max(tot.len)),
                   by = id]
     setkey(out, id)
     setkey(gff.region, id)
-    ret = merge(gff.region, out)
+    ret <- merge(gff.region, out)
     return(ret)
   }
   ########################################################
-
-  ########################################################
   ########################################################
 
   ########################################################
-  ########################################################
+  has.blast <- sapply(orphan.blast$blast.results, function(x) length(x) > 1)
+  blast.in <- rbindlist(orphan.blast$blast.results[has.blast])
 
-  ########################################################
 
-  has.blast = sapply(orphan.blast$blast.results, function(x) length(x) > 1)
-  blast.in = rbindlist(orphan.blast$blast.results[has.blast])
+  cds.dir = dir.list$cds
+  peptide.dir = dir.list$peptide
+  assembly.dir = dir.list$assembly
+  block.dir = dir.list$block
+  tmp.dir = dir.list$tmp
+
+  bed.list = orphan.blast$bed.list
+  genome.list = orphan.blast$genome.list
   ########################################################
   if (verbose)
     cat("Preparing blast data for exonerate ...\n")
@@ -280,8 +274,8 @@ pipe_exonerateOrphans = function(orphan.blast,
                             cds.dir = cds.dir,
                             peptide.dir = peptide.dir,
                             assembly.dir = assembly.dir)
-  fais = annot$chrlen
-  pep.fastas = annot$peptide
+  fais <- annot$chrlen
+  pep.fastas <- annot$peptide
   if (verbose)
     cat("Done!\n")
 
@@ -304,7 +298,7 @@ pipe_exonerateOrphans = function(orphan.blast,
 
   ########################################################
   if (verbose)
-    cat("\tAdding buffer",buffer,"bp buffer to ends of blast regions\n")
+    cat("\tAdding",buffer,"bp buffer to ends of blast regions ... ")
   hits2exonerate <- add_buffer(bl = hit.reg,
                                fais = fais,
                                buffer = buffer)
@@ -313,8 +307,8 @@ pipe_exonerateOrphans = function(orphan.blast,
 
   ########################################################
   if (verbose)
-    cat("Writing region sequences to file ... \n\tCompleted:\n")
-  locs = pipe_getfasta(bed.dt= hits2exonerate,
+    cat("Writing region sequences to file ... Completed:\n\t")
+  locs <- pipe_getfasta(bed.dt= hits2exonerate,
                        tmp.dir = tmp.dir,
                        ass.dir = assembly.dir,
                        verbose = T)
@@ -323,8 +317,8 @@ pipe_exonerateOrphans = function(orphan.blast,
 
   ########################################################
   if (verbose)
-    cat("Writing peptide sequences to file ... \n\tCompleted:\n")
-  locs = write_peptideByGene(bed.dt= locs,
+    cat("Writing peptide sequences to file ... Completed:\n\t")
+  locs <- write_peptideByGene(bed.dt= locs,
                              tmp.dir = tmp.dir,
                              pep.fastas = pep.fastas,
                              verbose  = T)
@@ -333,18 +327,23 @@ pipe_exonerateOrphans = function(orphan.blast,
 
   ########################################################
   if (verbose)
-    cat("Running exonerate ... \n\tCompleted:\n")
-  exonerate.out = pipe_exonerate(locs)
+    cat("Running exonerate ... Completed:\n\t")
+  exonerate.out <- pipe_exonerate(locs)
   if (verbose)
     cat("Done!\n")
 
   ########################################################
   if (verbose)
     cat("Compiling exonerate results ... ")
-  exon.sum = with(exonerate.out,
+  exon.sum <- with(exonerate.out,
                   calc_weightedId(gff.cds =  gff.cds,
                                   gff.region = gff.region))
   if (verbose)
     cat("Done!\n")
+
+  return(file.locations = locs,
+         proc.blast.hits = hits2exonerate,
+         exonerate.out = exonerate.out,
+         exonerate.summary = exon.sum)
 
 }

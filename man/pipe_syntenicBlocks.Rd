@@ -4,86 +4,41 @@
 \alias{pipe_syntenicBlocks}
 \title{pipe_syntenicBlocks}
 \usage{
-pipe_syntenicBlocks(genomeIDs, dir.list = NULL, peptide.dir = NULL,
-  gff.dir = NULL, tmp.dir = NULL, blast.dir = NULL,
-  block.dir = NULL, cull.blast.dir = NULL, mcscan.dir = NULL,
-  results.dir = NULL, verbose = TRUE, min.block.size = 3,
-  min.unique.hits = min.block.size, plotit = FALSE,
-  min.hit.ratio = 0.2, initial.mergeBuffer = 1, n.cores = 1,
-  final.mergeBuffer = NULL, return.initial = TRUE,
-  return.mcscanRaw = FALSE, return.overlapMerged = FALSE,
-  max.size2merge = 100, clean.by = NULL, gap.multiplier = 8,
+pipe_syntenicBlocks(genomeIDs, dir.list, min.block.size = 3,
+  n.cores = 1, max.size2merge = 1e+06, gap.multiplier = 8,
   mcscan.m.param = NULL, merge.overlaps = F, clean.byDBscan = T,
-  cull.byDBscan = T, cull.byMCscan = T, return.ogblast = T, ...)
+  cull.byDBscan = T, cull.byMCscan = T, return.ogblast = T,
+  verbose = TRUE, ...)
 }
 \arguments{
 \item{genomeIDs}{Character vector of genome IDs to consider}
 
 \item{dir.list}{Directory list, produced by `check_environment`.}
 
-\item{peptide.dir}{Directory containing peptide fasta files}
+\item{min.block.size}{Numeric, minimum required block size}
 
-\item{gff.dir}{Directory containing peptide fasta files}
+\item{max.size2merge}{the maximum block size to merge}
 
-\item{tmp.dir}{Directory containing peptide fasta files}
+\item{gap.multiplier}{Numeric, specification of the -m parameter in
+MCScanX, as a function of the min.block.size.}
 
-\item{blast.dir}{Directory containing peptide fasta files}
+\item{mcscan.m.param}{Numeric, alternative to gap.multiplier to exactly
+specify the MCScanX -m parameter.}
 
-\item{block.dir}{Directory containing peptide fasta files}
+\item{merge.overlaps}{Logical, should overlapping blocks be merged?}
 
-\item{cull.blast.dir}{Directory containing peptide fasta files}
+\item{clean.byDBscan}{Logical, should blocks be merged and cleaned by dbscan?}
 
-\item{mcscan.dir}{Directory containing peptide fasta files}
+\item{cull.byDBscan}{Logical, should blast hits be culled by dbscan?}
 
-\item{results.dir}{Directory containing peptide fasta files}
+\item{cull.byMCscan}{Logical, should blast hits be culled by MCScanX?}
+
+\item{return.ogblast}{Logical, should blast results of all orthogroups be
+returned?}
 
 \item{verbose}{Logical, should updates be printed?}
 
-\item{min.block.size}{Numeric, minimum required block size}
-
-\item{min.unique.hits}{The number of unique hits required in each genome
-for a block to be retained.}
-
-\item{plotit}{Logical, should plots be generated?}
-
-\item{initial.mergeBuffer}{Numeric, the buffer for an initial scan
-to merge overlapping blocks. Should be set to either 0 or 1, unless
-one is ok with sacraficing speed for accuracy, in which case,
-it can be set anywhere up to min.block.size - 1.}
-
-\item{final.mergeBuffer}{Numeric, the buffer to search for blocks to merge
-in the last merge step. Should not exceed min.block.size -1.}
-
-\item{return.initial}{Logical, should the initial orthofinder results
-be returned?}
-
-\item{return.mcscanRaw}{Logical, should the unmerged results from MCScanX
-be returned?}
-
-\item{return.overlapMerged}{Logical, should the overlap-merged
-orthofinder results be returned?}
-
-\item{clean.by}{Character, either 'merge' or 'dbscan'. Alternatively,
-if NULL (default), then merge is used if the min.block.size >=5 and
-dbscan is used if min.block.size< 5. While dbscan method may be a
-bit less sensitive, the massive number of blocks when min.block.size is
-small necessitates a non-iterative cleaning procedure.}
-
 \item{...}{Not in use yet.}
-
-\item{min.hit.density}{Numeric, the proportion of hits possible
-in a block for that block to be retained.}
-
-\item{max.hit.density}{The maximum hit density in a block}
-
-\item{max.propSmallChr2Merge}{Numeric, the maximum size of two blocks to be
-merged is set based on this parameter. If set to 1, entire chromosomes
-may be merged, if set to 0, no merging ever happens. Values between 0 and
-1, result in a maximum block size, equal to the proportion of the number of
-blast hits on the smallest chromosome.}
-
-\item{n.mergeIter}{Numeric, the number of iterations that the merge should
-go through.}
 }
 \value{
 Nothing.

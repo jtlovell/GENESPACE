@@ -17,6 +17,8 @@ process_orthofinder(gff.dir, genomeIDs, blast.dir, mcscan.dir,
 
 \item{blast.dir}{character, directory containing the orthofinder output}
 
+\item{mcscan.dir}{character, directory where MCScanX temporary files should be stored}
+
 \item{str2drop}{character, string in attribute column of gff file to be dropped}
 
 \item{str2parse}{character, string in attribute column of gff file to use as the separator}
@@ -24,17 +26,19 @@ process_orthofinder(gff.dir, genomeIDs, blast.dir, mcscan.dir,
 \item{whichAttr}{numeric, which attribute should be returned in the
 gff attribute column}
 
+\item{cull.byDBscan}{logical, should dbscan-culling be run before block formation?}
+
+\item{cull.byMCscan}{logical, should mcscanx-culling be run before block formation?}
+
+\item{return.ogblast}{logical, should orthogroup blast (unculled) results be returned?}
+
 \item{n.mappingWithinRadius}{numeric, number of hits required to be in the radius}
 
 \item{eps.radius}{numeric, size of the radius}
 
+\item{mcscan.param}{character, parameters to be passed to MCScanX}
+
 \item{verbose}{logical, should updates be reported?}
-
-\item{mcscanx.input.dir}{character, directory where MCScanX temporary files should be stored}
-
-\item{MCScanX.param}{character, parameters to be passed to MCScanX}
-
-\item{pairs.only}{logical, should only pairs of hits in orthofinder output be retained}
 }
 \value{
 Returns a list of length 3, containing:

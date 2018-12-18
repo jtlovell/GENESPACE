@@ -4,12 +4,14 @@
 #'
 #' @param gff.dir character, directory containing the gff3 formatted annotation files
 #' @param blast.dir character, directory containing the orthofinder output
-#' @param mcscanx.input.dir character, directory where MCScanX temporary files should be stored
+#' @param mcscan.dir character, directory where MCScanX temporary files should be stored
 #' @param genomeIDs character, genome identifiers
-#' @param MCScanX.param character, parameters to be passed to MCScanX
+#' @param cull.byDBscan logical, should dbscan-culling be run before block formation?
+#' @param cull.byMCscan logical, should mcscanx-culling be run before block formation?
+#' @param return.ogblast logical, should orthogroup blast (unculled) results be returned?
+#' @param mcscan.param character, parameters to be passed to MCScanX
 #' @param n.mappingWithinRadius numeric, number of hits required to be in the radius
 #' @param eps.radius numeric, size of the radius
-#' @param pairs.only logical, should only pairs of hits in orthofinder output be retained
 #' @param str2drop character, string in attribute column of gff file to be dropped
 #' @param str2parse character, string in attribute column of gff file to use as the separator
 #' @param whichAttr numeric, which attribute should be returned in the

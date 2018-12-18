@@ -11,6 +11,7 @@
 #' consider an overlap. For example, -1 means that the blocks must overlap by
 #' at least 1 gene, and 9 means that blocks that are up to 9 genes apart will be
 #' merged. See details
+#' @param n.cores The number of parallel processes to run.
 #' @param ... Not currently in use
 #' @details This step is crucial to ensure that the MCScanX blocks ar in order.
 #' By default, MCScanX will often join parts of inverted blocks, leading to
@@ -32,9 +33,8 @@
 #' }
 #' @import data.table
 #' @importFrom geometry mesh.drectangle
+#' @import parallel
 #' @export
-#'
-#'
 merge_blocks <- function(blk,
                          map,
                         buffer = 0,
@@ -75,8 +75,6 @@ merge_blocks <- function(blk,
     wh = unique(as.numeric(which(mat<buffer,arr.ind = T)))
     return(unique(rownames(mat)[wh]))
   }
-
-
 
   find_wh2merge = function(mat, buffer){
 

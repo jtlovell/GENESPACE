@@ -4,20 +4,18 @@
 \alias{pipe_exonerateOrphans}
 \title{Run the exonerate program}
 \usage{
-pipe_exonerateOrphans(orphan.blast, bed.list, genome.list, dir.list,
-  cds.dir, peptide.dir, assembly.dir, block.dir, tmp.dir, verbose = T)
+pipe_exonerateOrphans(orphan.blast, dir.list, buffer = 1000,
+  verbose = T)
 }
 \arguments{
-\item{orphan.blast}{The path to the assembly fasta to search}
+\item{orphan.blast}{Results from pipe_orphanBlast}
 
-\item{bed.list}{The path to the directory where the blast results should be stored}
+\item{dir.list}{List of directories, produced by check_environment}
 
-\item{genome.list}{The path to the directory where temporary files will be stored
-then deleted}
+\item{buffer}{numeric, the amount of space around the focal region to feed
+to exonerate.}
 
-\item{cds.dir}{The number of threads for blast run}
-
-\item{peptide.dir}{The number of threads used for orthogroup construction}
+\item{verbose}{Logical, should updates be printed?}
 
 \item{...}{Not currently in use}
 }
