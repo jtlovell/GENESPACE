@@ -183,14 +183,15 @@ pipe_ofInBlk = function(dir.list,
 
   check_blockSize = function(orig.blk, new.blk){
     ob = with(orig.blk,
-              data.table(block.id = block.id,
+              data.table(block.id = as.character(block.id),
                          n.mapping1 = n.mapping))
     nb = with(new.blk,
-              data.table(block.id = block.id,
+              data.table(block.id = as.character(block.id),
                          n.mapping2 = n.mapping))
+
     setkey(ob, block.id)
-    setkey(ob, block.id)
-    m = merge(ob, nb)
+    setkey(nb, block.id)
+    m = merge(ob, nb, by = "block.id")
     m$n.lost = with(m, n.mapping1 - n.mapping2)
     m$n.lost[m$n.lost<0]<-0
     m$n.gained = with(m, n.mapping2 - n.mapping1)
@@ -319,7 +320,6 @@ pipe_ofInBlk = function(dir.list,
   if(verbose)
     cat("Checking blocks\n\t")
 
-
   new.block.meta = check_blockSize(orig.blk = blk,
                                    new.blk = tmp$block)
   drop.these = new.block.meta$block.id[new.block.meta$n.mapping2 < min.block.size]
@@ -340,5 +340,5 @@ pipe_ofInBlk = function(dir.list,
               block = blk.out,
               map = map.out,
               id.list = id.list,
-              all.block.metadata = new.block.meta))
+              all.block.metadata = NA))
 }
