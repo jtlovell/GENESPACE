@@ -248,7 +248,7 @@ pipe_orphanBlast <- function(dir.list,
 
   ########################################################
   if (verbose)
-    cat("Writing block directories, peptide fastas and block sequences ... \n\tCompleted\n\t")
+    cat("Writing block directories, peptide fastas and block sequences ... Completed:\n\t")
   blast.inputs <- prep_seq4blast(block.dir = block.dir,
                                  pep.list = pep.list,
                                  genome.list = genome.list,
