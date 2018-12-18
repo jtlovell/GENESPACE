@@ -123,8 +123,6 @@ run_orthofinder <- function(peptide.dir = NULL,
             sp.id.files,
             seq.id.files)
 
-  print(files)
-
   if (dir.exists(blast.dir))
     unlink(blast.dir, recursive = T)
   if (!dir.exists(blast.dir))
