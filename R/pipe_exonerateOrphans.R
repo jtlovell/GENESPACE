@@ -341,9 +341,9 @@ pipe_exonerateOrphans <- function(orphan.blast,
   if (verbose)
     cat("Done!\n")
 
-  return(file.locations = locs,
+  return(list(file.locations = locs,
          proc.blast.hits = hits2exonerate,
          exonerate.out = exonerate.out,
-         exonerate.summary = exon.sum)
+         exonerate.summary = exon.sum))
 
 }
