@@ -268,8 +268,8 @@ import_blast <- function(species.mappings,
   setkey(gff1, "id1")
   setkey(gff2, "id2")
 
-  spl.gff1 <<- data.table::split(gff1, "genome1")
-  spl.gff2 <<- data.table::split(gff2, "genome2")
+  spl.gff1 <- split(gff1, "genome1")
+  spl.gff2 <- split(gff2, "genome2")
 
   if (verbose)
     cat("Parsing orthogroups\n")
@@ -340,9 +340,6 @@ import_blast <- function(species.mappings,
 
     gf1 <- data.table(spl.gff1[[x[1]]])
     gf2 <- data.table(spl.gff2[[x[2]]])
-
-    print(x)
-    print(bl2)
 
     setkey(bl2, "id2")
     setkey(gf2, "id2")
