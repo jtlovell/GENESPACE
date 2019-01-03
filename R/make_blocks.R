@@ -20,7 +20,8 @@
 make_blocks <- function(map,
                         rerank = T,
                         drop.NAs = F,
-                        rename.blocks = F){
+                        rename.blocks = F,
+                        add.metadata = F){
   map <- data.table(map)
   if(rename.blocks){
     map$block.id <- as.numeric(as.factor(with(map, paste(genome1, genome2, block.id))))
@@ -29,29 +30,54 @@ make_blocks <- function(map,
   setkey(map, chr1, chr2, start1, start2)
   if(rerank){
     map[,rank1 := frank(start1,
-                        ties.method = "dense"),
+                        ties.method = "random"),
         by = list(genome1, genome2, chr1)]
     map[,rank2 := frank(start2,
-                        ties.method = "dense"),
+                        ties.method = "random"),
         by = list(genome1, genome2, chr2)]
   }
   if(drop.NAs){
     map <- map[complete.cases(map),]
   }
 
-  out.blk <- map[,list(chr1 = chr1[1],
-                       chr2 = chr2[1],
-                       start1 = min(start1),
-                       start2 = min(start2),
-                       end1 = max(end1),
-                       end2 = max(end2),
-                       rankstart1 = min(rank1),
-                       rankstart2 = min(rank2),
-                       rankend1 = max(rank1),
-                       rankend2 = max(rank2),
-                       n.mapping = length(score),
-                       orient = ifelse(length(start1) <= 1, "+", ifelse(cor(jitter(start1), jitter(start2)) > 0,"+","-"))),
-                 by = list(block.id, genome1, genome2)]
+  if(!add.metadata){
+    out.blk <- map[,list(chr1 = chr1[1],
+                         chr2 = chr2[1],
+                         start1 = min(start1),
+                         start2 = min(start2),
+                         end1 = max(end1),
+                         end2 = max(end2),
+                         rankstart1 = min(rank1),
+                         rankstart2 = min(rank2),
+                         rankend1 = max(rank1),
+                         rankend2 = max(rank2),
+                         n.mapping = length(score),
+                         orient = ifelse(length(start1) <= 1, "+", ifelse(cor(jitter(start1), jitter(start2)) > 0,"+","-"))),
+                   by = list(block.id, genome1, genome2)]
+  }else{
+    out.blk <- map[,list(chr1 = chr1[1],
+                         chr2 = chr2[1],
+                         start1 = min(start1),
+                         start2 = min(start2),
+                         end1 = max(end1),
+                         end2 = max(end2),
+                         rankstart1 = min(rank1),
+                         rankstart2 = min(rank2),
+                         rankend1 = max(rank1),
+                         rankend2 = max(rank2),
+                         n.mapping = length(score),
+                         n.unique.map1 = length(unique(id1)),
+                         n.unique.map2 = length(unique(id2)),
+                         orient = ifelse(length(start1) <= 1, "+", ifelse(cor(jitter(start1), jitter(start2)) > 0,"+","-"))),
+                   by = list(block.id, genome1, genome2)]
+    out.blk$width1 = with(out.blk, rankend1 - rankstart1)+1
+    out.blk$width2 = with(out.blk, rankend2 - rankstart2)+1
+    out.blk$prop.map1 = with(out.blk, n.unique.map1 / width1)
+    out.blk$prop.map2 = with(out.blk, n.unique.map2 / width2)
+    out.blk$prop.ratio1 = with(out.blk, prop.map1/prop.map2)
+    out.blk$prop.ratio2 = with(out.blk, prop.map2/prop.map1)
+  }
+
 
   map <- data.table(map,
                     stringsAsFactors = F)

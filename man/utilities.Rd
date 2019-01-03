@@ -2,14 +2,11 @@
 % Please edit documentation in R/of_utilities.R
 \name{of_utilities}
 \alias{of_utilities}
-\alias{split.data.table}
 \alias{parse_gff}
+\alias{split.data.table}
 \alias{import_gff}
 \title{Orthofinder utility functions}
 \usage{
-\method{split}{data.table}(x, f, drop = FALSE, by, flatten = FALSE,
-  ...)
-
 parse_gff(gff.file, str2drop = "Name=", str2parse = ";",
   whichAttr = 2)
 
@@ -17,18 +14,6 @@ import_gff(gff.dir, genomeIDs, verbose = T, str2drop = "Name=",
   str2parse = ";", whichAttr = 2)
 }
 \arguments{
-\item{x}{data.table}
-
-\item{f}{factor}
-
-\item{drop}{drop}
-
-\item{by}{factor}
-
-\item{flatten}{non-recursive unlisting}
-
-\item{...}{additional arguments passed to data.table}
-
 \item{gff.file}{character, gff file name and path}
 
 \item{str2drop}{character, string in attribute column of gff file to be dropped}
@@ -85,11 +70,21 @@ gff attribute column}
 \item{of.speciesIDs}{orthofinder species ids, from parse_orthofinder}
 
 \item{of.geneIDs}{orthofinder gene ids, from parse_orthofinder}
+
+\item{x}{data.table}
+
+\item{f}{factor}
+
+\item{by}{factor}
+
+\item{drop}{drop}
+
+\item{flatten}{non-recursive unlisting}
+
+\item{...}{additional arguments passed to data.table}
 }
 \description{
 \code{of_utilities} Several utilities functions meant for internal calls in compareGeneSpace
-
-\code{split.data.table} Much faster than base split.
 
 \code{parse_gff} Much faster parsing and reading of gff3 files than
 bioconductor txdb methods.

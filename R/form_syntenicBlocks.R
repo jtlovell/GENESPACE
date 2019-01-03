@@ -34,11 +34,13 @@ form_syntenicBlocks <- function(genomeIDs,
                                 n.cores = 1,
                                 gap.multiplier = 8,
                                 mcscan.m.param = NULL,
-                                cull.byDBscan = T,
-                                cull.byMCscan = T,
-                                return.ogblast = T,
+                                cull.byDBscan = TRUE,
+                                cull.byMCscan = TRUE,
+                                return.ogblast = TRUE,
                                 verbose = TRUE,
                                 ...){
+
+
 
 
   #######################################################

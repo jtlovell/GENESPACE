@@ -4,22 +4,25 @@
 \alias{run_getfasta}
 \title{Run the exonerate program}
 \usage{
-run_getfasta(bed, bed.file, ass.file, fa.file)
+run_getfasta(bed.dt, tmp.dir, ass.dir, n.cores = 1, verbose = T)
 }
 \arguments{
-\item{bed}{The path to the directory where temporary files will be stored
-then deleted}
+\item{bed.dt}{data.table or data.frame containing bed-formatted coordinates
+to pull. Column names must include "chr", "start", "end", and "reg.name".}
 
-\item{bed.file}{The path to the directory where the blast results should be stored}
+\item{tmp.dir}{directory path to the tempory directory}
 
-\item{ass.file}{The path to the assembly fasta to search}
+\item{ass.dir}{directory path to the assembly fasta files}
 
-\item{fa.file}{The number of threads for blast run}
+\item{n.cores}{numeric, the number of parallel processes to run.}
+
+\item{verbose}{logical, should updates be printed?}
 
 \item{...}{Not currently in use}
 }
 \value{
-Nothing, writes results to the blast.dir directory
+A data.table with the same format as bed.dt, but with an
+additional column with the file path to the fasta file.
 }
 \description{
 \code{run_getfasta} A simple wrapper to run orthofinder from R.

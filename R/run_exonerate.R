@@ -20,45 +20,109 @@
 #' }
 #' @import data.table
 #' @export
-run_exonerate <- function(ass.fasta.file,
-                          pep.fasta.file,
-                          bed,
-                          min.score = 20,
-                          tmp.dir){
+run_exonerate <- function(locs,
+                          verbose = T,
+                          min.score = 20){
 
-
-  out1 = system(paste("exonerate --model protein2genome",
-                      "--score",min.score,
-                      "--softmasktarget --alignmentwidth 1000000",
-                      "--bestn 1",
-                      "--dpmemory 2000 --maxintron 10000",
-                      "--showalignment no --showtargetgff yes --showvulgar no --showcigar no",
-                      '--ryo ">\n%tas\n"',
-                      "--query",pep.fasta.file,
-                      "--target", ass.fasta.file),
-                intern = T)
-
-  if(length(grep("^>", out1))==0){
-    out1 = DNAStringSet("")
-    names(out1) <- bed$id
-    gff1 = data.frame(exon.start = NA,
-                      exon.end = NA,
-                      strand = NA,
-                      align.info = NA)
-    gffo = data.frame(bed,gff1)
-  }else{
-    end = which(out1 == "")[1]+1
-    out1 = out1[1:end]
-    gff1 = do.call(rbind,lapply(out1[grepl(bed$id, out1) & grepl("exon\t", out1)],
-                                function(x) strsplit(x,"\t")[[1]][c(4:5,7,9)]))
-    gff1 = data.frame(gff1,
-                      stringsAsFactors = F)
-    colnames(gff1)<-c("exon.start","exon.end","strand","align.info")
-    gffo = data.frame(bed,gff1)
-
-    wh = grep("^>",out1)+1
-    out1 = DNAStringSet(paste(out1[wh:(length(out1)-2)], collapse = ""))
-    names(out1)<-bed$id
+  ########################################################
+  ########################################################
+  call_exonerate <- function(ass.fasta.file,
+                             pep.fasta.file,
+                             min.score = 20){
+    system(paste("exonerate",
+                 "--model protein2genome",
+                 "--score", min.score,
+                 "--softmasktarget --alignmentwidth 1000000",
+                 "--bestn 1",
+                 "--dpmemory 2000",
+                 "--maxintron 10000",
+                 "--showalignment no ",
+                 "--showtargetgff yes",
+                 "--showvulgar no",
+                 "--showcigar no",
+                 '--ryo ">\n%tas\n"',
+                 "--query", pep.fasta.file,
+                 "--target", ass.fasta.file),
+           intern = T)
   }
-  return(list(cds.seq = out1, gff = gffo))
+  ########################################################
+  ########################################################
+  proc_exonerate <- function(exonerate_output,
+                             bed){
+    exo <- exonerate_output
+
+    if (length(grep("^>", exo)) == 0) {
+      exo <- DNAStringSet("")
+      names(exo) <- bed$id
+      gff1 <- data.frame(exon.start = NA,
+                         exon.end = NA,
+                         strand = NA,
+                         align.info = NA)
+      gffo <- data.frame(bed,
+                         gff1)
+    }else{
+      end <- which(exo == "")[1] + 1
+      exo <- exo[1:end]
+      gff1 <- do.call(rbind,
+                      lapply(exo[grepl(bed$id, exo) &
+                                   grepl("exon\t", exo)], function(x)
+                                     strsplit(x, "\t")[[1]][c(4:5, 7, 9)]))
+      gff1 <- data.frame(gff1,
+                         stringsAsFactors = F)
+      colnames(gff1) <- c("exon.start",
+                          "exon.end",
+                          "strand",
+                          "align.info")
+      gffo <- data.frame(bed, gff1)
+
+      wh <- grep("^>", exo) + 1
+      exo <- DNAStringSet(paste(exo[wh:(length(exo) - 2)],
+                                collapse = ""))
+      names(exo) <- bed$id
+    }
+    return(list(cds.seq = exo,
+                gff = gffo))
+  }
+  ########################################################
+  ########################################################
+
+
+
+  if (verbose) {
+    n <- nrow(locs)
+    nb <- ifelse(n < 1000, 100,
+                 ifelse(n < 5000, 500,
+                        ifelse(n < 10000, 1000, 5000)))
+  }
+
+  exon.out <- lapply(1:nrow(locs), function(i){
+
+    if (verbose)
+      if (i %% nb == 0)
+        cat(i,"/",nrow(locs),"\n\t")
+    x <- locs[i]
+    bedt <- data.frame(x[,c("chr","start","end","reg.name")])
+    colnames(bedt)[4] <- "id"
+
+    exonerate.out <- call_exonerate(ass.fasta.file = x$fa.file,
+                                    pep.fasta.file = x$pep.file,
+                                    min.score = min.score)
+    exon <- proc_exonerate(exonerate_output = exonerate.out,
+                           bed = bedt)
+
+    return(exon)
+  })
+  exon.cds <- do.call(c, lapply(exon.out, function(x) x$cds.seq))
+  gff.gene <- rbindlist(lapply(exon.out, function(x) x$gff))
+  gff.gene$ex.start <- with(gff.gene,
+                            as.numeric(start) + as.numeric(exon.start))
+  gff.gene$ex.end <- with(gff.gene,
+                          as.numeric(start) + as.numeric(exon.end))
+  gff.out <- gff.gene[,list(start = min(ex.start),
+                            end = max(ex.end)),
+                      by = list(id, chr, strand)]
+
+  return(list(gff.region = gff.out,
+              gff.cds = gff.gene,
+              cds = exon.cds))
 }

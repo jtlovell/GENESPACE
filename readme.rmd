@@ -94,9 +94,9 @@ Within R, install genespace
 install.packages("geometry")
 install.packages("dbscan")
 install.packages("data.table")
-library(devtools)
-devtools::build("/global/projectb/scratch/jtlovell/test_genespace/GENESPACE")
-devtools::install("/global/projectb/scratch/jtlovell/test_genespace/GENESPACE")
+  library(devtools)
+  devtools::build("/global/projectb/scratch/jtlovell/test_genespace/GENESPACE")
+  devtools::install("/global/projectb/scratch/jtlovell/test_genespace/GENESPACE")
 ```
 
 If you are not on NERSC, you can do this instead.

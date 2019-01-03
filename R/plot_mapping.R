@@ -24,6 +24,7 @@ plot_mapping <- function(cols = NULL,
                          map,
                          genomes = NULL,
                          return.coords = F,
+                         col.by.annot = F,
                          ...){
   if(is.null(cols))
     cols <- rep_len(c("red3", "salmon", "darkorange3", "gold",

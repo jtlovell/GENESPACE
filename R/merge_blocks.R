@@ -3,15 +3,17 @@
 #' @description
 #' \code{merge_blocks} Checks for overlaps between blocks and merges accordingly.
 #'
-#' @param map the map object
-#' @param blk the block object
-#' @param verbose logical, should updates be printed?
+#' @param map the map data.table or data.frame
+#' @param blk the block data.table or data.frame
 #' @param max.size2merge numeric the maximum sized block to be merged
 #' @param buffer the number of gene hits away from the bound of the block to
 #' consider an overlap. For example, -1 means that the blocks must overlap by
 #' at least 1 gene, and 9 means that blocks that are up to 9 genes apart will be
 #' merged. See details
+#' @param n.iter the number of iterations to run
 #' @param n.cores The number of parallel processes to run.
+#' @param ignore.orient Logical, should orientation of blocks be ignored?
+#' @param verbose logical, should updates be printed?
 #' @param ... Not currently in use
 #' @details This step is crucial to ensure that the MCScanX blocks ar in order.
 #' By default, MCScanX will often join parts of inverted blocks, leading to
@@ -37,127 +39,210 @@
 #' @export
 merge_blocks <- function(blk,
                          map,
-                        buffer = 0,
-                        verbose = T,
-                        n.cores = 1,
-                        max.size2merge = 1e6){
+                         max.size2merge = 1e6,
+                         buffer = 0,
+                         n.iter = 5,
+                         verbose = T,
+                         ignore.orient = T,
+                         n.cores = 1){
 
-  make_ovlMatrix = function(x, buffer, n.cores){
+  blk <- data.table(blk)
+  map <- data.table(map)
 
-    mat = do.call(cbind,mclapply(x$block.id, mc.cores = n.cores, function(i){
-      sapply(x$block.id, function(j){
-        p <- x[x$block.id == i,]
-        o1 <- min(mesh.drectangle(p = rbind(
-          as.numeric(x[x$block.id == j,c("rankstart1","rankstart2")]),
-          as.numeric(x[x$block.id == j,c("rankend1","rankend2")]),
-          as.numeric(x[x$block.id == j,c("rankend1","rankstart2")]),
-          as.numeric(x[x$block.id == j,c("rankstart1","rankend2")]),
-          as.numeric(x[x$block.id == j,c("rankstart1","rankstart2")]),
-          as.numeric(x[x$block.id == j,c("rankend1","rankstart2")])),
-          x1 = p$rankstart1,
-          x2 = p$rankend1,
-          y1 = p$rankstart2,
-          y2 = p$rankend2))
-        return(o1)
-      })
-    }))
-    colnames(mat)<-rownames(mat) <-x$block.id
-    diag(mat) <- buffer + 1
-    mat1 = mat
-    mat2 = t(mat)
-    mato = mat1
-    mato[mato>mat2]<-mat2[mato>mat2]
-    mato[lower.tri(mato)] <- buffer + 1
-    return(mato)
-  }
+  buffer.b <- buffer.a <- buffer
 
-  find_all2keep = function(mat, buffer){
-    wh = unique(as.numeric(which(mat<buffer,arr.ind = T)))
-    return(unique(rownames(mat)[wh]))
-  }
 
-  find_wh2merge = function(mat, buffer){
+  check_ifBlksOvlp <- function(a, b, buffer.a, buffer.b){
 
-    wh <- which(mat <= buffer,
-                arr.ind = T)
-
-    if(nrow(wh) > 1){
-      u = as.numeric(t(wh))
-      u = unique(u[duplicated(u)])
-      for(k in u){
-        u2 = as.numeric(t(wh))
-        u2 = unique(u2[duplicated(u2)])
-        if(k %in% u2){
-          rows = which(wh == k, arr.ind = T)[,1]
-          rows = rows[rows != min(rows)]
-          wh = wh[-rows,]
-        }
-      }
-      if(length(wh) == 2){
-        out = cbind(colnames(mat)[wh[1]],
-                    colnames(mat)[wh[2]])
-
-      }else{
-        out = do.call(rbind,lapply(1:nrow(wh), function(k){
-          colnames(mat)[wh[k,]]
-        }))
-      }
-    }else{
-      out = cbind(colnames(mat)[wh[1]],
-                  colnames(mat)[wh[2]])
+    check_ovlp <- function(a0, a1, b0, b1) {
+      (a0 <= b1 & b1 <= a1) ||
+        (a0 <= b0 & b0 <= a1) ||
+        (a0 >= b0 & a1 <= b1) | (a0 <= b0 & a1 >= b1)
     }
+
+    ovlp.x <- check_ovlp(a[1] - buffer.a,
+                         a[3] + buffer.a,
+                         b[1] - buffer.b,
+                         b[3] + buffer.b)
+
+    ovlp.y <- check_ovlp(a[2] - buffer.a,
+                         a[4] + buffer.a,
+                         b[2] - buffer.b,
+                         b[4] + buffer.b)
+
+    return(ovlp.x & ovlp.y)
+  }
+
+
+  make_ovlMatrix <- function(block,
+                             buffer.a,
+                             buffer.b,
+                             n.cores = 1,
+                             verbose = T){
+
+    mbuff <- max(c(buffer.a,
+                   buffer.b))
+
+    if (verbose)
+      cat("Generating list of block coordinates\n")
+
+    block$unique.chr <- with(block,
+                             paste(genome1, genome2,
+                                   chr1, chr2))
+
+    spl.block <- split(block, "unique.chr")
+
+    spl.coord <- mclapply(spl.block, mc.cores = n.cores, function(x){
+      tmp <- data.matrix(x[,c("rankstart1","rankstart2",
+                              "rankend1","rankend2")])
+      rownames(tmp) <- x$block.id
+      return(tmp)
+    })
+
+    if (verbose)
+      cat("Generating distance matrix between blocks\n")
+
+    ovl.out <- mclapply(spl.coord, mc.cores = n.cores, function(x){
+      if (nrow(x) == 1) {
+        out <- matrix(FALSE)
+        rownames(out) <- colnames(out) <- rownames(x)
+        return(out)
+      }else{
+        spl.mat <- sapply(rownames(x), function(i){
+          sapply(rownames(x), function(j){
+            check_ifBlksOvlp(a = x[i,],
+                             b = x[j,],
+                             buffer.a = buffer.a,
+                             buffer.b = buffer.b)
+          })
+        })
+
+        rownames(spl.mat) <- colnames(spl.mat) <- rownames(x)
+        mat1 <- spl.mat
+        mat2 <- t(spl.mat)
+        mato <- mat1
+        mato[mat2] <- TRUE
+        diag(mato) <- FALSE
+        return(mato)
+      }
+    })
+    return(ovl.out)
+  }
+
+  find_wh2merge <- function(mat.list,
+                            n.cores = 1){
+    mclapply(mat.list,  mc.cores = n.cores, function(mat){
+
+      wh <- which(mat,
+                  arr.ind = T)
+
+      if (nrow(wh) > 1) {
+        u <- as.numeric(t(wh))
+        u <- unique(u[duplicated(u)])
+        for (k in u) {
+          u2 <- as.numeric(t(wh))
+          u2 <- unique(u2[duplicated(u2)])
+          if (k %in% u2) {
+            rows <- which(wh == k,
+                          arr.ind = T)[,1]
+            rows <- rows[rows != min(rows)]
+            wh <- wh[-rows,]
+          }
+        }
+        if (length(wh) == 2) {
+          out <- cbind(colnames(mat)[wh[1]],
+                      colnames(mat)[wh[2]])
+
+        }else{
+          out <- do.call(rbind,lapply(1:nrow(wh), function(k){
+            colnames(mat)[wh[k,]]
+          }))
+        }
+      }else{
+        out <- cbind(colnames(mat)[wh[1]],
+                    colnames(mat)[wh[2]])
+      }
+      return(out)
+    })
+  }
+
+  process_whlistMap <- function(wh.list,
+                                map,
+                                blk){
+    wh.out <- data.table(do.call(rbind, wh.list))
+    wh.out <- wh.out[complete.cases(wh.out), ]
+    wh.tmp <- data.table(wh.out)
+    wh.tmp$V1 <- wh.tmp$V2
+    wh.out <- rbind(wh.out, wh.tmp)
+    setnames(wh.out, c("block.id", "new.block"))
+
+    ob <- blk[!blk$block.id %in% c(wh.out$block.id, wh.out$new.block),]
+    wh.out <- rbind(data.frame(block.id = ob$block.id,
+                               new.block = ob$block.id),
+                    wh.out)
+
+    wh.out$block.id <- as.character(wh.out$block.id)
+    map$block.id <- as.character(map$block.id)
+    setkey(map, block.id)
+    setkey(wh.out, block.id)
+
+    m <- merge(wh.out, map)
+    m$block.id <- m$new.block
+    m$new.block <- NULL
+    out <- make_blocks(m,
+                       rename.blocks = T,
+                       rerank = T)
     return(out)
   }
 
-
-  blk$unique = with(blk, paste(genome1, genome2, chr1, chr2))
-  map$unique = with(map, paste(genome1, genome2, chr1, chr2))
-
-  blk2check = blk$block.id[blk$n.mapping <= max.size2merge]
-  n.inu = table(blk$unique)
-  single = names(n.inu)[n.inu == 1]
-  drop.these.blocks = blk$block.id[blk$unique %in% single]
-  blk2check = blk2check[!blk2check %in% drop.these.blocks]
-  k = 1
-  while(length(blk2check > 0)){
-    cat("Iteration",k,"... ",nrow(blk),"--> ")
-    k = k+1
-    sblk = split.data.table(blk[blk$block.id %in% blk2check,], "unique")
-    smap = split.data.table(map[map$block.id %in% blk2check,], "unique")
-
-    ovl.list = sapply(names(sblk),USE.NAMES = T, simplify = F, function(i){
-      return(make_ovlMatrix(x = sblk[[i]], buffer = buffer, n.cores = 8))
-    })
-
-    do.merge = names(ovl.list[sapply(ovl.list,min) <= buffer])
-
-    wh.list = sapply(do.merge, USE.NAMES = T, simplify = F, function(i){
-        find_wh2merge(mat = ovl.list[[i]],
-                      buffer = buffer)
-    })
-
-    blk2check = unique(unlist(lapply(do.merge, function(i)
-      find_all2keep(mat = ovl.list[[i]],
-                    buffer = buffer))))
-
-    wh.out = do.call(rbind, wh.list)
-    if(!is.null(wh.out)){
-      for(i in 1:nrow(wh.out)){
-        map$block.id[map$block.id %in% wh.out[i,]]<-wh.out[i,1]
-      }
-      out = make_blocks(map, rename.blocks = F, rerank = T)
-      map = data.table(out$map)
-      blk = data.table(out$block)
-      blk$unique = with(blk, paste(genome1, genome2, chr1, chr2))
-      map$unique = with(map, paste(genome1, genome2, chr1, chr2))
-
-      n.inu = table(blk$unique)
-      single = names(n.inu)[n.inu == 1]
-      drop.these.blocks = blk$block.id[blk$unique %in% single]
-      cat(nrow(blk),"blocks\n")
+  if (verbose)
+    cat("Merging blocks with an gene rank overlap of",
+        buffer.a,
+        "...\n\t")
+  for (i in 1:n.iter) {
+    if(verbose)
+      cat("Iteration", i, "...",
+          nrow(blk), "--> ")
+    if (ignore.orient) {
+      ovl.out <- make_ovlMatrix(block = blk[blk$n.mapping <= max.size2merge,],
+                                n.cores = n.cores,
+                                buffer.a = buffer.a,
+                                buffer.b = buffer.b,
+                                verbose = F)
+      wh.list <- find_wh2merge(ovl.out,
+                               n.cores = n.cores)
     }else{
-      cat("no merging possible\n")
+      ovl.out <- make_ovlMatrix(block = blk[blk$n.mapping <= max.size2merge &
+                                              blk$orient == "+",],
+                                n.cores = n.cores,
+                                buffer.a = buffer.a,
+                                buffer.b = buffer.b,
+                                verbose = F)
+      wh.list1 <- find_wh2merge(ovl.out,
+                                n.cores = n.cores)
+      ovl.out <- make_ovlMatrix(block = blk[blk$n.mapping <= max.size2merge &
+                                              blk$orient == "-",],
+                                n.cores = n.cores,
+                                buffer.a = buffer.a,
+                                buffer.b = buffer.b,
+                                verbose = F)
+      wh.list2 <- find_wh2merge(ovl.out,
+                                n.cores = n.cores)
+      for (i in unique(names(wh.list1), names(wh.list2))) {
+        wh.list[[i]] <- rbind(wh.list1[[i]], wh.list2[[i]])
+      }
     }
+
+    mb <- process_whlistMap(wh.list = wh.list,
+                            map = map, blk = blk)
+    map <- mb$map
+    blk <- mb$block
+
+    if (verbose)
+      cat(nrow(blk),"\n\t")
   }
-  return(list(map = map, block = blk))
+
+  if (verbose)
+    cat("Done!\n")
+  return(mb)
 }

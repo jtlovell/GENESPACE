@@ -4,18 +4,17 @@
 \alias{run_exonerate}
 \title{Run the exonerate program}
 \usage{
-run_exonerate(ass.fasta.file, pep.fasta.file, bed, min.score = 20,
-  tmp.dir)
+run_exonerate(locs, verbose = T, min.score = 20)
 }
 \arguments{
+\item{min.score}{The number of threads for blast run}
+
 \item{ass.fasta.file}{The path to the assembly fasta to search}
 
 \item{pep.fasta.file}{The path to the directory where the blast results should be stored}
 
 \item{bed}{The path to the directory where temporary files will be stored
 then deleted}
-
-\item{min.score}{The number of threads for blast run}
 
 \item{tmp.dir}{The number of threads used for orthogroup construction}
 

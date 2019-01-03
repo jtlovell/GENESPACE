@@ -6,23 +6,31 @@
 \usage{
 run_orthofinder(peptide.dir = NULL, tmp.dir, blast.dir,
   blast.threads = 16, og.threads = 1, verbose = T, og.silent = F,
-  ...)
+  remake.pep.only = F, ...)
 }
 \arguments{
-\item{peptide.dir}{The path to the directory containing the peptide fasta sequence files}
+\item{peptide.dir}{The path to the directory containing
+the peptide fasta sequence files. If NULL, the orthofinder algorithm is
+run on pre-existing blast results.}
 
-\item{tmp.dir}{The path to the directory where temporary files will be stored
-then deleted}
+\item{tmp.dir}{The path to the directory where temporary
+files will be stored then deleted}
 
-\item{blast.dir}{The path to the directory where the blast results should be stored}
+\item{blast.dir}{The path to the directory where the blast
+results should be stored}
 
-\item{blast.threads}{The number of threads for blast run}
+\item{blast.threads}{Numeric, how many parallel threads
+should be used for blast?}
 
-\item{og.threads}{The number of threads used for orthogroup construction}
+\item{og.threads}{Numeric, how many parallel threads
+should be used for orthogroup construction}
 
 \item{verbose}{Logical, should updates be printed.}
 
-\item{og.silent}{Should orthofinder stout be suppressed?}
+\item{og.silent}{Logical, should orthofinder stout be suppressed?}
+
+\item{remake.pep.only}{Logical, should the process be stopped once peptide
+files are re-formatted?}
 
 \item{...}{Not currently in use}
 }

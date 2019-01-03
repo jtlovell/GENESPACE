@@ -59,32 +59,6 @@
 #' If called, \code{of_utilities} returns its own arguments.
 #'
 
-#' @title Fast split of data.table
-#' @description
-#' \code{split.data.table} Much faster than base split.
-#' @rdname utilities
-#' @import data.table
-#' @export
-split.data.table <- function(x,
-                             f,
-                             drop = FALSE,
-                             by,
-                             flatten = FALSE,
-                             ...){
-  if(missing(by) && !missing(f)) by = f
-  stopifnot(!missing(by), is.character(by), is.logical(drop), is.logical(flatten), !".ll" %in% names(x), by %in% names(x), !"nm" %in% by)
-  if(!flatten){
-    .by = by[1L]
-    tmp = x[, list(.ll=list(.SD)), by = .by, .SDcols = if(drop) setdiff(names(x), .by) else names(x)]
-    setattr(ll <- tmp$.ll, "names", tmp[[.by]])
-    if(length(by) > 1L) return(lapply(ll, split.data.table, drop = drop, by = by[-1L])) else return(ll)
-  } else {
-    tmp = x[, list(.ll=list(.SD)), by=by, .SDcols = if(drop) setdiff(names(x), by) else names(x)]
-    setattr(ll <- tmp$.ll, 'names', tmp[, .(nm = paste(.SD, collapse = ".")), by = by, .SDcols = by]$nm)
-    return(ll)
-  }
-}
-
 #' @title Fast reading of gff3 files
 #' @description
 #' \code{parse_gff} Much faster parsing and reading of gff3 files than
@@ -290,8 +264,8 @@ import_blast <- function(species.mappings,
   setkey(gff1, "id1")
   setkey(gff2, "id2")
 
-  spl.gff1 <- split.data.table(gff1, "genome1")
-  spl.gff2 <- split.data.table(gff2, "genome2")
+  spl.gff1 <- split(gff1, "genome1")
+  spl.gff2 <- split(gff2, "genome2")
 
   if (verbose)
     cat("Parsing orthogroups\n")
@@ -491,7 +465,7 @@ cull_blastByDBS <- function(blast,
 
   map <- blast.cull
   map$unique <- with(map, paste(genome1, genome2))
-  spl <- split.data.table(map, "unique")
+  spl <- split(map, "unique")
   out <- rbindlist(lapply(spl, function(x){
     if (verbose)
       cat(paste0("\t",
@@ -545,7 +519,7 @@ cull_blastByMCS <- function(blast,
   blast.results$unique = with(blast.results,
                               paste(genome1, genome2))
   mcscan.cull <- rbindlist(
-    lapply(split.data.table(blast.results, "unique"), function(x){
+    lapply(split(blast.results, "unique"), function(x){
       if (verbose)
         cat(paste0("\t", x$genome1[1]), "-->", x$genome2[1],
             paste0("(initial hits = ", nrow(x), ") "))
@@ -587,7 +561,7 @@ make_MCSBlocks <- function(blast,
   abbrevs <- paste0(LETTERS, letters)[1:length(genomeIDs)]
 
   blast.results <- blast
-  spl <- split.data.table(blast.results, "unique")
+  spl <- split(blast.results, "unique")
   comb <- combn(genomeIDs, 2, simplify = F)
 
   mcscan.list <- lapply(1:length(comb), function(i){
@@ -671,7 +645,7 @@ split_gffByBlock <- function(blk,
     cat("Splitting gff into",
         nrow(blk), "blocks ... ")
 
-  sgff <- split.data.table(gff, "unique")
+  sgff <- split(gff, "unique")
   gffo <- lapply(1:nrow(blk), function(i){
     btmp <- blk[i,]
     g1 <- sgff[[btmp$unique1]]
