@@ -20,52 +20,22 @@
 #' @import data.table
 #' @export
 pipe_exonerateOrphans <- function(orphan.blast,
-                                 dir.list,
-                                 buffer = 1e3,
-                                 verbose = T){
+                                  dir.list,
+                                  buffer = 1e3,
+                                  verbose = T){
 
   ########################################################
-  pipe_getfasta <- function(bed.dt, tmp.dir, ass.dir,
-                           verbose = T){
-    if(dir.exists(tmp.dir))
-      unlink(tmp.dir, recursive = T)
-    dir.create(tmp.dir)
 
-    n <- nrow(bed.dt)
-    nb <- ifelse(n < 1000, 100,
-                 ifelse(n < 5000, 500,
-                        ifelse(n < 10000, 1000, 5000)))
 
-    fa.locs <- sapply(1:nrow(bed.dt), function(i){
-      if (verbose)
-        if (i %% nb == 0)
-          cat(i,"/",nrow(bed.dt),"\n\t")
-
-      x <- bed.dt[i,]
-      bed <- x[,c("chr","start","end","reg.name")]
-      ass.file <- file.path(assembly.dir,paste0(x$genome,".fa"))
-      fa.file <- file.path(tmp.dir,paste0(x$reg.name,".fa"))
-      bed.file <- file.path(tmp.dir,paste0(x$reg.name,".bed"))
-      run_getfasta(bed = bed,
-                   ass.file = ass.file,
-                   fa.file = fa.file,
-                   bed.file = bed.file)
-      return(fa.file)
-    })
-    bed.dt$fa.file <- fa.locs
-    return(bed.dt)
-  }
   ########################################################
   write_peptideByGene <- function(pep.fastas,
-                                 tmp.dir,
-                                 bed.dt,
-                                 verbose  = T){
-    if (verbose) {
-      n <- nrow(bed.dt)
-      nb <- ifelse(n < 1000, 100,
-                   ifelse(n < 5000, 500,
-                          ifelse(n < 10000, 1000, 5000)))
-    }
+                                  tmp.dir,
+                                  bed.dt,
+                                  verbose = T){
+    if (verbose)
+      nb <- ifelse(nrow(bed.dt) < 1000, 100,
+                   ifelse(nrow(bed.dt) < 5000, 500,
+                          ifelse(nrow(bed.dt) < 10000, 1000, 5000)))
 
     ids <- unique(bed.dt$id)
 
@@ -154,8 +124,8 @@ pipe_exonerateOrphans <- function(orphan.blast,
   }
   ########################################################
   make_blastRegion <- function(bl,
-                              max.dist2besthit = 5e3,
-                              min.blk.dist2drop = 1e6){
+                               max.dist2besthit = 5e3,
+                               min.blk.dist2drop = 1e6){
 
     # -- pull the best hits
     bl[,rank := frank(neg.score, ties.method = "random"),
@@ -172,10 +142,10 @@ pipe_exonerateOrphans <- function(orphan.blast,
 
     # --  Generate new coordinates for hits, spanning small gaps
     bi <- bo[,list(start = min(start),
-                  end = max(end),
-                  mean.score = mean(score),
-                  mean.length = mean(abs(length))),
-            by = list(genome, chr, block.id, id)]
+                   end = max(end),
+                   mean.score = mean(score),
+                   mean.length = mean(abs(length))),
+             by = list(genome, chr, block.id, id)]
     bi$length <- with(bi, end-start)
 
     # toss identical hits
@@ -193,42 +163,6 @@ pipe_exonerateOrphans <- function(orphan.blast,
     return(bo)
   }
   ########################################################
-  pipe_exonerate <- function(locs,
-                             verbose = T,
-                             min.score = 20){
-    if (verbose) {
-      n <- nrow(locs)
-      nb <- ifelse(n < 1000, 100,
-                   ifelse(n < 5000, 500,
-                          ifelse(n < 10000, 1000, 5000)))
-    }
-
-    exon.out <- lapply(1:nrow(locs), function(i){
-      if (verbose)
-        if (i %% nb == 0)
-          cat(i,"/",nrow(locs),"\n\t")
-      x <- locs[i]
-      bedt <- data.frame(x[,c("chr","start","end","reg.name")])
-      colnames(bedt)[4] <- "id"
-      exon <- run_exonerate(ass.fasta.file = x$fa.file,
-                           pep.fasta.file = x$pep.file,
-                           bed = bedt,
-                           min.score = min.score,
-                           tmp.dir = tmp.dir)
-      return(exon)
-    })
-    exon.cds <- do.call(c, lapply(exon.out, function(x) x$cds.seq))
-    gff.gene <- rbindlist(lapply(exon.out, function(x) x$gff))
-    gff.gene$ex.start <- with(gff.gene, as.numeric(start)+as.numeric(exon.start))
-    gff.gene$ex.end <- with(gff.gene, as.numeric(start)+as.numeric(exon.end))
-    gff.out <- gff.gene[,list(start = min(ex.start),
-                              end = max(ex.end)),
-                        by = list(id, chr, strand)]
-    return(list(gff.region = gff.out,
-                gff.cds = gff.gene,
-                cds = exon.cds))
-  }
-  ########################################################
   calc_weightedId <- function(gff.cds, gff.region){
     gff.cds$length <- with(gff.cds, as.numeric(exon.end) - as.numeric(exon.start))
     gff.cds$identity <- sapply(gff.cds$align.info, function(x)
@@ -242,8 +176,8 @@ pipe_exonerateOrphans <- function(orphan.blast,
     gff.cds$wt.id <- with(gff.cds, identity * (length/tot.len))
 
     out <- gff.cds[,list(weighted.id = sum(wt.id),
-                        cds.length = max(tot.len)),
-                  by = id]
+                         cds.length = max(tot.len)),
+                   by = id]
     setkey(out, id)
     setkey(gff.region, id)
     ret <- merge(gff.region, out)
@@ -308,10 +242,10 @@ pipe_exonerateOrphans <- function(orphan.blast,
   ########################################################
   if (verbose)
     cat("Writing region sequences to file ... Completed:\n\t")
-  locs <- pipe_getfasta(bed.dt= hits2exonerate,
-                       tmp.dir = tmp.dir,
-                       ass.dir = assembly.dir,
-                       verbose = T)
+  locs <- run_getfasta(bed.dt= hits2exonerate,
+                        tmp.dir = tmp.dir,
+                        ass.dir = assembly.dir,
+                        verbose = T)
   if (verbose)
     cat("Done!\n")
 
@@ -319,9 +253,9 @@ pipe_exonerateOrphans <- function(orphan.blast,
   if (verbose)
     cat("Writing peptide sequences to file ... Completed:\n\t")
   locs <- write_peptideByGene(bed.dt= locs,
-                             tmp.dir = tmp.dir,
-                             pep.fastas = pep.fastas,
-                             verbose  = T)
+                              tmp.dir = tmp.dir,
+                              pep.fastas = pep.fastas,
+                              verbose  = T)
   if (verbose)
     cat("Done!\n")
 
@@ -336,14 +270,14 @@ pipe_exonerateOrphans <- function(orphan.blast,
   if (verbose)
     cat("Compiling exonerate results ... ")
   exon.sum <- with(exonerate.out,
-                  calc_weightedId(gff.cds =  gff.cds,
-                                  gff.region = gff.region))
+                   calc_weightedId(gff.cds =  gff.cds,
+                                   gff.region = gff.region))
   if (verbose)
     cat("Done!\n")
 
   return(list(file.locations = locs,
-         proc.blast.hits = hits2exonerate,
-         exonerate.out = exonerate.out,
-         exonerate.summary = exon.sum))
+              proc.blast.hits = hits2exonerate,
+              exonerate.out = exonerate.out,
+              exonerate.summary = exon.sum))
 
 }

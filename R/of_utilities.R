@@ -82,6 +82,7 @@ parse_gff <- function(gff.file,
   return(g)
 }
 
+
 #' @title import gff annotation
 #' @description
 #' \code{import_gff} wrapper for parse_gff
@@ -132,6 +133,8 @@ import_ofResults <- function(gff,
                              blast.dir,
                              verbose = T,
                              genomeIDs){
+  gff <- data.table(gff)
+
   if (verbose)
     cat("Importing orthofinder results:\n\t")
   gz <- list.files(blast.dir,
@@ -252,6 +255,7 @@ import_blast <- function(species.mappings,
                          gene.index,
                          gff){
 
+  gene.index <- data.table(gene.index)
   if (verbose)
     cat("Parsing gff annotations\n")
 
@@ -264,8 +268,8 @@ import_blast <- function(species.mappings,
   setkey(gff1, "id1")
   setkey(gff2, "id2")
 
-  spl.gff1 <- split(gff1, "genome1")
-  spl.gff2 <- split(gff2, "genome2")
+  spl.gff1 <<- data.table::split(gff1, "genome1")
+  spl.gff2 <<- data.table::split(gff2, "genome2")
 
   if (verbose)
     cat("Parsing orthogroups\n")
@@ -334,10 +338,15 @@ import_blast <- function(species.mappings,
         cat("\t",nrow(bl2), "hits in orthogroups\n")
     }
 
-    gf1 <- spl.gff1[[x[1]]]
-    gf2 <- spl.gff2[[x[2]]]
+    gf1 <- data.table(spl.gff1[[x[1]]])
+    gf2 <- data.table(spl.gff2[[x[2]]])
+
+    print(x)
+    print(bl2)
 
     setkey(bl2, "id2")
+    setkey(gf2, "id2")
+    setkey(gf1, "id1")
     blo <- merge(gf2, bl2)
     setkey(blo, "id1")
     blo2 <- merge(gf1, blo)
