@@ -58,11 +58,11 @@ form_syntenicBlocks <- function(genomeIDs,
   if (verbose)
     cat("##########\n# - Part 1: Parsing orthofinder ...\n#\tProgress:\n")
 
-  if(!is.null(mcscan.m.param)){
+  if (!is.null(mcscan.m.param)) {
     mcsp <- paste("-a -s", min.block.size,
                   "-m", mcscan.m.param,
                   "-w 2 -e 1")
-  }else{
+  } else {
     mcsp <- paste("-a -s", min.block.size,
                   "-m", min.block.size*gap.multiplier,
                   "-w 2 -e 1")
