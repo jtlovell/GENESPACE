@@ -121,7 +121,8 @@ form_syntenicBlocks <- function(genomeIDs,
   synteny.results <- pipe_mcs(blast = blast,
                               gff = gffc,
                               mcscan.dir = mcscan.dir,
-                              mcscan.param = mcsp)
+                              mcscan.param = mcsp,
+                              verbose = F)
 
   blk <- synteny.results$block
   map <- synteny.results$map
