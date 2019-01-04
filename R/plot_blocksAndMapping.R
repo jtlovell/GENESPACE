@@ -36,6 +36,8 @@ plot_blocksAndMapping <- function(map,
                                   colorSegment = T,
                                   ...){
 
+  blk <- data.frame(blk)
+  map <- data.frame(map)
 
   tpb <- blk[blk$genome1 == ref.id &
                blk$genome2 == altGenome2plot,]

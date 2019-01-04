@@ -62,17 +62,21 @@ plot_linkedCircos <- function(blk,
                               genome_id2.col = "grey50",
                               track.height = 0.05,
                               adjust.alpha = F,
+                              link.alpha = .6,
                               ...){
 
-  add.alpha <- function(col, alpha=1){
-    if(missing(col))
+  blk <- data.table(blk)
+
+  add.alpha <- function(col, alpha = 1){
+    if (missing(col))
       stop("Please provide a vector of colours.")
+
     apply(sapply(col, col2rgb)/255, 2,
           function(x)
             rgb(x[1],
                 x[2],
                 x[3],
-                alpha=alpha))
+                alpha = alpha))
   }
 
   fai1 <- read.delim(file.path(assembly.dir,
@@ -81,6 +85,7 @@ plot_linkedCircos <- function(blk,
                      header = F,
                      stringsAsFactors = F,
                      col.names = c("chr","length","v1","v2","v3"))[,1:2]
+
   fai1 <- fai1[fai1$chr %in% chrs1,]
   rownames(fai1) <- fai1$chr
   fai1 <- fai1[chrs1,]
@@ -92,6 +97,7 @@ plot_linkedCircos <- function(blk,
                      header = F,
                      stringsAsFactors = F,
                      col.names = c("chr","length","v1","v2","v3"))[,1:2]
+
   fai2 <- fai2[fai2$chr %in% chrs2,]
   rownames(fai2) <- fai2$chr
   fai2 <- fai2[chrs2,]
@@ -105,6 +111,7 @@ plot_linkedCircos <- function(blk,
   setkey(blk,
          chr1, chr2,
          start1, start2)
+
   blk <- data.frame(blk,
                     stringsAsFactors = F)
   b0 <- blk[with(blk, (genome1 == genome_id1 |
@@ -114,23 +121,25 @@ plot_linkedCircos <- function(blk,
   b1 <- b0[with(b0, genome1 == genome_id1),]
   b2 <- b0[with(b0, genome1 == genome_id2),]
 
-  good_colnames <- c("genome1","genome2",
-                     "chr1","chr2",
-                     "start1","start2",
-                     "end1","end2","orient")
-  colnames_2switch <- c("genome2","genome1",
-                        "chr2","chr1",
-                        "start2","start1",
-                        "end2","end1","orient")
-  if(nrow(b2) == 0){
-    bed <- b1[,good_colnames]
+  good_colnames <- c("genome1", "genome2",
+                     "chr1", "chr2",
+                     "start1", "start2",
+                     "end1", "end2",
+                     "orient")
+  colnames_2switch <- c("genome2", "genome1",
+                        "chr2", "chr1",
+                        "start2", "start1",
+                        "end2", "end1",
+                        "orient")
+  if (nrow(b2) == 0) {
+    bed <- b1[, good_colnames]
   }else{
-    if(nrow(b1)==0){
-      bed <- b2[,colnames_2switch]
+    if (nrow(b1) == 0) {
+      bed <- b2[, colnames_2switch]
       colnames(bed) <- good_colnames
     }else{
-      b1t <- b1[,good_colnames]
-      b2t <- b2[,colnames_2switch]
+      b1t <- b1[, good_colnames]
+      b2t <- b2[, colnames_2switch]
       colnames(b2t) <- good_colnames
       bed <- rbind(b1t, b2t)
     }
@@ -149,7 +158,7 @@ plot_linkedCircos <- function(blk,
   bed$e1 <- NULL
 
 
-  if(adjust.alpha){
+  if (adjust.alpha) {
     alpha.scale <- function(x){
       ifelse(x > 5e6,.6,
              ifelse(x > 1e6,.4,
@@ -158,42 +167,47 @@ plot_linkedCircos <- function(blk,
     }
   }else{
     alpha.scale <- function(x){
-      return(.6)
+      return(link.alpha)
     }
   }
 
-  bed1 <- with(bed,data.frame(chr = chr1,
-                              start = start1,
-                              end = end1,
-                              value = alpha.scale(abs(start1 - end1)),
-                              color = NA,
-                              stringsAsFactors = F))
-  bed2 = with(bed,data.frame(chr = chr2,
-                             start = start2,
-                             end = end2,
-                             value = alpha.scale(abs(start2 - end2)),
-                             color = NA,
-                             stringsAsFactors = F))
-  for(i in 1:length(chrs1)){
+  bed1 <- with(bed,
+               data.frame(chr = chr1,
+                          start = start1,
+                          end = end1,
+                          value = alpha.scale(abs(start1 - end1)),
+                          color = NA,
+                          stringsAsFactors = F))
+  bed2 = with(bed,
+              data.frame(chr = chr2,
+                         start = start2,
+                         end = end2,
+                         value = alpha.scale(abs(start2 - end2)),
+                         color = NA,
+                         stringsAsFactors = F))
+  for (i in 1:length(chrs1)) {
     bed1$color[bed1$chr == chrs1[i]] <- fais$color[fais$chr == chrs1[i] &
                                                      fais$genome == genome_id1]
     bed1$chr[bed1$chr == chrs1[i]] <- chrs1_abbrev[i]
   }
 
-  for(i in 1:length(chrs2)){
+  for (i in 1:length(chrs2)) {
     bed2$color[bed2$chr == chrs2[i]] <- fais$color[fais$chr == chrs2[i] &
                                                      fais$genome == genome_id2]
     bed2$chr[bed2$chr == chrs2[i]] <- chrs2_abbrev[i]
   }
 
   bed1$link.col <- sapply(1:nrow(bed1), function(x)
-    add.alpha(bed1$color[x], bed1$value[x]))
+    add.alpha(bed1$color[x],
+              bed1$value[x]))
   bed2$link.col <- sapply(1:nrow(bed2), function(x)
-    add.alpha(bed2$color[x], bed2$value[x]))
+    add.alpha(bed2$color[x],
+              bed2$value[x]))
 
   linkcols <- bed1$link.col
 
-  fais$color <- ifelse(fais$genome == genome_id1, genome_id1.col, genome_id2.col)
+  fais$color <- ifelse(fais$genome == genome_id1,
+                       genome_id1.col, genome_id2.col)
 
   # bed1 = rbind(bed1, bed2)
   init <- data.frame(name = fais$sector_names,
@@ -214,5 +228,4 @@ plot_linkedCircos <- function(blk,
                      col = linkcols,
                      border = NA)
   circos.clear()
-
 }
