@@ -116,8 +116,22 @@ process_orthofinder <- function(gff.dir,
   }
 
   if(cull.byMCscan){
-    cull.mcs <- pipe_mcs(blast = cull.dbs,
-                         gff = gff,
+
+    gff.tmp <- gff
+    gff.tmp$genome <- paste0(gff.tmp$genome,"xxxx")
+    gff.tmp$id <- paste0(gff.tmp$id,"xxxx")
+    gffc <- rbind(gff, gff.tmp)
+
+    genomeIDs <- c(genomeIDs, paste0(genomeIDs, "xxxx"))
+
+    bl.dif <- cull.dbs[cull.dbs$genome1 != cull.dbs$genome2,]
+    bl.same <- cull.dbs[cull.dbs$genome1 == cull.dbs$genome2,]
+    bl.same$id2 <- paste0(bl.same$id2, "xxxx")
+    bl.same$genome2 <- paste0(bl.same$genome2, "xxxx")
+    blast <- rbind(bl.dif, bl.same)
+
+    cull.mcs <- pipe_mcs(blast = blast,
+                         gff = gffc,
                          mcscan.dir = mcscan.dir,
                          mcscan.param = mcscan.param)
   }else{

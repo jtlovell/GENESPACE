@@ -29,7 +29,17 @@ prep_mcs <- function(blast,
                      mcscan.param,
                      silent.mcs){
 
-  gff$genome = factor(gff$genome, levels = genomeIDs)
+  if(length(unique(gff$genome))==1){
+    ga = gff
+    gb = gff
+    ga$genome <- "a"
+    gb$genome <- "b"
+    gff <- rbind(gb, ga)
+    gff$genome = factor(gff$genome, levels = c("a","b"))
+  }else{
+    gff$genome = factor(gff$genome, levels = genomeIDs)
+  }
+
   setkey(gff, genome)
 
   gff[,chr.num := frank(chr, ties.method = "dense"),

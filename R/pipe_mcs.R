@@ -32,7 +32,7 @@ pipe_mcs <- function(blast,
   if("block.id" %in% colnames(blast))
     blast$block.id<-NULL
 
-  spl = split.data.table(blast, "unique")
+  spl = split(blast, "unique")
 
   out <- rbindlist(lapply(spl, function(x){
     genomes = c(x$genome1[1],x$genome2[2])

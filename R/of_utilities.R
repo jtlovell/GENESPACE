@@ -169,8 +169,8 @@ import_ofResults <- function(gff,
                           si$genome,
                           stringsAsFactors = F))
   colnames(sm) <- c("n1","n2","genome1","genome2")
-  sm <- sm[sm$genome1 != sm$genome2,]
-  sm$ref <- NA
+  # sm <- sm[sm$genome1 != sm$genome2,]
+  # sm$ref <- NA
   for (i in rev(genomeIDs))
     sm$ref[sm$genome1 == i | sm$genome2 == i] <- i
   sm$alt <- ifelse(sm$genome1 == sm$ref, sm$genome2, sm$genome1)
@@ -252,6 +252,7 @@ import_blast <- function(species.mappings,
                          verbose = T,
                          orthogroups,
                          import.all = F,
+                         only.intergenomic = T,
                          gene.index,
                          gff){
 
@@ -282,6 +283,16 @@ import_blast <- function(species.mappings,
                    id = unlist(g2),
                    stringsAsFactors = F)
   setkey(g1, "id")
+
+  if (only.intergenomic) {
+    setkey(gff, "id")
+    g1a = merge(gff, g1)
+    g1a[, n.genomes := length(unique(genome)),
+        by = list(og)]
+    g1a <- g1a[g1a$n.genomes > 1,]
+    g1 <- g1[g1$id %in% g1a$id, ]
+  }
+
   setkey(gene.index, "id")
   g1 <- merge(g1, gene.index)
   g2 <- data.table(g1)
@@ -296,20 +307,33 @@ import_blast <- function(species.mappings,
     cat("Importing BLAST results\n")
   sm <- species.mappings
   comb <- combn(genomeIDs, 2, simplify = F)
+  if(!only.intergenomic){
+    for(i in genomeIDs){
+      comb[[length(comb)+1]]<-rep(i,2)
+    }
+  }
+
+
   blast <- rbindlist(lapply(comb, function(x){
     if (verbose)
       cat(paste0("\t" ,x[1]), "-->",
           x[2], "")
     smo <- sm[sm$ref == x[1] & sm$alt == x[2],]
     smo <- smo[order(smo$map.rank),]
-    suppressWarnings(b1 <- fread(smo$filename[1],
-                                 showProgress = F))
-    suppressWarnings(b2 <- fread(smo$filename[2],
-                                 showProgress = F))
-    b2 <- data.table(b2[, c(2, 1, 3:6, 9:10, 7:8, 11:12)])
-    setnames(b2, colnames(b1))
+    if(nrow(smo) == 1){
+      suppressWarnings(blast.in <- fread(smo$filename[1],
+                                   showProgress = F))
+    }else{
+      suppressWarnings(b1 <- fread(smo$filename[1],
+                                   showProgress = F))
+      suppressWarnings(b2 <- fread(smo$filename[2],
+                                   showProgress = F))
+      b2 <- data.table(b2[, c(2, 1, 3:6, 9:10, 7:8, 11:12)])
+      setnames(b2, colnames(b1))
 
-    blast.in <- rbind(b1, b2)
+      blast.in <- rbind(b1, b2)
+    }
+
     setnames(blast.in, c("gn1", "gn2", "perc.iden",
                          "align.length", "n.mismatch",
                          "n.gapOpen", "q.start", "q.end",

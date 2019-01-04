@@ -18,7 +18,7 @@
 import_ofResults(gff, blast.dir, verbose = T, genomeIDs)
 
 import_blast(species.mappings, genomeIDs, verbose = T, orthogroups,
-  import.all = F, gene.index, gff)
+  import.all = F, only.intergenomic = T, gene.index, gff)
 
 merge_gffBlast(gff, blast, verbose = T)
 

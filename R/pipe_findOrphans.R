@@ -34,11 +34,48 @@ pipe_findOrphans = function(blk,
                           blk,
                           gene.index,
                           n.cores = 1){
-    out <- mclapply(1:nrow(blk), mc.cores = n.cores, function(i)
-      pull_gff(gff = gff,
-               blk.line = blk[i,],
-               gene.index = gene.index))
-    names(out) <- blk$block.id
+
+    gids = with(blk, unique(c(genome1, genome2)))
+    cmb <- combn(genomeIDs, 2)
+
+    out <- apply(cmb, 2, function(gs){
+
+      g1 <- gs[1]
+      g2 <- gs[2]
+
+      if (verbose)
+        cat(paste0("\t", g1),"-->",
+            g2,"\n")
+
+      gff.tmp <- gff[gff$genome %in% gs,]
+      blk.tmp <- blk[blk$genome1 %in% gs &
+                       blk$genome2 %in% gs,]
+      blk.tmp$unique = with(blk.tmp, paste(genome1, genome2, chr1, chr2))
+      blk.tmp$unique1 = with(blk.tmp, paste(genome1, chr1))
+      blk.tmp$unique2 = with(blk.tmp, paste(genome2, chr2))
+      gff.tmp$unique = with(gff.tmp, paste(genome, chr))
+      gene.index.tmp <- gene.index[gene.index$id %in% gff.tmp$id,]
+
+      spl.blk <- split(blk.tmp, "unique")
+      spl.gff <- lapply(spl.blk, function(x)
+        gff.tmp[gff.tmp$unique %in% x$unique1 |
+                  gff.tmp$unique %in% x$unique2,])
+      names(spl.gff)<-names(spl.blk)
+      spl.gene.index = lapply(spl.gff, function(x)
+        gene.index.tmp[gene.index.tmp$id %in% x$id,])
+      names(spl.gene.index)<-names(spl.blk)
+
+      out.tmp <- mclapply(1:nrow(blk.tmp), mc.cores = n.cores, function(i){
+        bu = blk.tmp$unique[i]
+        return(pull_gff(gff = spl.gff[[bu]],
+                 blk.line = blk.tmp[i,],
+                 gene.index = spl.gene.index[[bu]]))
+      })
+      names(out.tmp) <- blk.tmp$block.id
+      return(out.tmp)
+    })
+    out <- unlist(out,
+                  recursive = F)
     return(out)
   }
   ########################################################
@@ -125,7 +162,7 @@ pipe_findOrphans = function(blk,
     tmp <- gffog[!gffog$complete,]
     tmp$unique.block <- with(tmp,
                              paste0(genome, "_", block.id))
-    spl.gff <- split.data.table(tmp, "og.id")
+    spl.gff <- split(tmp, "og.id")
     return(spl.gff)
   }
   ########################################################
@@ -180,7 +217,7 @@ pipe_findOrphans = function(blk,
                           gene.index = gene.index,
                           n.cores = n.cores)
   if (verbose)
-    cat("Done!\n")
+    cat("\tDone!\n")
 
   ########################################################
   if (verbose)

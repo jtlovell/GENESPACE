@@ -21,16 +21,43 @@ split.data.table <- function(x,
                              by,
                              flatten = FALSE,
                              ...){
-  if(missing(by) && !missing(f)) by = f
-  stopifnot(!missing(by), is.character(by), is.logical(drop), is.logical(flatten), !".ll" %in% names(x), by %in% names(x), !"nm" %in% by)
-  if(!flatten){
+  if (missing(by) &&
+     !missing(f))
+    by = f
+
+  stopifnot(!missing(by),
+            is.character(by),
+            is.logical(drop),
+            is.logical(flatten),
+            !".ll" %in% names(x),
+            by %in% names(x),
+            !"nm" %in% by)
+
+  if (!flatten) {
     .by = by[1L]
-    tmp = x[, list(.ll=list(.SD)), by = .by, .SDcols = if(drop) setdiff(names(x), .by) else names(x)]
-    setattr(ll <- tmp$.ll, "names", tmp[[.by]])
-    if(length(by) > 1L) return(lapply(ll, split.data.table, drop = drop, by = by[-1L])) else return(ll)
+    tmp = x[, list(.ll = list(.SD)),
+            by = .by,
+            .SDcols = if (drop) setdiff(names(x), .by) else names(x)]
+    setattr(ll <- tmp$.ll,
+            "names",
+            tmp[[.by]])
+    if (length(by) > 1L) {
+      return(lapply(ll,
+                    split.data.table,
+                    drop = drop,
+                    by = by[-1L]))
+    } else {
+      return(ll)
+    }
   } else {
-    tmp = x[, list(.ll=list(.SD)), by=by, .SDcols = if(drop) setdiff(names(x), by) else names(x)]
-    setattr(ll <- tmp$.ll, 'names', tmp[, .(nm = paste(.SD, collapse = ".")), by = by, .SDcols = by]$nm)
+    tmp = x[, list(.ll = list(.SD)),
+            by = by,
+            .SDcols = if (drop) setdiff(names(x), by) else names(x)]
+    setattr(ll <- tmp$.ll,
+            'names',
+            tmp[, .(nm = paste(.SD, collapse = ".")),
+                by = by,
+                .SDcols = by]$nm)
     return(ll)
   }
 }
