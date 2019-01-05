@@ -103,32 +103,12 @@ build_syntenicBlocks <- function(genomeIDs,
                   "-w 2")
   }
 
-  gff.tmp <- gff
-  gff.tmp$genome <- paste0(gff.tmp$genome,"xxxx")
-  gff.tmp$id <- paste0(gff.tmp$id,"xxxx")
-  gffc <- rbind(gff, gff.tmp)
-
-  blast <- init.results$blast$map
-
-  bl.dif <- blast[blast$genome1 != blast$genome2,]
-
-  bl.same <- blast[blast$genome1 == blast$genome2,]
-  bl.same$id2 <- paste0(bl.same$id2, "xxxx")
-  bl.same$genome2 <- paste0(bl.same$genome2, "xxxx")
-
-  blast <- rbind(bl.dif, bl.same)
 
   synteny.results <- pipe_mcs(blast = blast,
-                              gff = gffc,
+                              gff = gff,
                               mcscan.dir = mcscan.dir,
                               mcscan.param = mcsp,
-                              verbose = F)
-
-  blk <- synteny.results$block
-  map <- synteny.results$map
-  map$genome2 <- gsub("xxxx", "",  map$genome2)
-  map$id2 <- gsub("xxxx", "",  map$id2)
-  synteny.results <- make_blocks(map)
+                              verbose = T)
 
   #######################################################
   #######################################################

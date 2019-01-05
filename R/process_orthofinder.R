@@ -94,7 +94,7 @@ process_orthofinder <- function(gff.dir,
     blast.dir = blast.dir,
     verbose = verbose)
 
-  blast <- import_blast(
+  blast <- import_ofBlast(
     species.mappings = of.blast$species.mappings,
     genomeIDs = genomeIDs,
     orthogroups = of.blast$orthogroups,
@@ -103,38 +103,26 @@ process_orthofinder <- function(gff.dir,
     verbose = verbose)
 
   if(cull.byDBscan){
-    cull.dbs <- cull_blastByDBS(blast = blast,
-                                n.mappingWithinRadius = n.mappingWithinRadius,
-                                eps.radius = eps.radius,
-                                verbose = T)
+    cull.dbs <- cull_blastByDBS(
+      blast = blast,
+      n.mappingWithinRadius = n.mappingWithinRadius,
+      eps.radius = eps.radius,
+      verbose = T)
   }else{
-    cull.dbs <- cull_blastByDBS(blast = blast,
-                                n.mappingWithinRadius = n.mappingWithinRadius,
-                                eps.radius = eps.radius,
-                                verbose = F,
-                                run.it = F)
+    cull.dbs <- cull_blastByDBS(
+      blast = blast,
+      n.mappingWithinRadius = n.mappingWithinRadius,
+      eps.radius = eps.radius,
+      verbose = F,
+      run.it = F)
   }
 
   if(cull.byMCscan){
-
-    gff.tmp <- gff
-    gff.tmp$genome <- paste0(gff.tmp$genome,"xxxx")
-    gff.tmp$id <- paste0(gff.tmp$id,"xxxx")
-    gffc <- rbind(gff, gff.tmp)
-
-    genomeIDs <- c(genomeIDs, paste0(genomeIDs, "xxxx"))
-
-    bl.dif <- cull.dbs[cull.dbs$genome1 != cull.dbs$genome2,]
-    bl.same <- cull.dbs[cull.dbs$genome1 == cull.dbs$genome2,]
-    bl.same$id2 <- paste0(bl.same$id2, "xxxx")
-    bl.same$genome2 <- paste0(bl.same$genome2, "xxxx")
-    blast <- rbind(bl.dif, bl.same)
-
-    cull.mcs <- pipe_mcs(blast = blast,
-                         gff = gffc,
+    cull.mcs <- pipe_mcscanx(blast = cull.dbs,
+                         gff = gff,
                          mcscan.dir = mcscan.dir,
                          mcscan.param = mcscan.param)
-  }else{
+    }else{
     cull.mcs <- cull.dbs
   }
 
