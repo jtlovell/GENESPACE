@@ -4,7 +4,7 @@
 \alias{run_getfasta}
 \title{Run the exonerate program}
 \usage{
-run_getfasta(bed.dt, tmp.dir, ass.dir, n.cores = 1, verbose = T)
+run_getfasta(bed.dt, tmp.dir, assembly.dir, n.cores = 1, verbose = T)
 }
 \arguments{
 \item{bed.dt}{data.table or data.frame containing bed-formatted coordinates
@@ -12,7 +12,7 @@ to pull. Column names must include "chr", "start", "end", and "reg.name".}
 
 \item{tmp.dir}{directory path to the tempory directory}
 
-\item{ass.dir}{directory path to the assembly fasta files}
+\item{assembly.dir}{directory path to the assembly fasta files}
 
 \item{n.cores}{numeric, the number of parallel processes to run.}
 

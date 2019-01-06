@@ -20,18 +20,18 @@
 #' @import Biostrings
 #' @import parallel
 #' @export
-pipe_orphanBlast <- function(dir.list,
-                             genomeIDs,
-                             orphan.metadata,
-                             n.cores = 6,
-                             verbose = T){
+blast_orphans <- function(dir.list,
+                          genomeIDs,
+                          orphan.metadata,
+                          n.cores = 6,
+                          verbose = T){
 
   ########################################################
   ########################################################
   split_pepByOrphan <- function(orphan.md,
                                 pep.fastas,
                                 n.cores){
-    spl <- split.data.table(orphan.md, "unique.block")
+    spl <- split(orphan.md, "unique.block")
 
     pep.list <- mclapply(spl, mc.cores = n.cores, function(x){
       id <- x$gene2map
@@ -77,7 +77,7 @@ pipe_orphanBlast <- function(dir.list,
     md <- orphan.md[,c("chr","start","end","unique.block","genome")]
     setnames(md, 4, "id")
     md <- md[!duplicated(md), ]
-    out.bed <- split.data.table(md[ ,1:4, with = F], "id")
+    out.bed <- split(md[ ,1:4, with = F], "id")
     out.genome <- split(md$genome, md$id)
 
     return(list(bed.list = out.bed,
@@ -142,26 +142,6 @@ pipe_orphanBlast <- function(dir.list,
       return(blk.metadata)
     }))
     return(blk.md)
-  }
-  ########################################################
-  ########################################################
-  run_diamondBlastx <- function(db.file,
-                                pep.fa,
-                                fa.file,
-                                blast.file,
-                                max.target.seqs = 10000,
-                                min.score = 20,
-                                diamond.blastx.param = "--quiet"){
-    system(paste("diamond makedb --quiet",
-                 "--in", pep.fa,
-                 "-d", db.file))
-    system(paste("diamond blastx",
-                 "--max-target-seqs", max.target.seqs,
-                 "--min-score", min.score,
-                 diamond.blastx.param,
-                 "-d", db.file,
-                 "-q", fa.file,
-                 "-o", blast.file))
   }
   ########################################################
   ########################################################

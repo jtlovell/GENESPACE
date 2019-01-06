@@ -19,10 +19,10 @@
 #' }
 #' @import data.table
 #' @export
-pipe_exonerateOrphans <- function(orphan.blast,
-                                  dir.list,
-                                  buffer = 1e3,
-                                  verbose = T){
+exonerate_orphans <- function(orphan.blast,
+                              dir.list,
+                              buffer = 1e3,
+                              verbose = T){
 
   ########################################################
 
@@ -242,10 +242,11 @@ pipe_exonerateOrphans <- function(orphan.blast,
   ########################################################
   if (verbose)
     cat("Writing region sequences to file ... Completed:\n\t")
-  locs <- run_getfasta(bed.dt= hits2exonerate,
-                        tmp.dir = tmp.dir,
-                        ass.dir = assembly.dir,
-                        verbose = T)
+
+  locs <- run_getfasta(bed.dt = hits2exonerate,
+                       tmp.dir = tmp.dir,
+                       assembly.dir = assembly.dir,
+                       verbose = T)
   if (verbose)
     cat("Done!\n")
 
@@ -262,7 +263,7 @@ pipe_exonerateOrphans <- function(orphan.blast,
   ########################################################
   if (verbose)
     cat("Running exonerate ... Completed:\n\t")
-  exonerate.out <- pipe_exonerate(locs)
+  exonerate.out <- run_exonerate(locs)
   if (verbose)
     cat("Done!\n")
 

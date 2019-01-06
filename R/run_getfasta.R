@@ -6,7 +6,7 @@
 #' @param bed.dt data.table or data.frame containing bed-formatted coordinates
 #' to pull. Column names must include "chr", "start", "end", and "reg.name".
 #' @param tmp.dir directory path to the tempory directory
-#' @param ass.dir directory path to the assembly fasta files
+#' @param assembly.dir directory path to the assembly fasta files
 #' @param n.cores numeric, the number of parallel processes to run.
 #' @param verbose logical, should updates be printed?
 #' @param ... Not currently in use
@@ -23,7 +23,7 @@
 #' @export
 run_getfasta <- function(bed.dt,
                          tmp.dir,
-                         ass.dir,
+                         assembly.dir,
                          n.cores = 1,
                          verbose = T){
 

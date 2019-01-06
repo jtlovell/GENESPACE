@@ -1,7 +1,7 @@
 #' @title Find orphan genes
 #'
 #' @description
-#' \code{pipe_findOrphans} Search orthofinder output for genes withou
+#' \code{build_orthoNetworks} Search orthofinder output for genes withou
 #' hits in one of the blocks in the network.
 #'
 #' @param blk block results data.table
@@ -20,7 +20,7 @@
 #' }
 #' @import data.table
 #' @export
-pipe_findOrphans = function(blk,
+build_orthoNetworks <- function(blk,
                             gff,
                             gene.index,
                             dir.list,
@@ -180,11 +180,12 @@ pipe_findOrphans = function(blk,
   ########################################################
   ########################################################
   find_orphan <- function(gff.incomplete,
-                          blk.md){
+                          spl.blk.md){
     ublk = unique(gff.incomplete$block.id)
     uublk = unique(gff.incomplete$unique.block)
 
-    xmd <- blk.md[blk.md$block.id %in% ublk, ]
+
+    xmd <- rbindlist(spl.blk.md[ublk])
     xmd <- xmd[!xmd$unique.block %in% uublk, ]
     xmd$gene2map <- gff.incomplete$id[which.max(gff.incomplete$length)]
     xmd$og.id <- gff.incomplete$og.id[1]
@@ -195,8 +196,9 @@ pipe_findOrphans = function(blk,
   run_findOrphans <- function(spl.gff,
                               blk.md,
                               n.cores = 1){
+    spl.blk.md <- split(blk.md, "block.id")
     y <- rbindlist(mclapply(spl.gff, mc.cores = n.cores, function(x){
-      find_orphan(gff.incomplete = x, blk.md = blk.md)
+      find_orphan(gff.incomplete = x, spl.blk.md = spl.blk.md)
     }))
 
     setkey(y, unique.block, block.id, genome)
@@ -211,7 +213,7 @@ pipe_findOrphans = function(blk,
   ########################################################
   ########################################################
   if (verbose)
-    cat("Pulling gff file for each block ... ")
+    cat("Pulling gff file for each block ... \n")
   gff.wNum <- run_pullGff(gff = gff,
                           blk = blk,
                           gene.index = gene.index,

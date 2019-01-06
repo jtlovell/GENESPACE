@@ -289,7 +289,7 @@ find_syntenicOrthogs <- function(map,
   #######################################################
 
   #######################################################
-  all.blast <- import_blast(
+  all.blast <- import_ofBlast(
     species.mappings = of.blast$species.mappings,
     genomeIDs = genomeIDs,
     orthogroups = of.blast$orthogroups,
@@ -308,16 +308,18 @@ find_syntenicOrthogs <- function(map,
     g = strsplit(x,"_")[[1]]
     g1 = g[1]
     g2 = g[2]
-    if(verbose)
-      cat("\t",g1,"-->",g2,"... ")
-    wh = which(sapply(gs.idlist, function(y) y[1] %in% g & y[2] %in% g))
-    tmp = convert_blast2blk(id.list = id.list[[wh]],
-                            blast = spl[[x]],
-                            n.cores = 6)
-    if (verbose)
-      cat("Done!\n")
+    if(g1 != g2){
+      if(verbose)
+        cat("\t",g1,"-->",g2,"... ")
+      wh = which(sapply(gs.idlist, function(y) y[1] %in% g & y[2] %in% g))
+      tmp = convert_blast2blk(id.list = id.list[[wh]],
+                              blast = spl[[x]],
+                              n.cores = 6)
+      if (verbose)
+        cat("Done!\n")
 
-    return(tmp)
+      return(tmp)
+    }
   })
   #######################################################
 
