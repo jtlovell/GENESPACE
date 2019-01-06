@@ -119,9 +119,9 @@ process_orthofinder <- function(gff.dir,
 
   if(cull.byMCscan){
     cull.mcs <- pipe_mcscanx(blast = cull.dbs,
-                         gff = gff,
-                         mcscan.dir = mcscan.dir,
-                         mcscan.param = mcscan.param)
+                             gff = gff,
+                             mcscan.dir = mcscan.dir,
+                             mcscan.param = mcscan.param)
     }else{
     cull.mcs <- cull.dbs
   }
@@ -133,6 +133,6 @@ process_orthofinder <- function(gff.dir,
   }
   return(list(gff = gff,
               ortho.info = of.blast,
-              blast = cull.mcs,
+              blast = cull.mcs$map,
               orthogroup.blast = ogblast))
 }

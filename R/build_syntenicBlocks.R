@@ -84,8 +84,8 @@ build_syntenicBlocks <- function(genomeIDs,
     mcscan.param = mcsp,
     return.ogblast = return.ogblast)
 
-  gff <- init.results$gff
-
+  gff <- data.table(init.results$gff)
+  blast <- data.table(init.results$blast)
   #######################################################
 
   #######################################################
@@ -104,11 +104,11 @@ build_syntenicBlocks <- function(genomeIDs,
   }
 
 
-  synteny.results <- pipe_mcs(blast = blast,
-                              gff = gff,
-                              mcscan.dir = mcscan.dir,
-                              mcscan.param = mcsp,
-                              verbose = T)
+  synteny.results <- pipe_mcscanx(blast = blast,
+                                  gff = gff,
+                                  mcscan.dir = mcscan.dir,
+                                  mcscan.param = mcsp,
+                                  verbose = T)
 
   #######################################################
   #######################################################
