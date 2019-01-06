@@ -26,18 +26,6 @@ cull_blastByDBS <- function(blast,
                             run.it = T){
   #######################################################
   #######################################################
-  run_dbs <- function(y,
-                      eps.radius,
-                      mappings){
-    nn <- frNN(data.frame(y[, c("rank1", "rank2"), with = F]),
-               eps = eps.radius)
-    dbs <- dbscan(nn,
-                  minPts = mappings)
-    y$cluster <- dbs$cluster
-    return(y)
-  }
-  #######################################################
-  #######################################################
 
   #######################################################
   blast.cull <- blast
