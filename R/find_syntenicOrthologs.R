@@ -254,7 +254,7 @@ find_syntenicOrthogs <- function(map,
                            species.index = species.index,
                            verbose = T)
 
-  gene.lists = c(gene.lists, gene.listsi)
+  gene.lists = c(gene.lists, gene.lists)
   id.list = lapply(gene.lists, function(x) x$id.list)
   names(id.list)<-apply(combn(genomeIDs, 2),2, function(x) paste(x, collapse = "_"))
   gs.idlist = lapply(names(id.list), function(x) strsplit(x,"_")[[1]])

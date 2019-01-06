@@ -63,9 +63,6 @@ pipe_mcscanx <- function(blast,
     blast.in = blast[,c("id1","id2","perc.iden","align.length",
                         "n.mismatch","n.gapOpen", "q.start", "q.end",
                         "s.start", "s.end","eval","score")]
-
-    print(gff.in)
-    print(blast.in)
     write.table(gff.in,
                 file = file.path(mcscan.dir,"xyz.gff"),
                 row.names = F,
@@ -82,7 +79,6 @@ pipe_mcscanx <- function(blast,
       com <- paste("MCScanX", mcscan.param, file.path(mcscan.dir,"xyz"))
     }
 
-    print(com)
     system(com)
     return(file.path(mcscan.dir,"xyz"))
   }
