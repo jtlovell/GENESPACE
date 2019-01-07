@@ -36,9 +36,8 @@ import_ofBlast <- function(species.mappings,
                                    genome2 == genomeID2) |
                                   (genome2 == genomeID1 &
                                      genome1 == genomeID2)),]
-    sm <- sm[order(sm$n1), ]
+    sm <- sm[order(sm$map.rank), ]
     filenames<- sm$filename
-    filenames <- filenames[]
     if(length(filenames) == 1){
       suppressWarnings(
         blast.in <- fread(filenames,
