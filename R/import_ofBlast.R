@@ -25,6 +25,10 @@ import_ofBlast <- function(species.mappings,
                            gene.index,
                            gff,
                            verbose = T,
+                           only.orthologs = T,
+                           min.score = NULL,
+                           prop.topscore = NULL,
+                           top.n = NULL,
                            ...){
   #######################################################
   #######################################################
@@ -68,6 +72,10 @@ import_ofBlast <- function(species.mappings,
                             parsed.ogs,
                             gff1,
                             gff2,
+                            min.score,
+                            only.orthologs,
+                            prop.topscore,
+                            top.n,
                             verbose = T){
     # - Drop duplicates
     blast <- data.table(blast)
@@ -90,7 +98,33 @@ import_ofBlast <- function(species.mappings,
     setkey(bl1, "gn1")
     bl2 <- merge(g1, bl1)
 
-    blast <- data.table(bl2[with(bl2, og1 == og2),])
+    if(only.orthologs){
+      blast <- data.table(bl2[with(bl2, og1 == og2),])
+    }else{
+      blast <- bl2
+    }
+
+    if(!is.null(min.score)){
+      blast <- blast[blast$score > min.score,]
+    }
+
+    if(!is.null(prop.topscore)){
+      blast[,bestscore1 := max(score),
+            by = id1]
+      blast[,bestscore2 := max(score),
+            by = id2]
+      blast$propscore1 <- blast$score / blast$bestscore1
+      blast$propscore2 <- blast$score / blast$bestscore2
+      blast <- blast[with(blast, propscore1 >= prop.topscore | propscore2 >= prop.topscore),]
+    }
+
+    if(!is.null(top.n)){
+      blast[,rankscore1 := frank(-score, ties.method = "dense"),
+            by = id1]
+      blast[,rankscore2 := frank(-score, ties.method = "dense"),
+            by = id2]
+      blast <- blast[with(blast, rankscore1 <= top.n | rankscore2 <= top.n),]
+    }
 
     if (verbose)
       cat("\t",nrow(blast), "hits in orthogroups ... ")
@@ -196,7 +230,11 @@ import_ofBlast <- function(species.mappings,
     blast <- parse_ofBlast(blast = blast,
                            parsed.ogs = gs,
                            gff1 = spl.gff1[[x[1]]],
-                           gff2 = spl.gff2[[x[2]]])
+                           gff2 = spl.gff2[[x[2]]],
+                           only.orthologs = only.orthologs,
+                           prop.topscore = prop.topscore,
+                           min.score = min.score,
+                           top.n = top.n)
     return(blast)
   }))
   if(verbose)

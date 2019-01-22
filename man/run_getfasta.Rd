@@ -4,7 +4,8 @@
 \alias{run_getfasta}
 \title{Run the exonerate program}
 \usage{
-run_getfasta(bed.dt, tmp.dir, assembly.dir, n.cores = 1, verbose = T)
+run_getfasta(bed.dt, write.dir, tmp.dir, assembly.dir, n.cores = 1,
+  verbose = T)
 }
 \arguments{
 \item{bed.dt}{data.table or data.frame containing bed-formatted coordinates

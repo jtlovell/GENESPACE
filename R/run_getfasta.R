@@ -22,12 +22,16 @@
 #' @import data.table
 #' @export
 run_getfasta <- function(bed.dt,
+                         write.dir,
                          tmp.dir,
                          assembly.dir,
                          n.cores = 1,
                          verbose = T){
+  setnames(bed.dt,
+           c("chr","start","end","genome","name"))
 
-  bed.dt <- data.table(bed.dt)
+  bed.dt$start <- bed.dt$start - 1
+  bed.dt$end <- bed.dt$end - 1
 
   ########################################################
   ########################################################
@@ -46,41 +50,27 @@ run_getfasta <- function(bed.dt,
     system(paste("bedtools getfasta",
                  "-fi", ass.file,
                  "-bed", bed.file,
-                 "-name -fo", fa.file))
+                 "-name+ -fo", fa.file))
   }
   ########################################################
   ########################################################
 
-  if (dir.exists(tmp.dir))
-    unlink(tmp.dir,
-           recursive = T)
+  fa.locs <- unlist(lapply(1:nrow(bed.dt), function(i){
 
-  dir.create(tmp.dir)
-
-  nb <- ifelse(nrow(bed.dt) < 1000, 100,
-               ifelse(nrow(bed.dt) < 5000, 500,
-                      ifelse(nrow(bed.dt) < 10000, 1000, 5000)))
-
-  fa.locs <- unlist(mclapply(1:nrow(bed.dt), mc.cores = n.cores, function(i){
-    if (verbose)
-      if (i %% nb == 0)
-        cat(i, "/",
-            nrow(bed.dt), "\n\t")
-
-    x <- bed.dt[i,]
-    bed <- x[, c("chr", "start", "end", "reg.name")]
+    bed <- bed.dt[i,c("chr","start","end","genome")]
+    bed.id <- bed.dt$name[i]
 
     ass.file <- file.path(assembly.dir,
-                          paste0(x$genome, ".fa"))
-    fa.file <- file.path(tmp.dir,
-                         paste0(x$reg.name, ".fa"))
+                          paste0(bed$genome, ".fa"))
+    fa.file <- file.path(write.dir,
+                         paste0(bed.id, ".fa"))
     bed.file <- file.path(tmp.dir,
-                          paste0(x$reg.name, ".bed"))
+                          paste0(bed.id, ".bed"))
 
     get_fasta(bed = bed,
-                 ass.file = ass.file,
-                 fa.file = fa.file,
-                 bed.file = bed.file)
+              ass.file = ass.file,
+              fa.file = fa.file,
+              bed.file = bed.file)
 
     return(fa.file)
   }))

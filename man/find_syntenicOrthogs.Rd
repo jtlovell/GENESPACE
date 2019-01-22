@@ -5,7 +5,8 @@
 \title{Synteny-constrained orthology pipeline}
 \usage{
 find_syntenicOrthogs(map, blk, dir.list, gff, gene.index, species.index,
-  n.cores = 1, min.block.size = 5, verbose = T)
+  n.cores = 1, min.block.size = 5, blk.bp.buffer = 1e+05,
+  verbose = T)
 }
 \arguments{
 \item{map}{The map data.frame or data.table}

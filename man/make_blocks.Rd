@@ -5,7 +5,7 @@
 \title{make blocks from mappings}
 \usage{
 make_blocks(map, rerank = T, drop.NAs = F, rename.blocks = F,
-  add.metadata = F)
+  add.metadata = F, clean.columns = T, ties.method = "dense")
 }
 \arguments{
 \item{map}{The map object (data.frame or data.table)}

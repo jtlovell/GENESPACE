@@ -28,7 +28,7 @@ pipe_mcscanx <- function(blast,
 
   #######################################################
   #######################################################
-  prep_mcs <- function(blast,
+  prep_mcs <- function(map,
                        gff,
                        mcscan.dir,
                        mcscan.param,
@@ -50,8 +50,8 @@ pipe_mcscanx <- function(blast,
 
     gff[,chr.num := frank(chr, ties.method = "dense"),
         by = genome]
-    gff$rank.start = frank(gff, genome, chr, start, ties.method = "random")
-    gff$rank.end = frank(gff, genome, chr, end, ties.method = "random")
+    gff$rank.start = frank(gff, genome, chr, start, ties.method = "dense")
+    gff$rank.end = frank(gff, genome, chr, end, ties.method = "dense")
     gff[,genome.num := frank(genome, ties.method = "dense")]
 
     lets = paste0(letters,letters)[1:length(unique(gff$genome))]

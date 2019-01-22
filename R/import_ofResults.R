@@ -116,10 +116,10 @@ import_ofResults <- function(gff,
   if (verbose)
     cat("Compiling metadata\n")
 
-  gffi = gff[,c("id","genome")]
+  gffi <- gff[, c("id","genome")]
   setkey(gffi, "id")
   setkey(og2, "id")
-  ogo = merge(gffi, og2)
+  ogo <- merge(gffi, og2)
   setkey(ogo, "block.id", "genome", "og", "id")
   ogo[, og.n.genes := length(unique(id)), by = list(block.id, og)]
   ogo[, og.n.genomes := length(unique(genome)), by = list(block.id, og)]

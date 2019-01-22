@@ -5,7 +5,8 @@
 \title{Import blast results}
 \usage{
 import_ofBlast(species.mappings, genomeIDs, orthogroups, gene.index, gff,
-  verbose = T, ...)
+  verbose = T, only.orthologs = T, min.score = NULL,
+  prop.topscore = NULL, top.n = NULL, ...)
 }
 \arguments{
 \item{species.mappings}{data.frame of species mappings and file locations

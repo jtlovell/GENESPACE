@@ -66,19 +66,19 @@
 #' @import data.table
 #' @export
 process_orthofinder <- function(gff.dir,
-                               genomeIDs,
-                               blast.dir,
-                               mcscan.dir,
-                               str2drop = "Name=",
-                               str2parse = ";",
-                               whichAttr = 2,
-                               cull.byDBscan = T,
-                               cull.byMCscan = T,
-                               return.ogblast = T,
-                               n.mappingWithinRadius = c(2,2,2),
-                               eps.radius = c(50,20,10),
-                               mcscan.param = "-a -s 2 -m 10 -w 2 -e 1",
-                               verbose = T){
+                                genomeIDs,
+                                blast.dir,
+                                mcscan.dir,
+                                str2drop = "Name=",
+                                str2parse = ";",
+                                whichAttr = 2,
+                                cull.byDBscan = T,
+                                cull.byMCscan = T,
+                                return.ogblast = T,
+                                n.mappingWithinRadius = c(2,2,2),
+                                eps.radius = c(50,20,10),
+                                mcscan.param = "-a -s 2 -m 10 -w 2 -e 1",
+                                verbose = T){
 
   gff <- import_gff(
     gff.dir = gff.dir,
@@ -122,7 +122,7 @@ process_orthofinder <- function(gff.dir,
                              gff = gff,
                              mcscan.dir = mcscan.dir,
                              mcscan.param = mcscan.param)
-    }else{
+  }else{
     cull.mcs <- cull.dbs
   }
 

@@ -4,12 +4,12 @@
 \alias{clean_blocks}
 \title{Clean form_syntenicBlocks output}
 \usage{
-clean_blocks(blk, map, rerank = TRUE, radius = NULL, n.mappings = 5,
-  n.cores = 1, verbose = T)
+clean_blocks(map, rerank = TRUE, radius = 10, n.mappings = 5,
+  n.cores = 1, clean.by.unique.genes = T,
+  min.unique.genes = ceiling(n.mappings/2), min.unique.og = 2,
+  clean.by.og = F, verbose = T)
 }
 \arguments{
-\item{blk}{the block data.table or data.frame}
-
 \item{map}{the map data.table or data.frame}
 
 \item{rerank}{logical, should the ranks be re-calculated prior to cleaning?}
@@ -21,6 +21,8 @@ clean_blocks(blk, map, rerank = TRUE, radius = NULL, n.mappings = 5,
 \item{n.cores}{The number of parallel processes to run.}
 
 \item{verbose}{logical, should updates be printed?}
+
+\item{blk}{the block data.table or data.frame}
 
 \item{...}{Not currently in use}
 }

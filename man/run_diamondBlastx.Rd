@@ -4,9 +4,8 @@
 \alias{run_diamondBlastx}
 \title{Run diamond blastx}
 \usage{
-run_diamondBlastx(db.file, pep.fa, fa.file, blast.file,
-  max.target.seqs = 10000, min.score = 20,
-  diamond.blastx.param = "--quiet", ...)
+run_diamondBlastx(db.file, pep.fa, fa.file, blast.file, min.score = 20,
+  top = 10, diamond.blastx.param = "--quiet", ...)
 }
 \arguments{
 \item{db.file}{name of diamond database file}
@@ -17,15 +16,15 @@ run_diamondBlastx(db.file, pep.fa, fa.file, blast.file,
 
 \item{blast.file}{output blast8-formatted txt file}
 
-\item{max.target.seqs}{numeric, the maximum number of blast hits
-to return}
-
 \item{min.score}{numeric, the minimum blast score to retain}
 
 \item{diamond.blastx.param}{Additional parameters to pass to
 diamond blastx}
 
 \item{...}{Not currently in use}
+
+\item{max.target.seqs}{numeric, the maximum number of blast hits
+to return}
 }
 \value{
 A data.table with the same format as bed.dt, but with an

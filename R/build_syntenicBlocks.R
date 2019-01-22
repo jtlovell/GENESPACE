@@ -29,16 +29,16 @@
 #' @import data.table
 #' @export
 build_syntenicBlocks <- function(genomeIDs,
-                                dir.list,
-                                min.block.size = 3,
-                                n.cores = 1,
-                                gap.multiplier = 8,
-                                mcscan.m.param = NULL,
-                                cull.byDBscan = TRUE,
-                                cull.byMCscan = TRUE,
-                                return.ogblast = TRUE,
-                                verbose = TRUE,
-                                ...){
+                                 dir.list,
+                                 min.block.size = 3,
+                                 n.cores = 1,
+                                 gap.multiplier = 8,
+                                 mcscan.m.param = NULL,
+                                 cull.byDBscan = TRUE,
+                                 cull.byMCscan = TRUE,
+                                 return.ogblast = TRUE,
+                                 verbose = TRUE,
+                                 ...){
 
 
 

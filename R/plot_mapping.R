@@ -22,7 +22,7 @@
 plot_mapping <- function(cols = NULL,
                          blk,
                          map,
-                         genomes = NULL,
+                         genomes = unique(c(blk$genome1, blk$genome2)),
                          return.coords = F,
                          col.by.annot = F,
                          ...){
@@ -43,6 +43,10 @@ plot_mapping <- function(cols = NULL,
     is.in <- colSums(apply(combn, 1, function(x)
       x %in% genomes))
     combn <- combn[is.in == 2,]
+  }
+
+  if(length(unique(genomes))>1){
+    combn = combn[with(combn, genome1 != genome2),]
   }
 
   trsh <- apply(combn, 1, function(x){

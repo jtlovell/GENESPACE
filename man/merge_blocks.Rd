@@ -4,28 +4,27 @@
 \alias{merge_blocks}
 \title{Merge close blocks}
 \usage{
-merge_blocks(blk, map, max.size2merge = 1e+06, buffer = 0,
-  n.iter = 5, verbose = T, ignore.orient = T, n.cores = 1)
+merge_blocks(map, blk, verbose = T, buffer = -1, max.iter = 10)
 }
 \arguments{
-\item{blk}{the block data.table or data.frame}
-
 \item{map}{the map data.table or data.frame}
 
-\item{max.size2merge}{numeric the maximum sized block to be merged}
+\item{blk}{the block data.table or data.frame}
+
+\item{verbose}{logical, should updates be printed?}
 
 \item{buffer}{the number of gene hits away from the bound of the block to
 consider an overlap. For example, -1 means that the blocks must overlap by
 at least 1 gene, and 9 means that blocks that are up to 9 genes apart will be
 merged. See details}
 
+\item{max.size2merge}{numeric the maximum sized block to be merged}
+
 \item{n.iter}{the number of iterations to run}
 
-\item{verbose}{logical, should updates be printed?}
+\item{n.cores}{The number of parallel processes to run.}
 
 \item{ignore.orient}{Logical, should orientation of blocks be ignored?}
-
-\item{n.cores}{The number of parallel processes to run.}
 
 \item{...}{Not currently in use}
 }

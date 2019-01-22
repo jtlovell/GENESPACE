@@ -45,8 +45,18 @@ cull_blastByDBS <- function(blast,
 
   #######################################################
   map <- data.table(blast.cull)
-  map$unique <- with(map, paste(genome1, genome2))
-  spl <- split(map, "unique")
+
+  map$unique <- with(map, paste(genome1, genome2, chr1, chr2))
+  map$unique1 <- with(map, paste(genome1, genome2))
+
+  map[,rank1 := frank(start1,
+                      ties.method = "dense"),
+      by = list(genome1, genome2, chr1)]
+  map[,rank2 := frank(start2,
+                      ties.method = "dense"),
+      by = list(genome1, genome2, chr2)]
+
+  spl <- split(map, "unique1")
   out <- rbindlist(lapply(spl, function(x){
     if (verbose)
       cat(paste0("\t",
@@ -54,29 +64,27 @@ cull_blastByDBS <- function(blast,
           paste0("(initial hits = ", nrow(x),") "))
 
     if (run.it){
-      for (i in 1:length(eps.radius)) {
-        x$rank1 <- frank(x, "chr1", "start1",
-                         ties.method = "dense")
-        x$rank2 <- frank(x, "chr2", "start2",
-                         ties.method = "dense")
-        x <- run_dbs(y = x,
-                     eps.radius = eps.radius[i],
-                     mappings = n.mappingWithinRadius[i])
-        x <- x[x$cluster != 0,]
-        if (nrow(x) < min(n.mappingWithinRadius)) {
-          break
-        }
-      }
-    } else {
-      x$rank1 <- frank(x, "chr1", "start1",
-                       ties.method = "dense")
-      x$rank2 <- frank(x, "chr2", "start2",
-                       ties.method = "dense")
+      tmp <- split(x, "unique")
+      xo = rbindlist(lapply(tmp, function(z){
+        z <- run_dbs(y = z,
+                     eps.radius = eps.radius,
+                     mappings = n.mappingWithinRadius)
+        z <- z[z$cluster != 0,]
+        return(z)
+      }))
+    }else{
+      xo <- rbindlist(x)
     }
     if (verbose)
-      cat("culled hits =", nrow(x), "\n")
-    return(x)
+      cat("culled hits =", nrow(xo), "\n")
+    return(xo)
   }))
+  out[,rank1 := frank(start1,
+                      ties.method = "dense"),
+      by = list(genome1, genome2, chr1)]
+  out[,rank2 := frank(start2,
+                      ties.method = "dense"),
+      by = list(genome1, genome2, chr2)]
   #######################################################
 
   #######################################################

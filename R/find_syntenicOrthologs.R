@@ -43,6 +43,7 @@ find_syntenicOrthogs <- function(map,
                                  species.index,
                                  n.cores = 1,
                                  min.block.size = 5,
+                                 blk.bp.buffer = 1e5,
                                  verbose = T){
 
   #######################################################
@@ -58,28 +59,31 @@ find_syntenicOrthogs <- function(map,
   #######################################################
   pull_idByBlk <- function(gff,
                            blk,
-                           n.cores){
+                           n.cores,
+                           buffer){
     out <- mclapply(1:nrow(blk), mc.cores = n.cores, function(i)
       pull_gff(gff = gff,
-               blk.line = blk[i,]))
+               blk.line = blk[i,],
+               buffer = buffer))
     names(out) <- blk$block.id
     return(out)
   }
   #######################################################
   #######################################################
   pull_gff <- function(gff,
-                       blk.line){
+                       blk.line,
+                       buffer){
     x <- blk.line
 
     g1 <- gff[with(gff, genome == x$genome1 &
                      chr == x$chr1 &
-                     start <= x$end1 &
-                     end >= x$start1),]
+                     start <= x$end1+buffer &
+                     end >= x$start1-buffer),]
 
     g2 <- gff[with(gff, genome == x$genome2 &
                      chr == x$chr2 &
-                     start <= x$end2 &
-                     end >= x$start2),]
+                     start <= x$end2+buffer &
+                     end >= x$start2-buffer),]
 
     return(rbind(g1,g2))
   }
@@ -92,7 +96,8 @@ find_syntenicOrthogs <- function(map,
                           dir.list,
                           verbose,
                           genomeIDs,
-                          n.cores){
+                          n.cores,
+                          buffer){
 
     cmb <- combn(genomeIDs, 2)
     for (i in genomeIDs)
@@ -115,7 +120,8 @@ find_syntenicOrthogs <- function(map,
 
       gene.list <- pull_idByBlk(gff.tmp,
                                 blk = blk.tmp,
-                                n.cores = n.cores)
+                                n.cores = n.cores,
+                                buffer = buffer)
       id.list <- lapply(gene.list, function(x) x$id)
       gene.list <- lapply(gene.list, function(x) x$gene.num)
 
@@ -128,8 +134,7 @@ find_syntenicOrthogs <- function(map,
 
       for (i in blast.files) {
         subset_blast(blast.file = i,
-                     genenum.list = gene.list,
-                     n.cores = n.cores,
+                     blk = blk.tmp,
                      verbose = T)
       }
       return(list(gene.list = gene.list,
@@ -142,8 +147,7 @@ find_syntenicOrthogs <- function(map,
   #######################################################
   #######################################################
   subset_blast <- function(blast.file,
-                           genenum.list,
-                           n.cores,
+                           blk,
                            verbose){
     if (verbose)
       cat("\tSubsetting:",basename(blast.file))
@@ -152,8 +156,6 @@ find_syntenicOrthogs <- function(map,
                stringsAsFactors = F,
                check.names = F)
 
-    u <- unique(unlist(genenum.list))
-    f <- f[f$V1 %in% u & f$V2 %in% u,]
     if (verbose)
       cat(paste0(" (initial hits = ", nrow(f),") "))
 
@@ -165,10 +167,10 @@ find_syntenicOrthogs <- function(map,
 
     setkey(fo, V1, V2)
 
-
-    fl <- rbindlist(mclapply(genenum.list, mc.cores = n.cores, function(x){
-      return(fo[fo$V1 %in% x & fo$V2 %in% x,])
-    }))
+    blast = get_nearestDistance(map = cleaned2$map,
+                                blast = res.all$init.results$orthogroup.blast)
+    with(blast, table(distance.1 < 1e6 & distance.2 < 1e6))
+    blast2keep= blast[with(blast, distance.1 < 1e6 & distance.2 < 1e6),]
 
     fl$ns = fl$V12 * (-1)
     setkey(fl, ns)
@@ -208,6 +210,7 @@ find_syntenicOrthogs <- function(map,
 
   gff = add_ofnum2gff(gff,
                       gene.index = gene.index)
+  gff = gff[gff$genome %in% unique(c(map$genome1, map$genome2)),]
 
   if (verbose)
     cat("Done!\n")
@@ -252,7 +255,8 @@ find_syntenicOrthogs <- function(map,
                            gff = gff,
                            n.cores = 6,
                            species.index = species.index,
-                           verbose = T)
+                           verbose = T,
+                           buffer = blk.bp.buffer)
 
   gene.lists = c(gene.lists, gene.lists)
   id.list = lapply(gene.lists, function(x) x$id.list)
