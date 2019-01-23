@@ -5,7 +5,7 @@
 \title{cull blast by map hits}
 \usage{
 cull_blastByMapBuffer(gff, blast, map, rerank.gff = T, buffer = 1000,
-  n.cores = 1, plotit = T)
+  n.cores = 1, plotit = T, verbose = T)
 }
 \arguments{
 \item{gff}{The gff data frame, containing concatenated annotations

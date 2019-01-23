@@ -22,7 +22,7 @@
 #' none yet
 #' }
 #' @import data.table
-#' @importFrom sp CRS SpatialPointsDataFrame over Polygon Polygons
+#' @importFrom sp CRS SpatialPointsDataFrame over Polygon Polygons SpatialPolygons
 #' @importFrom rgeos gBuffer
 #' @importFrom grDevices chull
 #' @export
@@ -32,7 +32,8 @@ cull_blastByMapBuffer = function(gff,
                                  rerank.gff = T,
                                  buffer = 1000,
                                  n.cores = 1,
-                                 plotit = T){
+                                 plotit = T,
+                                 verbose = T){
 
   #######################################################
   #######################################################
@@ -129,45 +130,70 @@ cull_blastByMapBuffer = function(gff,
   #######################################################
 
   #######################################################
+  if(verbose)
+    cat("Parsing gff, blast and map objects\n")
   if(rerank.gff){
     gff[,rank := frank(start, ties.method = "dense"),
         by = list(genome, chr)]
   }
 
+  map$unique.genome = with(map,
+                           paste(genome1, genome2))
+  blast$unique.genome = with(blast,
+                             paste(genome1, genome2))
   map$unique = with(map,
                     paste(genome1, genome2,
                           chr1, chr2))
-  spl.map = split(map, "unique")
-
   blast$unique = with(blast,
                       paste(genome1, genome2,
                             chr1, chr2))
-  spl.blast = split(blast, "unique")
-  #######################################################
+  maps = split(map, "unique.genome")
+  blasts = split(blast, "unique.genome")
 
-  #######################################################
-  out <- rbindlist(mclapply(names(spl.map), mc.cores = n.cores, function(i){
-    blast.x = spl.blast[[i]]
-    map.x = spl.map[[i]]
-    cull.blast = cull_blastbyMap(map = map.x,
-                                 blast = blast.x,
-                                 gff = gff,
-                                 buffer = buffer,
-                                 plotit = plotit)
-    return(cull.blast)
+  if(verbose)
+    cat("Culling blasts by pairwise genome comparisons ...\n\t")
+
+  out.all = rbindlist(lapply(names(maps), function(j){
+    map.x = maps[[j]]
+    blast.x = blasts[[j]]
+    if(verbose)
+      cat(map.x$genome1[1],"-->", map.x$genome2[1],
+          paste0("(", nrow(map.x),"/",nrow(blast.x),") ... "))
+
+    spl.map = split(map.x, "unique")
+    spl.blast = split(blast.x, "unique")
+    #######################################################
+
+    #######################################################
+    out <- rbindlist(mclapply(names(spl.map), mc.cores = n.cores, function(i){
+      blast.x = spl.blast[[i]]
+      map.x = spl.map[[i]]
+      cull.blast = cull_blastbyMap(map = map.x,
+                                   blast = blast.x,
+                                   gff = gff,
+                                   buffer = buffer,
+                                   plotit = plotit)
+      return(cull.blast)
+    }))
+    #######################################################
+
+    #######################################################
+    setkey(blast, id1, id2)
+    out.id = out[,c("id1","id2")]
+    setkey(out.id, id1, id2)
+    out2 = merge(blast,out.id)
+    #######################################################
+
+    #######################################################
+    out2$orthogroup = out2$og1
+    if(verbose)
+      cat("culled to", nrow(out2),"\n\t")
+    return(out2)
   }))
-  #######################################################
 
-  #######################################################
-  setkey(blast, id1, id2)
-  out.id = out[,c("id1","id2")]
-  setkey(out.id, id1, id2)
-  out2 = merge(blast,out.id)
-  #######################################################
-
-  #######################################################
-  out2$orthogroup = out2$og1
-  return(out2)
+  if(verbose)
+    cat("Done!\n")
+  return(out.all)
 }
 
 

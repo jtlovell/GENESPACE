@@ -75,8 +75,8 @@ process_orthofinder <- function(gff.dir,
                                 cull.byDBscan = T,
                                 cull.byMCscan = T,
                                 return.ogblast = T,
-                                n.mappingWithinRadius = c(2,2,2),
-                                eps.radius = c(50,20,10),
+                                n.mappingWithinRadius = c(5,5),
+                                eps.radius = c(30,15),
                                 mcscan.param = "-a -s 2 -m 10 -w 2 -e 1",
                                 verbose = T){
 
@@ -105,8 +105,13 @@ process_orthofinder <- function(gff.dir,
   if(cull.byDBscan){
     cull.dbs <- cull_blastByDBS(
       blast = blast,
-      n.mappingWithinRadius = n.mappingWithinRadius,
-      eps.radius = eps.radius,
+      n.mappingWithinRadius = n.mappingWithinRadius[1],
+      eps.radius = eps.radius[1],
+      verbose = T)
+    cull.dbs <- cull_blastByDBS(
+      blast = cull.dbs,
+      n.mappingWithinRadius = n.mappingWithinRadius[2],
+      eps.radius = eps.radius[2],
       verbose = T)
   }else{
     cull.dbs <- cull_blastByDBS(

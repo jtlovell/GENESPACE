@@ -7,7 +7,7 @@
 process_orthofinder(gff.dir, genomeIDs, blast.dir, mcscan.dir,
   str2drop = "Name=", str2parse = ";", whichAttr = 2,
   cull.byDBscan = T, cull.byMCscan = T, return.ogblast = T,
-  n.mappingWithinRadius = c(2, 2, 2), eps.radius = c(50, 20, 10),
+  n.mappingWithinRadius = c(5, 5), eps.radius = c(30, 15),
   mcscan.param = "-a -s 2 -m 10 -w 2 -e 1", verbose = T)
 }
 \arguments{

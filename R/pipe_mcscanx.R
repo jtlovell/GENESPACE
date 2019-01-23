@@ -175,7 +175,7 @@ pipe_mcscanx <- function(blast,
   #######################################################
   if (verbose)
     cat("Done!\n")
-  return(make_blocks(out))
+  return(make_blocks(out, clean.columns = F))
 }
 
 
