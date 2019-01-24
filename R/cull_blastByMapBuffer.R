@@ -23,7 +23,6 @@
 #' }
 #' @import data.table
 #' @importFrom sp CRS SpatialPointsDataFrame over Polygon Polygons SpatialPolygons
-#' @importFrom rgeos gBuffer
 #' @importFrom grDevices chull
 #' @export
 cull_blastByMapBuffer = function(gff,
