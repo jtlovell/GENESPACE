@@ -25,6 +25,7 @@
 #'
 #' @import data.table
 #' @importFrom sp CRS SpatialPointsDataFrame over Polygon Polygons SpatialPolygons
+#' @importFrom raster buffer
 #' @importFrom grDevices chull
 #' @export
 buffer_blkChull <- function(rank1,
@@ -55,7 +56,7 @@ buffer_blkChull <- function(rank1,
 
   spoly <- SpatialPolygons(chulls,
                            proj4string = crs)
-  gpoly <- gBuffer(spoly,
+  gpoly <- buffer(spoly,
                    byid = T,
                    width = rank.buffer)
 
