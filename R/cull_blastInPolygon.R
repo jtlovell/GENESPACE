@@ -27,7 +27,6 @@
 #' }
 #' @import data.table
 #' @importFrom sp CRS SpatialPointsDataFrame over Polygon Polygons SpatialPolygons
-#' @importFrom rgeos gBuffer
 #' @importFrom grDevices chull
 #' @export
 cull_blastInPolygon <- function(map,
@@ -42,21 +41,22 @@ cull_blastInPolygon <- function(map,
   #######################################################
   #######################################################
 
-  tg1 <- gff[gff$id %in% blast$id1, c("id","rank")]
-  tg2 <- gff[gff$id %in% blast$id2, c("id","rank")]
+  gff1.idrank <- gff[gff$id %in% map$id1, c("id","rank")]
+  gff2.idrank <- gff[gff$id %in% map$id2, c("id","rank")]
 
-  setnames(tg1, c("id1","rank1"))
-  setnames(tg2, c("id2","rank2"))
-  setkey(tg1, id1)
-  setkey(tg2, id2)
-  tm0 <- map[, c("id1", "id2", "block.id")]
+  setnames(gff1.idrank, c("id1","rank1"))
+  setnames(gff2.idrank, c("id2","rank2"))
+  setkey(gff1.idrank, id1)
+  setkey(gff2.idrank, id2)
+  map.id.blk <- map[, c("id1", "id2", "block.id")]
 
-  setkey(tm0, id2)
-  m <- merge(tg2, tm0)
-  setkey(m, id1)
-  m <- merge(tg1, m)
-
-  out <- with(m,
+  setkey(map.id.blk, id2)
+  merge.gff2.map.id.blk <- merge(gff2.idrank, map.id.blk)
+  setkey(merge.gff2.map.id.blk, id1)
+  merge.gff.map.id.blk <- merge(gff1.idrank,
+                                merge.gff2.map.id.blk)
+  totest<<-merge.gff.map.id.blk
+  chulls <- with(merge.gff.map.id.blk,
               buffer_blkChull(rank1 = rank1,
                             rank2 = rank2,
                             block.id = block.id,
@@ -65,36 +65,30 @@ cull_blastInPolygon <- function(map,
                             plot.title = paste(map$genome1[1], map$genome2[1],
                                                map$chr1[1], map$chr2[1])))
 
-  tg1 <- gff[gff$id %in% blast$id1, c("id", "rank")]
-  tg2 <- gff[gff$id %in% blast$id2, c("id", "rank")]
-  setnames(tg1, c("id1", "rank1"))
-  setnames(tg2, c("id2", "rank2"))
-  setkey(tg1, id1)
-  setkey(tg2, id2)
-  tm0 <- blast[,c("id1","id2")]
-  setkey(tm0, id2)
-  m <- merge(tg2, tm0)
-  setkey(m, id1)
-  m <- merge(tg1, m)
-  m <- data.frame(m, stringsAsFactors = F)
+  blast.ids <- blast[,c("id1","id2")]
+  setkey(blast.ids, id2)
+  merge.blast.gff <- merge(gff2.idrank, blast.ids)
+  setkey(merge.blast.gff, id1)
+  merge.blast.gff <- merge(gff1.idrank, merge.blast.gff)
+  merge.blast.gff <- data.frame(merge.blast.gff, stringsAsFactors = F)
 
-  xy <- data.matrix(data.frame(m[, c("rank1", "rank2")],
+  xy.blast <- data.matrix(data.frame(merge.blast.gff[, c("rank1", "rank2")],
                    stringsAsFactors = F))
 
   crs <- CRS("+proj=utm +zone=32 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
-  spdf <- SpatialPointsDataFrame(coords = xy,
-                                 data = m,
+  spdf <- SpatialPointsDataFrame(coords = xy.blast,
+                                 data = merge.blast.gff,
                                  proj4string = crs)
 
   test <- over(spdf,
-               out,
+               chulls,
                fn = NULL)
-  bl.cull <- m[!is.na(test),]
+  merge.blast.gff.cull <- merge.blast.gff[!is.na(test),]
   if(plotit)
-    points(bl.cull$rank1,
-           bl.cull$rank2,
+    points(merge.blast.gff.cull$rank1,
+           merge.blast.gff.cull$rank2,
            col = "green3",
            cex = .2)
-  return(bl.cull)
+  return(merge.blast.gff.cull)
 }
 

@@ -25,7 +25,6 @@
 #'
 #' @import data.table
 #' @importFrom sp CRS SpatialPointsDataFrame over Polygon Polygons SpatialPolygons
-#' @importFrom rgeos gBuffer
 #' @importFrom grDevices chull
 #' @export
 buffer_blkChull <- function(rank1,
@@ -35,21 +34,20 @@ buffer_blkChull <- function(rank1,
                             plotit = F,
                             plot.title = NULL){
 
-  m <- data.frame(block.id = as.character(block.id),
+  xy.dat <- data.frame(block.id = as.character(block.id),
                   rank1 = as.numeric(rank1),
                   rank2 = as.numeric(rank2),
                   stringsAsFactors = F)
-  xy <- data.matrix(data.frame(rank1 = as.numeric(rank1),
-                   rank2 = as.numeric(rank2),
-                   stringsAsFactors = F))
 
-  crs <- CRS("+proj=utm +zone=32 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+  crs <- CRS("+proj=longlat +datum=WGS84")
 
-  chulls <- lapply(split(m, m$block.id), function(x){
-    block.id <- x$block.id[1]
-    ch <- chull(jitter(data.matrix(x[,c("rank1","rank2")])))
+  chulls <- lapply(split(xy.dat, xy.dat$block.id), function(x.blk){
+    block.id <- x.blk$block.id[1]
+    r1 = jitter(x.blk$rank1)
+    r2 = jitter(x.blk$rank2)
+    ch <- chull(x = r1, y = r2)
     ch <- c(ch,ch[1])
-    hull.df <- x[ch, ]
+    hull.df <- x.blk[ch, ]
     hull.xy <- data.frame(hull.df[,c("rank1","rank2")])
     poly <- Polygon(hull.xy, hole = F)
     return(Polygons(list(poly), block.id))
@@ -58,6 +56,7 @@ buffer_blkChull <- function(rank1,
   spoly <- SpatialPolygons(chulls,
                            proj4string = crs)
   gpoly <- gBuffer(spoly,
+                   byid = T,
                    width = rank.buffer)
 
   if(plotit){
