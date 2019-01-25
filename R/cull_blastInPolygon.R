@@ -26,8 +26,8 @@
 #' none yet
 #' }
 #' @import data.table
-#' @importFrom sp CRS SpatialPointsDataFrame over Polygon Polygons SpatialPolygons
-#' @importFrom grDevices chull
+#' @importFrom sp CRS SpatialPointsDataFrame over Polygon Polygons SpatialPolygons coordinates proj4string
+#' @importFrom raster extent buffer
 #' @export
 buffer_blast <- function(map,
                          gff,
