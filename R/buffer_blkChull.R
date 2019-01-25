@@ -35,12 +35,12 @@ buffer_blkChull <- function(rank1,
                             plotit = F,
                             plot.title = NULL){
 
-  xy.dat <- data.frame(block.id = as.character(block.id),
+  xy.dat <<- data.frame(block.id = as.character(block.id),
                   rank1 = as.numeric(rank1),
                   rank2 = as.numeric(rank2),
                   stringsAsFactors = F)
 
-  crs <- CRS("+proj=longlat +datum=WGS84")
+  crs <- CRS("+proj=utm +zone=32 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
 
   chulls <- lapply(split(xy.dat, xy.dat$block.id), function(x.blk){
     block.id <- x.blk$block.id[1]
@@ -57,7 +57,6 @@ buffer_blkChull <- function(rank1,
   spoly <- SpatialPolygons(chulls,
                            proj4string = crs)
   gpoly <- buffer(spoly,
-                   byid = T,
                    width = rank.buffer)
 
   if(plotit){
