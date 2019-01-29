@@ -26,7 +26,8 @@
 #' }
 #' @import data.table
 #' @import sp
-#' @importFrom raster buffer
+#' @importFrom raster buffer extent
+#' @import rgeos
 #' @export
 cull_syntenicBlast <- function(map,
                                blast,
