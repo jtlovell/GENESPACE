@@ -161,7 +161,7 @@ find_pairwiseTandemArrays <- function(gff,
     if (verbose)
       cat("running detect_collinear_tandem_arrays ... \n\t")
 
-    com = paste(dcta.path,
+    com = paste(DCTA.path,
                 "-b", blast.file,
                 "-g", gff.file,
                 "-c", collin.file,
