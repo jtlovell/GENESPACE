@@ -4,10 +4,11 @@
 \alias{clean_blocks}
 \title{Clean form_syntenicBlocks output}
 \usage{
-clean_blocks(map, rerank = TRUE, radius = 10, n.mappings = 5,
-  n.cores = 1, clean.by.unique.genes = T,
-  min.unique.genes = ceiling(n.mappings/2), min.unique.og = 2,
-  clean.by.og = F, verbose = T)
+clean_blocks(map, rerank = TRUE, radius = c(10, 100, 10),
+  n.mappings = c(5, 20, 5), n.cores = 1, clean.by.unique.genes = T,
+  min.unique.genes = ceiling(n.mappings/2),
+  min.unique.og = ceiling(n.mappings/2), clean.by.og = F,
+  verbose = T)
 }
 \arguments{
 \item{map}{the map data.table or data.frame}

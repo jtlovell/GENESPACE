@@ -4,14 +4,12 @@
 \alias{find_syntenicOrthogs}
 \title{Synteny-constrained orthology pipeline}
 \usage{
-find_syntenicOrthogs(map, blk, dir.list, gff, gene.index, species.index,
-  n.cores = 1, min.block.size = 5, blk.bp.buffer = 1e+05,
-  verbose = T)
+find_syntenicOrthogs(map, dir.list, gff, gene.index, species.mappings,
+  n.cores = 1, orthogroups, plotit = n.cores == 1, rank.buffer = 250,
+  verbose = T, ...)
 }
 \arguments{
 \item{map}{The map data.frame or data.table}
-
-\item{blk}{The block data.frame or data.table}
 
 \item{dir.list}{The directory list produced by check_environment}
 
@@ -26,14 +24,19 @@ giving a dictionary between the 'id' column in the gff object
 and the 'gene.num' numeric geneIDs in the orthofinder-formatted
 blast files.}
 
-\item{species.index}{The 'species.mappings' data.table or data.frame
+\item{species.mappings}{The 'species.mappings' data.table or data.frame
 from form_syntenicBlocks, giving a dictionary between pairwise
 blast genome IDs from orthofinder, the blast file locations and
 the genomeIDs.}
 
 \item{n.cores}{Number of parallel processes to run, when possible}
 
-\item{min.block.size}{The minimum block size to retain.}
+\item{orthogroups}{The orthogroups list.}
+
+\item{plotit}{Logical, should plots be made? Will not work with
+n.core > 1.}
+
+\item{rank.buffer}{The buffer, in gene rank order.}
 
 \item{verbose}{Logical, should updates be printed}
 
