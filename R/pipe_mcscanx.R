@@ -32,7 +32,7 @@ pipe_mcscanx <- function(blast,
 
   #######################################################
   #######################################################
-  prep_mcs <- function(map,
+  prep_mcs <- function(blast,
                        gff,
                        mcscan.dir,
                        mcscan.param,
