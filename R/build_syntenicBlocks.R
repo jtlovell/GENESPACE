@@ -53,7 +53,7 @@ build_syntenicBlocks <- function(genomeIDs,
 
   #######################################################
   if (verbose)
-    cat("Part #1 -- Importing and parsing gff3-formatted annotations ...\n")
+    cat("\n############\nPart #1 -- Importing and parsing gff3-formatted annotations ...\n")
   gff <- import_gff(
     gff.dir = gff.dir,
     genomeIDs = genomeIDs,
@@ -67,7 +67,7 @@ build_syntenicBlocks <- function(genomeIDs,
 
   #######################################################
   if (verbose)
-    cat("Part #2 -- Importing and parsing orthofinder output ...\n")
+    cat("\n############\nPart #2 -- Importing and parsing orthofinder output ...\n")
   of.results <- import_ofResults(
     gff = gff,
     genomeIDs = genomeIDs,
@@ -79,7 +79,7 @@ build_syntenicBlocks <- function(genomeIDs,
 
   #######################################################
   if (verbose)
-    cat("Part #3 -- Importing blast hits and merging with orthofinder results ...\n")
+    cat("\n############\nPart #3 -- Importing blast hits and merging with orthofinder results ...\n")
   blast <- with(of.results,
                 import_ofBlast(
                   species.mappings = species.mappings,
@@ -95,7 +95,7 @@ build_syntenicBlocks <- function(genomeIDs,
   #######################################################
   if(cullby.dbscan){
     if (verbose)
-      cat("Part #4 -- Culling blast results by 2d density ...\n")
+      cat("\n############\nPart #4 -- Culling blast results by 2d density ...\n")
 
     cull.tmp <- clean_blocks(
       map = blast,
@@ -129,7 +129,7 @@ build_syntenicBlocks <- function(genomeIDs,
   #######################################################
   if(cullby.MCscanX){
     if (verbose)
-      cat("Part #5 -- Culling blast results by multiple-collinearity ...\n")
+      cat("\n############\nPart #5 -- Culling blast results by multiple-collinearity ...\n")
 
     if (!is.null(mcscan.m.param)) {
       mcsp <- paste("-a -s", min.block.size,
@@ -154,7 +154,7 @@ build_syntenicBlocks <- function(genomeIDs,
   }
   #######################################################
   if (verbose)
-    cat("##########\n#Pipeline Completed!\n")
+    cat("\n############\n#Pipeline Completed!\n")
   if(!return.ogblast)
     blast <- NULL
   out <- list(synteny.results = list(map = map,

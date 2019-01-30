@@ -176,7 +176,7 @@ pipe_mcscanx <- function(blast,
     tmp$block.id <- with(tmp, paste0(unique, block.id))
 
     if(verbose)
-      cat(" culled hits =",nrow(tmp),"\n\t")
+      cat(" culled hits =",nrow(tmp),"\n")
 
     return(tmp)
   }))
