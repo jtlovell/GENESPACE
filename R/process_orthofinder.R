@@ -94,7 +94,7 @@ process_orthofinder <- function(gff.dir,
     blast.dir = blast.dir,
     verbose = verbose)
 
-  blast <<- import_ofBlast(
+  blast <- import_ofBlast(
     species.mappings = of.blast$species.mappings,
     genomeIDs = genomeIDs,
     orthogroups = of.blast$orthogroups,
@@ -129,6 +129,6 @@ process_orthofinder <- function(gff.dir,
   }
   return(list(gff = gff,
               ortho.info = of.blast,
-              blast = cull.dbs$map,
+              blast = cull.dbs,
               orthogroup.blast = ogblast))
 }
