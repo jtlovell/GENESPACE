@@ -55,8 +55,7 @@ build_syntenicBlocks <- function(genomeIDs,
     verbose = verbose,
     str2drop = str2drop,
     str2parse = str2parse,
-    whichAttr = whichAttr,
-    verbose = verbose)
+    whichAttr = whichAttr)
   if (verbose)
     cat("\tDone!\n")
   #######################################################
