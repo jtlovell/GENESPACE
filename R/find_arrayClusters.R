@@ -3,6 +3,7 @@
 #' @description
 #' \code{find_arrayClusters} Simple orthogroup-constrained tandem array inference
 #' @param blast the blast dataset to screen for syntenic hits
+#' @param rerank Logical, should ranks be remade before each step?
 #' @param clean.radius Passed on to clean_blocks
 #' @param clean.mappings Passed on to clean_blocks
 #' @param merge.buffer Passed on to merge_blocks
@@ -24,6 +25,7 @@
 #' @import data.table
 #' @export
 find_arrayClusters = function(blast,
+                              rerank = T,
                               clean.radius = 250,
                               clean.mappings = 5,
                               merge.buffer = 10,
@@ -34,6 +36,15 @@ find_arrayClusters = function(blast,
   if(verbose)
     cat("Dropping intra-genomic hits\n")
   blast <- blast[with(blast, genome1 != genome2),]
+  if(rerank){
+    map[,rank1 := frank(start1,
+                        ties.method = ties.method),
+        by = list(genome1, genome2, chr1)]
+    map[,rank2 := frank(start2,
+                        ties.method = ties.method),
+        by = list(genome1, genome2, chr2)]
+  }
+
   if(verbose)
     cat("Forming blocks from blast\n")
   syn.clean = clean_blocks(blast,
@@ -51,6 +62,21 @@ find_arrayClusters = function(blast,
   if(verbose)
     cat("Counting hits and assigning array ids\n")
   map = syn.merge$map
+
+  if(rerank){
+    if(verbose)
+      cat("Using the gff gene ranks as positions\n")
+    rr = with(map,
+              rerank_fromIDs(id1 = id1,
+                             id2 = id2,
+                             gff = gff))
+    map$rank1 <- NULL
+    map$rank2 <- NULL
+    map <- merge(rr[,c("id1", "id2","rank1","rank2")],
+                 map,
+                   by = c("id1","id2"))
+
+  }
 
   bl.og <- blast[,c("id1","id2","og1")]
   setnames(bl.og, "og1","og")

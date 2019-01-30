@@ -4,12 +4,14 @@
 \alias{find_arrayClusters}
 \title{Simple orthogroup-constrained tandem array inference.}
 \usage{
-find_arrayClusters(blast, clean.radius = 250, clean.mappings = 5,
-  merge.buffer = 10, verbose = T, min.hits1 = 2, min.hits2 = 3,
-  ...)
+find_arrayClusters(blast, rerank = T, clean.radius = 250,
+  clean.mappings = 5, merge.buffer = 10, verbose = T,
+  min.hits1 = 2, min.hits2 = 3, ...)
 }
 \arguments{
 \item{blast}{the blast dataset to screen for syntenic hits}
+
+\item{rerank}{Logical, should ranks be remade before each step?}
 
 \item{clean.radius}{Passed on to clean_blocks}
 

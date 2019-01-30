@@ -6,6 +6,7 @@
 #'
 #' @param blast the blast dataset to screen for syntenic hits
 #' @param gff gff data.table
+#' @param rerank Logical, should ranks of genes in gff be used?
 #' @param mcscan.dir Location to write files / run MCScanX
 #' @param orthogroup.dt Data.table, produced by upstream functions
 #' @param DCTA.path path to detect_collinear_tandem_arrays

@@ -19,6 +19,8 @@ find_pairwiseTandemArrays(gff, blast, mcscan.dir, orthogroup.dt,
 
 \item{orthogroup.dt}{Data.table, produced by upstream functions}
 
+\item{rerank}{Logical, should ranks of genes in gff be used?}
+
 \item{DCTA.path}{path to detect_collinear_tandem_arrays}
 
 \item{verbose}{logical, should updates be printed?}
