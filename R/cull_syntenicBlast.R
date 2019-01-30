@@ -38,42 +38,6 @@ cull_syntenicBlast <- function(map,
                                n.cores = 1){
   #######################################################
   #######################################################
-  rerank_fromIDs <- function(id1,
-                             id2,
-                             gff){
-    u.id <- unique(c(id1, id2))
-    if ("rank" %in% colnames(gff))
-      gff$rank <- NULL
-
-    gff[, rank := as.numeric(frank(start,
-                                   ties.method = "dense")),
-        by = list(genome, chr)]
-    gff <- gff[gff$id %in% u.id, ]
-
-    gff1 <- data.table(gff)
-    gff2 <- data.table(gff)
-    setnames(gff1, paste0(colnames(gff1), "1"))
-    setnames(gff2, paste0(colnames(gff2), "2"))
-    setkey(gff1, id1)
-    setkey(gff2, id2)
-
-    id.dt <- data.table(id1 = id1,
-                        id2 = id2,
-                        stringsAsFactors = F)
-
-    setkey(id.dt, id2)
-    m1 <- merge(gff2, id.dt)
-    setkey(m1, id1)
-    out <- merge(gff1, m1)
-
-    out$unique.genome <- with(out, paste(genome1, genome2))
-    out$unique.chr <- with(out, paste(genome1, genome2,
-                                      chr1, chr2))
-
-    return(out)
-  }
-  #######################################################
-  #######################################################
   mround <- function(x,base){
     base * round(x / base)
   }
@@ -233,7 +197,6 @@ cull_syntenicBlast <- function(map,
   find_xy2keep <- cmpfun(find_xy2keep)
   buffer_xy <- cmpfun(buffer_xy)
   mround <- cmpfun(mround)
-  rerank_fromIDs <- cmpfun(rerank_fromIDs)
   ########################################################
   ########################################################
 

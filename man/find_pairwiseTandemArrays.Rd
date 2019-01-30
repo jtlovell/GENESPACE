@@ -5,6 +5,7 @@
 \title{Run MCScanX's detect_collinear_tandem_arrays}
 \usage{
 find_pairwiseTandemArrays(gff, blast, mcscan.dir, orthogroup.dt,
+  rerank = T,
   DCTA.path = "/Users/jlovell/Documents/comparative_genomics/programs/MCScanX/downstream_analyses/detect_collinear_tandem_arrays",
   verbose = T, m.param = 50, w.param = 10, s.param = 10,
   b.param = 0, k.param = 10, e.param = 0.1, ...)

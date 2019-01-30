@@ -68,10 +68,11 @@ zoom_tandemArrays <- function(ta.id,
   buf.hits = blast[with(blast,
                         genome1 == g1 & genome2 == g2 &
                           chr1 == c1 & chr2 == c2 &
-                          order1 >= (order1.start - buffer) &
-                          order2 >= (order2.start - buffer) &
-                          order1 <= (order1.end + buffer) &
-                          order2 <= (order2.end + buffer)),]
+                          rank1 >= (order1.start - buffer) &
+                          rank2 >= (order2.start - buffer) &
+                          rank1 <= (order1.end + buffer) &
+                          rank2 <= (order2.end + buffer)),]
+
   n.ta.1 <- length(unique(ta.hits$id1))
   n.ta.2 <- length(unique(ta.hits$id2))
   out = data.table(ta.id = ta.id,

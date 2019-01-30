@@ -33,6 +33,7 @@ find_pairwiseTandemArrays <- function(gff,
                                       blast,
                                       mcscan.dir,
                                       orthogroup.dt,
+                                      rerank = T,
                                       DCTA.path = "/Users/jlovell/Documents/comparative_genomics/programs/MCScanX/downstream_analyses/detect_collinear_tandem_arrays",
                                       verbose = T,
                                       m.param = 50,
@@ -146,6 +147,20 @@ find_pairwiseTandemArrays <- function(gff,
   prep_gff4mcscan <- cmpfun(prep_gff4mcscan)
   #######################################################
   #######################################################
+  if(rerank){
+    if(verbose)
+      cat("Using the gff gene ranks as positions\n")
+    rr = with(blast,
+              rerank_fromIDs(id1 = id1,
+                             id2 = id2,
+                             gff = gff))
+    blast$rank1 <- NULL
+    blast$rank2 <- NULL
+    blast <- merge(rr[,c("id1", "id2","rank1","rank2")],
+                   blast,
+                   by = c("id1","id2"))
+
+  }
   if (verbose)
     cat("Running tandem array searches for each pair of genomes ... \n")
   genome.cmbns = blast[,c("genome1","genome2")]
@@ -168,7 +183,7 @@ find_pairwiseTandemArrays <- function(gff,
                 row.names = F,
                 col.names = F,
                 quote = F, sep= "\t")
-    write.table(blast.in[,c("id1","id2")],
+    write.table(blast.in,
                 file = blast.file,
                 row.names = F,
                 col.names = F,
@@ -176,7 +191,7 @@ find_pairwiseTandemArrays <- function(gff,
     if (verbose)
       cat("running MCScanX ... ")
 
-    system(paste("MCScanX_h -a",
+    system(paste("MCScanX -a",
                  "-m", m.param,
                  "-w", w.param,
                  "-s", s.param,
