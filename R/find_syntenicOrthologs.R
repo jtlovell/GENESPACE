@@ -139,7 +139,7 @@ find_syntenicOrthogs <- function(map,
   #######################################################
   if (verbose)
     cat("Writing results to file ...\n")
-  sm <- res.all$init.results$ortho.info$species.mappings
+  sm <- species.mappings
   sm$tmp.filename <- file.path(dir.list$tmp, basename(sm$filename))
 
   test <- lapply(1:nrow(sm), function(i){
