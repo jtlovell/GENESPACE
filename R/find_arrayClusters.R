@@ -2,7 +2,7 @@
 #'
 #' @description
 #' \code{find_arrayClusters} Simple orthogroup-constrained tandem array inference
-#' @param blast the blast dataset to screen for syntenic hits
+#' @param map the blast dataset to screen for syntenic hits
 #' @param rerank Logical, should ranks be remade before each step?
 #' @param clean.radius Passed on to clean_blocks
 #' @param clean.mappings Passed on to clean_blocks
@@ -60,7 +60,7 @@ find_arrayClusters = function(map,
 
   }
   cols2keep = c(colnames(map),"n.hits1","n.hits2","tandemarray.id")
-  map$unique = with(map, paste(genome1, genome2, block.id, og))
+  map$unique = with(map, paste(genome1, genome2, block.id, og1))
   map[,n.hits1 := length(unique(id1)),
     by = list(unique)]
   map[,n.hits2 := length(unique(id2)),
