@@ -101,7 +101,7 @@ pipe_mcscanx <- function(blast,
     out <- data.table(id1 = mcscan.raw$V2,
                       id2 = mcscan.raw$V3,
                       block.id = fac)
-    out<-data.table(out)
+    out <- data.table(out)
     setkey(out, id1, id2)
     return(out)
   }
@@ -110,13 +110,15 @@ pipe_mcscanx <- function(blast,
   run_mcs <- function(blast,
                       gff,
                       mcscan.dir,
+                      MCScanX.path,
                       mcscan.param,
                       silent.mcs){
-    mcs.file = prep_mcs(blast,
-                        gff,
-                        mcscan.dir,
-                        mcscan.param,
-                        MCScanX.path,
+
+    mcs.file = prep_mcs(blast = blast,
+                        gff = gff,
+                        mcscan.dir = mcscan.dir,
+                        mcscan.param = mcscan.param,
+                        MCScanX.path = MCScanX.path,
                         silent.mcs = silent.mcs)
     mcs.parsed = parse_mcs(mcs.file)
     blast = data.table(blast)
