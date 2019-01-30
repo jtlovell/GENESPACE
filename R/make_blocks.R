@@ -30,10 +30,12 @@ make_blocks <- function(map,
                         ties.method = "dense",
                         ...){
   if(clean.columns){
-    cols2keep = c("block.id","orthogroup","genome1","genome2","id1","id2",
+    cols2keep = c("block.id","orthogroup","genome1","genome2",
+                  "id1","id2","og1","og2",
                   "chr1","start1","end1","strand1","order1",
                   "chr2","start2","end2","strand2","order2",
-                  "rank1","rank2","perc.iden","align.length","score")
+                  "rank1","rank2","perc.iden",
+                  "align.length","score")
     cols2keep = cols2keep[cols2keep %in% colnames(map)]
     map = map[,cols2keep, with = F]
   }
