@@ -140,8 +140,6 @@ import_ofBlast <- function(species.mappings,
     setkey(blast, "id1")
     blast <- merge(gf1, blast)
 
-    if (verbose)
-      cat("Done!\n")
     return(blast)
   }
   #######################################################
@@ -190,8 +188,8 @@ import_ofBlast <- function(species.mappings,
   #######################################################
 
   #######################################################
-  if (verbose)
-    cat("Parsing gff annotations ... ")
+  if(ncol(gff) > 7)
+    gff <- gff[ , 1:7, with = F]
   gff1 <- data.table(gff)
   gff2 <- data.table(gff)
   setnames(gff1,c("id1", "chr1", "start1", "end1",
@@ -204,25 +202,15 @@ import_ofBlast <- function(species.mappings,
   spl.gff1 <- split(gff1, "genome1")
   spl.gff2 <- split(gff2, "genome2")
 
-  if (verbose)
-    cat("Done\n")
   #######################################################
 
   #######################################################
-  if (verbose)
-    cat("Parsing orthogroups\n")
   gs <- parse_orthogroups(orthogroups = orthogroups,
                           gff = gff,
                           gene.index = gene.index)
-
-  if (verbose)
-    cat("Done\n")
   #######################################################
 
   #######################################################
-  if (verbose)
-    cat("Importing BLAST results ... \n")
-
   comb <- combn(genomeIDs, 2, simplify = F)
   for(i in genomeIDs){
     comb[[length(comb)+1]]<-rep(i,2)
@@ -244,7 +232,5 @@ import_ofBlast <- function(species.mappings,
                            top.n = top.n)
     return(blast)
   }))
-  if(verbose)
-    cat("\tDone!\n")
   return(blast)
 }

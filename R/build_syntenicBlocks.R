@@ -41,76 +41,118 @@ build_syntenicBlocks <- function(genomeIDs,
                                  ...){
 
   #######################################################
-  peptide.dir <- dir.list$peptide
   gff.dir <- dir.list$gff
-  tmp.dir <- dir.list$tmp
   blast.dir <- dir.list$blast
-  cull.blast.dir <- dir.list$cull.blast
-  block.dir <- dir.list$block
-  results.dir <- dir.list$results
   mcscan.dir <- dir.list$mcscan
   #######################################################
 
   #######################################################
   if (verbose)
-    cat("##########\n# - Part 1: Parsing orthofinder ...\n#\tProgress:\n")
-
-  if (!is.null(mcscan.m.param)) {
-    mcsp <- paste("-a -s", min.block.size,
-                  "-m", mcscan.m.param,
-                  "-w 2 -e 1")
-  } else {
-    mcsp <- paste("-a -s", min.block.size,
-                  "-m", min.block.size*gap.multiplier,
-                  "-w 2 -e 1")
-  }
-
-  init.results <- process_orthofinder(
+    cat("Part #1 -- Importing and parsing gff3-formatted annotations ...\n")
+  gff <- import_gff(
     gff.dir = gff.dir,
     genomeIDs = genomeIDs,
-    blast.dir = blast.dir,
-    mcscan.dir = mcscan.dir,
-    eps.radius = c(min.block.size*5*gap.multiplier,
-                   min.block.size*2*gap.multiplier,
-                   min.block.size*1*gap.multiplier),
-    n.mappingWithinRadius = c(min.block.size,
-                              min.block.size,
-                              min.block.size),
-    cull.byDBscan = cull.byDBscan,
-    return.ogblast = return.ogblast)
-
-  gff <- data.table(init.results$gff)
-  blast <- data.table(init.results$blast)
+    verbose = verbose,
+    str2drop = str2drop,
+    str2parse = str2parse,
+    whichAttr = whichAttr,
+    verbose = verbose)
+  if (verbose)
+    cat("\tDone!\n")
   #######################################################
 
   #######################################################
   if (verbose)
-    cat("##########\n# - Part 2: Building collinear blocks with MCScanX...\n")
+    cat("Part #2 -- Importing and parsing orthofinder output ...\n")
+  of.results <- import_ofResults(
+    gff = gff,
+    genomeIDs = genomeIDs,
+    blast.dir = blast.dir,
+    verbose = verbose)
+  if (verbose)
+    cat("\tDone!\n")
+  #######################################################
 
+  #######################################################
+  if (verbose)
+    cat("Part #3 -- Importing blast hits and merging with orthofinder results ...\n")
+  blast <- with(of.results,
+                import_ofBlast(
+                  species.mappings = species.mappings,
+                  genomeIDs = genomeIDs,
+                  orthogroups = orthogroups,
+                  gff = gff,
+                  gene.index = gene.index,
+                  verbose = verbose))
+  if (verbose)
+    cat("\tDone!\n")
+  #######################################################
 
-  if(!is.null(mcscan.m.param)){
-    mcsp <- paste("-a -s", min.block.size,
-                  "-m", mcscan.m.param,
-                  "-w 2")
+  #######################################################
+  if(cull.byDBscan){
+    if (verbose)
+      cat("Part #4 -- Culling blast results by 2d density ...\n")
+
+    cull.tmp <- clean_blocks(
+      map = blast,
+      n.mappings = n.mappingWithinRadius,
+      radius = eps.radius,
+      n.cores = n.cores,
+      clean.by.unique.genes = F,
+      clean.by.og = F,
+      clean.columns = F,
+      verbose = T)
+
+    cull.dbs<-cull.tmp$map
+
+    if (verbose)
+      cat("\tDone!\n")
+
+    if (!cull.byMCScanX){
+      if (verbose)
+        cat("Skipping Part #5 (Culling blast results by multiple-collinearity)\n",
+          "Returning clustering from dbscan\nDone!\n")
+      map <- cull.tmp$map
+      blk <- cull.tmp$block
+    }
   }else{
-    mcsp <- paste("-a -s", min.block.size,
-                  "-m", min.block.size*gap.multiplier,
-                  "-w 2")
+    if (verbose)
+      cat("Skipping Part #4 (Culling blast results by 2d density)\n")
+    cull.dbs <- blast
   }
-
-
-  synteny.results <- pipe_mcscanx(blast = blast,
-                                  gff = gff,
-                                  mcscan.dir = mcscan.dir,
-                                  mcscan.param = mcsp,
-                                  verbose = T)
+  #######################################################
 
   #######################################################
-  #######################################################
+  if(cull.byMCScanX){
+    if (verbose)
+      cat("Part #5 -- Culling blast results by multiple-collinearity ...\n")
+
+    if (!is.null(mcscan.m.param)) {
+      mcsp <- paste("-a -s", min.block.size,
+                    "-m", mcscan.m.param,
+                    "-w 2 -e 1")
+    } else {
+      mcsp <- paste("-a -s", min.block.size,
+                    "-m", min.block.size*gap.multiplier,
+                    "-w 2 -e 1")
+    }
+
+    synteny.results <- pipe_mcscanx(blast = blast,
+                                    gff = gff,
+                                    mcscan.dir = mcscan.dir,
+                                    mcscan.param = mcsp,
+                                    verbose = T)
+    map = synteny.results$map
+    blk = synteny.results$block
+    if (verbose)
+      cat("\tDone!\n")
+
+  }
   #######################################################
   if (verbose)
     cat("##########\n#\tDone!\n")
-  out <- list(synteny.results = synteny.results,
+  out <- list(synteny.results = list(map = map,
+                                     block = blk),
               init.results = init.results)
   return(out)
 }

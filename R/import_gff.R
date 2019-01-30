@@ -35,8 +35,8 @@ import_gff <- function(gff.dir,
                         whichAttr = 2){
     g <- suppressWarnings(
       fread(gff.file,
-                        showProgress = F,
-                        verbose = F))
+            showProgress = F,
+            verbose = F))
     g <- g[g$V3 == "gene", c(9, 1, 4, 5, 7)]
     g$V9 <- sapply(g$V9, function(x)
       gsub(str2drop, "",
@@ -51,8 +51,6 @@ import_gff <- function(gff.dir,
   ########################################################
 
   #######################################################
-  if (verbose)
-    cat("Importing gff3 annotation files\n")
   gff.files <- file.path(gff.dir,
                          paste0(genomeIDs, ".gff3"))
   names(gff.files) <- genomeIDs
@@ -77,8 +75,6 @@ import_gff <- function(gff.dir,
 
   #######################################################
   setkey(gff, "genome", "id")
-  if (verbose)
-    cat("\tDone!\n")
   return(gff)
 }
 

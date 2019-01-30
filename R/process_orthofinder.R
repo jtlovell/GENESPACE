@@ -103,23 +103,17 @@ process_orthofinder <- function(gff.dir,
     verbose = verbose)
 
   if(cull.byDBscan){
-    cull.dbs <- cull_blastByDBS(
-      blast = blast,
-      n.mappingWithinRadius = n.mappingWithinRadius[1],
-      eps.radius = eps.radius[1],
-      verbose = T)
-    cull.dbs <- cull_blastByDBS(
-      blast = cull.dbs,
-      n.mappingWithinRadius = n.mappingWithinRadius[2],
-      eps.radius = eps.radius[2],
-      verbose = T)
+    cull.dbs <- clean_blocks(
+      map = blast,
+      n.mappings = n.mappingWithinRadius,
+      radius = eps.radius,
+      n.cores = n.cores,
+      clean.by.unique.genes = F,
+      clean.by.og = F,
+      clean.columns = F,
+      verbose = T)$map
   }else{
-    cull.dbs <- cull_blastByDBS(
-      blast = blast,
-      n.mappingWithinRadius = n.mappingWithinRadius,
-      eps.radius = eps.radius,
-      verbose = F,
-      run.it = F)
+    cull.dbs <- blast
   }
 
   if(return.ogblast){

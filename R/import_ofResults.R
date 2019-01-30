@@ -28,13 +28,11 @@ import_ofResults <- function(gff,
   #######################################################
 
   #######################################################
-  if (verbose)
-    cat("Importing orthofinder results:\n\t")
   gz <- list.files(blast.dir,
                    pattern = ".gz$")
   if (length(gz) > 0) {
     if (verbose)
-      cat("Decompressing blast results\n")
+      cat("\tDecompressing blast results\n")
     system(paste("gunzip -f",
                  file.path(blast.dir,
                            "*.gz")))
@@ -43,7 +41,7 @@ import_ofResults <- function(gff,
 
   #######################################################
   if (verbose)
-    cat("Reading Species IDs\n\t")
+    cat("\tReading Species IDs\n")
   si <- read.delim(file.path(blast.dir,
                              "SpeciesIDs.txt"),
                    sep = ":",
@@ -78,7 +76,7 @@ import_ofResults <- function(gff,
 
   #######################################################
   if (verbose)
-    cat("Reading gene IDs\n\t")
+    cat("\tReading gene IDs\n")
   sequence.index <- fread(file.path(blast.dir,
                                     "SequenceIDs.txt"),
                           sep = ":",
@@ -90,7 +88,7 @@ import_ofResults <- function(gff,
 
   #######################################################
   if (verbose)
-    cat("Reading orthogroup networks\n\t")
+    cat("\tReading orthogroup networks\n")
   og <- readLines(file.path(blast.dir,
                             "Orthogroups.txt"))
   og <- lapply(og, function(x) strsplit(x, " ")[[1]])
@@ -99,7 +97,7 @@ import_ofResults <- function(gff,
   og <- lapply(og, function(x) x[-1])
 
   if (verbose)
-    cat("Building orthogroup data.table\n\t")
+    cat("\tBuilding orthogroup data.table\n")
   og2 <- readLines(file.path(blast.dir,
                              "Orthogroups.txt"))
   og2 <- lapply(og2, function(x) strsplit(x, " ")[[1]])
@@ -114,7 +112,7 @@ import_ofResults <- function(gff,
 
   #######################################################
   if (verbose)
-    cat("Compiling metadata\n")
+    cat("\tCompiling metadata\n")
 
   gffi <- gff[, c("id","genome")]
   setkey(gffi, "id")
@@ -128,8 +126,6 @@ import_ofResults <- function(gff,
   #######################################################
 
   #######################################################
-  if (verbose)
-    cat("\tDone!\n")
   return(list(orthogroups = og,
               species.mappings = sm,
               species.index = si,
