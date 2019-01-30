@@ -4,8 +4,8 @@
 \alias{pipe_mcscanx}
 \title{Run MCScanX program}
 \usage{
-pipe_mcscanx(blast, gff, mcscan.dir, mcscan.param, silent.mcs = T,
-  verbose = T)
+pipe_mcscanx(blast, gff, mcscan.dir, mcscan.param,
+  MCScanX.path = "MCScanX", silent.mcs = T, verbose = T)
 }
 \arguments{
 \item{blast}{blast results data.table}
@@ -15,6 +15,9 @@ pipe_mcscanx(blast, gff, mcscan.dir, mcscan.param, silent.mcs = T,
 \item{mcscan.dir}{path to the directory where MCScanX will be run}
 
 \item{mcscan.param}{parameters to supply MCScanX}
+
+\item{MCScanX.path}{the path to the the MCScanX program. If in the path,
+just use "MCScanX".}
 
 \item{silent.mcs}{logical, should MCScanX be run silently?}
 

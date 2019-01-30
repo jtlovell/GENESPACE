@@ -94,7 +94,7 @@ check_environment <- function(directory,
   if (check.pkgs) {
     programs <- c("bedtools",
                   "MCScanX",
-                  "Diamond",
+                  "diamond",
                   "orthofinder",
                   "exonerate",
                   "samtools")

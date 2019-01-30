@@ -7,6 +7,8 @@
 #' @param gff concatenated gff data.table
 #' @param mcscan.dir path to the directory where MCScanX will be run
 #' @param mcscan.param parameters to supply MCScanX
+#' @param MCScanX.path the path to the the MCScanX program. If in the path,
+#' just use "MCScanX".
 #' @param silent.mcs logical, should MCScanX be run silently?
 #' @param verbose Should updates be printed?
 #' @param ... Not currently in use
@@ -24,6 +26,7 @@ pipe_mcscanx <- function(blast,
                          gff,
                          mcscan.dir,
                          mcscan.param,
+                         MCScanX.path = "MCScanX",
                          silent.mcs = T,
                          verbose = T){
 
@@ -33,6 +36,7 @@ pipe_mcscanx <- function(blast,
                        gff,
                        mcscan.dir,
                        mcscan.param,
+                       MCScanX.path,
                        silent.mcs){
 
     if(length(unique(gff$genome)) == 1){
@@ -75,9 +79,9 @@ pipe_mcscanx <- function(blast,
                 col.names = F,
                 quote = F, sep= "\t")
     if(silent.mcs){
-      com <- paste("MCScanX", mcscan.param, file.path(mcscan.dir,"xyz"),"&> /dev/null")
+      com <- paste(MCScanX.path, mcscan.param, file.path(mcscan.dir,"xyz"),"&> /dev/null")
     }else{
-      com <- paste("MCScanX", mcscan.param, file.path(mcscan.dir,"xyz"))
+      com <- paste(MCScanX.path, mcscan.param, file.path(mcscan.dir,"xyz"))
     }
 
     system(com)
@@ -112,6 +116,7 @@ pipe_mcscanx <- function(blast,
                         gff,
                         mcscan.dir,
                         mcscan.param,
+                        MCScanX.path,
                         silent.mcs = silent.mcs)
     mcs.parsed = parse_mcs(mcs.file)
     blast = data.table(blast)
@@ -163,6 +168,7 @@ pipe_mcscanx <- function(blast,
 
     tmp <- run_mcs(blast = x,
                   gff = gff.x,
+                  MCScanX.path = MCScanX.path,
                   mcscan.dir = mcscan.dir,
                   mcscan.param = mcscan.param,
                   silent.mcs = silent.mcs)
