@@ -155,8 +155,12 @@ build_syntenicBlocks <- function(genomeIDs,
   #######################################################
   if (verbose)
     cat("##########\n#\tDone!\n")
+  if(!return.ogblast)
+    blast <- NULL
   out <- list(synteny.results = list(map = map,
                                      block = blk),
+              gff = gff,
+              og.blast = blast,
               init.results = of.results)
   return(out)
 }
