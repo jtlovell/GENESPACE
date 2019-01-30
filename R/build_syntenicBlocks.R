@@ -154,7 +154,7 @@ build_syntenicBlocks <- function(genomeIDs,
   }
   #######################################################
   if (verbose)
-    cat("##########\n#\tDone!\n")
+    cat("##########\n#Pipeline Completed!\n")
   if(!return.ogblast)
     blast <- NULL
   out <- list(synteny.results = list(map = map,

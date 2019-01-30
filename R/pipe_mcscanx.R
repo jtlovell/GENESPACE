@@ -150,8 +150,6 @@ pipe_mcscanx <- function(blast,
   bl.same$genome2 <- paste0(bl.same$genome2, "xxxx")
   blast <- rbind(bl.dif, bl.same)
   #######################################################
-  if(verbose)
-    cat("Parsing",nrow(blast),"BLAST hits by MCScanX\n\t")
 
   blast$unique <- with(blast, paste(genome1, genome2))
   if("block.id" %in% colnames(blast))
@@ -163,7 +161,7 @@ pipe_mcscanx <- function(blast,
     genomes = c(x$genome1[1],x$genome2[1])
 
     if(verbose)
-      cat(genomes[1],"-->", genomes[2],
+      cat("\t",genomes[1],"-->", genomes[2],
           paste0("(initial hits = ",nrow(x),")"))
 
     gff.x <- gff[gff$genome %in% genomes,]
@@ -187,8 +185,6 @@ pipe_mcscanx <- function(blast,
   out$genome2 <- gsub("xxxx", "",  out$genome2)
   out$id2 <- gsub("xxxx", "",  out$id2)
   #######################################################
-  if (verbose)
-    cat("Done!\n")
   return(make_blocks(out, clean.columns = F))
 }
 
