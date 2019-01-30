@@ -59,6 +59,7 @@
 #' \dontrun{
 #' none yet
 #' }
+#' @importFrom compiler cmpfun
 #' @importFrom Biostrings readAAStringSet readDNAStringSet writeXStringSet
 #' @export
 convert_genomes <- function(genomeIDs,
@@ -71,7 +72,8 @@ convert_genomes <- function(genomeIDs,
                              strsplit(gsub(".*locus=", "", y)," ")[[1]][1],
                            verbose = T,
                            ...){
-
+  #######################################################
+  #######################################################
   parse_fastaHeader <- function(fasta.dir,
                                 is.peptide = T,
                                 pattern = "fa",
@@ -103,6 +105,11 @@ convert_genomes <- function(genomeIDs,
       writeXStringSet(x, filepath = i)
     })
   }
+  #######################################################
+  #######################################################
+  parse_fastaHeader <- cmpfun(parse_fastaHeader)
+  #######################################################
+  #######################################################
 
   raw_assembly.dir <- file.path(directory, "raw_assemblies")
   raw_annot.dir <- file.path(directory, "raw_annotations")
@@ -200,6 +207,7 @@ convert_genomes <- function(genomeIDs,
                       verbose = F,
                       parse_fastaHeader.FUN = parse_fastaHeader.FUN)
   })
+
   tmp <- parse_fastaHeader(fasta.dir = subdirs$peptide,
                            is.peptide = T,
                            verbose = F,

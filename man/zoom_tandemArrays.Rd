@@ -4,7 +4,9 @@
 \alias{zoom_tandemArrays}
 \title{Run MCScanX's detect_collinear_tandem_arrays}
 \usage{
-zoom_tandemArrays(ta.id, blast, buffer = 20, plotit = T, ...)
+zoom_tandemArrays(ta.id, blast, buffer = 20, plotit = T, rerank = F,
+  pch = 16, col = "black", array.pch = 16, array.col = "red",
+  array.cex = 0.6, ...)
 }
 \arguments{
 \item{ta.id}{tandem array id to plot}
@@ -15,16 +17,17 @@ zoom_tandemArrays(ta.id, blast, buffer = 20, plotit = T, ...)
 
 \item{plotit}{logical, should plots be made?}
 
-\item{...}{Passed on to plot}
+\item{...}{Additional argument assed on to plot}
 }
 \value{
-A culled b.last dataset
+The coordinates of the tandem array,
+and, if plotit, a zoomed-in plot.
 }
 \description{
 \code{find_pairwiseTandemArrays} Run MCScanX's detect_collinear_tandem_arrays
 }
 \details{
-Internal function
+A way to look and and define tandem array regions.
 }
 \examples{
 \dontrun{

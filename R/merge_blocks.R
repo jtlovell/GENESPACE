@@ -34,16 +34,17 @@
 #' none yet
 #' }
 #' @import data.table
-#' @importFrom geometry mesh.drectangle
-#' @import parallel
+#' @importFrom parallel mclapply
+#' @importFrom GenomicRanges makeGRangesFromDataFrame findOverlaps
+#' @importFrom compiler cmpfun
 #' @export
 merge_blocks = function(map,
                         blk,
                         verbose = T,
                         buffer = -1,
                         max.iter = 10){
-
-
+  #######################################################
+  #######################################################
   merge_clusters = function(map, blk, buffer){
     b = blk
     m = map
@@ -76,9 +77,8 @@ merge_blocks = function(map,
                       ties.method = "dense")
     return(out)
   }
-
-
-
+  #######################################################
+  #######################################################
   find_blkCluster = function(blk,
                              seqnames.field = "chr",
                              start.field = "start",
@@ -101,11 +101,18 @@ merge_blocks = function(map,
                      ties.method = "dense")
     return(cluster)
   }
+  #######################################################
+  #######################################################
+  find_blkCluster <- cmpfun(find_blkCluster)
+  merge_clusters <- cmpfun(merge_clusters)
+  #######################################################
+  #######################################################
 
   old.blk = blk
   n.old.blk <- nrow(blk)
   n.new.blk <- 0
   n.iter = 0
+
 
   while((n.new.blk<n.old.blk | n.iter == 0) & n.iter < max.iter){
     n.iter = n.iter + 1

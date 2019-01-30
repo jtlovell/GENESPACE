@@ -6,7 +6,8 @@
 \usage{
 find_pairwiseTandemArrays(gff, blast, mcscan.dir, orthogroup.dt,
   DCTA.path = "/Users/jlovell/Documents/comparative_genomics/programs/MCScanX/downstream_analyses/detect_collinear_tandem_arrays",
-  verbose = T, ...)
+  verbose = T, m.param = 50, w.param = 10, s.param = 10,
+  b.param = 0, k.param = 10, e.param = 0.1, ...)
 }
 \arguments{
 \item{gff}{gff data.table}
@@ -20,6 +21,18 @@ find_pairwiseTandemArrays(gff, blast, mcscan.dir, orthogroup.dt,
 \item{DCTA.path}{path to detect_collinear_tandem_arrays}
 
 \item{verbose}{logical, should updates be printed?}
+
+\item{m.param}{see MCScanX documentations}
+
+\item{w.param}{see MCScanX documentations}
+
+\item{s.param}{see MCScanX documentations}
+
+\item{b.param}{see MCScanX documentations}
+
+\item{k.param}{see MCScanX documentations}
+
+\item{e.param}{see MCScanX documentations}
 
 \item{...}{Not currently in use}
 }

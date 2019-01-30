@@ -28,13 +28,18 @@
 #' @export
 plot_blocksAndMapping <- function(map,
                                   blk,
-                                  ref.id,
-                                  altGenome2plot,
+                                  ref.id = NULL,
+                                  altGenome2plot = NULL,
                                   chr1toplot = NULL,
                                   chr2toplot = NULL,
                                   main = NULL,
                                   colorSegment = T,
                                   ...){
+
+  if(is.null(ref.id))
+    ref.id <- blk$genome1[1]
+  if(is.null(altGenome2plot))
+    altGenome2plot <- unique(blk$genome2)[unique(blk$genome2) != ref.id][1]
 
   blk <- data.frame(blk)
   map <- data.frame(map)

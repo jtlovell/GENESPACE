@@ -36,6 +36,7 @@
 #' none yet
 #' }
 #' @import data.table
+#' @importFrom compiler cmpfun
 #' @importFrom parallel mclapply
 #' @export
 find_syntenicOrthogs <- function(map,
@@ -59,14 +60,12 @@ find_syntenicOrthogs <- function(map,
     m <- merge(gene.index, gff)
     return(m)
   }
+
   ########################################################
   ########################################################
-
-
-
-  #######################################################
-
-  #######################################################
+  add_ofnum2gff <- cmpfun(add_ofnum2gff)
+  ########################################################
+  ########################################################
 
   #######################################################
   if (verbose)
@@ -97,7 +96,7 @@ find_syntenicOrthogs <- function(map,
   #######################################################
 
   #######################################################
-    all.blast <- import_ofBlast(species.mappings = species.mappings,
+  all.blast <- import_ofBlast(species.mappings = species.mappings,
                               genomeIDs = genomeIDs,
                               orthogroups = orthogroups,
                               gene.index = gene.index,
@@ -126,7 +125,7 @@ find_syntenicOrthogs <- function(map,
   if (verbose)
     cat("Done!\n")
   gi <- as.character(gene.index$gene.num)
-  names(gi)<-gene.index$id
+  names(gi) <- gene.index$id
   ids2keep = with(all.syn,
                   data.table(gn1 = gi[c(id1,id2)],
                              gn2 = gi[c(id2,id1)],
@@ -137,27 +136,27 @@ find_syntenicOrthogs <- function(map,
   #######################################################
   if (verbose)
     cat("Writing results to file ...\n")
-  sm = res.all$init.results$ortho.info$species.mappings
+  sm <- res.all$init.results$ortho.info$species.mappings
   sm$tmp.filename <- file.path(dir.list$tmp, basename(sm$filename))
 
   test <- lapply(1:nrow(sm), function(i){
     out.file = sm$tmp.filename[i]
     g1 = sm$genome1[i]
     g2 = sm$genome2[i]
-    is1 = g1 == sm$ref[i]
+    is1 <- g1 == sm$ref[i]
     blast.in <- all.blast[with(all.blast,
                                (genome1 == g1 &
                                   genome2 == g2) |
                                  (genome1 == g2 &
                                     genome2 == g1)),]
-    if(verbose)
+    if (verbose)
       cat("\t",g1,"-->",g2,"... total/syntenic hits =", nrow(blast.in),"/ ")
     blast.tmp <- blast.in[,c("gn1", "gn2", "perc.iden",
                              "align.length", "n.mismatch",
                              "n.gapOpen", "q.start", "q.end",
                              "s.start", "s.end",
                              "eval", "score")]
-    if(!is1){
+    if (!is1){
       setnames(blast.tmp,c("gn1","gn2"),c("gn2","gn1"))
       blast.tmp <- data.table(blast.tmp[,c("gn1", "gn2", "perc.iden",
                                            "align.length", "n.mismatch",

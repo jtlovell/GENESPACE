@@ -1,7 +1,7 @@
 Package: GENESPACE
 Type: Package
 Title: Gene-space Alignments of Whole-Genome Sequence Data
-Version: 0.2.2
+Version: 0.3.0
 Author: JT Lovell
 Maintainer: JT Lovell <jlovell@hudsonalpha.org>
 Description: Collinear blocks are formed from parsed BLAST results 
@@ -9,13 +9,16 @@ Description: Collinear blocks are formed from parsed BLAST results
       pairwise matches are validated. The pairwise associations are
       concatenated across all genome to build multiple-sequence alignments
       that include both annotated and unannotated gene sequence variation. 
-Depends: parallel,
-  GenomicFeatures,
-  data.table,
-  Biostrings,
+Depends: data.table,
   dbscan,
-  Rsamtools,
-  circlize
+  parallel,
+  GenomicRanges,
+  Biostrings,
+  circlize,
+  rgeos,
+  raster,
+  sp,
+  compiler
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true

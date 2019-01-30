@@ -23,15 +23,19 @@
 #' none yet
 #' }
 #' @import data.table
-#' @import dbscan
+#' @importFrom dbscan frNN dbscan
 #' @export
 run_dbs <- function(y,
+                    x.id = "rank1",
+                    y.id = "rank2",
                     eps.radius,
                     mappings){
-  nn <- frNN(data.frame(y[, c("rank1", "rank2"), with = F]),
+  if (class(y)[1] != "data.table")
+    y <- data.table(y)
+  nn <- frNN(y[, c(x.id, y.id), with = F],
              eps = eps.radius)
   dbs <- dbscan(nn,
                 minPts = mappings)
-  y$cluster <- dbs$cluster
+  y$cluster <- dbs$clusters
   return(y)
 }

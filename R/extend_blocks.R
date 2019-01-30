@@ -32,7 +32,6 @@
 #' none yet
 #' }
 #' @import data.table
-#' @importFrom parallel mclapply
 #' @export
 extend_blocks <- function(map,
                           gff,
@@ -45,6 +44,7 @@ extend_blocks <- function(map,
                           radius = 10,
                           n.mappings = 5){
   actually.plotit <- FALSE
+
   if (verbose)
     cat("Culling by pairwise genome comparison ...\n")
   for (i in 1:n.iter) {

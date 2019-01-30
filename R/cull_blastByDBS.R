@@ -17,7 +17,6 @@
 #' none yet
 #' }
 #' @import data.table
-#' @importFrom dbscan frNN dbscan
 #' @export
 cull_blastByDBS <- function(blast,
                             n.mappingWithinRadius = c(5,5,5),

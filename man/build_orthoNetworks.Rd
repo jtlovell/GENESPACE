@@ -2,7 +2,7 @@
 % Please edit documentation in R/build_orthoNetworks.R
 \name{build_orthoNetworks}
 \alias{build_orthoNetworks}
-\title{Find orphan genes}
+\title{build orthology networks}
 \usage{
 build_orthoNetworks(blk, gff, gene.index, dir.list, n.cores = 1,
   verbose = T)

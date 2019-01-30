@@ -1,4 +1,4 @@
-#' @title Find orphan genes
+#' @title build orthology networks
 #'
 #' @description
 #' \code{build_orthoNetworks} Search orthofinder output for genes withou
@@ -19,6 +19,7 @@
 #' none yet
 #' }
 #' @import data.table
+#' @importFrom compiler cmpfun
 #' @export
 build_orthoNetworks <- function(blk,
                             gff,
@@ -206,7 +207,14 @@ build_orthoNetworks <- function(blk,
   }
   ########################################################
   ########################################################
-
+  run_findOrphans <- cmpfun(run_findOrphans)
+  find_orphan <- cmpfun(find_orphan)
+  make_blkMetadata <- cmpfun(make_blkMetadata)
+  make_incompleteGfflist <- cmpfun(make_incompleteGfflist)
+  add_cdsLength2gff <- cmpfun(add_cdsLength2gff)
+  make_mapFromOGs <- cmpfun(make_mapFromOGs)
+  pull_gff <- cmpfun(pull_gff)
+  run_pullGff <- cmpfun(run_pullGff)
   ########################################################
   ########################################################
 

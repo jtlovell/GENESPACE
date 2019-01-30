@@ -8,6 +8,16 @@
 #' @param rerank logical, should the ranks be re-calculated prior to cleaning?
 #' @param radius numeric, what should the radius of 2d density clustering be?
 #' @param n.mappings numeric, how many mappings are required for a cluster?
+#' @param clean.by.unique.genes Logical, should blocks with few unique genes
+#' be culled?
+#' @param clean.by.og Logical, should blocks with few unique orthogroups
+#' be culled?
+#' @param min.unique.genes numeric, legnth 1, if clean.by.unique.genes,
+#' this is the number of unique genes needed for a block to be kept.
+#' @param min.unique.og numeric, legnth 1, if clean.by.og,
+#' this is the number of unique orthogroups needed for a block to be kept.
+#' @param clean.columns logical, should extrac columns be dropped when
+#' blocks are generated? Passed to make_blocks. Can speed things up.
 #' @param n.cores The number of parallel processes to run.
 #' @param verbose logical, should updates be printed?
 #' @param ... Not currently in use
@@ -24,8 +34,8 @@
 #' none yet
 #' }
 #' @import data.table
-#' @import parallel
-#' @import dbscan
+#' @importFrom parallel mclapply
+#' @importFrom compiler cmpfun
 #' @export
 clean_blocks <- function(map,
                          rerank = TRUE,
@@ -36,8 +46,11 @@ clean_blocks <- function(map,
                          min.unique.genes = ceiling(n.mappings/2),
                          min.unique.og = ceiling(n.mappings/2),
                          clean.by.og = F,
-                         verbose = T){
-
+                         clean.columns = T,
+                         verbose = T,
+                         ...){
+  #######################################################
+  #######################################################
   clean_it <- function(map,
                        rerank,
                        radius,
@@ -67,7 +80,7 @@ clean_blocks <- function(map,
       map$unique <- with(map, paste(genome1, genome2, chr1, chr2))
     }
     spl.gen = split(map, "unique.genome")
-    merged_map<-rbindlist(lapply(spl.gen, function(x){
+    merged_map <- rbindlist(lapply(spl.gen, function(x){
       g1 = x$genome1[1]
       g2 = x$genome2[1]
       if (verbose)
@@ -86,8 +99,6 @@ clean_blocks <- function(map,
             length(unique(paste(chr.map$unique, chr.map$block.id))),"blocks\n")
       return(chr.map)
     }))
-
-
 
     merged_map$block.id <- with(merged_map,
                                 as.numeric(as.factor(paste(unique, block.id))))
@@ -109,24 +120,34 @@ clean_blocks <- function(map,
     merged_blk <- make_blocks(map = merged_map,
                               rename.blocks = T,
                               rerank = T,
-                              clean.columns = T,
+                              clean.columns = clean.columns,
                               ties.method = "dense")
     return(merged_blk)
   }
 
+  #######################################################
+  #######################################################
+  clean.it <- cmpfun(clean.it)
+  #######################################################
+  #######################################################
+
+  #######################################################
   if((length(radius) != length(n.mappings)) |
      (clean.by.unique.genes & length(radius) != length(min.unique.genes)) |
      (clean.by.unique.genes & length(radius) != length(min.unique.og)))
     stop("radius, n.mappings, min.unique.og and min.unique.genes must be of same length\n")
+  #######################################################
 
-
-
+  #######################################################
+  # -- Prep the map object
   map$unique = with(map, paste(genome1, genome2, chr1, chr2))
   map$unique.genome = with(map, paste(genome1, genome2))
 
   setkey(map, chr1, chr2, start1, start2)
+  #######################################################
 
-
+  #######################################################
+  # -- Iteratively (or not) run the cleaning
   for(i in 1:length(n.mappings)){
     n.map = n.mappings[i]
     rad = radius[i]
@@ -141,7 +162,6 @@ clean_blocks <- function(map,
       }
     }
 
-
     cleaned <- clean_it(map = map,
                     rerank = rerank,
                     radius = rad,
@@ -153,12 +173,15 @@ clean_blocks <- function(map,
                     clean.by.og = clean.by.og,
                     verbose = verbose)
     map <- cleaned$map
+
     if (verbose)
       cat("Cleaned n blocks / mappings =",
           nrow(cleaned$block),
           "/",
           nrow(cleaned$map),"\n")
   }
+  #######################################################
 
+  #######################################################
   return(cleaned)
 }

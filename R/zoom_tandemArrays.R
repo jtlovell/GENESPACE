@@ -8,11 +8,12 @@
 #' @param ta.id tandem array id to plot
 #' @param buffer Regions surrounding array to plot
 #' @param plotit logical, should plots be made?
-#' @param ... Passed on to plot
+#' @param ... Additional argument assed on to plot
 #'
-#' @details Internal function
+#' @details A way to look and and define tandem array regions.
 #'
-#' @return A culled b.last dataset
+#' @return The coordinates of the tandem array,
+#' and, if plotit, a zoomed-in plot.
 #'
 #' @examples
 #' \dontrun{
@@ -24,7 +25,19 @@ zoom_tandemArrays <- function(ta.id,
                               blast,
                               buffer = 20,
                               plotit = T,
+                              rerank = F,
+                              pch = 16,
+                              col = "black",
+                              array.pch = 16,
+                              array.col = "red",
+                              array.cex = .6,
                               ...){
+  if(rerank){
+    blast[,rank1:=frank(start1, ties.method = "dense"),
+          by = list(genome1,chr2)]
+    blast[,rank1:=frank(start1, ties.method = "dense"),
+          by = list(genome1,chr2)]
+  }
 
   ta.hits <- blast[blast$tandemarray.id == ta.id,]
   if(length(unique(ta.hits$chr1)) > 1){
@@ -39,10 +52,10 @@ zoom_tandemArrays <- function(ta.id,
     wh.most = names(wh.most)[1]
     ta.hits = ta.hits[ta.hist$chr2 == wh.most,]
   }
-  order1.start = with(ta.hits, min(order1))
-  order2.start = with(ta.hits, min(order2))
-  order1.end = with(ta.hits, max(order1))
-  order2.end = with(ta.hits, max(order2))
+  order1.start = with(ta.hits, min(rank1))
+  order2.start = with(ta.hits, min(rank2))
+  order1.end = with(ta.hits, max(rank1))
+  order2.end = with(ta.hits, max(rank2))
   pos1.start = with(ta.hits, min(start1))
   pos2.start = with(ta.hits, min(start2))
   pos1.end = with(ta.hits, max(end1))
@@ -80,12 +93,12 @@ zoom_tandemArrays <- function(ta.id,
                    stringsAsFactors = F)
   if(plotit){
     with(buf.hits, plot(order1, order2,
-                        pch = 16, col = "black",
+                        pch = pch, col = col,
                         xlab = paste0(g1, " gene order (n = ",n.ta.1,")"),
                         ylab = paste0(g2, " gene order (n = ",n.ta.2,")"),
-                        main = ta.id, asp = 1, ...))
-    with(ta.hits, points(order1, order2, pch = 16,
-                         col = "red", cex = .6))
+                        main = ta.id, ...))
+    with(ta.hits, points(order1, order2, pch = array.pch,
+                         col = array.col, cex = array.cex))
   }
   return(out)
 }

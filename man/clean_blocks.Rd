@@ -8,7 +8,7 @@ clean_blocks(map, rerank = TRUE, radius = c(10, 100, 10),
   n.mappings = c(5, 20, 5), n.cores = 1, clean.by.unique.genes = T,
   min.unique.genes = ceiling(n.mappings/2),
   min.unique.og = ceiling(n.mappings/2), clean.by.og = F,
-  verbose = T)
+  clean.columns = T, verbose = T, ...)
 }
 \arguments{
 \item{map}{the map data.table or data.frame}
@@ -21,11 +21,26 @@ clean_blocks(map, rerank = TRUE, radius = c(10, 100, 10),
 
 \item{n.cores}{The number of parallel processes to run.}
 
+\item{clean.by.unique.genes}{Logical, should blocks with few unique genes
+be culled?}
+
+\item{min.unique.genes}{numeric, legnth 1, if clean.by.unique.genes,
+this is the number of unique genes needed for a block to be kept.}
+
+\item{min.unique.og}{numeric, legnth 1, if clean.by.og,
+this is the number of unique orthogroups needed for a block to be kept.}
+
+\item{clean.by.og}{Logical, should blocks with few unique orthogroups
+be culled?}
+
+\item{clean.columns}{logical, should extrac columns be dropped when
+blocks are generated? Passed to make_blocks. Can speed things up.}
+
 \item{verbose}{logical, should updates be printed?}
 
-\item{blk}{the block data.table or data.frame}
-
 \item{...}{Not currently in use}
+
+\item{blk}{the block data.table or data.frame}
 }
 \value{
 A list of length 2, block and map, as output by make_blocks.

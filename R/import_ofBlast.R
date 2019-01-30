@@ -18,6 +18,7 @@
 #' none yet
 #' }
 #' @import data.table
+#' @importFrom compiler cmpfun
 #' @export
 import_ofBlast <- function(species.mappings,
                            genomeIDs,
@@ -178,7 +179,13 @@ import_ofBlast <- function(species.mappings,
   }
   #######################################################
   #######################################################
+  parse_orthogroups <- cmpfun(parse_orthogroups)
+  parse_ofBlast <- cmpfun(parse_ofBlast)
+  read_ofBlast <- cmpfun(read_ofBlast)
+  #######################################################
+  #######################################################
 
+  #######################################################
   gene.index <- data.table(gene.index)
   #######################################################
 

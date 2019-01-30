@@ -4,7 +4,7 @@
 \alias{plot_blocksAndMapping}
 \title{Make detailed dotplot of mapping and blocks}
 \usage{
-plot_blocksAndMapping(map, blk, ref.id, altGenome2plot,
+plot_blocksAndMapping(map, blk, ref.id = NULL, altGenome2plot = NULL,
   chr1toplot = NULL, chr2toplot = NULL, main = NULL,
   colorSegment = T, ...)
 }

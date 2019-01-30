@@ -8,6 +8,10 @@
 #' @param rename.blocks Logical, should the block be re-named according to
 #' order of the genome, chromosome and block IDs?
 #' @param drop.NAs Logical, if TRUE, only retain complete cases of the map.
+#' @param add.metadata Logical, should metadata about blocks be added?
+#' @param clean.columns Logical, should un-necessary columns be dropped?
+#' @param ties.method passed on to data.table::frank ties.method.
+#' @param ... not currently in use
 #' @details Nothing yet
 #' @return List with blocks and mappings
 #'
@@ -23,7 +27,8 @@ make_blocks <- function(map,
                         rename.blocks = F,
                         add.metadata = F,
                         clean.columns = T,
-                        ties.method = "dense"){
+                        ties.method = "dense",
+                        ...){
   if(clean.columns){
     cols2keep = c("block.id","orthogroup","genome1","genome2","id1","id2",
                   "chr1","start1","end1","strand1","order1",

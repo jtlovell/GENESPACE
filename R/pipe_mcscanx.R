@@ -18,6 +18,7 @@
 #' none yet
 #' }
 #' @import data.table
+#' @importFrom compiler cmpfun
 #' @export
 pipe_mcscanx <- function(blast,
                          gff,
@@ -120,6 +121,11 @@ pipe_mcscanx <- function(blast,
     setkey(map.out, block.id, chr1, start1)
     return(map.out)
   }
+  #######################################################
+  #######################################################
+  run_mcs <- cmpfun(run_mcs)
+  parse_mcs <- cmpfun(parse_mcs)
+  prep_mcs <- cmpfun(prep_mcs)
   #######################################################
   #######################################################
 

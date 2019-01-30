@@ -9,6 +9,12 @@
 #' @param mcscan.dir Location to write files / run MCScanX
 #' @param orthogroup.dt Data.table, produced by upstream functions
 #' @param DCTA.path path to detect_collinear_tandem_arrays
+#' @param m.param see MCScanX documentations
+#' @param w.param see MCScanX documentations
+#' @param s.param see MCScanX documentations
+#' @param b.param see MCScanX documentations
+#' @param k.param see MCScanX documentations
+#' @param e.param see MCScanX documentations
 #' @param verbose logical, should updates be printed?
 #' @param ... Not currently in use
 #'
@@ -21,6 +27,7 @@
 #' none yet
 #' }
 #' @import data.table
+#' @importFrom compiler cmpfun
 #' @export
 find_pairwiseTandemArrays <- function(gff,
                                       blast,
@@ -28,6 +35,12 @@ find_pairwiseTandemArrays <- function(gff,
                                       orthogroup.dt,
                                       DCTA.path = "/Users/jlovell/Documents/comparative_genomics/programs/MCScanX/downstream_analyses/detect_collinear_tandem_arrays",
                                       verbose = T,
+                                      m.param = 50,
+                                      w.param = 10,
+                                      s.param = 10,
+                                      b.param = 0,
+                                      k.param = 10,
+                                      e.param = .1,
                                       ...){
   #######################################################
   #######################################################
@@ -126,6 +139,13 @@ find_pairwiseTandemArrays <- function(gff,
   }
   #######################################################
   #######################################################
+  load_DCTAs <- cmpfun(load_DCTAs)
+  propagate_connectedOGs <- cmpfun(propagate_connectedOGs)
+  propagate_connectedDCTAs <- cmpfun(propagate_connectedDCTAs)
+  prep_blast4mcscan <- cmpfun(prep_blast4mcscan)
+  prep_gff4mcscan <- cmpfun(prep_gff4mcscan)
+  #######################################################
+  #######################################################
   if (verbose)
     cat("Running tandem array searches for each pair of genomes ... \n")
   genome.cmbns = blast[,c("genome1","genome2")]
@@ -148,7 +168,7 @@ find_pairwiseTandemArrays <- function(gff,
                 row.names = F,
                 col.names = F,
                 quote = F, sep= "\t")
-    write.table(blast.in,
+    write.table(blast.in[,c("id1","id2")],
                 file = blast.file,
                 row.names = F,
                 col.names = F,
@@ -156,7 +176,14 @@ find_pairwiseTandemArrays <- function(gff,
     if (verbose)
       cat("running MCScanX ... ")
 
-    system(paste("MCScanX -a", file.path(mcscan.dir,"xyz"), "&> /dev/null"))
+    system(paste("MCScanX_h -a",
+                 "-m", m.param,
+                 "-w", w.param,
+                 "-s", s.param,
+                 "-b", b.param,
+                 "-k", k.param,
+                 "-e", e.param,
+                 file.path(mcscan.dir,"xyz"), "&> /dev/null"))
 
     if (verbose)
       cat("running detect_collinear_tandem_arrays ... \n\t")

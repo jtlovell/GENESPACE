@@ -45,7 +45,7 @@
 #' gap.deg = rep(c(.5,.5, 4), 9))
 #' }
 #' @import data.table
-#' @import circlize
+#' @importFrom circlize circos.par circos.genomicInitialize circos.track circos.genomicLink circos.clear
 #' @export
 plot_linkedCircos <- function(blk,
                               genome_id1,

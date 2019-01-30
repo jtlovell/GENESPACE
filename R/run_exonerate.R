@@ -19,6 +19,7 @@
 #' none yet
 #' }
 #' @import data.table
+#' @importFrom compiler cmpfun
 #' @export
 run_exonerate <- function(locs,
                           verbose = T,
@@ -83,10 +84,12 @@ run_exonerate <- function(locs,
     return(list(cds.seq = exo,
                 gff = gffo))
   }
-  ########################################################
-  ########################################################
-
-
+  #######################################################
+  #######################################################
+  proc_exonerate <- cmpfun(proc_exonerate)
+  call_exonerate <- cmpfun(call_exonerate)
+  #######################################################
+  #######################################################
 
   if (verbose) {
     n <- nrow(locs)

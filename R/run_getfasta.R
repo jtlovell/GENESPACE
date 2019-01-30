@@ -20,6 +20,7 @@
 #' none yet
 #' }
 #' @import data.table
+#' @importFrom compiler cmpfun
 #' @export
 run_getfasta <- function(bed.dt,
                          write.dir,
@@ -54,7 +55,9 @@ run_getfasta <- function(bed.dt,
   }
   ########################################################
   ########################################################
-
+  get_fasta <- cmpfun(get_fasta)
+  ########################################################
+  ########################################################
   fa.locs <- unlist(lapply(1:nrow(bed.dt), function(i){
 
     bed <- bed.dt[i,c("chr","start","end","genome")]

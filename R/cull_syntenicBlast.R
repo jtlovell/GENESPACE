@@ -26,8 +26,8 @@
 #' }
 #' @import data.table
 #' @import sp
+#' @importFrom compiler cmpfun
 #' @importFrom raster buffer extent
-#' @import rgeos
 #' @export
 cull_syntenicBlast <- function(map,
                                blast,
@@ -226,6 +226,17 @@ cull_syntenicBlast <- function(map,
     return(list(blast = blast.out,
                 buffer.sp = buf.out))
   }
+  ########################################################
+  ########################################################
+  buffer_all <- cmpfun(buffer_all)
+  buffer_withinGenome <- cmpfun(buffer_withinGenome)
+  find_xy2keep <- cmpfun(find_xy2keep)
+  buffer_xy <- cmpfun(buffer_xy)
+  mround <- cmpfun(mround)
+  rerank_fromIDs <- cmpfun(rerank_fromIDs)
+  ########################################################
+  ########################################################
+
   #######################################################
   if (verbose)
     cat("Making new blast and map with gff-based ranks ... ")

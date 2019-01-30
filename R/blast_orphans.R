@@ -17,8 +17,9 @@
 #' none yet
 #' }
 #' @import data.table
-#' @import Biostrings
-#' @import parallel
+#' @importFrom Biostrings readDNAStringSet writeXStringSet readAAStringSet
+#' @importFrom parallel mclapply
+#' @importFrom compiler cmpfun
 #' @export
 blast_orphans <- function(dir.list,
                           genomeIDs,
@@ -39,7 +40,6 @@ blast_orphans <- function(dir.list,
     })
     return(pep.list)
   }
-
   ########################################################
   ########################################################
   load.annotations <- function(genomeIDs,
@@ -189,11 +189,21 @@ blast_orphans <- function(dir.list,
   }
   ########################################################
   ########################################################
+  read_blastx <- cmpfun(read_blastx)
+  pipe_diamondBlastx <- cmpfun(pipe_diamondBlastx)
+  prep_seq4blast <- cmpfun(prep_seq4blast)
+  run_getfasta <- cmpfun(run_getfasta)
+  split_bedByOrphan <- cmpfun(split_bedByOrphan)
+  load.annotations <- cmpfun(load.annotations)
+  split_pepByOrphan <- cmpfun(split_pepByOrphan)
+  ########################################################
+  ########################################################
+
+  ########################################################
   cds.dir <- dir.list$cds
   peptide.dir <- dir.list$peptide
   assembly.dir <- dir.list$assembly
   block.dir <- dir.list$block
-
   ########################################################
   if (verbose)
     cat("Importing fasta indices, and CDS / peptide sequences ... ")

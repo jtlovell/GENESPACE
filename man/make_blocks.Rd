@@ -5,7 +5,7 @@
 \title{make blocks from mappings}
 \usage{
 make_blocks(map, rerank = T, drop.NAs = F, rename.blocks = F,
-  add.metadata = F, clean.columns = T, ties.method = "dense")
+  add.metadata = F, clean.columns = T, ties.method = "dense", ...)
 }
 \arguments{
 \item{map}{The map object (data.frame or data.table)}
@@ -16,6 +16,14 @@ make_blocks(map, rerank = T, drop.NAs = F, rename.blocks = F,
 
 \item{rename.blocks}{Logical, should the block be re-named according to
 order of the genome, chromosome and block IDs?}
+
+\item{add.metadata}{Logical, should metadata about blocks be added?}
+
+\item{clean.columns}{Logical, should un-necessary columns be dropped?}
+
+\item{ties.method}{passed on to data.table::frank ties.method.}
+
+\item{...}{not currently in use}
 }
 \value{
 List with blocks and mappings
