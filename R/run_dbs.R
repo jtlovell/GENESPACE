@@ -26,13 +26,10 @@
 #' @importFrom dbscan frNN dbscan
 #' @export
 run_dbs <- function(y,
-                    x.id = "rank1",
-                    y.id = "rank2",
                     eps.radius,
                     mappings){
-  if (class(y)[1] != "data.table")
-    y <- data.table(y)
-  nn <- frNN(y[, c(x.id, y.id), with = F],
+
+  nn <- frNN(data.frame(x = y$rank1, y = y$rank2),
              eps = eps.radius)
   dbs <- dbscan(nn,
                 minPts = mappings)
