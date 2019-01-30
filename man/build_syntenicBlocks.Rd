@@ -4,10 +4,12 @@
 \alias{build_syntenicBlocks}
 \title{build_syntenicBlocks}
 \usage{
-build_syntenicBlocks(genomeIDs, dir.list, min.block.size = 3,
+build_syntenicBlocks(genomeIDs, dir.list, min.block.size = 5,
   n.cores = 1, gap.multiplier = 8, mcscan.m.param = NULL,
   cull.byDBscan = TRUE, cull.byMCscan = TRUE, return.ogblast = TRUE,
-  verbose = TRUE, ...)
+  verbose = TRUE, str2drop = "Name=", str2parse = ";",
+  whichAttr = 2, n.mappingWithinRadius = c(5, 5), eps.radius = c(30,
+  15), ...)
 }
 \arguments{
 \item{genomeIDs}{Character vector of genome IDs to consider}

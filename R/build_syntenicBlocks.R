@@ -30,7 +30,7 @@
 #' @export
 build_syntenicBlocks <- function(genomeIDs,
                                  dir.list,
-                                 min.block.size = 3,
+                                 min.block.size = 5,
                                  n.cores = 1,
                                  gap.multiplier = 8,
                                  mcscan.m.param = NULL,
@@ -38,6 +38,11 @@ build_syntenicBlocks <- function(genomeIDs,
                                  cull.byMCscan = TRUE,
                                  return.ogblast = TRUE,
                                  verbose = TRUE,
+                                 str2drop = "Name=",
+                                 str2parse = ";",
+                                 whichAttr = 2,
+                                 n.mappingWithinRadius = c(5,5),
+                                 eps.radius = c(30,15),
                                  ...){
 
   #######################################################
