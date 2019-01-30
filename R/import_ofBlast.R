@@ -128,7 +128,7 @@ import_ofBlast <- function(species.mappings,
     }
 
     if (verbose)
-      cat("\t",nrow(blast), "hits in orthogroups ... ")
+      cat("\t",nrow(blast), "hits in orthogroups\n")
 
     # - Merge with gffs
     gf1 <- data.table(gff1)

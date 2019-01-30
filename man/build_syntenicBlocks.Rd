@@ -6,7 +6,7 @@
 \usage{
 build_syntenicBlocks(genomeIDs, dir.list, min.block.size = 5,
   n.cores = 1, gap.multiplier = 8, mcscan.m.param = NULL,
-  cull.byDBscan = TRUE, cull.byMCscan = TRUE, return.ogblast = TRUE,
+  cullby.dbscan = TRUE, cullby.MCscanX = TRUE, return.ogblast = TRUE,
   verbose = TRUE, str2drop = "Name=", str2parse = ";",
   whichAttr = 2, n.mappingWithinRadius = c(5, 5), eps.radius = c(30,
   15), ...)
@@ -24,10 +24,6 @@ MCScanX, as a function of the min.block.size.}
 \item{mcscan.m.param}{Numeric, alternative to gap.multiplier to exactly
 specify the MCScanX -m parameter.}
 
-\item{cull.byDBscan}{Logical, should blast hits be culled by dbscan?}
-
-\item{cull.byMCscan}{Logical, should blast hits be culled by MCScanX?}
-
 \item{return.ogblast}{Logical, should blast results of all orthogroups be
 returned?}
 
@@ -38,6 +34,10 @@ returned?}
 \item{merge.overlaps}{Logical, should overlapping blocks be merged?}
 
 \item{clean.byDBscan}{Logical, should blocks be merged and cleaned by dbscan?}
+
+\item{cull.byDBscan}{Logical, should blast hits be culled by dbscan?}
+
+\item{cull.byMCscan}{Logical, should blast hits be culled by MCScanX?}
 
 \item{max.size2merge}{the maximum block size to merge}
 }

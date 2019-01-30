@@ -34,8 +34,8 @@ build_syntenicBlocks <- function(genomeIDs,
                                  n.cores = 1,
                                  gap.multiplier = 8,
                                  mcscan.m.param = NULL,
-                                 cull.byDBscan = TRUE,
-                                 cull.byMCscan = TRUE,
+                                 cullby.dbscan = TRUE,
+                                 cullby.MCscanX = TRUE,
                                  return.ogblast = TRUE,
                                  verbose = TRUE,
                                  str2drop = "Name=",
@@ -93,7 +93,7 @@ build_syntenicBlocks <- function(genomeIDs,
   #######################################################
 
   #######################################################
-  if(cull.byDBscan){
+  if(cullby.dbscan){
     if (verbose)
       cat("Part #4 -- Culling blast results by 2d density ...\n")
 
@@ -112,7 +112,7 @@ build_syntenicBlocks <- function(genomeIDs,
     if (verbose)
       cat("\tDone!\n")
 
-    if (!cull.byMCScanX){
+    if (!cullby.MCscanX){
       if (verbose)
         cat("Skipping Part #5 (Culling blast results by multiple-collinearity)\n",
           "Returning clustering from dbscan\nDone!\n")
@@ -127,7 +127,7 @@ build_syntenicBlocks <- function(genomeIDs,
   #######################################################
 
   #######################################################
-  if(cull.byMCScanX){
+  if(cullby.MCscanX){
     if (verbose)
       cat("Part #5 -- Culling blast results by multiple-collinearity ...\n")
 
