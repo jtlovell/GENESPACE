@@ -141,7 +141,7 @@ build_syntenicBlocks <- function(genomeIDs,
                     "-w 2 -e 1")
     }
 
-    synteny.results <- pipe_mcscanx(blast = blast,
+    synteny.results <- pipe_mcscanx(blast = cull.tmp$map,
                                     gff = gff,
                                     mcscan.dir = mcscan.dir,
                                     mcscan.param = mcsp,
