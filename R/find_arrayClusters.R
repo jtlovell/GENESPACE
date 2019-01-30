@@ -24,7 +24,7 @@
 #' }
 #' @import data.table
 #' @export
-find_arrayClusters = function(blast,
+find_arrayClusters = function(map,
                               rerank = T,
                               clean.radius = 250,
                               clean.mappings = 5,
@@ -35,33 +35,15 @@ find_arrayClusters = function(blast,
                               ...){
   if(verbose)
     cat("Dropping intra-genomic hits\n")
-  blast <- blast[with(blast, genome1 != genome2),]
+  map <- map[with(map, genome1 != genome2),]
   if(rerank){
-    blast[,rank1 := frank(start1,
+    map[,rank1 := frank(start1,
                         ties.method = "dense"),
         by = list(genome1, genome2, chr1)]
-    blast[,rank2 := frank(start2,
+    map[,rank2 := frank(start2,
                         ties.method =  "dense"),
         by = list(genome1, genome2, chr2)]
   }
-
-  if(verbose)
-    cat("Forming blocks from blast\n")
-  syn.clean = clean_blocks(blast,
-                           radius = clean.radius,
-                           n.mappings = clean.mappings,
-                           verbose = F)
-  if(verbose)
-    cat("Merging adjacent blocks\n")
-  syn.merge = with(syn.clean,
-                   merge_blocks(map = map,
-                                blk = block,
-                                buffer = merge.buffer,
-                                verbose = F))
-
-  if(verbose)
-    cat("Counting hits and assigning array ids\n")
-  map = syn.merge$map
 
   if(rerank){
     if(verbose)
@@ -77,29 +59,30 @@ find_arrayClusters = function(blast,
                    by = c("id1","id2"))
 
   }
-
-  bl.og <- blast[,c("id1","id2","og1")]
-  setnames(bl.og, "og1","og")
-  m <- merge(bl.og, map, by = c("id1","id2"))
-
-  m$unique = with(m, paste(genome1, genome2, block.id, og))
-  m[,n.hits1 := length(unique(id1)),
+  cols2keep = c(colnames(map),"n.hits1","n.hits2","tandemarray.id")
+  map$unique = with(map, paste(genome1, genome2, block.id, og))
+  map[,n.hits1 := length(unique(id1)),
     by = list(unique)]
-  m[,n.hits2 := length(unique(id2)),
+  map[,n.hits2 := length(unique(id2)),
     by = list(unique)]
-  mo <- m[(m$n.hits1 >= min.hits1 & m$n.hits2 >= min.hits2) |
-            (m$n.hits1 >= min.hits2 & m$n.hits2 >= min.hits1) ,
+  mo <- map[with(map,
+                 (n.hits1 >= min.hits1 &
+                    n.hits2 >= min.hits2) |
+                   (n.hits1 >= min.hits2 &
+                      n.hits2 >= min.hits1)) ,
           c("unique","id1","id2")]
-  n.genes = length(unique(c(mo$id1, mo$id2)))
-  mo$id1<-NULL
-  mo$id2<-NULL
+  n.genes <- nrow(mo)
+  mo$id1 <- NULL
+  mo$id2 <- NULL
   mo <- mo[!duplicated(mo),]
   mo$tandemarray.id <- mo$unique
 
-  out <- merge(m, mo, by = "unique", all = T)
-  out$og1 <- out$og
-  out$og2 <- out$og
+  out <- merge(map,
+               mo[,c("unique","tandemarray.id")],
+               by = "unique",
+               all = T)
+
   if(verbose)
-    cat("Found", nrow(mo), "arrays that contain", n.genes, "unique genes\nDone!\n")
-  return(out)
+    cat("Found", nrow(mo), "arrays that contain", n.genes, "blast hits\nDone!\n")
+  return(out[,cols2keep, with = F])
 }
