@@ -225,16 +225,19 @@ find_syntenicOrthogs <- function(map,
 
   syn.map <- clean_blocks(map = all.blast,
                           radius = rank.buffer,
-                          n.mappings = min.block.size)
+                          n.mappings = min.block.size,
+                          clean.columns = F)
   syn.map = with(syn.map,
                  merge_blocks(map = map,
                               blk = block,
                               buffer = min.block.size*4,
-                              verbose = F))
+                              verbose = F,
+                              clean.columns = F))
   #######################################################
 
   #######################################################
   return(list(map = syn.map$map,
               block = syn.map$block,
+              blast = all.blast,
               of.results = of.blast))
 }

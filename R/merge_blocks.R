@@ -12,6 +12,7 @@
 #' merged. See details
 #' @param n.iter the number of iterations to run
 #' @param n.cores The number of parallel processes to run.
+#' @param clean.columns Should column names be cleaned out?
 #' @param ignore.orient Logical, should orientation of blocks be ignored?
 #' @param verbose logical, should updates be printed?
 #' @param ... Not currently in use
@@ -42,6 +43,7 @@ merge_blocks = function(map,
                         blk,
                         verbose = T,
                         buffer = -1,
+                        clean.columns = T,
                         max.iter = 10){
   #######################################################
   #######################################################
@@ -73,7 +75,7 @@ merge_blocks = function(map,
     out = make_blocks(map = m.clus,
                       rename.blocks = F,
                       rerank = T,
-                      clean.columns = T,
+                      clean.columns = clean.columns,
                       ties.method = "dense")
     return(out)
   }

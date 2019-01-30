@@ -4,7 +4,8 @@
 \alias{merge_blocks}
 \title{Merge close blocks}
 \usage{
-merge_blocks(map, blk, verbose = T, buffer = -1, max.iter = 10)
+merge_blocks(map, blk, verbose = T, buffer = -1, clean.columns = T,
+  max.iter = 10)
 }
 \arguments{
 \item{map}{the map data.table or data.frame}
@@ -17,6 +18,8 @@ merge_blocks(map, blk, verbose = T, buffer = -1, max.iter = 10)
 consider an overlap. For example, -1 means that the blocks must overlap by
 at least 1 gene, and 9 means that blocks that are up to 9 genes apart will be
 merged. See details}
+
+\item{clean.columns}{Should column names be cleaned out?}
 
 \item{max.size2merge}{numeric the maximum sized block to be merged}
 
