@@ -8,8 +8,8 @@ build_syntenicBlocks(genomeIDs, dir.list, min.block.size = 5,
   n.cores = 1, gap.multiplier = 8, mcscan.m.param = NULL,
   cullby.dbscan = TRUE, cullby.MCscanX = TRUE, return.ogblast = TRUE,
   verbose = TRUE, str2drop = "Name=", str2parse = ";",
-  whichAttr = 2, n.mappingWithinRadius = c(5, 5), eps.radius = c(30,
-  15), ...)
+  whichAttr = 2, MCScanX.path = "MCScanX",
+  n.mappingWithinRadius = c(5, 5), eps.radius = c(30, 15), ...)
 }
 \arguments{
 \item{genomeIDs}{Character vector of genome IDs to consider}
@@ -28,6 +28,8 @@ specify the MCScanX -m parameter.}
 returned?}
 
 \item{verbose}{Logical, should updates be printed?}
+
+\item{MCScanX.path}{path the MCScanX program}
 
 \item{...}{Not in use yet.}
 

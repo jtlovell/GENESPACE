@@ -17,6 +17,7 @@
 #' @param max.size2merge the maximum block size to merge
 #' @param return.ogblast Logical, should blast results of all orthogroups be
 #' returned?
+#' @param MCScanX.path path the MCScanX program
 #' @param verbose Logical, should updates be printed?
 #' @param ... Not in use yet.
 #' @details More here
@@ -41,6 +42,7 @@ build_syntenicBlocks <- function(genomeIDs,
                                  str2drop = "Name=",
                                  str2parse = ";",
                                  whichAttr = 2,
+                                 MCScanX.path = "MCScanX",
                                  n.mappingWithinRadius = c(5,5),
                                  eps.radius = c(30,15),
                                  ...){
@@ -141,8 +143,9 @@ build_syntenicBlocks <- function(genomeIDs,
                     "-w 2 -e 1")
     }
 
-    synteny.results <- pipe_mcscanx(blast = cull.tmp$map,
+    synteny.results <- pipe_mcscanx(blast = cull.dbs,
                                     gff = gff,
+                                    MCScanX.path = MCScanX.path,
                                     mcscan.dir = mcscan.dir,
                                     mcscan.param = mcsp,
                                     verbose = T)
