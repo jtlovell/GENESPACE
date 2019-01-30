@@ -37,10 +37,10 @@ find_arrayClusters = function(blast,
     cat("Dropping intra-genomic hits\n")
   blast <- blast[with(blast, genome1 != genome2),]
   if(rerank){
-    map[,rank1 := frank(start1,
+    blast[,rank1 := frank(start1,
                         ties.method = ties.method),
         by = list(genome1, genome2, chr1)]
-    map[,rank2 := frank(start2,
+    blast[,rank2 := frank(start2,
                         ties.method = ties.method),
         by = list(genome1, genome2, chr2)]
   }
