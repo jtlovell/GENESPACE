@@ -157,6 +157,6 @@ build_syntenicBlocks <- function(genomeIDs,
     cat("##########\n#\tDone!\n")
   out <- list(synteny.results = list(map = map,
                                      block = blk),
-              init.results = init.results)
+              init.results = of.results)
   return(out)
 }
