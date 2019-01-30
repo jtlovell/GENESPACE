@@ -29,7 +29,7 @@ run_dbs <- function(y,
                     eps.radius,
                     mappings){
 
-  nn <- frNN(data.frame(x = y$rank1, y = y$rank2),
+  nn <- frNN(data.matrix(cbind(y$rank1, y$rank2)),
              eps = eps.radius)
   dbs <- dbscan(nn,
                 minPts = mappings)

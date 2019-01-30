@@ -40,9 +40,6 @@ build_syntenicBlocks <- function(genomeIDs,
                                  verbose = TRUE,
                                  ...){
 
-
-
-
   #######################################################
   peptide.dir <- dir.list$peptide
   gff.dir <- dir.list$gff
@@ -80,8 +77,6 @@ build_syntenicBlocks <- function(genomeIDs,
                               min.block.size,
                               min.block.size),
     cull.byDBscan = cull.byDBscan,
-    cull.byMCscan = cull.byMCscan,
-    mcscan.param = mcsp,
     return.ogblast = return.ogblast)
 
   gff <- data.table(init.results$gff)

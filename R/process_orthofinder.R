@@ -94,7 +94,7 @@ process_orthofinder <- function(gff.dir,
     blast.dir = blast.dir,
     verbose = verbose)
 
-  blast <- import_ofBlast(
+  blast <<- import_ofBlast(
     species.mappings = of.blast$species.mappings,
     genomeIDs = genomeIDs,
     orthogroups = of.blast$orthogroups,
@@ -122,15 +122,6 @@ process_orthofinder <- function(gff.dir,
       run.it = F)
   }
 
-  if(cull.byMCscan){
-    cull.mcs <- pipe_mcscanx(blast = cull.dbs,
-                             gff = gff,
-                             mcscan.dir = mcscan.dir,
-                             mcscan.param = mcscan.param)
-  }else{
-    cull.mcs <- cull.dbs
-  }
-
   if(return.ogblast){
     ogblast = blast
   }else{
@@ -138,6 +129,6 @@ process_orthofinder <- function(gff.dir,
   }
   return(list(gff = gff,
               ortho.info = of.blast,
-              blast = cull.mcs$map,
+              blast = cull.dbs$map,
               orthogroup.blast = ogblast))
 }
