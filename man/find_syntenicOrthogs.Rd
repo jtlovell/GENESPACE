@@ -6,7 +6,7 @@
 \usage{
 find_syntenicOrthogs(map, dir.list, gff, gene.index, species.mappings,
   n.cores = 1, orthogroups, plotit = n.cores == 1, rank.buffer = 250,
-  verbose = T, ...)
+  verbose = T, min.block.size = 5, ...)
 }
 \arguments{
 \item{map}{The map data.frame or data.table}
@@ -39,6 +39,9 @@ n.core > 1.}
 \item{rank.buffer}{The buffer, in gene rank order.}
 
 \item{verbose}{Logical, should updates be printed}
+
+\item{min.block.size}{Numeric of length 1, specifying the minimum
+block size in the cleaning procedure at the end.}
 
 \item{...}{Not currently in use}
 }

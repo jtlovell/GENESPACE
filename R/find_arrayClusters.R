@@ -94,7 +94,7 @@ find_arrayClusters = function(blast,
   mo$id1<-NULL
   mo$id2<-NULL
   mo <- mo[!duplicated(mo),]
-  mo$tandemarray.id <- paste(mo$unique, 1:nrow(mo))
+  mo$tandemarray.id <- mo$unique
 
   out <- merge(m, mo, by = "unique", all = T)
   out$og1 <- out$og

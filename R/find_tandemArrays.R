@@ -223,7 +223,7 @@ find_pairwiseTandemArrays <- function(gff,
 
   blast$unique.genome <- with(blast, paste(genome1, genome2))
   pw.cta$og1 <- pw.cta$og
-  pw.cta$tandemarray.id <- with(pw.cta, paste(og,unique.genome,array.id))
+  pw.cta$tandemarray.id <- with(pw.cta, paste(og,unique.genome))
   pw.cta <- pw.cta[,c("tandemarray.id","og1","unique.genome")]
   pw.cta <- pw.cta[!duplicated(pw.cta),]
   setkey(pw.cta, og1, unique.genome)

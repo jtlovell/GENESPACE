@@ -24,6 +24,8 @@
 #' n.core > 1.
 #' @param rank.buffer The buffer, in gene rank order.
 #' @param n.cores Number of parallel processes to run, when possible
+#' @param min.block.size Numeric of length 1, specifying the minimum
+#' block size in the cleaning procedure at the end.
 #' @param verbose Logical, should updates be printed
 #' @param ... Not currently in use
 #' @details None yet
@@ -49,6 +51,7 @@ find_syntenicOrthogs <- function(map,
                                  plotit = n.cores == 1,
                                  rank.buffer = 250,
                                  verbose = T,
+                                 min.block.size = 5,
                                  ...){
 
   #######################################################
@@ -219,6 +222,19 @@ find_syntenicOrthogs <- function(map,
   #######################################################
 
   #######################################################
-  return(list(blast = all.blast,
+
+  syn.map <- clean_blocks(map = all.blast,
+                          radius = rank.buffer,
+                          n.mappings = min.block.size)
+  syn.map = with(syn.map,
+                 merge_blocks(map = map,
+                              blk = block,
+                              buffer = min.block.size*4,
+                              verbose = F))
+  #######################################################
+
+  #######################################################
+  return(list(map = syn.map$map,
+              block = syn.map$block,
               of.results = of.blast))
 }
