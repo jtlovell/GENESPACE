@@ -38,10 +38,10 @@ find_arrayClusters = function(blast,
   blast <- blast[with(blast, genome1 != genome2),]
   if(rerank){
     blast[,rank1 := frank(start1,
-                        ties.method = ties.method),
+                        ties.method = "dense"),
         by = list(genome1, genome2, chr1)]
     blast[,rank2 := frank(start2,
-                        ties.method = ties.method),
+                        ties.method =  "dense"),
         by = list(genome1, genome2, chr2)]
   }
 
