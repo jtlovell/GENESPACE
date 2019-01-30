@@ -47,6 +47,8 @@ build_syntenicBlocks <- function(genomeIDs,
                                  eps.radius = c(30,15),
                                  ...){
 
+  if(!file.exists(MCScanX.path) & Sys.which(MCScanX.path) == "")
+    stop("MCScanX does not appear to be installed, or MCScanX.path does not point to the executable\n")
   #######################################################
   gff.dir <- dir.list$gff
   blast.dir <- dir.list$blast
