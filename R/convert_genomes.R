@@ -8,7 +8,6 @@
 #' @param directory file path to the base directory. Must contain two subdirectories:
 #' raw_annotations and raw_assemblies. The directory structures of these are outlined
 #' below.
-#' @param transcript_str character string to identify primary transcript fasta file
 #' @param cds_str character string to identify primary CDS fasta file
 #' @param peptide_str character string to identify primary peptide fasta file
 #' @param gff_str character string to identify gff annotation file
@@ -38,9 +37,8 @@
 #'   three annotation fasta files.}
 #'   \item{**Copies annotation files**: Within each genomeIDs `raw_annotation`
 #'   subdirectory, searches for the file containing the `gff_str`, `cds_str`,
-#'   `peptide_str` and `transcript_str`. The files containing these strings
-#'   are copied into the `genome/gff`, `genome/cds`, `genome/peptide` and
-#'   `genome/transcript` subdirectories, then renamed with each genomeIDs.}
+#'   `peptide_str`. The files containing these strings
+#'   are copied into the `genome/gff`, `genome/cds`, `genome/peptide` subdirectories, then renamed with each genomeIDs.}
 #'   \item{**Copies assembly files**: The assembly files are copied as is
 #'   into the `genome/assembly` subdirectory. Then, `samtools faidx` is
 #'   called to index the assembly.}
@@ -64,7 +62,6 @@
 #' @export
 convert_genomes <- function(genomeIDs,
                            directory,
-                           transcript_str = "transcript_primaryTranscriptOnly",
                            peptide_str = "protein_primaryTranscriptOnly",
                            cds_str = "cds_primaryTranscriptOnly",
                            gff_str = "gene.gff3",
@@ -118,11 +115,10 @@ convert_genomes <- function(genomeIDs,
   if (!all(genomeIDs %in% dir(raw_annot.dir)))
     stop("all specified genomeIDs must be folder names in raw_annot.dir\n")
 
-  strs <- c(transcript_str,
-            peptide_str,
+  strs <- c(peptide_str,
             cds_str,
             gff_str)
-  names(strs) <- c("transcript","peptide","cds","gff")
+  names(strs) <- c("peptide","cds","gff")
   file.lists <- sapply(names(strs), USE.NAMES = T, simplify = F, function(j){
     sapply(genomeIDs, function(i){
         list.files(file.path(raw_annot.dir, i),
@@ -144,8 +140,7 @@ convert_genomes <- function(genomeIDs,
     system(paste("rm -r", input.dir))
     system(paste("mkdir", input.dir))
   }
-  ftypes <- c("transcript",
-              "peptide",
+  ftypes <- c("peptide",
               "cds",
               "gff",
               "assembly")

@@ -99,7 +99,7 @@ zoom_tandemArrays <- function(ta.id,
                         ylab = paste0(g2, " gene order (n = ",n.ta.2,")"),
                         main = ta.id, ...))
     with(ta.hits, points(order1, order2, pch = array.pch,
-                         col = array.col, cex = array.cex))
+                         col = array.col, cex = .5))
   }
   return(out)
 }

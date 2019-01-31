@@ -62,8 +62,7 @@ cluster_tandemArrays <- function(map,
   }
   cols2keep <- c(colnames(map),
                  "n.hits1",
-                 "n.hits2",
-                 "tandemarray.id")
+                 "n.hits2")
   map$unique <- with(map,
                      paste(genome1, genome2,
                            block.id, og1))
@@ -76,7 +75,7 @@ cluster_tandemArrays <- function(map,
                             paste(og1,
                                   unique.genome,
                                   block.id))
-  mo <- map[with(map,
+  mo <- mo[with(mo,
                  (n.hits1 >= min.hits1 &
                     n.hits2 >= min.hits2) |
                    (n.hits1 >= min.hits2 &

@@ -52,13 +52,11 @@ check_environment <- function(directory,
   gff.dir <- file.path(genome.dir, "gff")
   peptide.dir <- file.path(genome.dir, "peptide")
   cds.dir <- file.path(genome.dir, "cds")
-  transcript.dir <- file.path(genome.dir, "transcript")
   assembly.dir <- file.path(genome.dir, "assembly")
 
   dir.out[["gff"]] <- gff.dir
   dir.out[["peptide"]] <- peptide.dir
   dir.out[["cds"]] <- cds.dir
-  dir.out[["transcript"]] <- transcript.dir
   dir.out[["assembly"]] <- assembly.dir
   dir.out[["gff"]] <- gff.dir
 
@@ -70,8 +68,7 @@ check_environment <- function(directory,
       stop("Genome directory does not exist, build first\n")
 
     ftypes <- file.path(genome.dir,
-                        c("transcript",
-                          "peptide",
+                        c("peptide",
                           "cds",
                           "gff",
                           "assembly"))

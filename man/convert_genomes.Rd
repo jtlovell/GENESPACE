@@ -5,7 +5,6 @@
 \title{Move and organize raw genome data}
 \usage{
 convert_genomes(genomeIDs, directory,
-  transcript_str = "transcript_primaryTranscriptOnly",
   peptide_str = "protein_primaryTranscriptOnly",
   cds_str = "cds_primaryTranscriptOnly", gff_str = "gene.gff3",
   parse_fastaHeader.FUN = function(y) strsplit(gsub(".*locus=", "", y),
@@ -17,8 +16,6 @@ convert_genomes(genomeIDs, directory,
 \item{directory}{file path to the base directory. Must contain two subdirectories:
 raw_annotations and raw_assemblies. The directory structures of these are outlined
 below.}
-
-\item{transcript_str}{character string to identify primary transcript fasta file}
 
 \item{peptide_str}{character string to identify primary peptide fasta file}
 
@@ -63,9 +60,8 @@ The function runs the following steps:
   three annotation fasta files.}
   \item{**Copies annotation files**: Within each genomeIDs `raw_annotation`
   subdirectory, searches for the file containing the `gff_str`, `cds_str`,
-  `peptide_str` and `transcript_str`. The files containing these strings
-  are copied into the `genome/gff`, `genome/cds`, `genome/peptide` and
-  `genome/transcript` subdirectories, then renamed with each genomeIDs.}
+  `peptide_str`. The files containing these strings
+  are copied into the `genome/gff`, `genome/cds`, `genome/peptide` subdirectories, then renamed with each genomeIDs.}
   \item{**Copies assembly files**: The assembly files are copied as is
   into the `genome/assembly` subdirectory. Then, `samtools faidx` is
   called to index the assembly.}
