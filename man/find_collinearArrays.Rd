@@ -4,14 +4,14 @@
 \alias{find_collinearArrays}
 \title{Run MCScanX's detect_collinear_tandem_arrays}
 \usage{
-find_collinearArrays(gff, blast, mcscan.dir, rerank = T,
+find_collinearArrays(gff, map, mcscan.dir, rerank = T,
   DCTA.path = "/Users/jlovell/Documents/comparative_genomics/programs/MCScanX/downstream_analyses/detect_collinear_tandem_arrays",
   verbose = T, MCScanX.param = "-m 50 -w 10 -s 10 -b 0 -k", ...)
 }
 \arguments{
 \item{gff}{gff data.table}
 
-\item{blast}{the blast dataset to screen for syntenic hits}
+\item{map}{the map dataset to screen for syntenic hits}
 
 \item{mcscan.dir}{Location to write files / run MCScanX}
 

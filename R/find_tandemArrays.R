@@ -4,7 +4,7 @@
 #' \code{find_pairwiseTandemArrays} Run MCScanX's detect_collinear_tandem_arrays
 #'
 #'
-#' @param blast the blast dataset to screen for syntenic hits
+#' @param map the map dataset to screen for syntenic hits
 #' @param gff gff data.table
 #' @param rerank Logical, should ranks of genes in gff be used?
 #' @param mcscan.dir Location to write files / run MCScanX
@@ -31,7 +31,7 @@
 #' @importFrom compiler cmpfun
 #' @export
 find_collinearArrays <- function(gff,
-                                      blast,
+                                      map,
                                       mcscan.dir,
                                       rerank = T,
                                       DCTA.path = "/Users/jlovell/Documents/comparative_genomics/programs/MCScanX/downstream_analyses/detect_collinear_tandem_arrays",
@@ -60,18 +60,18 @@ find_collinearArrays <- function(gff,
   }
   #######################################################
   #######################################################
-  prep_blast4mcscan <- function(blast,
+  prep_blast4mcscan <- function(map,
                                 genomeIDs){
-    blast <- blast[with(blast,
+    map <- map[with(map,
                         genome2 %in% genomeIDs &
                           genome1 %in% genomeIDs), ]
-    blast <- blast[,c("id1", "id2",
+    map <- map[,c("id1", "id2",
                       "perc.iden", "align.length",
                       "n.mismatch", "n.gapOpen",
                       "q.start", "q.end",
                       "s.start", "s.end",
                       "eval", "score")]
-    return(blast)
+    return(map)
   }
   #######################################################
   #######################################################
@@ -154,20 +154,20 @@ find_collinearArrays <- function(gff,
   if (rerank){
     if (verbose)
       cat("Using the gff gene ranks as positions\n")
-    rr = with(blast,
+    rr = with(map,
               rerank_fromIDs(id1 = id1,
                              id2 = id2,
                              gff = gff))
-    blast$rank1 <- NULL
-    blast$rank2 <- NULL
-    blast <- merge(rr[,c("id1", "id2", "rank1", "rank2")],
-                   blast,
+    map$rank1 <- NULL
+    map$rank2 <- NULL
+    map <- merge(rr[,c("id1", "id2", "rank1", "rank2")],
+                   map,
                    by = c("id1","id2"))
 
   }
   if (verbose)
     cat("Running tandem array searches for each pair of genomes ... \n")
-  genome.cmbns <- blast[, c("genome1", "genome2")]
+  genome.cmbns <- map[, c("genome1", "genome2")]
   genome.cmbns <- genome.cmbns[!duplicated(genome.cmbns), ]
   genome.cmbns <- genome.cmbns[genome.cmbns$genome1 != genome.cmbns$genome2, ]
 
@@ -176,7 +176,7 @@ find_collinearArrays <- function(gff,
       cat(x[1], "<-->", x[2], "... ")
     gff.in <- prep_gff4mcscan(gff = gff,
                               genomeIDs = x)
-    blast.in <- prep_blast4mcscan(blast = blast,
+    blast.in <- prep_blast4mcscan(blast = map,
                                   genomeIDs = x)
 
     gff.file <- file.path(mcscan.dir, "xyz.gff")
@@ -224,7 +224,7 @@ find_collinearArrays <- function(gff,
     return(dtca)
   }))
 
-  blast$unique.genome <- with(blast,
+  map$unique.genome <- with(map,
                               paste(genome1, genome2))
   pw.cta$og1 <- pw.cta$og
   pw.cta$tandemarray.id <- with(pw.cta,
@@ -235,8 +235,8 @@ find_collinearArrays <- function(gff,
   pw.cta <- pw.cta[!duplicated(pw.cta), ]
 
   setkey(pw.cta, og1, unique.genome)
-  setkey(blast, og1, unique.genome)
-  out <- merge(blast,
+  setkey(map, og1, unique.genome)
+  out <- merge(map,
                pw.cta,
                all = T)
 
