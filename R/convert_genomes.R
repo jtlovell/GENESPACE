@@ -196,12 +196,10 @@ convert_genomes <- function(genomeIDs,
   # 4. re-name annotation fastas with gene name (not model).
   if (verbose)
     cat("Renaming annotation fasta headers\n")
-  tmp <- lapply(subdirs[c("transcript", "cds")], function(x){
-    parse_fastaHeader(fasta.dir = x,
-                      is.peptide = F,
-                      verbose = F,
-                      parse_fastaHeader.FUN = parse_fastaHeader.FUN)
-  })
+  tmp <- parse_fastaHeader(fasta.dir = subdirs$cds,
+                           is.peptide = F,
+                           verbose = F,
+                           parse_fastaHeader.FUN = parse_fastaHeader.FUN)
 
   tmp <- parse_fastaHeader(fasta.dir = subdirs$peptide,
                            is.peptide = T,
