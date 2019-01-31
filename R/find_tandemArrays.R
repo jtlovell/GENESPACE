@@ -176,7 +176,7 @@ find_collinearArrays <- function(gff,
       cat(x[1], "<-->", x[2], "... ")
     gff.in <- prep_gff4mcscan(gff = gff,
                               genomeIDs = x)
-    blast.in <- prep_blast4mcscan(blast = map,
+    blast.in <- prep_blast4mcscan(map = map,
                                   genomeIDs = x)
 
     gff.file <- file.path(mcscan.dir, "xyz.gff")
