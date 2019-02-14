@@ -93,8 +93,8 @@ cull_syntenicBlast <- function(map,
                                 plotit,
                                 ...){
 
-    spl.map <- split.data.table(map, "unique.genome")
-    spl.blast <- split.data.table(blast, "unique.genome")
+    spl.map <- split(map, "unique.genome")
+    spl.blast <- split(blast, "unique.genome")
     ns <- unique(names(spl.blast))
     ns <- ns[ns %in% unique(names(spl.map))]
 
@@ -106,8 +106,8 @@ cull_syntenicBlast <- function(map,
                    nrow(i.blast),", ","map.size = ",nrow(i.map),")"))
 
 
-      spl.i.map <- split.data.table(i.map, "unique.chr")
-      spl.i.blast <- split.data.table(i.blast, "unique.chr")
+      spl.i.map <- split(i.map, "unique.chr")
+      spl.i.blast <- split(i.blast, "unique.chr")
       nis <- unique(names(spl.i.blast))
       nis <- nis[nis %in% unique(names(spl.i.map))]
 
