@@ -39,7 +39,7 @@ zoom_tandemArrays <- function(ta.id,
           by = list(genome1,chr2)]
   }
 
-  ta.hits <- blast[blast$tandemarray.id == ta.id,]
+  ta.hits <- blast[blast$array.id == ta.id,]
   if(length(unique(ta.hits$chr1)) > 1){
     wh.most = table(ta.hits$chr1)
     wh.most = wh.most[order(-wh.most)]

@@ -15,9 +15,6 @@ Depends: data.table,
   GenomicRanges,
   Biostrings,
   circlize,
-  rgeos,
-  raster,
-  sp,
   compiler
 License: GPL (>= 2)
 Encoding: UTF-8

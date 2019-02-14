@@ -6,7 +6,8 @@
  @description
 \code{split.data.table} Much faster than base split.}
 \usage{
-split.data.table(x, f, drop = FALSE, by, flatten = FALSE, ...)
+\method{split}{data.table}(x, f, drop = FALSE, by, flatten = FALSE,
+  ...)
 }
 \arguments{
 \item{x}{a data.table}

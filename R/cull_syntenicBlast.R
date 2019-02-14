@@ -25,9 +25,7 @@
 #' none yet
 #' }
 #' @import data.table
-#' @import sp
-#' @importFrom compiler cmpfun
-#' @importFrom raster buffer extent
+#' @importFrom dbscan frNN
 #' @export
 cull_syntenicBlast <- function(map,
                                blast,
@@ -38,177 +36,161 @@ cull_syntenicBlast <- function(map,
                                n.cores = 1){
   #######################################################
   #######################################################
-  mround <- function(x,base){
-    base * round(x / base)
+  cull_blast2MapChr <- function(map, blast){
+    map$unique.genome <- with(map,
+                              paste(genome1, genome2))
+    blast$unique.genome <- with(blast,
+                                paste(genome1, genome2))
+    map$unique.chr <- with(map,
+                           paste(unique.genome,
+                                 chr1, chr2))
+    blast$unique.chr <- with(blast,
+                             paste(unique.genome,
+                                   chr1, chr2))
+
+    gug <- intersect(unique(blast$unique.chr),
+                     unique(map$unique.chr))
+    wh.blast <- which(ugb %in% gug)
+    m.blast <- data.table(blast[wh.blast,])
+    return(list(map = map,
+                blast = blast))
   }
   #######################################################
   #######################################################
-  buffer_xy <- function(x,
-                        y,
-                        buffer,
-                        roundto = buffer / 3,
-                        crs = CRS("+proj=utm +zone=32 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")){
-    xy <- data.frame(
-      x = mround(x, roundto),
-      y = mround(y, roundto),
-      stringsAsFactors = F)
+  cull_blast2NewIds <- function(blast, map){
+    setkey(map, id1, id2)
+    setkey(blast, id1, id2)
+    t.map <- map[,c("id1","id2")]
+    t.map$in.map <- TRUE
 
-    xy <- xy[!duplicated(xy), ]
-
-    coordinates(xy) <- ~ x + y
-    proj4string(xy) <- crs
-
-    buf <- buffer(xy, buffer)
-    return(buf)
+    blast <- merge(blast, t.map, all.x = T)
+    blast <- blast[is.na(blast$in.map),colnames(blast), with = F]
+    return(blast)
   }
   #######################################################
   #######################################################
-  find_xy2keep <- function(buffer.sp,
-                           x,
-                           y,
-                           plotit = T,
-                           xlab = NULL,
-                           ylab = NULL){
+  find_whichInBuffer <- function(x,
+                                 y,
+                                 which.in.blk,
+                                 rank.buffer,
+                                 ...){
 
-    xy.pts <- data.frame(x = x,
-                         y = y,
-                         stringsAsFactors = F)
+    nn <- frNN(x = data.frame(x,
+                              y),
+               eps = rank.buffer,
+               ...)
 
-    coordinates(xy.pts) <- ~ x + y
-    proj4string(xy.pts) <- proj4string(buffer.sp)
+    all.near.blk <- unique(unlist(nn$id[which.in.blk]))
 
-    # -- check which hits are in the buffer
-    is.in.buf <- !is.na(over(xy.pts,
-                             buffer.sp,
-                             fn = NULL))
-
-    # -- if desired, make the plot
-    if (plotit) {
-      xy2keep <- xy.pts[is.in.buf,]
-      ylims <- extent(buffer.sp)[3:4]
-      xlims <- extent(buffer.sp)[1:2]
-
-      plot(jitter(xy.pts$x),
-           jitter(xy.pts$y),
-           pch = ".",
-           ylim = ylims,
-           xlim = xlims,
-           xlab = xlab,
-           ylab = ylab)
-
-      plot(buffer.sp,
-           add = T,
-           col = rgb(0, 0, 1, .2),
-           lty = 2)
-    }
-    return(is.in.buf)
+    return(all.near.blk[order(all.near.blk)])
   }
   #######################################################
   #######################################################
-  buffer_withinGenome <- function(map,
-                                  blast,
-                                  buffer,
-                                  n.cores = 1,
-                                  verbose = TRUE,
-                                  plotit = TRUE){
-    if (verbose)
-      cat(map$genome1[1], "-->",
-          map$genome2[1], "... ")
+  find_hitsInBuffer <- function(map,
+                                blast,
+                                rank.buffer,
+                                verbose,
+                                plotit,
+                                ...){
 
-    s.m <- split(map, "unique.chr")
-    s.b <- split(blast, "unique.chr")
-
-    if (verbose)
-      cat("n.map/blast =",
-          nrow(map),
-          "/", nrow(blast), "... ")
-
-    ns <- names(s.m)
-    blast.cull <- mclapply(ns,  mc.cores = n.cores, function(i){
-
-      tmp.map <- s.m[[i]]
-      tmp.blast <- s.b[[i]]
-
-      i.xlab <- paste0(tmp.map$genome1[1],
-                       " (", tmp.map$chr1[1], ")")
-      i.ylab <- paste0(tmp.map$genome2[1],
-                       " (", tmp.map$chr2[1], ")")
-      buf <- with(tmp.map,
-                  buffer_xy(x = rank1,
-                            y = rank2,
-                            buffer = buffer))
-      wh2keep <- with(tmp.blast,
-                      find_xy2keep(x = rank1,
-                                   y = rank2,
-                                   buffer.sp = buf,
-                                   plotit = plotit,
-                                   xlab = i.xlab,
-                                   ylab = i.ylab))
-
-      return(list(blast = tmp.blast[wh2keep,],
-                  buf = buf))
-    })
-
-    names(blast.cull) <- ns
-    buf <- sapply(ns, USE.NAMES = T, simplify = F, function(i)
-      blast.cull[[i]]$buf)
-    blast.cull <- rbindlist(lapply(blast.cull, function(x)
-      x$blast))
-
-    if (verbose)
-      cat("culled to",
-          nrow(blast.cull), "\n\t")
-    return(list(blast = blast.cull,
-                buffer.sp = buf))
-  }
-  #######################################################
-  #######################################################
-  buffer_all <- function(map,
-                         blast,
-                         buffer,
-                         plotit = FALSE,
-                         n.cores = 1,
-                         verbose = TRUE){
-    spl.map <- split(map, "unique.genome")
-    spl.blast <- split(blast, "unique.genome")
+    spl.map <- split.data.table(map, "unique.genome")
+    spl.blast <- split.data.table(blast, "unique.genome")
     ns <- unique(names(spl.blast))
     ns <- ns[ns %in% unique(names(spl.map))]
-    out.all <- lapply(ns, function(i){
-      i.map <- spl.map[[i]]
-      i.blast <- spl.blast[[i]]
-      out <- buffer_withinGenome(map = i.map,
-                                 blast = i.blast,
-                                 buffer = buffer,
-                                 plotit = plotit,
-                                 n.cores = n.cores)
-      return(out)
-    })
 
-    blast.out <- rbindlist(lapply(out.all, function(x) x$blast))
-    buf.out <- lapply(out.all, function(x) x$buf)
-    buf.out <- unlist(buf.out, recursive = F)
-    return(list(blast = blast.out,
-                buffer.sp = buf.out))
+    res.by.genome <- lapply(ns, function(i){
+      i.map = spl.map[[i]]
+      i.blast = spl.blast[[i]]
+      if(verbose)
+        cat(paste0("\t",i," ... (new.hits = ",
+                   nrow(i.blast),", ","map.size = ",nrow(i.map),")"))
+
+
+      spl.i.map <- split.data.table(i.map, "unique.chr")
+      spl.i.blast <- split.data.table(i.blast, "unique.chr")
+      nis <- unique(names(spl.i.blast))
+      nis <- nis[nis %in% unique(names(spl.i.map))]
+
+      ids2keep <- rbindlist(lapply(nis, function(j){
+        j.map = spl.i.map[[j]]
+        j.blast = spl.i.blast[[j]]
+        j.blast <- j.blast[with(j.blast,
+                                rank1 >= (min(j.map$rank1)-(rank.buffer*2)) &
+                                  rank2 >= (min(j.map$rank2)-(rank.buffer*2)) &
+                                  rank1 <= (max(j.map$rank1)+(rank.buffer*2)) &
+                                  rank2 <= (max(j.map$rank2)+(rank.buffer*2))), ]
+        j.out <- rbind(j.blast[,c("id1","id2")],
+                       j.map[,c("id1","id2")])
+        x = c(j.map$rank1, j.blast$rank1)
+        y = c(j.map$rank2, j.blast$rank2)
+        wh = 1:nrow(j.map)
+
+        tokeep <- find_whichInBuffer(x = x,
+                                     y = y,
+                                     which.in.blk = wh,
+                                     rank.buffer = rank.buffer,
+                                     ...)
+        if(plotit){
+          map.tp = cbind(j.map$rank1, j.map$rank2)
+          int = intersect(tokeep, (nrow(j.map)+1):length(x))
+          plot(x, y, pch = ".",
+               xlab = paste(j.map$genome1[1],
+                            j.map$chr1[1],"gene order"),
+               ylab = paste(j.map$genome2[1],
+                            j.map$chr2[1],"gene order"))
+          points(map.tp, cex = .5, col = "dodgerblue")
+          points(x[int], y[int], cex = .3, col = "darkred")
+        }
+
+        return(j.out[tokeep,])
+      }))
+
+      if(verbose)
+        cat(" returning", nrow(ids2keep),"\n")
+      return(ids2keep)
+    })
+    out <- rbindlist(res.by.genome)
+    setkey(out, id1, id2)
+    return(out)
   }
-  ########################################################
-  ########################################################
-  buffer_all <- cmpfun(buffer_all)
-  buffer_withinGenome <- cmpfun(buffer_withinGenome)
-  find_xy2keep <- cmpfun(find_xy2keep)
-  buffer_xy <- cmpfun(buffer_xy)
-  mround <- cmpfun(mround)
-  ########################################################
-  ########################################################
+  #######################################################
+
+  #######################################################
+  #######################################################
+  cull_blast2MapChr <- cmpfun(cull_blast2MapChr)
+  cull_blast2NewIds <- cmpfun(cull_blast2NewIds)
+  find_whichInBuffer <- cmpfun(find_whichInBuffer)
+  find_hitsInBuffer <- cmpfun(find_hitsInBuffer)
+  #######################################################
+  #######################################################
+
+  #######################################################
+  #######################################################
+  if (verbose)
+    cat("Dropping chromosome combinations in blast not found in map... ")
+  tmp <- cull_blast2MapChr(blast = blast, map = map)
+  m.blast <- tmp$blast
+  map <- tmp$map
+  if (verbose)
+    cat("Done!\n")
+  #######################################################
+
+  #######################################################
+  if (verbose)
+    cat("Dropping blast hits in the map already ... ")
+  t.blast <- cull_blast2NewIds(blast = m.blast, map = map)
+  if (verbose)
+    cat("Done!\n")
+  #######################################################
 
   #######################################################
   if (verbose)
     cat("Making new blast and map with gff-based ranks ... ")
-
   r.map <- with(map,
                 rerank_fromIDs(id1 = id1,
                                id2 = id2,
                                gff = gff))
-  r.blast <- with(blast,
+  r.blast <- with(t.blast,
                   rerank_fromIDs(id1 = id1,
                                  id2 = id2,
                                  gff = gff))
@@ -218,19 +200,13 @@ cull_syntenicBlast <- function(map,
 
   #######################################################
   if (verbose)
-    cat("Splitting map and blast by chr / genome combinations ... ")
-  ugm <- with(r.map,
-              paste(genome1, genome2,
-                    chr1, chr2))
-  ugb <- with(r.blast,
-              paste(genome1, genome2,
-                    chr1, chr2))
-  gug <- intersect(unique(ugb), unique(ugm))
-  wh.map <- which(ugm %in% gug)
-  wh.blast <- which(ugb %in% gug)
-  m.map <- data.table(r.map[wh.map,])
-  m.blast <- data.table(r.blast[wh.blast,])
+    cat("Finding neighbors to mappings in blast hits ... completed:\n")
 
+  ids2keep <- find_hitsInBuffer(map = r.map,
+                                blast = r.blast,
+                                rank.buffer = 100,
+                                verbose = verbose,
+                                plotit = plotit)
 
   if (verbose)
     cat("Done!\n")
@@ -238,21 +214,17 @@ cull_syntenicBlast <- function(map,
 
   #######################################################
   if (verbose)
-    cat("Culling by pairwise genome comparison ...\n\t")
-  out <- buffer_all(map = m.map,
-                    blast = m.blast,
-                    plotit = plotit,
-                    verbose = verbose,
-                    n.cores = n.cores,
-                    buffer = rank.buffer)
+    cat("Reformatting blast output ... ")
 
-  if (verbose)
-    cat("Done!\n")
-  out.blast <- out$blast
+  setkey(blast, id1, id2)
+  out.blast <- merge(ids2keep, blast)
   re.out <- with(out.blast,
                  rerank_fromIDs(id1 = id1,
                                 id2 = id2,
                                 gff = gff))
-  #######################################################
+
+  if (verbose)
+    #######################################################
+  cat("Done!\n")
   return(re.out)
 }
