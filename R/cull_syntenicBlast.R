@@ -48,10 +48,12 @@ cull_syntenicBlast <- function(map,
                              paste(unique.genome,
                                    chr1, chr2))
 
-    gug <- intersect(unique(blast$unique.chr),
-                     unique(map$unique.chr))
+    ugm <- map$unique.chr
+    ugb <-  blast$unique.chr
+    gug <- intersect(unique(ugb), unique(ugm))
     wh.blast <- which(ugb %in% gug)
-    m.blast <- data.table(blast[wh.blast,])
+
+    blast <- data.table(blast[wh.blast,])
     return(list(map = map,
                 blast = blast))
   }
