@@ -25,6 +25,7 @@
 #' none yet
 #' }
 #' @import data.table
+#' @importFrom parallel mclapply
 #' @importFrom dbscan frNN
 #' @export
 cull_syntenicBlast <- function(map,
@@ -93,6 +94,7 @@ cull_syntenicBlast <- function(map,
                                 rank.buffer,
                                 verbose,
                                 plotit,
+                                n.cores = 1,
                                 ...){
 
     spl.map <- split(map, "unique.genome")
@@ -113,7 +115,7 @@ cull_syntenicBlast <- function(map,
       nis <- unique(names(spl.i.blast))
       nis <- nis[nis %in% unique(names(spl.i.map))]
 
-      ids2keep <- rbindlist(lapply(nis, function(j){
+      ids2keep <- rbindlist(mclapply(nis, mc.cores = n.cores, function(j){
         j.map = spl.i.map[[j]]
         j.blast = spl.i.blast[[j]]
         j.blast <- j.blast[with(j.blast,
