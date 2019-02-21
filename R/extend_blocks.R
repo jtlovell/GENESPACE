@@ -20,6 +20,7 @@
 #' radius to search for hits. Passed to clean_blocks
 #' @param n.mappings Numeric, length of 1, specifiying the
 #' minimum number of hits in a radius. Passed to clean_blocks
+#' @param clean.it Should the cleaning step be run?
 #' @param verbose Logical, should updates be printed
 #' @param ... Not currently in use
 #' @details None yet
@@ -36,14 +37,18 @@
 extend_blocks <- function(map,
                           gff,
                           blast,
-                          n.iter = 3,
+                          n.iter = 1,
                           rank.buffer = 250,
                           verbose = TRUE,
                           plotit = FALSE,
+                          clean.it = TRUE,
                           n.cores = 1,
                           radius = 10,
                           n.mappings = 5){
   actually.plotit <- FALSE
+  if (!clean.it) {
+    n.iter <- 1
+  }
 
   if (verbose)
     cat("Culling by pairwise genome comparison ...\n")
@@ -61,14 +66,18 @@ extend_blocks <- function(map,
                                   rank.buffer = rank.buffer,
                                   verbose = verbose,
                                   n.cores = n.cores)
-    toclean <- toclean
     toclean$rank1 <- NULL
     toclean$rank2 <- NULL
-    out <- clean_blocks(map = toclean,
-                        radius = radius,
-                        n.mappings = n.mappings,
-                        n.cores = n.cores)
-    map <- out$map
+    if(clean.it){
+      out <- clean_blocks(map = toclean,
+                          radius = radius,
+                          n.mappings = n.mappings,
+                          n.cores = n.cores)
+      map <- out$map
+    }else{
+      out <- toclean
+      map <- toclean
+    }
   }
 
   if (verbose)

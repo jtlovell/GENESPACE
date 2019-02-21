@@ -123,8 +123,8 @@ cull_syntenicBlast <- function(map,
                                   rank2 >= (min(j.map$rank2)-(rank.buffer*2)) &
                                   rank1 <= (max(j.map$rank1)+(rank.buffer*2)) &
                                   rank2 <= (max(j.map$rank2)+(rank.buffer*2))), ]
-        j.out <- rbind(j.blast[,c("id1","id2")],
-                       j.map[,c("id1","id2")])
+        j.out <- rbind(j.map[,c("id1","id2")],
+                       j.blast[,c("id1","id2")])
         x = c(j.map$rank1, j.blast$rank1)
         y = c(j.map$rank2, j.blast$rank2)
         wh = 1:nrow(j.map)
@@ -190,14 +190,20 @@ cull_syntenicBlast <- function(map,
   #######################################################
   if (verbose)
     cat("Making new blast and map with gff-based ranks ... ")
-  r.map <- with(map,
-                rerank_fromIDs(id1 = id1,
-                               id2 = id2,
-                               gff = gff))
-  r.blast <- with(t.blast,
-                  rerank_fromIDs(id1 = id1,
-                                 id2 = id2,
-                                 gff = gff))
+  id.names <- c("genome1","genome2","id1","id2","chr1","chr2","start1","start2","end1","end2")
+  all.ids <- rbind(map[, id.names, with = F],
+                   blast[, id.names, with = F])
+  all.ids <- all.ids[!duplicated(all.ids),]
+  all.ids[,rank1 := frank(start1, ties.method = "dense"),
+          by = list(genome1, chr1)]
+  all.ids[,rank2 := frank(start2, ties.method = "dense"),
+                by = list(genome2, chr2)]
+  setkey(all.ids, id1, id2)
+  setkey(map, id1, id2)
+  setkey(blast, id1, id2)
+  r.map <- merge(all.ids, map[,c("id1","id2")])
+  r.blast <- merge(all.ids, blast[,c("id1","id2")])
+
   if (verbose)
     cat("Done!\n")
   #######################################################
@@ -205,12 +211,22 @@ cull_syntenicBlast <- function(map,
   #######################################################
   if (verbose)
     cat("Finding neighbors to mappings in blast hits ... completed:\n")
-
+  r.map$unique.genome <- with(r.map,
+                            paste(genome1, genome2))
+  r.blast$unique.genome <- with(r.blast,
+                              paste(genome1, genome2))
+  r.map$unique.chr <- with(r.map,
+                         paste(unique.genome,
+                               chr1, chr2))
+  r.blast$unique.chr <- with(r.blast,
+                           paste(unique.genome,
+                                 chr1, chr2))
   ids2keep <- find_hitsInBuffer(map = r.map,
                                 blast = r.blast,
                                 rank.buffer = 100,
                                 verbose = verbose,
                                 plotit = plotit)
+  print(ids2keep)
 
   if (verbose)
     cat("Done!\n")

@@ -4,9 +4,9 @@
 \alias{find_syntenicOrthogs}
 \title{Synteny-constrained orthology pipeline}
 \usage{
-find_syntenicOrthogs(map, dir.list, gff, gene.index, species.mappings,
-  n.cores = 1, orthogroups, plotit = n.cores == 1, rank.buffer = 250,
-  verbose = T, min.block.size = 5, ...)
+find_syntenicOrthogs(map, blast, dir.list, gff, gene.index, genomeIDs,
+  species.mappings, n.cores = 1, orthogroups, plotit = n.cores == 1,
+  rank.buffer = 250, verbose = T, min.block.size = 5, ...)
 }
 \arguments{
 \item{map}{The map data.frame or data.table}

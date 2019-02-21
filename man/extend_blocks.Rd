@@ -4,9 +4,9 @@
 \alias{extend_blocks}
 \title{Synteny-constrained orthology pipeline}
 \usage{
-extend_blocks(map, gff, blast, n.iter = 3, rank.buffer = 250,
-  verbose = TRUE, plotit = FALSE, n.cores = 1, radius = 10,
-  n.mappings = 5)
+extend_blocks(map, gff, blast, n.iter = 1, rank.buffer = 250,
+  verbose = TRUE, plotit = FALSE, clean.it = TRUE, n.cores = 1,
+  radius = 10, n.mappings = 5)
 }
 \arguments{
 \item{map}{The map data.frame or data.table}
@@ -27,6 +27,8 @@ file with the following columns: 'id' (gene identifier), 'chr',
 
 \item{plotit}{Logical, should plots be made? Will not work with
 n.core > 1.}
+
+\item{clean.it}{Should the cleaning step be run?}
 
 \item{n.cores}{Number of parallel processes to run, when possible}
 

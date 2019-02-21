@@ -38,13 +38,14 @@
 #' none yet
 #' }
 #' @import data.table
-#' @importFrom compiler cmpfun
 #' @importFrom parallel mclapply
 #' @export
 find_syntenicOrthogs <- function(map,
+                                 blast,
                                  dir.list,
                                  gff,
                                  gene.index,
+                                 genomeIDs,
                                  species.mappings,
                                  n.cores = 1,
                                  orthogroups,
@@ -53,22 +54,6 @@ find_syntenicOrthogs <- function(map,
                                  verbose = T,
                                  min.block.size = 5,
                                  ...){
-
-  #######################################################
-  #######################################################
-  add_ofnum2gff <- function(gff,
-                            gene.index){
-    setkey(gff, id)
-    setkey(gene.index, id)
-    m <- merge(gene.index, gff)
-    return(m)
-  }
-
-  ########################################################
-  ########################################################
-  add_ofnum2gff <- cmpfun(add_ofnum2gff)
-  ########################################################
-  ########################################################
 
   #######################################################
   if (verbose)
@@ -85,102 +70,10 @@ find_syntenicOrthogs <- function(map,
   #######################################################
 
   #######################################################
-  if (verbose)
-    cat("Copying blast results to tmp directory ... ")
-
-  files <- list.files(dir.list$blast,
-                      full.names = T)
-  nu <- file.copy(files,
-                  dir.list$tmp)
-  nu <- file.remove(file.path(dir.list$tmp,
-                              "Orthogroups.txt"))
-  if (verbose)
-    cat("Done!\n")
-  #######################################################
-
-  #######################################################
-  all.blast <- import_ofBlast(species.mappings = species.mappings,
-                              genomeIDs = genomeIDs,
-                              orthogroups = orthogroups,
-                              gene.index = gene.index,
-                              gff = gff,
-                              verbose = T,
-                              only.orthologs = F)
-  #######################################################
-  if (verbose)
-    cat("Adding orthofinder gene IDs to gff data.table ... ")
-  gff.names <- colnames(gff)
-  gff = add_ofnum2gff(gff,
-                      gene.index = gene.index)
-
-  if (verbose)
-    cat("Done!\n")
-  #######################################################
-  if (verbose)
-    cat("Culling blast results to regions near blocks ...\n")
-  all.syn <- cull_syntenicBlast(gff = gff,
-                                map = map,
-                                blast = all.blast,
-                                plotit = plotit,
-                                verbose = verbose,
-                                n.cores = n.cores,
-                                rank.buffer = rank.buffer)
-  if (verbose)
-    cat("Done!\n")
-  gi <- as.character(gene.index$gene.num)
-  names(gi) <- gene.index$id
-  ids2keep = with(all.syn,
-                  data.table(gn1 = gi[c(id1,id2)],
-                             gn2 = gi[c(id2,id1)],
-                             stringsAsFactors = F))
-  setkey(ids2keep, gn1, gn2)
-  #######################################################
-
-  #######################################################
-  if (verbose)
-    cat("Writing results to file ...\n")
-  sm <- species.mappings
-  sm$tmp.filename <- file.path(dir.list$tmp, basename(sm$filename))
-
-  test <- lapply(1:nrow(sm), function(i){
-    out.file = sm$tmp.filename[i]
-    g1 = sm$genome1[i]
-    g2 = sm$genome2[i]
-    is1 <- g1 == sm$ref[i]
-    blast.in <- all.blast[with(all.blast,
-                               (genome1 == g1 &
-                                  genome2 == g2) |
-                                 (genome1 == g2 &
-                                    genome2 == g1)),]
-    if (verbose)
-      cat("\t",g1,"-->",g2,"... total/syntenic hits =", nrow(blast.in),"/ ")
-    blast.tmp <- blast.in[,c("gn1", "gn2", "perc.iden",
-                             "align.length", "n.mismatch",
-                             "n.gapOpen", "q.start", "q.end",
-                             "s.start", "s.end",
-                             "eval", "score")]
-    if (!is1){
-      setnames(blast.tmp,c("gn1","gn2"),c("gn2","gn1"))
-      blast.tmp <- data.table(blast.tmp[,c("gn1", "gn2", "perc.iden",
-                                           "align.length", "n.mismatch",
-                                           "n.gapOpen", "q.start", "q.end",
-                                           "s.start", "s.end",
-                                           "eval", "score")])
-    }
-    setkey(blast.tmp, gn1, gn2)
-    blast2keep = merge(ids2keep, blast.tmp)
-    if(verbose)
-      cat(nrow(blast2keep),"\n")
-    write.table(blast2keep,
-                sep = "\t",
-                row.names = F,
-                col.names = F,
-                quote = F,
-                file = out.file)
-  })
-
-  if (verbose)
-    cat("Done!\n")
+  write_ofData(blast = blast,
+               genomeIDs = genomeIDs,
+               of.dir = dir.list$tmp,
+               peptide.dir = dir.list$peptide)
   #######################################################
 
   #######################################################
@@ -200,7 +93,6 @@ find_syntenicOrthogs <- function(map,
   #######################################################
 
   #######################################################
-  gff <- data.table(gff[,gff.names,with = F])
   of.blast <- import_ofResults(
     gff = gff,
     genomeIDs = genomeIDs,
@@ -218,26 +110,8 @@ find_syntenicOrthogs <- function(map,
     verbose = T)
 
   all.blast$unique = with(all.blast, paste0(genome1, "_", genome2))
-  spl = split(all.blast, "unique")
-  #######################################################
 
   #######################################################
-
-  syn.map <- clean_blocks(map = all.blast,
-                          radius = rank.buffer,
-                          n.mappings = min.block.size,
-                          clean.columns = F)
-  syn.map = with(syn.map,
-                 merge_blocks(map = map,
-                              blk = block,
-                              buffer = min.block.size*4,
-                              verbose = F,
-                              clean.columns = F))
-  #######################################################
-
-  #######################################################
-  return(list(map = syn.map$map,
-              block = syn.map$block,
-              blast = all.blast,
+  return(list(blast = all.blast,
               of.results = of.blast))
 }
