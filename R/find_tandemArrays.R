@@ -398,7 +398,6 @@ find_tandemArrays <- function(map,
   propagate_connectedDCTAs <- cmpfun(propagate_connectedDCTAs)
   prep_blast4mcscan <- cmpfun(prep_blast4mcscan)
   prep_gff4mcscan <- cmpfun(prep_gff4mcscan)
-  cluster_tandemArrays <- cmpfun(cluster_tandemArrays)
   #######################################################
   #######################################################
 

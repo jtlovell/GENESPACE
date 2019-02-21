@@ -30,10 +30,25 @@
 find_syntenicOrthogs <- function(blast,
                                  dir.list,
                                  gff,
+                                 map,
                                  genomeIDs,
                                  n.cores = 1,
                                  verbose = T,
+                                 rank.buffer = 250,
                                  ...){
+  #######################################################
+
+  #######################################################
+  blast.in <- extend_blocks(
+    gff = gff,
+    map = map,
+    blast = blast,
+    plotit = F,
+    n.cores = n.cores,
+    rank.buffer = rank.buffer,
+    clean.it = F,
+    verbose = verbose)
+  #######################################################
 
   #######################################################
   if (verbose)
@@ -50,7 +65,7 @@ find_syntenicOrthogs <- function(blast,
   #######################################################
 
   #######################################################
-  write_ofData(blast = blast,
+  write_ofData(blast = blast.in,
                genomeIDs = genomeIDs,
                of.dir = dir.list$tmp,
                peptide.dir = dir.list$peptide,
@@ -66,7 +81,7 @@ find_syntenicOrthogs <- function(blast,
     tmp.dir = dir.list$tmp,
     blast.dir = dir.list$cull.blast,
     og.threads = n.cores,
-    og.silent = verbose,
+    og.silent = !verbose,
     verbose = verbose)
 
   if (verbose)
@@ -92,8 +107,24 @@ find_syntenicOrthogs <- function(blast,
     verbose = verbose)
 
   all.blast$unique = with(all.blast, paste0(genome1, "_", genome2))
+  #######################################################
 
   #######################################################
+  map <- clean_blocks(
+    map = all.blast,
+    radius = rank.buffer,
+    n.mappings = 2,
+    n.cores = n.cores)$map
+  map <- merge(map[,c("id1","id2","block.id")],
+                     all.blast, by = c("id1","id2"))
+  map[,rank1 := frank(start1,
+                      ties.method = "dense"),
+      by = list(genome1, genome2, chr1)]
+  map[,rank2 := frank(start2,
+                      ties.method = "dense"),
+      by = list(genome1, genome2, chr2)]
+  #######################################################
   return(list(blast = all.blast,
+              map = map,
               of.results = of.blast))
 }

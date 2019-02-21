@@ -4,8 +4,8 @@
 \alias{find_syntenicOrthogs}
 \title{Synteny-constrained orthology pipeline}
 \usage{
-find_syntenicOrthogs(blast, dir.list, gff, genomeIDs, n.cores = 1,
-  verbose = T, ...)
+find_syntenicOrthogs(blast, dir.list, gff, map, genomeIDs, n.cores = 1,
+  verbose = T, rank.buffer = 250, ...)
 }
 \arguments{
 \item{blast}{data.table with at least the 10 necessary columns for blast format.}
