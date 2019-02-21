@@ -4,13 +4,11 @@
 \alias{find_syntenicOrthogs}
 \title{Synteny-constrained orthology pipeline}
 \usage{
-find_syntenicOrthogs(map, blast, dir.list, gff, gene.index, genomeIDs,
+find_syntenicOrthogs(blast, dir.list, gff, gene.index, genomeIDs,
   species.mappings, n.cores = 1, orthogroups, plotit = n.cores == 1,
   rank.buffer = 250, verbose = T, min.block.size = 5, ...)
 }
 \arguments{
-\item{map}{The map data.frame or data.table}
-
 \item{dir.list}{The directory list produced by check_environment}
 
 \item{gff}{The gff-like data.table or data.frame produced by

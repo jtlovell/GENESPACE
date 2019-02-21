@@ -37,6 +37,8 @@ write_ofData <- function(blast,
                          pos = c(start1, start2),
                          id = c(id1, id2),
                          stringsAsFactors = F))
+    ug$genome <- factor(ug$genome, levels = genomeIDs)
+    setkey(ug, genome, chr, pos)
     ug = ug[!duplicated(ug$id),]
     ug = ug[ug$genome %in% genomeIDs,]
     ug = ug[with(ug, order(genome, chr, pos)),]

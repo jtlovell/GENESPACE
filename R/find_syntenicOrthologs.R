@@ -4,7 +4,6 @@
 #' \code{find_syntenicOrthogs} Subset blast hits to syntenic regions and
 #' re-run orthofinder.
 #'
-#' @param map The map data.frame or data.table
 #' @param dir.list The directory list produced by check_environment
 #' @param gff The gff-like data.table or data.frame produced by
 #' form_syntenicBlocks. Can also be made by hand - just a parsed gff
@@ -40,8 +39,7 @@
 #' @import data.table
 #' @importFrom parallel mclapply
 #' @export
-find_syntenicOrthogs <- function(map,
-                                 blast,
+find_syntenicOrthogs <- function(blast,
                                  dir.list,
                                  gff,
                                  gene.index,
