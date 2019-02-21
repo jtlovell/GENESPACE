@@ -5,7 +5,7 @@
 \title{Make sure everything is setup}
 \usage{
 check_environment(directory, genomeIDs, clean = FALSE,
-  check.pkgs = TRUE, check.genomes = TRUE)
+  check.pkgs = TRUE, check.genomes = TRUE, ...)
 }
 \arguments{
 \item{directory}{File path, where the subdirectory folders (e.g. raw_assemblies)

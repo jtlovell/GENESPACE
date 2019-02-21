@@ -39,16 +39,17 @@ pipe_mcscanx <- function(blast,
                        MCScanX.path,
                        silent.mcs){
 
-    if(length(unique(gff$genome)) == 1){
-      ga = gff
-      gb = gff
+    if (length(unique(gff$genome)) == 1) {
+      ga <- gff
+      gb <- gff
       ga$genome <- "a"
       gb$genome <- "b"
       gff <- rbind(gb, ga)
-      gff$genome = factor(gff$genome,
-                          levels = c("a","b"))
-    }else{
-      gff$genome = factor(gff$genome, levels = genomeIDs)
+      gff$genome <- factor(gff$genome,
+                           levels = c("a", "b"))
+    } else {
+      gff$genome <- factor(gff$genome,
+                           levels = genomeIDs)
     }
 
     setkey(gff, genome)
@@ -59,33 +60,35 @@ pipe_mcscanx <- function(blast,
     gff$rank.end = frank(gff, genome, chr, end, ties.method = "dense")
     gff[,genome.num := frank(genome, ties.method = "dense")]
 
-    lets = paste0(letters,letters)[1:length(unique(gff$genome))]
-    gff$genome.abbrev = paste0(lets[gff$genome.num],1)
+    lets <- paste0(letters,letters)[1:length(unique(gff$genome))]
+    gff$genome.abbrev <- paste0(lets[gff$genome.num],1)
 
-    gff.in = gff[,c("genome.abbrev","id","rank.start","rank.end")]
+    gff.in <- gff[,c("genome.abbrev", "id", "rank.start", "rank.end")]
 
 
-    blast.in = blast[,c("id1","id2","perc.iden","align.length",
-                        "n.mismatch","n.gapOpen", "q.start", "q.end",
-                        "s.start", "s.end","eval","score")]
+    blast.in <- blast[,c("id1", "id2", "perc.iden", "align.length",
+                         "n.mismatch", "n.gapOpen", "q.start", "q.end",
+                         "s.start", "s.end", "eval", "score")]
     write.table(gff.in,
-                file = file.path(mcscan.dir,"xyz.gff"),
+                file = file.path(mcscan.dir, "xyz.gff"),
                 row.names = F,
                 col.names = F,
-                quote = F, sep= "\t")
+                quote = F, sep = "\t")
     write.table(blast.in,
-                file = file.path(mcscan.dir,"xyz.blast"),
+                file = file.path(mcscan.dir, "xyz.blast"),
                 row.names = F,
                 col.names = F,
-                quote = F, sep= "\t")
-    if(silent.mcs){
-      com <- paste(MCScanX.path, mcscan.param, file.path(mcscan.dir,"xyz"),"&> /dev/null")
-    }else{
-      com <- paste(MCScanX.path, mcscan.param, file.path(mcscan.dir,"xyz"))
+                quote = F, sep = "\t")
+    if (silent.mcs) {
+      com <- paste(MCScanX.path, mcscan.param,
+                   file.path(mcscan.dir, "xyz"), "&> /dev/null")
+    } else {
+      com <- paste(MCScanX.path, mcscan.param,
+                   file.path(mcscan.dir, "xyz"))
     }
 
     system(com)
-    return(file.path(mcscan.dir,"xyz"))
+    return(file.path(mcscan.dir, "xyz"))
   }
   #######################################################
   #######################################################
@@ -114,14 +117,14 @@ pipe_mcscanx <- function(blast,
                       mcscan.param,
                       silent.mcs){
 
-    mcs.file = prep_mcs(blast = blast,
-                        gff = gff,
-                        mcscan.dir = mcscan.dir,
-                        mcscan.param = mcscan.param,
-                        MCScanX.path = MCScanX.path,
-                        silent.mcs = silent.mcs)
-    mcs.parsed = parse_mcs(mcs.file)
-    blast = data.table(blast)
+    mcs.file <- prep_mcs(blast = blast,
+                         gff = gff,
+                         mcscan.dir = mcscan.dir,
+                         mcscan.param = mcscan.param,
+                         MCScanX.path = MCScanX.path,
+                         silent.mcs = silent.mcs)
+    mcs.parsed <- parse_mcs(mcs.file)
+    blast <- data.table(blast)
     setkey(blast, id1, id2)
     setkey(mcs.parsed, id1, id2)
     map.out <- data.table(merge(mcs.parsed, blast))
@@ -152,31 +155,31 @@ pipe_mcscanx <- function(blast,
   #######################################################
 
   blast$unique <- with(blast, paste(genome1, genome2))
-  if("block.id" %in% colnames(blast))
-    blast$block.id<-NULL
+  if ("block.id" %in% colnames(blast))
+    blast$block.id <- NULL
 
-  spl = split(blast, "unique")
+  spl <- split(blast, "unique")
   #######################################################
   out <- rbindlist(lapply(spl, function(x){
-    genomes = c(x$genome1[1],x$genome2[1])
+    genomes <- c(x$genome1[1], x$genome2[1])
 
-    if(verbose)
-      cat("\t",genomes[1],"-->", genomes[2],
-          paste0("(initial hits = ",nrow(x),")"))
+    if (verbose)
+      cat("\t", genomes[1], "-->", genomes[2],
+          paste0("(initial hits = ", nrow(x), ")"))
 
     gff.x <- gff[gff$genome %in% genomes,]
 
     tmp <- run_mcs(blast = x,
-                  gff = gff.x,
-                  MCScanX.path = MCScanX.path,
-                  mcscan.dir = mcscan.dir,
-                  mcscan.param = mcscan.param,
-                  silent.mcs = silent.mcs)
+                   gff = gff.x,
+                   MCScanX.path = MCScanX.path,
+                   mcscan.dir = mcscan.dir,
+                   mcscan.param = mcscan.param,
+                   silent.mcs = silent.mcs)
 
     tmp$block.id <- with(tmp, paste0(unique, block.id))
 
-    if(verbose)
-      cat(" culled hits =",nrow(tmp),"\n")
+    if (verbose)
+      cat(" culled hits =", nrow(tmp), "\n")
 
     return(tmp)
   }))
@@ -187,5 +190,3 @@ pipe_mcscanx <- function(blast,
   #######################################################
   return(make_blocks(out, clean.columns = F))
 }
-
-

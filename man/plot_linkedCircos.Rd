@@ -44,6 +44,8 @@ that the chromosome comes from genomeID2.}
 
 \item{adjust.alpha}{Logical, should transparency be adjusted based on block size?}
 
+\item{link.alpha}{Numeric 0-1, specify opacity of links.}
+
 \item{...}{Not currently in use}
 }
 \value{

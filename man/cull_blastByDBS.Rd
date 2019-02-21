@@ -5,7 +5,7 @@
 \title{Run dbscan}
 \usage{
 cull_blastByDBS(blast, n.mappingWithinRadius = c(5, 5, 5),
-  eps.radius = c(100, 50, 25), verbose = T, run.it = T)
+  eps.radius = c(100, 50, 25), verbose = T, run.it = T, ...)
 }
 \arguments{
 \item{blast}{blast results data.table}

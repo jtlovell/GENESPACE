@@ -7,8 +7,7 @@
 #' @param pep.fa peptide fasta file path
 #' @param fa.file assembly fasta file path
 #' @param blast.file output blast8-formatted txt file
-#' @param max.target.seqs numeric, the maximum number of blast hits
-#' to return
+#' @param top numeric, passed to orthofinder. the number of hits to keep.
 #' @param min.score numeric, the minimum blast score to retain
 #' @param diamond.blastx.param Additional parameters to pass to
 #' diamond blastx

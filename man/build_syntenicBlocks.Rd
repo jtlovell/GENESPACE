@@ -2,7 +2,7 @@
 % Please edit documentation in R/build_syntenicBlocks.R
 \name{build_syntenicBlocks}
 \alias{build_syntenicBlocks}
-\title{build_syntenicBlocks}
+\title{build syntenic blocks}
 \usage{
 build_syntenicBlocks(genomeIDs, dir.list, min.block.size = 5,
   n.cores = 1, gap.multiplier = 8, mcscan.m.param = NULL,
@@ -18,36 +18,43 @@ build_syntenicBlocks(genomeIDs, dir.list, min.block.size = 5,
 
 \item{min.block.size}{Numeric, minimum required block size}
 
+\item{n.cores}{numeric, number of parallel processes to run}
+
 \item{gap.multiplier}{Numeric, specification of the -m parameter in
 MCScanX, as a function of the min.block.size.}
 
 \item{mcscan.m.param}{Numeric, alternative to gap.multiplier to exactly
 specify the MCScanX -m parameter.}
 
+\item{cullby.dbscan}{Logical, should blast hits be culled by dbscan?}
+
+\item{cullby.MCscanX}{Logical, should blast hits be culled by MCScanX?}
+
 \item{return.ogblast}{Logical, should blast results of all orthogroups be
 returned?}
 
 \item{verbose}{Logical, should updates be printed?}
 
+\item{str2drop}{character, string in attribute column of gff file to be dropped}
+
+\item{str2parse}{character, string in attribute column of gff file to use as the separator}
+
+\item{whichAttr}{numeric, which attribute should be returned in the}
+
 \item{MCScanX.path}{path the MCScanX program}
 
+\item{n.mappingWithinRadius}{numeric, number of hits required to be in the radius}
+
+\item{eps.radius}{numeric, size of the radius}
+
 \item{...}{Not in use yet.}
-
-\item{merge.overlaps}{Logical, should overlapping blocks be merged?}
-
-\item{clean.byDBscan}{Logical, should blocks be merged and cleaned by dbscan?}
-
-\item{cull.byDBscan}{Logical, should blast hits be culled by dbscan?}
-
-\item{cull.byMCscan}{Logical, should blast hits be culled by MCScanX?}
-
-\item{max.size2merge}{the maximum block size to merge}
 }
 \value{
 Nothing.
 }
 \description{
-\code{build_syntenicBlocks} pipe_syntenicBlocks
+\code{build_syntenicBlocks} pipeline to build syntenic blocks from
+orthofinder output
 }
 \details{
 More here

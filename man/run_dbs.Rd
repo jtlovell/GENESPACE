@@ -14,11 +14,7 @@ run_dbs(y, eps.radius, mappings)
 
 \item{mappings}{numeric, how many mappings are required for a cluster?}
 
-\item{n.cores}{The number of parallel processes to run.}
-
-\item{verbose}{logical, should updates be printed?}
-
-\item{...}{Not currently in use}
+\item{...}{Additional arguments passed to frNN.}
 }
 \value{
 A data.frame / data.table with an additional cluster column.

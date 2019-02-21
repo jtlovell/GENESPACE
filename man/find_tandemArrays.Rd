@@ -4,11 +4,8 @@
 \alias{find_tandemArrays}
 \title{Simple orthogroup-constrained tandem array inference.}
 \usage{
-find_tandemArrays(map, min.hits1 = 1, min.hits2 = 3,
-  cull.gff2map = F, method = "cluster", gff = NULL,
-  mcscan.dir = NULL,
-  DCTA.path = "/Users/jlovell/Documents/comparative_genomics/programs/MCScanX/downstream_analyses/detect_collinear_tandem_arrays",
-  verbose = T, MCScanX.param = "-m 50 -w 10 -s 10 -b 0 -k", ...)
+find_tandemArrays(map, min.hits1 = 1, min.hits2 = 3, verbose = T,
+  ...)
 }
 \arguments{
 \item{map}{the blast dataset to screen for syntenic hits}
@@ -22,14 +19,6 @@ genome to be counted as an array}
 \item{verbose}{logical, should updates be printed?}
 
 \item{...}{Not currently in use}
-
-\item{rerank}{Logical, should ranks be remade before each step?}
-
-\item{clean.radius}{Passed on to clean_blocks}
-
-\item{clean.mappings}{Passed on to clean_blocks}
-
-\item{merge.buffer}{Passed on to merge_blocks}
 }
 \value{
 A culled b.last dataset

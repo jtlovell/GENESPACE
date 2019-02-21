@@ -5,7 +5,7 @@
 \title{Cull blast to syntenic regions}
 \usage{
 cull_syntenicBlast(map, blast, gff, rank.buffer = 250, verbose = T,
-  plotit = F, n.cores = 1)
+  plotit = F, n.cores = 1, ...)
 }
 \arguments{
 \item{map}{the map data.table or data.frame. This is used to infer
@@ -25,7 +25,7 @@ is 1, then plotting is done.}
 
 \item{n.cores}{The number of parallel processes to run.}
 
-\item{...}{Not currently in use}
+\item{...}{Additional arguments passed to frNN}
 }
 \value{
 A culled b.last dataset

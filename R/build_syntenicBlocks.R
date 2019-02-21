@@ -1,7 +1,8 @@
-#' @title build_syntenicBlocks
+#' @title build syntenic blocks
 #'
 #' @description
-#' \code{build_syntenicBlocks} pipe_syntenicBlocks
+#' \code{build_syntenicBlocks} pipeline to build syntenic blocks from
+#' orthofinder output
 #'
 #' @param genomeIDs Character vector of genome IDs to consider
 #' @param dir.list Directory list, produced by `check_environment`.
@@ -10,14 +11,17 @@
 #' MCScanX, as a function of the min.block.size.
 #' @param mcscan.m.param Numeric, alternative to gap.multiplier to exactly
 #' specify the MCScanX -m parameter.
-#' @param merge.overlaps Logical, should overlapping blocks be merged?
-#' @param clean.byDBscan Logical, should blocks be merged and cleaned by dbscan?
-#' @param cull.byDBscan Logical, should blast hits be culled by dbscan?
-#' @param cull.byMCscan Logical, should blast hits be culled by MCScanX?
-#' @param max.size2merge the maximum block size to merge
+#' @param cullby.dbscan Logical, should blast hits be culled by dbscan?
+#' @param cullby.MCscanX Logical, should blast hits be culled by MCScanX?
 #' @param return.ogblast Logical, should blast results of all orthogroups be
 #' returned?
+#' @param str2drop character, string in attribute column of gff file to be dropped
+#' @param str2parse character, string in attribute column of gff file to use as the separator
+#' @param whichAttr numeric, which attribute should be returned in the
 #' @param MCScanX.path path the MCScanX program
+#' @param n.mappingWithinRadius numeric, number of hits required to be in the radius
+#' @param eps.radius numeric, size of the radius
+#' @param n.cores numeric, number of parallel processes to run
 #' @param verbose Logical, should updates be printed?
 #' @param ... Not in use yet.
 #' @details More here
@@ -77,6 +81,7 @@ build_syntenicBlocks <- function(genomeIDs,
     genomeIDs = genomeIDs,
     blast.dir = blast.dir,
     verbose = verbose)
+
   if (verbose)
     cat("\tDone!\n")
   #######################################################
@@ -92,12 +97,13 @@ build_syntenicBlocks <- function(genomeIDs,
                   gff = gff,
                   gene.index = gene.index,
                   verbose = verbose))
+
   if (verbose)
     cat("\tDone!\n")
   #######################################################
 
   #######################################################
-  if(cullby.dbscan){
+  if (cullby.dbscan) {
     if (verbose)
       cat("\n############\nPart #4 -- Culling blast results by 2d density ...\n")
 
@@ -111,19 +117,19 @@ build_syntenicBlocks <- function(genomeIDs,
       clean.columns = F,
       verbose = T)
 
-    cull.dbs<-cull.tmp$map
+    cull.dbs <- cull.tmp$map
 
     if (verbose)
       cat("\tDone!\n")
 
-    if (!cullby.MCscanX){
+    if (!cullby.MCscanX) {
       if (verbose)
         cat("Skipping Part #5 (Culling blast results by multiple-collinearity)\n",
           "Returning clustering from dbscan\nDone!\n")
       map <- cull.tmp$map
       blk <- cull.tmp$block
     }
-  }else{
+  } else {
     if (verbose)
       cat("Skipping Part #4 (Culling blast results by 2d density)\n")
     cull.dbs <- blast
@@ -131,7 +137,7 @@ build_syntenicBlocks <- function(genomeIDs,
   #######################################################
 
   #######################################################
-  if(cullby.MCscanX){
+  if (cullby.MCscanX) {
     if (verbose)
       cat("\n############\nPart #5 -- Culling blast results by multiple-collinearity ...\n")
 
@@ -151,8 +157,8 @@ build_syntenicBlocks <- function(genomeIDs,
                                     mcscan.dir = mcscan.dir,
                                     mcscan.param = mcsp,
                                     verbose = T)
-    map = synteny.results$map
-    blk = synteny.results$block
+    map <- synteny.results$map
+    blk <- synteny.results$block
     if (verbose)
       cat("\tDone!\n")
 
@@ -160,8 +166,9 @@ build_syntenicBlocks <- function(genomeIDs,
   #######################################################
   if (verbose)
     cat("\n############\n#Pipeline Completed!\n")
-  if(!return.ogblast)
+  if (!return.ogblast)
     blast <- NULL
+
   out <- list(synteny.results = list(map = map,
                                      block = blk),
               gff = gff,

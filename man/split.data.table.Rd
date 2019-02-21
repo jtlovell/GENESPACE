@@ -16,6 +16,8 @@
 
 \item{drop}{drop}
 
+\item{by}{by}
+
 \item{flatten}{non-recursive unlisting}
 
 \item{...}{additional arguments passed to data.table}

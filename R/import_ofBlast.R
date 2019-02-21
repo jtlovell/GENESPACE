@@ -8,6 +8,11 @@
 #' @param genomeIDs character, genome identifiers
 #' @param gff data.table containing the parsed gff annotation data
 #' @param gene.index gene index from import_ofResults
+#' @param only.orthologs logical, should only hits within orthogroups be returned?
+#' @param min.score numeric, minimum blast bit score for a hit to be retained
+#' @param prop.topscore numeric, proportion of best score for a gene,
+#' for which a hit will be retained
+#' @param top.n numeric, the number of best scoring hits to retain per gene
 #' @param verbose Logical, should updates be printed?
 #' @param ... Not currently in use
 #' @details Nothing yet

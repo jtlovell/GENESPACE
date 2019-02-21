@@ -5,6 +5,7 @@
 #' re-run orthofinder.
 #'
 #' @param dir.list The directory list produced by check_environment
+#' @param map The map data.frame or data.table
 #' @param blast data.table with at least the 10 necessary columns for blast format.
 #' @param genomeIDs character vector giving genome IDs to consider.
 #' @param gff The gff-like data.table or data.frame produced by
@@ -13,6 +14,7 @@
 #' 'start', 'end', 'strand', 'genome' (matching an element in genomeIDs),
 #' 'order' (gene order within that genome).
 #' @param n.cores Number of parallel processes to run, when possible
+#' @param rank.buffer The buffer, in gene rank order.
 #' @param verbose Logical, should updates be printed
 #' @param ... Not currently in use
 #' @details None yet
@@ -107,7 +109,7 @@ find_syntenicOrthogs <- function(blast,
     gene.index = of.blast$gene.index,
     verbose = verbose)
 
-  all.blast$unique = with(all.blast, paste0(genome1, "_", genome2))
+  all.blast$unique <- with(all.blast, paste0(genome1, "_", genome2))
   #######################################################
 
   #######################################################
@@ -116,8 +118,8 @@ find_syntenicOrthogs <- function(blast,
     radius = rank.buffer,
     n.mappings = 2,
     n.cores = n.cores)$map
-  map <- merge(map[,c("id1","id2","block.id")],
-                     all.blast, by = c("id1","id2"))
+  map <- merge(map[ , c("id1", "id2", "block.id")],
+               all.blast, by = c("id1", "id2"))
   map[,rank1 := frank(start1,
                       ties.method = "dense"),
       by = list(genome1, genome2, chr1)]

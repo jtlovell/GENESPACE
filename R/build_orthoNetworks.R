@@ -36,7 +36,7 @@ build_orthoNetworks <- function(blk,
                           gene.index,
                           n.cores = 1){
 
-    gids = with(blk, unique(c(genome1, genome2)))
+    gids <- with(blk, unique(c(genome1, genome2)))
     cmb <- combn(genomeIDs, 2)
 
     out <- apply(cmb, 2, function(gs){
@@ -45,36 +45,38 @@ build_orthoNetworks <- function(blk,
       g2 <- gs[2]
 
       if (verbose)
-        cat(paste0("\t", g1),"-->",
-            g2,"\n")
+        cat(paste0("\t", g1), "-->", g2, "\n")
 
       gff.tmp <- gff[gff$genome %in% gs,]
       blk.tmp <- blk[blk$genome1 %in% gs &
                        blk$genome2 %in% gs,]
-      blk.tmp$unique = with(blk.tmp, paste(genome1, genome2, chr1, chr2))
-      blk.tmp$unique1 = with(blk.tmp, paste(genome1, chr1))
-      blk.tmp$unique2 = with(blk.tmp, paste(genome2, chr2))
-      gff.tmp$unique = with(gff.tmp, paste(genome, chr))
+      blk.tmp$unique <- with(blk.tmp, paste(genome1, genome2, chr1, chr2))
+      blk.tmp$unique1 <- with(blk.tmp, paste(genome1, chr1))
+      blk.tmp$unique2 <- with(blk.tmp, paste(genome2, chr2))
+      gff.tmp$unique <- with(gff.tmp, paste(genome, chr))
       gene.index.tmp <- gene.index[gene.index$id %in% gff.tmp$id,]
 
       spl.blk <- split(blk.tmp, "unique")
       spl.gff <- lapply(spl.blk, function(x)
         gff.tmp[gff.tmp$unique %in% x$unique1 |
-                  gff.tmp$unique %in% x$unique2,])
-      names(spl.gff)<-names(spl.blk)
-      spl.gene.index = lapply(spl.gff, function(x)
-        gene.index.tmp[gene.index.tmp$id %in% x$id,])
-      names(spl.gene.index)<-names(spl.blk)
+                  gff.tmp$unique %in% x$unique2, ])
+
+      names(spl.gff) <- names(spl.blk)
+      spl.gene.index <- lapply(spl.gff, function(x)
+        gene.index.tmp[gene.index.tmp$id %in% x$id, ])
+      names(spl.gene.index) <- names(spl.blk)
 
       out.tmp <- mclapply(1:nrow(blk.tmp), mc.cores = n.cores, function(i){
-        bu = blk.tmp$unique[i]
-        return(pull_gff(gff = spl.gff[[bu]],
+        bu <- blk.tmp$unique[i]
+        return(
+          pull_gff(gff = spl.gff[[bu]],
                  blk.line = blk.tmp[i,],
                  gene.index = spl.gene.index[[bu]]))
       })
       names(out.tmp) <- blk.tmp$block.id
       return(out.tmp)
     })
+
     out <- unlist(out,
                   recursive = F)
     return(out)
@@ -87,14 +89,16 @@ build_orthoNetworks <- function(blk,
     x <- blk.line
     setkey(gene.index, id)
 
-    g1 <- gff[with(gff, genome == x$genome1 &
+    g1 <- gff[with(gff,
+                   genome == x$genome1 &
                      chr == x$chr1 &
                      start <= x$end1 &
                      end >= x$start1),]
     g1$block.id <- x$block.id
     setkey(g1, id)
 
-    g2 <- gff[with(gff, genome == x$genome2 &
+    g2 <- gff[with(gff,
+                   genome == x$genome2 &
                      chr == x$chr2 &
                      start <= x$end2 &
                      end >= x$start2),]
@@ -114,14 +118,11 @@ build_orthoNetworks <- function(blk,
     og <- readLines(file.path(cull.blast.dir,
                               "Orthogroups.txt"))
 
-    og <- lapply(og, function(x)
-      strsplit(x, " ")[[1]])
-    ons <- sapply(og, function(x)
-      x[1])
+    og <- lapply(og, function(x) strsplit(x, " ")[[1]])
+    ons <- sapply(og, function(x) x[1])
     names(og) <- ons
 
-    og <- lapply(og, function(x)
-      x[-1])
+    og <- lapply(og, function(x) x[-1])
     og.name <- names(og)
     og.length <- sapply(og, length)
 
@@ -130,9 +131,8 @@ build_orthoNetworks <- function(blk,
                      stringsAsFactors = F)
     setkey(od, id)
 
-    gffn <- rbindlist(unlist(gff.wNum,
-                             recursive = F))
-    setkey(gffn,id)
+    gffn <- rbindlist(unlist(gff.wNum,  recursive = F))
+    setkey(gffn, id)
     gffn <- merge(od, gffn)
 
     gffn[, complete := all(duplicated(block.id) |
@@ -148,13 +148,14 @@ build_orthoNetworks <- function(blk,
                                 gff){
     cds.fastas <- do.call(c, lapply(genomeIDs, function(i)
       readDNAStringSet(file.path(cds.dir,
-                                 paste0(i,".fa")))))
+                                 paste0(i, ".fa")))))
     cds.md <- data.table(id = names(cds.fastas),
                          length = width(cds.fastas),
                          stringsAsFactors = F)
     setkey(cds.md, id)
     setkey(gff, id)
     out <- merge(gff, cds.md)
+
     return(out)
   }
   ########################################################
@@ -168,7 +169,7 @@ build_orthoNetworks <- function(blk,
   }
   ########################################################
   ########################################################
-  make_blkMetadata = function(blk){
+  make_blkMetadata <- function(blk){
     tmp <- blk[, list(genome = c(genome1, genome2),
                      chr = c(chr1,chr2),
                      start = c(start1,start2),
@@ -182,8 +183,8 @@ build_orthoNetworks <- function(blk,
   ########################################################
   find_orphan <- function(gff.incomplete,
                           spl.blk.md){
-    ublk = unique(gff.incomplete$block.id)
-    uublk = unique(gff.incomplete$unique.block)
+    ublk <- unique(gff.incomplete$block.id)
+    uublk <- unique(gff.incomplete$unique.block)
 
 
     xmd <- rbindlist(spl.blk.md[ublk])

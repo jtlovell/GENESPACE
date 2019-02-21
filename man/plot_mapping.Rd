@@ -5,7 +5,7 @@
 \title{Pairwise plot of BLAST hits}
 \usage{
 plot_mapping(cols = NULL, blk, map, genomes = unique(c(blk$genome1,
-  blk$genome2)), return.coords = F, col.by.annot = F, ...)
+  blk$genome2)), return.coords = F, ...)
 }
 \arguments{
 \item{cols}{Colors to plot}

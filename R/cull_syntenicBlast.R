@@ -14,7 +14,7 @@
 #' is 1, then plotting is done.
 #' @param n.cores The number of parallel processes to run.
 #' @param verbose logical, should updates be printed?
-#' @param ... Not currently in use
+#' @param ... Additional arguments passed to frNN
 #'
 #' @details Internal function
 #'
@@ -34,7 +34,8 @@ cull_syntenicBlast <- function(map,
                                rank.buffer = 250,
                                verbose = T,
                                plotit = F,
-                               n.cores = 1){
+                               n.cores = 1,
+                               ...){
   #######################################################
   #######################################################
   cull_blast2MapChr <- function(map, blast){
@@ -63,7 +64,7 @@ cull_syntenicBlast <- function(map,
   cull_blast2NewIds <- function(blast, map){
     setkey(map, id1, id2)
     setkey(blast, id1, id2)
-    t.map <- map[,c("id1","id2")]
+    t.map <- map[,c("id1", "id2")]
     t.map$in.map <- TRUE
 
     blast <- merge(blast, t.map, all.x = T)
@@ -78,8 +79,7 @@ cull_syntenicBlast <- function(map,
                                  rank.buffer,
                                  ...){
 
-    nn <- frNN(x = data.frame(x,
-                              y),
+    nn <- frNN(x = data.frame(x, y),
                eps = rank.buffer,
                ...)
 
@@ -105,9 +105,10 @@ cull_syntenicBlast <- function(map,
     res.by.genome <- lapply(ns, function(i){
       i.map = spl.map[[i]]
       i.blast = spl.blast[[i]]
-      if(verbose)
-        cat(paste0("\t",i," ... (new.hits = ",
-                   nrow(i.blast),", ","map.size = ",nrow(i.map),")"))
+      if (verbose)
+        cat(paste0("\t", i, " ... (new.hits = ",
+                   nrow(i.blast), ", ", "map.size = ",
+                   nrow(i.map), ")"))
 
 
       spl.i.map <- split(i.map, "unique.chr")
@@ -116,42 +117,47 @@ cull_syntenicBlast <- function(map,
       nis <- nis[nis %in% unique(names(spl.i.map))]
 
       ids2keep <- rbindlist(mclapply(nis, mc.cores = n.cores, function(j){
-        j.map = spl.i.map[[j]]
-        j.blast = spl.i.blast[[j]]
+        j.map <- spl.i.map[[j]]
+        j.blast <- spl.i.blast[[j]]
         j.blast <- j.blast[with(j.blast,
-                                rank1 >= (min(j.map$rank1)-(rank.buffer*2)) &
-                                  rank2 >= (min(j.map$rank2)-(rank.buffer*2)) &
-                                  rank1 <= (max(j.map$rank1)+(rank.buffer*2)) &
-                                  rank2 <= (max(j.map$rank2)+(rank.buffer*2))), ]
-        j.out <- rbind(j.map[,c("id1","id2")],
-                       j.blast[,c("id1","id2")])
-        x = c(j.map$rank1, j.blast$rank1)
-        y = c(j.map$rank2, j.blast$rank2)
-        wh = 1:nrow(j.map)
+                                rank1 >= (min(j.map$rank1) - (rank.buffer * 2)) &
+                                  rank2 >= (min(j.map$rank2) - (rank.buffer * 2)) &
+                                  rank1 <= (max(j.map$rank1) + (rank.buffer * 2)) &
+                                  rank2 <= (max(j.map$rank2) + (rank.buffer * 2))), ]
+        j.out <- rbind(j.map[ , c("id1", "id2")],
+                       j.blast[ , c("id1", "id2")])
+        x <- c(j.map$rank1, j.blast$rank1)
+        y <- c(j.map$rank2, j.blast$rank2)
+        wh <- 1:nrow(j.map)
 
         tokeep <- find_whichInBuffer(x = x,
                                      y = y,
                                      which.in.blk = wh,
                                      rank.buffer = rank.buffer,
                                      ...)
-        if(plotit){
-          map.tp = cbind(j.map$rank1, j.map$rank2)
-          int = intersect(tokeep, (nrow(j.map)+1):length(x))
-          plot(x, y, pch = ".",
+        if (plotit) {
+          map.tp <- cbind(j.map$rank1, j.map$rank2)
+          int <- intersect(tokeep, (nrow(j.map) + 1):length(x))
+          plot(x, y,
+               pch = ".",
                xlab = paste(j.map$genome1[1],
-                            j.map$chr1[1],"gene order"),
+                            j.map$chr1[1], "gene order"),
                ylab = paste(j.map$genome2[1],
-                            j.map$chr2[1],"gene order"))
-          points(map.tp, cex = .5, col = "dodgerblue")
-          points(x[int], y[int], cex = .3, col = "darkred")
+                            j.map$chr2[1], "gene order"))
+          points(map.tp,
+                 cex = .5,
+                 col = "dodgerblue")
+          points(x[int], y[int],
+                 cex = .3,
+                 col = "darkred")
         }
 
         return(j.out[tokeep,])
       }))
 
-      ids2keep <- ids2keep[!duplicated(ids2keep),]
-      if(verbose)
-        cat(" returning", nrow(ids2keep),"\n")
+      ids2keep <- ids2keep[!duplicated(ids2keep), ]
+      if (verbose)
+        cat(" returning", nrow(ids2keep), "\n")
       return(ids2keep)
     })
     out <- rbindlist(res.by.genome)
@@ -173,7 +179,8 @@ cull_syntenicBlast <- function(map,
   #######################################################
   if (verbose)
     cat("Dropping chromosome combinations in blast not found in map... ")
-  tmp <- cull_blast2MapChr(blast = blast, map = map)
+  tmp <- cull_blast2MapChr(blast = blast,
+                           map = map)
   m.blast <- tmp$blast
   map <- tmp$map
   if (verbose)
@@ -183,7 +190,8 @@ cull_syntenicBlast <- function(map,
   #######################################################
   if (verbose)
     cat("Dropping blast hits in the map already ... ")
-  t.blast <- cull_blast2NewIds(blast = m.blast, map = map)
+  t.blast <- cull_blast2NewIds(blast = m.blast,
+                               map = map)
   if (verbose)
     cat("Done!\n")
   #######################################################
@@ -191,19 +199,23 @@ cull_syntenicBlast <- function(map,
   #######################################################
   if (verbose)
     cat("Making new blast and map with gff-based ranks ... ")
-  id.names <- c("genome1","genome2","id1","id2","chr1","chr2","start1","start2","end1","end2")
+  id.names <- c("genome1", "genome2",
+                "id1", "id2",
+                "chr1", "chr2",
+                "start1", "start2",
+                "end1", "end2")
   all.ids <- rbind(map[, id.names, with = F],
                    blast[, id.names, with = F])
-  all.ids <- all.ids[!duplicated(all.ids),]
-  all.ids[,rank1 := frank(start1, ties.method = "dense"),
+  all.ids <- all.ids[!duplicated(all.ids), ]
+  all.ids[ ,rank1 := frank(start1, ties.method = "dense"),
           by = list(genome1, chr1)]
-  all.ids[,rank2 := frank(start2, ties.method = "dense"),
+  all.ids[ ,rank2 := frank(start2, ties.method = "dense"),
                 by = list(genome2, chr2)]
   setkey(all.ids, id1, id2)
   setkey(map, id1, id2)
   setkey(blast, id1, id2)
-  r.map <- merge(all.ids, map[,c("id1","id2")])
-  r.blast <- merge(all.ids, blast[,c("id1","id2")])
+  r.map <- merge(all.ids, map[ ,c("id1", "id2")])
+  r.blast <- merge(all.ids, blast[ ,c("id1", "id2")])
 
   if (verbose)
     cat("Done!\n")

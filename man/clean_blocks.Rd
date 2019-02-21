@@ -39,8 +39,6 @@ blocks are generated? Passed to make_blocks. Can speed things up.}
 \item{verbose}{logical, should updates be printed?}
 
 \item{...}{Not currently in use}
-
-\item{blk}{the block data.table or data.frame}
 }
 \value{
 A list of length 2, block and map, as output by make_blocks.

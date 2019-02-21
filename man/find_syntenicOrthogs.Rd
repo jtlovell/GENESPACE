@@ -18,11 +18,15 @@ file with the following columns: 'id' (gene identifier), 'chr',
 'start', 'end', 'strand', 'genome' (matching an element in genomeIDs),
 'order' (gene order within that genome).}
 
+\item{map}{The map data.frame or data.table}
+
 \item{genomeIDs}{character vector giving genome IDs to consider.}
 
 \item{n.cores}{Number of parallel processes to run, when possible}
 
 \item{verbose}{Logical, should updates be printed}
+
+\item{rank.buffer}{The buffer, in gene rank order.}
 
 \item{...}{Not currently in use}
 }

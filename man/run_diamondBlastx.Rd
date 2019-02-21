@@ -18,13 +18,12 @@ run_diamondBlastx(db.file, pep.fa, fa.file, blast.file, min.score = 20,
 
 \item{min.score}{numeric, the minimum blast score to retain}
 
+\item{top}{numeric, passed to orthofinder. the number of hits to keep.}
+
 \item{diamond.blastx.param}{Additional parameters to pass to
 diamond blastx}
 
 \item{...}{Not currently in use}
-
-\item{max.target.seqs}{numeric, the maximum number of blast hits
-to return}
 }
 \value{
 A data.table with the same format as bed.dt, but with an

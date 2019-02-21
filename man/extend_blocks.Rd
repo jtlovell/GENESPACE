@@ -6,7 +6,7 @@
 \usage{
 extend_blocks(map, gff, blast, n.iter = 1, rank.buffer = 250,
   verbose = TRUE, plotit = FALSE, clean.it = TRUE, n.cores = 1,
-  radius = 10, n.mappings = 5)
+  radius = 10, n.mappings = 5, ...)
 }
 \arguments{
 \item{map}{The map data.frame or data.table}
@@ -38,7 +38,7 @@ radius to search for hits. Passed to clean_blocks}
 \item{n.mappings}{Numeric, length of 1, specifiying the
 minimum number of hits in a radius. Passed to clean_blocks}
 
-\item{...}{Not currently in use}
+\item{...}{Additional arguments passed to cull_syntenicBlast}
 }
 \value{
 A 4-element list of block, map, blast output and

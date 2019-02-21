@@ -24,20 +24,21 @@ check_environment <- function(directory,
                               genomeIDs,
                               clean = FALSE,
                               check.pkgs = TRUE,
-                              check.genomes = TRUE){
+                              check.genomes = TRUE,
+                              ...){
 
   cat("Making R variables and necessary directories... ")
 
-  dirs = file.path(directory,
-                   c("tmp","results","blast","mcscanx",
-                     "cull.blast","genome","block"))
-  names(dirs)<-c("tmp","results","blast","mcscanx",
-                 "cull.blast","genome","block")
+  dirs <- file.path(directory,
+                    c("tmp", "results", "blast", "mcscanx",
+                      "cull.blast", "genome", "block"))
+  names(dirs) <- c("tmp", "results", "blast", "mcscanx",
+                   "cull.blast", "genome", "block")
 
-  dir.out = list()
+  dir.out <- list()
   for (j in names(dirs)) {
 
-    i = dirs[[j]]
+    i <- dirs[[j]]
     if (dir.exists(i) & clean & j != "genome")
       unlink(i, recursive = TRUE)
 
@@ -64,7 +65,7 @@ check_environment <- function(directory,
 
   if (check.genomes) {
     cat("Checking genomes ... ")
-    if(!file.exists(genome.dir))
+    if (!file.exists(genome.dir))
       stop("Genome directory does not exist, build first\n")
 
     ftypes <- file.path(genome.dir,
@@ -73,12 +74,12 @@ check_environment <- function(directory,
                           "gff",
                           "assembly"))
 
-    for(i in ftypes){
-      if(!file.exists(i)){
+    for (i in ftypes) {
+      if (!file.exists(i)) {
         stop("Must build directory:",i,"first\n")
       }
-      sap = sapply(genomeIDs, function(x) any(grepl(x, dir(i))))
-      if(any(!sap)){
+      sap <- sapply(genomeIDs, function(x) any(grepl(x, dir(i))))
+      if (any(!sap)) {
         stop("Directory", i,
              "does not contain files for",
              genomeIDs[!sap], "\n")
@@ -103,18 +104,18 @@ check_environment <- function(directory,
     cat("Checking for R Package dependencies ... ")
     suppressPackageStartupMessages(
       fi <- sapply(packages, require, quietly = T, character.only = T))
-    if(all(fi)){
+    if (all(fi)) {
       cat("Pass!\n")
-    }else{
+    } else {
       cat("Fail!\nThe following packages need to be installed:\n",
           paste(packages[!fi], collapse = "\n"))
     }
 
     cat("Checking for program dependencies ... ")
     fi <- sapply(programs, function(x) Sys.which(x) != "")
-    if(all(fi)){
+    if (all(fi)) {
       cat("Pass!\n")
-    }else{
+    } else {
       cat("Fail!\nThe following programs need to be installed and added to the path:\n",
           paste(programs[!fi], collapse = "\n"))
     }

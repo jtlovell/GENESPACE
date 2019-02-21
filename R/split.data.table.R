@@ -3,6 +3,7 @@
 #' \code{split.data.table} Much faster than base split.
 #' @param x a data.table
 #' @param f a vector, not needed if by is specified
+#' @param by by
 #' @param drop drop
 #' @param flatten non-recursive unlisting
 #' @param ... additional arguments passed to data.table

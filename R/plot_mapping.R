@@ -24,7 +24,6 @@ plot_mapping <- function(cols = NULL,
                          map,
                          genomes = unique(c(blk$genome1, blk$genome2)),
                          return.coords = F,
-                         col.by.annot = F,
                          ...){
 
   if (is.null(cols))

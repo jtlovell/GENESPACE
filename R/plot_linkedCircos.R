@@ -23,6 +23,7 @@
 #' that the chromosome comes from genomeID2.
 #' @param track.height How wide should the track with genome colors be?
 #' @param adjust.alpha Logical, should transparency be adjusted based on block size?
+#' @param link.alpha Numeric 0-1, specify opacity of links.
 #' @param ... Not currently in use
 #' @details More here
 #' @return Nothing.
@@ -84,7 +85,7 @@ plot_linkedCircos <- function(blk,
                                       ".fa.fai")),
                      header = F,
                      stringsAsFactors = F,
-                     col.names = c("chr","length","v1","v2","v3"))[,1:2]
+                     col.names = c("chr", "length", "v1", "v2", "v3"))[,1:2]
 
   fai1 <- fai1[fai1$chr %in% chrs1,]
   rownames(fai1) <- fai1$chr
@@ -93,10 +94,10 @@ plot_linkedCircos <- function(blk,
   fai1$genome <- genome_id1
 
   fai2 <- read.delim(file.path(assembly.dir,
-                               paste0(genome_id2,".fa.fai")),
+                               paste0(genome_id2, ".fa.fai")),
                      header = F,
                      stringsAsFactors = F,
-                     col.names = c("chr","length","v1","v2","v3"))[,1:2]
+                     col.names = c("chr", "length", "v1", "v2", "v3"))[,1:2]
 
   fai2 <- fai2[fai2$chr %in% chrs2,]
   rownames(fai2) <- fai2$chr
@@ -209,7 +210,6 @@ plot_linkedCircos <- function(blk,
   fais$color <- ifelse(fais$genome == genome_id1,
                        genome_id1.col, genome_id2.col)
 
-  # bed1 = rbind(bed1, bed2)
   init <- data.frame(name = fais$sector_names,
                      start = 0,
                      end = fais$length,

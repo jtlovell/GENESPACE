@@ -4,7 +4,6 @@
 #' \code{clean_blocks} Clusters hits and drops low-confidence blocks.
 #'
 #' @param map the map data.table or data.frame
-#' @param blk the block data.table or data.frame
 #' @param rerank logical, should the ranks be re-calculated prior to cleaning?
 #' @param radius numeric, what should the radius of 2d density clustering be?
 #' @param n.mappings numeric, how many mappings are required for a cluster?
@@ -64,7 +63,7 @@ clean_blocks <- function(map,
 
     map <- data.table(map)
     setkey(map, chr1, chr2, start1, start2)
-    if(rerank){
+    if (rerank) {
       map[,rank1 := frank(start1,
                           ties.method = "dense"),
           by = list(genome1, genome2, chr1)]
@@ -73,13 +72,13 @@ clean_blocks <- function(map,
           by = list(genome1, genome2, chr2)]
     }
 
-    if(!"unique.genome" %in% colnames(map)){
+    if (!"unique.genome" %in% colnames(map)) {
       map$unique.genome <- with(map, paste(genome1, genome2))
     }
-    if(!"unique" %in% colnames(map)){
+    if (!"unique" %in% colnames(map)) {
       map$unique <- with(map, paste(genome1, genome2, chr1, chr2))
     }
-    spl.gen = split(map, "unique.genome")
+    spl.gen <- split(map, "unique.genome")
     merged_map <- rbindlist(lapply(spl.gen, function(x){
       g1 = x$genome1[1]
       g2 = x$genome2[1]
@@ -132,25 +131,25 @@ clean_blocks <- function(map,
   #######################################################
 
   #######################################################
-  if((length(radius) != length(n.mappings)) |
-     (clean.by.unique.genes & length(radius) != length(min.unique.genes)) |
-     (clean.by.unique.genes & length(radius) != length(min.unique.og)))
+  if ((length(radius) != length(n.mappings)) |
+      (clean.by.unique.genes & length(radius) != length(min.unique.genes)) |
+      (clean.by.unique.genes & length(radius) != length(min.unique.og)))
     stop("radius, n.mappings, min.unique.og and min.unique.genes must be of same length\n")
   #######################################################
 
   #######################################################
   # -- Prep the map object
-  map$unique = with(map, paste(genome1, genome2, chr1, chr2))
-  map$unique.genome = with(map, paste(genome1, genome2))
+  map$unique <- with(map, paste(genome1, genome2, chr1, chr2))
+  map$unique.genome <- with(map, paste(genome1, genome2))
 
   setkey(map, chr1, chr2, start1, start2)
   #######################################################
 
   #######################################################
   # -- Iteratively (or not) run the cleaning
-  for(i in 1:length(n.mappings)){
-    n.map = n.mappings[i]
-    rad = radius[i]
+  for (i in 1:length(n.mappings)) {
+    n.map <- n.mappings[i]
+    rad <- radius[i]
     if(verbose){
       if(length(n.mappings) == 1){
         cat("Cleaning mappings to", n.map, "hits within",
@@ -163,15 +162,15 @@ clean_blocks <- function(map,
     }
 
     cleaned <- clean_it(map = map,
-                    rerank = rerank,
-                    radius = rad,
-                    n.mappings = n.map,
-                    n.cores = n.cores,
-                    clean.by.unique.genes = clean.by.unique.genes,
-                    min.unique.genes = min.unique.genes[i],
-                    min.unique.og = min.unique.og[i],
-                    clean.by.og = clean.by.og,
-                    verbose = verbose)
+                        rerank = rerank,
+                        radius = rad,
+                        n.mappings = n.map,
+                        n.cores = n.cores,
+                        clean.by.unique.genes = clean.by.unique.genes,
+                        min.unique.genes = min.unique.genes[i],
+                        min.unique.og = min.unique.og[i],
+                        clean.by.og = clean.by.og,
+                        verbose = verbose)
     map <- cleaned$map
 
     if (verbose)

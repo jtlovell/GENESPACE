@@ -7,9 +7,7 @@
 #' 'rank1' and 'rank2'
 #' @param eps.radius numeric, what should the radius of 2d density clustering be?
 #' @param mappings numeric, how many mappings are required for a cluster?
-#' @param n.cores The number of parallel processes to run.
-#' @param verbose logical, should updates be printed?
-#' @param ... Not currently in use
+#' @param ... Additional arguments passed to frNN.
 #'
 #' @details Small and dispersed blocks are dropped using 2-dimensional
 #' clustering. Essentially, any hits that are not near n.mappings hits
@@ -23,13 +21,13 @@
 #' none yet
 #' }
 #' @import data.table
-#' @import dbscan
+#' @importFrom dbscan frNN dbscan
 #' @export
 run_dbs <- function(y,
                     eps.radius,
                     mappings){
   nn <- frNN(data.frame(y[, c("rank1", "rank2"), with = F]),
-             eps = eps.radius)
+             eps = eps.radius, ...)
   dbs <- dbscan(nn,
                 minPts = mappings)
   y$cluster <- dbs$cluster

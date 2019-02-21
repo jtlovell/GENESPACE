@@ -22,7 +22,7 @@
 #' minimum number of hits in a radius. Passed to clean_blocks
 #' @param clean.it Should the cleaning step be run?
 #' @param verbose Logical, should updates be printed
-#' @param ... Not currently in use
+#' @param ... Additional arguments passed to cull_syntenicBlast
 #' @details None yet
 
 #' @return A 4-element list of block, map, blast output and
@@ -44,7 +44,9 @@ extend_blocks <- function(map,
                           clean.it = TRUE,
                           n.cores = 1,
                           radius = 10,
-                          n.mappings = 5){
+                          n.mappings = 5,
+                          ...){
+
   actually.plotit <- FALSE
   if (!clean.it) {
     n.iter <- 1
@@ -65,21 +67,22 @@ extend_blocks <- function(map,
                                   plotit = actually.plotit,
                                   rank.buffer = rank.buffer,
                                   verbose = verbose,
-                                  n.cores = n.cores)
+                                  n.cores = n.cores,
+                                  ...)
     toclean$rank1 <- NULL
     toclean$rank2 <- NULL
-    if(clean.it){
+    if (clean.it) {
       out <- clean_blocks(map = toclean,
                           radius = radius,
                           n.mappings = n.mappings,
                           n.cores = n.cores)
       map <- out$map
-    }else{
+    } else {
       setkey(blast, id1, id2)
-      syn.ids <- toclean[,c("id1","id2")]
+      syn.ids <- toclean[ ,c("id1", "id2")]
       setkey(blast, id1, id2)
       setkey(syn.ids, id1, id2)
-      out <-merge(syn.ids, blast)
+      out <- merge(syn.ids, blast)
     }
   }
 

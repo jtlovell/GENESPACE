@@ -22,7 +22,8 @@ cull_blastByDBS <- function(blast,
                             n.mappingWithinRadius = c(5,5,5),
                             eps.radius = c(100,50,25),
                             verbose = T,
-                            run.it = T){
+                            run.it = T,
+                            ...){
   #######################################################
   #######################################################
 
@@ -62,7 +63,7 @@ cull_blastByDBS <- function(blast,
                  x$genome1[1]), "-->", x$genome2[1],
           paste0("(initial hits = ", nrow(x),") "))
 
-    if (run.it){
+    if (run.it) {
       tmp <- split(x, "unique")
       xo = rbindlist(lapply(tmp, function(z){
         z <- run_dbs(y = z,
@@ -71,7 +72,7 @@ cull_blastByDBS <- function(blast,
         z <- z[z$cluster != 0,]
         return(z)
       }))
-    }else{
+    } else {
       xo <- rbindlist(x)
     }
     if (verbose)

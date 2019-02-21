@@ -23,6 +23,15 @@ produced by import_ofResults}
 
 \item{verbose}{Logical, should updates be printed?}
 
+\item{only.orthologs}{logical, should only hits within orthogroups be returned?}
+
+\item{min.score}{numeric, minimum blast bit score for a hit to be retained}
+
+\item{prop.topscore}{numeric, proportion of best score for a gene,
+for which a hit will be retained}
+
+\item{top.n}{numeric, the number of best scoring hits to retain per gene}
+
 \item{...}{Not currently in use}
 }
 \value{

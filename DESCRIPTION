@@ -9,8 +9,8 @@ Description: Collinear blocks are formed from parsed BLAST results
       pairwise matches are validated. The pairwise associations are
       concatenated across all genome to build multiple-sequence alignments
       that include both annotated and unannotated gene sequence variation. 
-Depends: data.table,
-  dbscan,
+Depends: data.table
+Imports: dbscan,
   parallel,
   GenomicRanges,
   Biostrings,
