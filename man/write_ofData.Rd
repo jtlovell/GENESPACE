@@ -4,7 +4,7 @@
 \alias{write_ofData}
 \title{Prep data for orthofinder}
 \usage{
-write_ofData(blast, genomeIDs, of.dir, peptide.dir, ...)
+write_ofData(blast, genomeIDs, of.dir, peptide.dir, verbose = T, ...)
 }
 \arguments{
 \item{blast}{A data.table with at least the 10 necessary blast columns}
@@ -14,6 +14,8 @@ write_ofData(blast, genomeIDs, of.dir, peptide.dir, ...)
 \item{of.dir}{The directory to write results}
 
 \item{peptide.dir}{The directory containing the peptide fasta annotations}
+
+\item{verbose}{Logical, should updates be printed?}
 
 \item{...}{Not currently in use}
 }

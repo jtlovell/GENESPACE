@@ -45,7 +45,7 @@ A 4-element list of block, map, blast output and
 orthofinder output.
 }
 \description{
-\code{find_syntenicOrthogs} Subset blast hits to syntenic regions and
+\code{extend_blocks} Subset blast hits to syntenic regions and
 re-run orthofinder.
 }
 \details{

@@ -8,6 +8,7 @@
 #' @param peptide.dir The directory containing the peptide fasta annotations
 #' @param of.dir The directory to write results
 #' @param genomeIDs Character vector giving the genome IDs.
+#' @param verbose Logical, should updates be printed?
 #' @param ... Not currently in use
 #' @details None yet
 
@@ -24,6 +25,7 @@ write_ofData <- function(blast,
                          genomeIDs,
                          of.dir,
                          peptide.dir,
+                         verbose = T,
                          ...){
 
   ########################################################

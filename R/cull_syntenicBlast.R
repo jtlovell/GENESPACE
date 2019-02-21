@@ -149,6 +149,7 @@ cull_syntenicBlast <- function(map,
         return(j.out[tokeep,])
       }))
 
+      ids2keep <- ids2keep[!duplicated(ids2keep),]
       if(verbose)
         cat(" returning", nrow(ids2keep),"\n")
       return(ids2keep)
@@ -236,6 +237,7 @@ cull_syntenicBlast <- function(map,
     cat("Reformatting blast output ... ")
 
   setkey(blast, id1, id2)
+
   out.blast <- merge(ids2keep, blast)
   re.out <- with(out.blast,
                  rerank_fromIDs(id1 = id1,

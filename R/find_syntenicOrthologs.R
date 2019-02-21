@@ -73,7 +73,8 @@ find_syntenicOrthogs <- function(map,
   write_ofData(blast = blast,
                genomeIDs = genomeIDs,
                of.dir = dir.list$tmp,
-               peptide.dir = dir.list$peptide)
+               peptide.dir = dir.list$peptide,
+               verbose = verbose)
   #######################################################
 
   #######################################################
