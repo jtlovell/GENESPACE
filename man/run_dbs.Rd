@@ -4,7 +4,7 @@
 \alias{run_dbs}
 \title{Clusters hits by dbscan}
 \usage{
-run_dbs(y, eps.radius, mappings)
+run_dbs(y, eps.radius, mappings, ...)
 }
 \arguments{
 \item{y}{the map data.table or data.frame, or any object with two columns,

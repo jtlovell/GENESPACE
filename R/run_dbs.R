@@ -25,7 +25,7 @@
 #' @export
 run_dbs <- function(y,
                     eps.radius,
-                    mappings){
+                    mappings, ...){
   nn <- frNN(data.frame(y[, c("rank1", "rank2"), with = F]),
              eps = eps.radius, ...)
   dbs <- dbscan(nn,
