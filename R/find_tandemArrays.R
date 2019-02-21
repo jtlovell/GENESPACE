@@ -44,7 +44,7 @@ find_tandemArrays <- function(map,
                                    ...){
     map$array.id <- with(map, paste0(block.id, "|", og1))
     map$unique.genome <- with(map, paste(genome1, genome2))
-    spl = split.data.table(map, "unique.genome")
+    spl = split(map, "unique.genome")
 
     pw.cta <- rbindlist(lapply(spl, function(x){
       if (verbose)

@@ -75,8 +75,11 @@ extend_blocks <- function(map,
                           n.cores = n.cores)
       map <- out$map
     }else{
-      out <- toclean
-      map <- toclean
+      setkey(blast, id1, id2)
+      syn.ids <- toclean[,c("id1","id2")]
+      setkey(blast, id1, id2)
+      setkey(syn.ids, id1, id2)
+      out <-merge(syn.ids, blast)
     }
   }
 

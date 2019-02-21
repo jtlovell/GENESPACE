@@ -48,6 +48,7 @@ find_syntenicOrthogs <- function(blast,
     rank.buffer = rank.buffer,
     clean.it = F,
     verbose = verbose)
+
   #######################################################
 
   #######################################################
