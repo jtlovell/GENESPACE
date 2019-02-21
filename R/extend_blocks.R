@@ -1,7 +1,7 @@
 #' @title Synteny-constrained orthology pipeline
 #'
 #' @description
-#' \code{find_syntenicOrthogs} Subset blast hits to syntenic regions and
+#' \code{extend_blocks} Subset blast hits to syntenic regions and
 #' re-run orthofinder.
 #'
 #' @param map The map data.frame or data.table
@@ -53,7 +53,7 @@ extend_blocks <- function(map,
   if (verbose)
     cat("Culling by pairwise genome comparison ...\n")
   for (i in 1:n.iter) {
-    if (verbose)
+    if (verbose & n.iter > 1)
       cat("Iteration", i, ":\n")
 
     if (plotit & i == n.iter) {
@@ -79,9 +79,6 @@ extend_blocks <- function(map,
       map <- toclean
     }
   }
-
-  if (verbose)
-    cat("Done!\n")
 
   return(out)
 }

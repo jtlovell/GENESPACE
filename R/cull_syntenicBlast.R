@@ -223,12 +223,12 @@ cull_syntenicBlast <- function(map,
                                  chr1, chr2))
   ids2keep <- find_hitsInBuffer(map = r.map,
                                 blast = r.blast,
-                                rank.buffer = 100,
+                                rank.buffer = rank.buffer,
                                 verbose = verbose,
                                 plotit = plotit)
 
   if (verbose)
-    cat("Done!\n")
+    cat("\tDone!\n")
   #######################################################
 
   #######################################################
