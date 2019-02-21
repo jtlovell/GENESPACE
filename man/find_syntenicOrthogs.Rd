@@ -4,11 +4,12 @@
 \alias{find_syntenicOrthogs}
 \title{Synteny-constrained orthology pipeline}
 \usage{
-find_syntenicOrthogs(blast, dir.list, gff, gene.index, genomeIDs,
-  species.mappings, n.cores = 1, orthogroups, plotit = n.cores == 1,
-  rank.buffer = 250, verbose = T, min.block.size = 5, ...)
+find_syntenicOrthogs(blast, dir.list, gff, genomeIDs, n.cores = 1,
+  verbose = T, ...)
 }
 \arguments{
+\item{blast}{data.table with at least the 10 necessary columns for blast format.}
+
 \item{dir.list}{The directory list produced by check_environment}
 
 \item{gff}{The gff-like data.table or data.frame produced by
@@ -17,29 +18,11 @@ file with the following columns: 'id' (gene identifier), 'chr',
 'start', 'end', 'strand', 'genome' (matching an element in genomeIDs),
 'order' (gene order within that genome).}
 
-\item{gene.index}{orthofinder geneID data.table or data.frame
-giving a dictionary between the 'id' column in the gff object
-and the 'gene.num' numeric geneIDs in the orthofinder-formatted
-blast files.}
-
-\item{species.mappings}{The 'species.mappings' data.table or data.frame
-from form_syntenicBlocks, giving a dictionary between pairwise
-blast genome IDs from orthofinder, the blast file locations and
-the genomeIDs.}
+\item{genomeIDs}{character vector giving genome IDs to consider.}
 
 \item{n.cores}{Number of parallel processes to run, when possible}
 
-\item{orthogroups}{The orthogroups list.}
-
-\item{plotit}{Logical, should plots be made? Will not work with
-n.core > 1.}
-
-\item{rank.buffer}{The buffer, in gene rank order.}
-
 \item{verbose}{Logical, should updates be printed}
-
-\item{min.block.size}{Numeric of length 1, specifying the minimum
-block size in the cleaning procedure at the end.}
 
 \item{...}{Not currently in use}
 }

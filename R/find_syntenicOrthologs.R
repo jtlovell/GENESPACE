@@ -5,26 +5,14 @@
 #' re-run orthofinder.
 #'
 #' @param dir.list The directory list produced by check_environment
+#' @param blast data.table with at least the 10 necessary columns for blast format.
+#' @param genomeIDs character vector giving genome IDs to consider.
 #' @param gff The gff-like data.table or data.frame produced by
 #' form_syntenicBlocks. Can also be made by hand - just a parsed gff
 #' file with the following columns: 'id' (gene identifier), 'chr',
 #' 'start', 'end', 'strand', 'genome' (matching an element in genomeIDs),
 #' 'order' (gene order within that genome).
-#' @param gene.index orthofinder geneID data.table or data.frame
-#' giving a dictionary between the 'id' column in the gff object
-#' and the 'gene.num' numeric geneIDs in the orthofinder-formatted
-#' blast files.
-#' @param species.mappings The 'species.mappings' data.table or data.frame
-#' from form_syntenicBlocks, giving a dictionary between pairwise
-#' blast genome IDs from orthofinder, the blast file locations and
-#' the genomeIDs.
-#' @param orthogroups The orthogroups list.
-#' @param plotit Logical, should plots be made? Will not work with
-#' n.core > 1.
-#' @param rank.buffer The buffer, in gene rank order.
 #' @param n.cores Number of parallel processes to run, when possible
-#' @param min.block.size Numeric of length 1, specifying the minimum
-#' block size in the cleaning procedure at the end.
 #' @param verbose Logical, should updates be printed
 #' @param ... Not currently in use
 #' @details None yet
@@ -42,15 +30,9 @@
 find_syntenicOrthogs <- function(blast,
                                  dir.list,
                                  gff,
-                                 gene.index,
                                  genomeIDs,
-                                 species.mappings,
                                  n.cores = 1,
-                                 orthogroups,
-                                 plotit = n.cores == 1,
-                                 rank.buffer = 250,
                                  verbose = T,
-                                 min.block.size = 5,
                                  ...){
 
   #######################################################
@@ -83,9 +65,9 @@ find_syntenicOrthogs <- function(blast,
     peptide.dir = NULL,
     tmp.dir = dir.list$tmp,
     blast.dir = dir.list$cull.blast,
-    og.threads = 6,
-    og.silent = F,
-    verbose = T)
+    og.threads = n.cores,
+    og.silent = verbose,
+    verbose = verbose)
 
   if (verbose)
     cat("Done!\n")
@@ -96,7 +78,7 @@ find_syntenicOrthogs <- function(blast,
     gff = gff,
     genomeIDs = genomeIDs,
     blast.dir = dir.list$cull.blast,
-    verbose = T)
+    verbose = verbose)
   #######################################################
 
   #######################################################
@@ -104,9 +86,10 @@ find_syntenicOrthogs <- function(blast,
     species.mappings = of.blast$species.mappings,
     genomeIDs = genomeIDs,
     orthogroups = of.blast$orthogroups,
+    only.orthologs = TRUE,
     gff = gff,
     gene.index = of.blast$gene.index,
-    verbose = T)
+    verbose = verbose)
 
   all.blast$unique = with(all.blast, paste0(genome1, "_", genome2))
 
