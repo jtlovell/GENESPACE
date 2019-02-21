@@ -226,7 +226,6 @@ cull_syntenicBlast <- function(map,
                                 rank.buffer = 100,
                                 verbose = verbose,
                                 plotit = plotit)
-  print(ids2keep)
 
   if (verbose)
     cat("Done!\n")
