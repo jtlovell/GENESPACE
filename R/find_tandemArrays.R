@@ -60,7 +60,7 @@ find_tandemArrays <- function(map,
   }))
 
   if (verbose)
-    cat("Done! Found",length(unique(out$array.ids)),
+    cat("Done! Found",length(unique(out$array.id)),
         "tandem arrays across",
         sum(!is.na(out$array.id)),"blast hits\n")
   #######################################################

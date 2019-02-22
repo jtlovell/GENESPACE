@@ -108,7 +108,7 @@ plot_tandemArrays <- function(array.id,
                         col = col,
                         xlab = paste0(g1, " (", c1, ") gene position (n = ", n.ta.1,")"),
                         ylab = paste0(g2, " (", c1, ") gene position (n = ", n.ta.2,")"),
-                        main = array.id[1],
+                        main = ta.hits$array.id[1],
                         ...))
     with(ta.hits, points(start1, start2,
                          pch = array.pch,
