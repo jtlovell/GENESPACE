@@ -47,7 +47,7 @@ plot_tandemArrays <- function(array.id,
   if (!array.id %in% map$array.id)
     stop("could not find", array.id, "in the array.id column of the map data.table\n")
 
-  wh <- which(m$array.id == array.id)
+  wh <- which(map$array.id == array.id)
   ta.hits <- map[wh, ]
 
   if (length(unique(ta.hits$chr1)) > 1) {
@@ -127,6 +127,4 @@ plot_tandemArrays <- function(array.id,
                          col = array.col,
                          cex = array.cex))
   }
-
-  return(out)
 }
