@@ -86,7 +86,7 @@ clean_blocks <- function(map,
         cat("\t",g1,"-->",g2,paste0("(initial hits = ",nrow(x),") ... "))
       spl.map <- split(x, "unique")
       chr.map <- rbindlist(mclapply(spl.map, mc.cores = n.cores, mc.preschedule = F, function(tmp){
-        x <- run_dbs(y = tmp[, c("rank1","rank2"), with = F],
+        x <- run_dbs(y = tmp[, c("rank1", "rank2"), with = F],
                      eps.radius = radius,
                      mappings = n.mappings)
         tmp$block.id <- x$cluster
@@ -95,26 +95,25 @@ clean_blocks <- function(map,
       chr.map <- chr.map[chr.map$block.id != 0, ]
       if (verbose)
         cat(nrow(chr.map), "hits in",
-            length(unique(paste(chr.map$unique, chr.map$block.id))),"blocks\n")
+            length(unique(paste(chr.map$unique, chr.map$block.id))), "blocks\n")
       return(chr.map)
     }))
 
     merged_map$block.id <- with(merged_map,
                                 as.numeric(as.factor(paste(unique, block.id))))
 
-    if(clean.by.unique.genes){
+    if (clean.by.unique.genes) {
       merged_map[,n.genes1 := length(unique(id1)), by = list(block.id)]
       merged_map[,n.genes2 := length(unique(id2)), by = list(block.id)]
       merged_map <- merged_map[with(merged_map,
                                     n.genes1 >= min.unique.genes &
                                       n.genes2 >= min.unique.genes),]
     }
-    if(clean.by.og){
+    if (clean.by.og) {
       merged_map[,n.orthogroups := length(unique(orthogroup)), by = list(block.id)]
       merged_map <- merged_map[with(merged_map,
                                     n.orthogroups >= min.unique.og),]
     }
-
 
     merged_blk <- make_blocks(map = merged_map,
                               rename.blocks = T,

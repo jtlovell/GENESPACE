@@ -36,8 +36,7 @@ make_blocks <- function(map,
                    "og1", "og2",
                    "chr1", "start1", "end1", "strand1", "order1",
                    "chr2", "start2", "end2", "strand2", "order2",
-                   "rank1", "rank2",
-                   "perc.iden", "align.length", "score")
+                   "rank1", "rank2")
     cols2keep <- cols2keep[cols2keep %in% colnames(map)]
     map <- map[,cols2keep, with = F]
   }
@@ -70,7 +69,7 @@ make_blocks <- function(map,
                          rankstart2 = min(rank2),
                          rankend1 = max(rank1),
                          rankend2 = max(rank2),
-                         n.mapping = length(score),
+                         n.mapping = length(start1),
                          orient = ifelse(length(start1) <= 1, "+",
                                          ifelse(cor(jitter(start1),
                                                     jitter(start2)) > 0,"+", "-"))),
@@ -86,7 +85,7 @@ make_blocks <- function(map,
                          rankstart2 = min(rank2),
                          rankend1 = max(rank1),
                          rankend2 = max(rank2),
-                         n.mapping = length(score),
+                         n.mapping = length(start1),
                          n.unique.map1 = length(unique(id1)),
                          n.unique.map2 = length(unique(id2)),
                          orient = ifelse(length(start1) <= 1, "+",
