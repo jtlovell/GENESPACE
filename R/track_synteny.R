@@ -112,6 +112,7 @@ track_synteny <- function(map,
     no.match <- xc[!with(xc, paste(true.id1, genome2, block.id)) %in%
                      with(matched, paste(id1, genome2, block.id)),
                    c("true.id1", "genome2", "block.id")]
+    no.match <- no.match[!duplicated(no.match),]
     nc <- merge(xc,
                 no.match,
                 by = colnames(no.match))

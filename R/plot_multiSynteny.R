@@ -140,7 +140,16 @@ plot_multiSynteny <- function(map,
   }
   ########################################################
   ########################################################
-  make_mapDB <- function(map, chr.db, genes2highlight){
+  make_mapDB <- function(map,
+                         chr.db,
+                         genes2highlight){
+    map <- data.table(map)
+    all.genes <- genes2highlight
+    for(i in 1:length(genomeIDs)){
+      all.genes <- unique(unlist(map[map$id1 %in% all.genes |
+                                       map$id2 %in% all.genes,
+                                     c("id1","id2")]))
+    }
     # clean blocks for better presentation
     map.m <- map
     map.m[,prop1:=(rank1/max(rank1)),
@@ -160,9 +169,6 @@ plot_multiSynteny <- function(map,
 
     bm$tp1 <- with(bm, (prop1*proplen.chr1)+prop.chr.start1)
     bm$tp2 <- with(bm, (prop2*proplen.chr2)+prop.chr.start2)
-
-    all.genes <- unique(unlist(map[map$id1 %in% genes2highlight | map$id2 %in% genes2highlight,
-                                   c("id1","id2")]))
 
     return(bm[bm$id1 %in% all.genes | bm$id2 %in% all.genes,
               c("genome1","genome2","genome.order1","genome.order2",
@@ -193,14 +199,14 @@ plot_multiSynteny <- function(map,
   map.in = rbindlist(lapply(1:(length(chr.order.list)-1),function(i){
     g1 = names(chr.order.list)[i]
     g2 = names(chr.order.list)[i+1]
-    return(map[with(map, (genome1 == g1 & genome2 == g2) |
-                      (genome1 == g2 & genome2 == g1)),])
+    return(map[with(map, genome1 == g1 & genome2 == g2),])
   }))
   ########################################################
 
   ########################################################
   # -- Make chromsome metadata and plot
-  chr.db = make_chrDB(map = map.in, chr.order.list = chr.order.list)
+  chr.db = make_chrDB(map = map.in,
+                      chr.order.list = chr.order.list)
 
   plot(1:length(genomeIDs),
        seq(from = 0, to = 1, length.out = length(genomeIDs)),
@@ -221,6 +227,7 @@ plot_multiSynteny <- function(map,
   # -- Make block metadata and plot
   blk.db = make_blockDB(map = map.in,
                         chr.db = chr.db)
+  blk.db = blk.db[with(blk.db, genome.order1 < genome.order2),]
   spl.mat = split(blk.db, "block.id")
   for(x in spl.mat){
     xs = with(x, c(genome.order1, genome.order2, genome.order2, genome.order1))
@@ -239,6 +246,7 @@ plot_multiSynteny <- function(map,
     map.db = make_mapDB(map = map.in,
                         chr.db = chr.db,
                         genes2highlight = genes2highlight)
+    map.db = map.db[with(map.db, genome.order1 < genome.order2),]
     with(map.db, segments(x0 = genome.order1,
                           x1 = genome.order2,
                           y0 = tp1,
