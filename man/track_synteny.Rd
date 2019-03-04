@@ -4,8 +4,8 @@
 \alias{track_synteny}
 \title{track synteny}
 \usage{
-track_synteny(map, genomeIDs, wind.size = 5, quantiles = c(0.4, 0.6),
-  verbose = T)
+track_synteny(map, genomeIDs, pep.dir, wind.size = 5,
+  quantiles = c(0.4, 0.6), verbose = T)
 }
 \arguments{
 \item{map}{map results data.table}

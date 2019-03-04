@@ -24,6 +24,7 @@ plot_mapping <- function(cols = NULL,
                          map,
                          genomes = unique(c(blk$genome1, blk$genome2)),
                          return.coords = F,
+                         chr.order.list = NULL,
                          ...){
 
   if (is.null(cols))
@@ -53,6 +54,12 @@ plot_mapping <- function(cols = NULL,
     tmp <- map[map$genome1 == x[1] &
                  map$genome2 == x[2],]
 
+    if(!is.null(chr.order.list)){
+      c1 = chr.order.list[[x[1]]]
+      c2 = chr.order.list[[x[2]]]
+      tmp$chr1 <- factor(tmp$chr1, levels = c1)
+      tmp$chr2 <- factor(tmp$chr2, levels = c2)
+    }
     tmp$rank1 <- frank(tmp[,c("chr1", "start1")],
                        ties.method = "dense")
     tmp$rank2 <- frank(tmp[,c("chr2", "start2")],
@@ -84,11 +91,13 @@ plot_mapping <- function(cols = NULL,
 
     axis(1,
          at = lab1,
-         labels = names(lab1))
+         cex.axis = .75,
+         labels = names(lab1), las = 2)
 
     axis(2,
          at = lab2,
-         labels = names(lab2))
+         cex.axis = .75,
+         labels = names(lab2), las = 2)
 
     segments(x0 = end1,
              x1 = end1,

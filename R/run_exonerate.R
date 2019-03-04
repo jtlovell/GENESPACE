@@ -93,7 +93,7 @@ run_exonerate <- function(locs,
 
   if (verbose) {
     n <- nrow(locs)
-    nb <- ifelse(n < 1000, 100,
+    nb <- ifelse(n < 2000, 100,
                  ifelse(n < 5000, 500,
                         ifelse(n < 10000, 1000, 5000)))
   }

@@ -21,6 +21,15 @@ match_syntenicChrs <- function(map,
                                genomeIDs,
                                genome1.chrs,
                                ...){
+
+  m <- map[,c("block.id",
+              "genome1","id1","chr1","start1","end1","rank1",
+              "genome2","id2","chr2","start2","end2","rank2")]
+  m2 <- m[,c(1,8:13,2:7)]
+  setnames(m2, colnames(m))
+  map <- rbind(m, m2)
+  map <- map[!duplicated(map),]
+
   dspl <- lapply(1:(length(genomeIDs)-1), function(i)
     map[map$genome1 == genomeIDs[i] &
           map$genome2 == genomeIDs[i+1],])

@@ -24,6 +24,7 @@
 #' @export
 track_synteny <- function(map,
                           genomeIDs,
+                          pep.dir,
                           wind.size = 5,
                           quantiles = c(.4,.6),
                           verbose = T){
@@ -146,6 +147,9 @@ track_synteny <- function(map,
   ########################################################
   ########################################################
 
+  mog = map[,c("genome1","id1","og1")]
+  mog = mog[!duplicated(mog),]
+  setnames(mog,3,"og")
   ########################################################
   if (verbose)
     cat("Completing pairwise synteny database for every gene in ... \n")
@@ -163,6 +167,7 @@ track_synteny <- function(map,
     return(reg)
   })
   join2 <- rbindlist(join2)
+  join2 <- merge(join2, mog, by = c("genome1","id1"), all.x = T)
   if (verbose)
     cat("\tDone!\n")
   return(join2)

@@ -25,7 +25,7 @@
 #' }
 #' @import data.table
 #' @export
-plot_multiSynteny <- function(map,
+plot_multiSynteny2 <- function(map,
                               chr.order.list,
                               genes2highlight = NULL,
                               blk.col = rgb(0,0,0,.2),
@@ -35,7 +35,44 @@ plot_multiSynteny <- function(map,
                               chr.lwd = 2,
                               clean.radius = 5,
                               clean.nmappings = 5,
+                              xlab.cex = .8,
+                              uni.dir = T,
                               ...){
+  ########################################################
+  ########################################################
+  cull_map2chrs <- function(map,
+                            genomeIDs,
+                            genome1.chrs,
+                            uni.dir){
+    m <- map[,c("block.id",
+                "genome1","id1","chr1","start1","end1","rank1",
+                "genome2","id2","chr2","start2","end2","rank2")]
+    m2 <- m[,c(1,8:13,2:7)]
+    setnames(m2, colnames(m))
+    map <- rbind(m, m2)
+    map <- map[!duplicated(map),]
+
+    if(uni.dir){
+      map <- rbindlist(lapply(1:(length(genomeIDs)-1), function(i)
+        map[with(map, genome1 == genomeIDs[i] &
+                   genome2 == genomeIDs[i+1]),]
+      ))
+    }
+
+    genes.inG1.1 <- with(map[map$genome1 == genomeIDs[1],],
+                         unique(id1[chr1 %in% genome1.chrs]))
+    genes.inG1.2 <- with(map[map$genome2 == genomeIDs[1],],
+                         unique(id2[chr2 %in% genome1.chrs]))
+
+    genes.in <- unique(c(genes.inG1.1, genes.inG1.2))
+    for(i in 1:length(genomeIDs)){
+      genes.in <- unique(with(map, c(id1[id2 %in% genes.in],
+                                     id2[id1 %in% genes.in])))
+    }
+
+    map <- map[with(map, id1 %in% genes.in | id2 %in% genes.in),]
+    return(map)
+  }
   ########################################################
   ########################################################
   make_chrDB <- function(map,
@@ -142,10 +179,11 @@ plot_multiSynteny <- function(map,
   ########################################################
   make_mapDB <- function(map,
                          chr.db,
+                         genomeIDs,
                          genes2highlight){
     map <- data.table(map)
     all.genes <- genes2highlight
-    for(i in 1:length(genomeIDs)){
+    for(i in 1:(length(genomeIDs)*2)){
       all.genes <- unique(unlist(map[map$id1 %in% all.genes |
                                        map$id2 %in% all.genes,
                                      c("id1","id2")]))
@@ -185,22 +223,11 @@ plot_multiSynteny <- function(map,
   ########################################################
 
   ########################################################
-  # -- re-rank positions
-  map[,rank1 := frank(start1,
-                      ties.method = "dense"),
-      by = list(genome1, genome2, chr1)]
-  map[,rank2 := frank(start2,
-                      ties.method = "dense"),
-      by = list(genome1, genome2, chr2)]
-  ########################################################
-
-  ########################################################
   # -- subset map to comparisons to plot
-  map.in = rbindlist(lapply(1:(length(chr.order.list)-1),function(i){
-    g1 = names(chr.order.list)[i]
-    g2 = names(chr.order.list)[i+1]
-    return(map[with(map, genome1 == g1 & genome2 == g2),])
-  }))
+  map.in = cull_map2chrs(map = map,
+                         genomeIDs = names(chr.order.list),
+                         genome1.chrs = chr.order.list[[1]],
+                         uni.dir = uni.dir)
   ########################################################
 
   ########################################################
@@ -208,8 +235,8 @@ plot_multiSynteny <- function(map,
   chr.db = make_chrDB(map = map.in,
                       chr.order.list = chr.order.list)
 
-  plot(1:length(genomeIDs),
-       seq(from = 0, to = 1, length.out = length(genomeIDs)),
+  plot(1:length(names(chr.order.list)),
+       seq(from = 0, to = 1, length.out = length(names(chr.order.list))),
        type = "n",
        axes = F, bty = "n",
        xlab = "",
@@ -217,9 +244,10 @@ plot_multiSynteny <- function(map,
        main = "Syntenic blocks by gene-order",
        ... )
   axis(1,
-       at = 1:length(genomeIDs),
-       labels = genomeIDs,
-       las = 2)
+       at = 1:length(names(chr.order.list)),
+       labels = names(chr.order.list),
+       las = 2,
+       cex.axis = xlab.cex)
 
   ########################################################
 
@@ -227,7 +255,7 @@ plot_multiSynteny <- function(map,
   # -- Make block metadata and plot
   blk.db = make_blockDB(map = map.in,
                         chr.db = chr.db)
-  blk.db = blk.db[with(blk.db, genome.order1 < genome.order2),]
+  # blk.db = blk.db[with(blk.db, genome.order1 < genome.order2),]
   spl.mat = split(blk.db, "block.id")
   for(x in spl.mat){
     xs = with(x, c(genome.order1, genome.order2, genome.order2, genome.order1))
@@ -245,8 +273,9 @@ plot_multiSynteny <- function(map,
   if(!is.null(genes2highlight)){
     map.db = make_mapDB(map = map.in,
                         chr.db = chr.db,
+                        genomeIDs =  names(chr.order.list),
                         genes2highlight = genes2highlight)
-    map.db = map.db[with(map.db, genome.order1 < genome.order2),]
+    # map.db = map.db[with(map.db, genome.order1 < genome.order2),]
     with(map.db, segments(x0 = genome.order1,
                           x1 = genome.order2,
                           y0 = tp1,

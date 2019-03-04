@@ -4,18 +4,18 @@
 \alias{rerank_fromIDs}
 \title{Cull blast to syntenic regions}
 \usage{
-rerank_fromIDs(id1, id2, gff, ties.method = "dense", ...)
+rerank_fromIDs(map, gff, ...)
 }
 \arguments{
+\item{gff}{gff data.table}
+
+\item{...}{Not currently in use}
+
 \item{id1}{Character vector of ids}
 
 \item{id2}{Character vector of ids}
 
-\item{gff}{gff data.table}
-
 \item{ties.method}{passed on to data.table::frank}
-
-\item{...}{Not currently in use}
 }
 \value{
 A culled b.last dataset

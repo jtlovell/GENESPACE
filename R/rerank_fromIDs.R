@@ -20,39 +20,47 @@
 #' }
 #' @import data.table
 #' @export
-rerank_fromIDs <- function(id1,
-                           id2,
+rerank_fromIDs <- function(map,
                            gff,
-                           ties.method = "dense",
                            ...){
-  u.id <- unique(c(id1, id2))
-  if ("rank" %in% colnames(gff))
-    gff$rank <- NULL
 
-  gff[, rank := frank(start, ties.method = ties.method),
-      by = list(genome, chr)]
-  gff <- gff[gff$id %in% u.id, ]
+  m.gff1 <- map[,c("genome1","id1", "chr1", "start1","end1")]
+  m.gff2 <- map[,c("genome2","id2", "chr2", "start2","end2")]
+  gff <- gff[,c("genome","id","chr","start","end")]
+  setnames(m.gff1, colnames(gff))
+  setnames(m.gff2, colnames(gff))
+  g <- rbind(gff, m.gff1, m.gff2)
+  g <- g[!duplicated(g),]
 
-  gff1 <- data.table(gff)
-  gff2 <- data.table(gff)
+  g$unique.chr <- with(g, paste(genome, chr))
+  spl <- split(g, "unique.chr")
+  g <- rbindlist(lapply(spl, function(x){
+    x$rank <- frank(x, start, end, id, ties.method = "dense")
+    return(x)
+  }))
+  g$unique.chr <- NULL
 
-  setnames(gff1, paste0(colnames(gff1), "1"))
-  setnames(gff2, paste0(colnames(gff2), "2"))
-  setkey(gff1, id1)
-  setkey(gff2, id2)
+  g1 <- data.table(g)
+  g2 <- data.table(g)
 
-  id.dt <- data.table(id1 = id1,
-                      id2 = id2,
-                      stringsAsFactors = F)
+  setnames(g1, paste0(colnames(g1), "1"))
+  setnames(g2, paste0(colnames(g2), "2"))
+  setkeyv(g1, cols = colnames(g1)[-6])
+  setkeyv(g2, cols = colnames(g2)[-6])
 
-  setkey(id.dt, id2)
-  m1 <- merge(gff2, id.dt)
-  setkey(m1, id1)
-  out <- merge(gff1, m1)
+  setkeyv(map, cols = colnames(g2)[-6])
+  if("rank1" %in% colnames(map))
+    map$rank1 <- NULL
+  if("rank2" %in% colnames(map))
+    map$rank2 <- NULL
+  if("rank" %in% colnames(map))
+    map$rank <- NULL
+  if("n" %in% colnames(map))
+    map$n <- NULL
 
-  out[, unique.genome := paste(genome1, genome2)]
-  out[, unique.chr := paste(genome1, genome2,
-                            chr1, chr2)]
+  m1 <- merge(g2, map)
+  setkeyv(m1, cols = colnames(g1)[-6])
+  out <- merge(g1, m1)
 
   return(out)
 }
