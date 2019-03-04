@@ -251,10 +251,8 @@ cull_syntenicBlast <- function(map,
   setkey(blast, id1, id2)
 
   out.blast <- merge(ids2keep, blast)
-  re.out <- with(out.blast,
-                 rerank_fromIDs(id1 = id1,
-                                id2 = id2,
-                                gff = gff))
+  re.out <- rerank_fromIDs(map = out.blast,
+                           gff = gff)
 
   if (verbose)
     #######################################################
