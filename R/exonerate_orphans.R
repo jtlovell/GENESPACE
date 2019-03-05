@@ -19,7 +19,7 @@
 #' }
 #' @import data.table
 #' @export
-exonerate_orphans <- function(orphan.blast,
+exonerate_orphans <- function(map,
                               dir.list,
                               buffer = 1e3,
                               verbose = T){
@@ -28,33 +28,33 @@ exonerate_orphans <- function(orphan.blast,
 
 
   ########################################################
-  write_peptideByGene <- function(pep.fastas,
-                                  tmp.dir,
-                                  bed.dt,
-                                  verbose = T){
-    if (verbose)
-      nb <- ifelse(nrow(bed.dt) < 1000, 100,
-                   ifelse(nrow(bed.dt) < 5000, 500,
-                          ifelse(nrow(bed.dt) < 10000, 1000, 5000)))
-
-    ids <- unique(bed.dt$id)
-
-    fa.loc <- sapply(1:length(ids), function(i){
+    write_peptideByGene <- function(pep.fastas,
+                                    tmp.dir,
+                                    bed.dt,
+                                    verbose = T){
       if (verbose)
-        if (i %% nb == 0)
-          cat(i,"/",length(ids),"\n\t")
-      x <- ids[i]
-      out.loc <- file.path(tmp.dir, paste0(x,".fa"))
-      writeXStringSet(pep.fastas[x], filepath = out.loc)
-      return(out.loc)
-    })
+        nb <- ifelse(nrow(bed.dt) < 1000, 100,
+                     ifelse(nrow(bed.dt) < 5000, 500,
+                            ifelse(nrow(bed.dt) < 10000, 1000, 5000)))
 
-    out <- data.table(id = ids, pep.file = fa.loc)
-    setkey(out, id)
-    setkey(bed.dt, id)
-    ret <- merge(bed.dt, out)
-    return(ret)
-  }
+      ids <- unique(bed.dt$id)
+
+      fa.loc <- sapply(1:length(ids), function(i){
+        if (verbose)
+          if (i %% nb == 0)
+            cat(i,"/",length(ids),"\n\t")
+        x <- ids[i]
+        out.loc <- file.path(tmp.dir, paste0(x,".fa"))
+        writeXStringSet(pep.fastas[x], filepath = out.loc)
+        return(out.loc)
+      })
+
+      out <- data.table(id = ids, pep.file = fa.loc)
+      setkey(out, id)
+      setkey(bed.dt, id)
+      ret <- merge(bed.dt, out)
+      return(ret)
+    }
   ########################################################
   load.annotations <- function(genomeIDs,
                                cds.dir,
@@ -253,7 +253,7 @@ exonerate_orphans <- function(orphan.blast,
   ########################################################
   if (verbose)
     cat("Writing peptide sequences to file ... Completed:\n\t")
-  locs <- write_peptideByGene(bed.dt= locs,
+  locs <- write_peptideByGene(bed.dt = locs,
                               tmp.dir = tmp.dir,
                               pep.fastas = pep.fastas,
                               verbose  = T)

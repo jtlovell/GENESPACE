@@ -4,17 +4,17 @@
 \alias{exonerate_orphans}
 \title{Run the exonerate program}
 \usage{
-exonerate_orphans(orphan.blast, dir.list, buffer = 1000, verbose = T)
+exonerate_orphans(map, dir.list, buffer = 1000, verbose = T)
 }
 \arguments{
-\item{orphan.blast}{Results from pipe_orphanBlast}
-
 \item{dir.list}{List of directories, produced by check_environment}
 
 \item{buffer}{numeric, the amount of space around the focal region to feed
 to exonerate.}
 
 \item{verbose}{Logical, should updates be printed?}
+
+\item{orphan.blast}{Results from pipe_orphanBlast}
 
 \item{...}{Not currently in use}
 }

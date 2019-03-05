@@ -49,6 +49,8 @@
 #' @importFrom circlize circos.par circos.genomicInitialize circos.track circos.genomicLink circos.clear
 #' @export
 plot_linkedCircos <- function(blk,
+                              genomes,
+                              chr.order.list,
                               genome_id1,
                               genome_id2,
                               chrs1,

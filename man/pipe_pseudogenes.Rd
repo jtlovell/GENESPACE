@@ -5,7 +5,7 @@
 \title{Run the exonerate program}
 \usage{
 pipe_pseudogenes(map, buffer = 1000, diamond.sensitive = F, dir.list,
-  blast.ncores = 6, genomeIDs)
+  blast.ncores = 6, genomeIDs, verbose = T)
 }
 \arguments{
 \item{map}{Map object}

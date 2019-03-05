@@ -4,9 +4,9 @@
 \alias{plot_linkedCircos}
 \title{Make a circos plot}
 \usage{
-plot_linkedCircos(blk, genome_id1, genome_id2, chrs1, chrs2, chr_order,
-  chrs1_abbrev, chrs2_abbrev, cols, gap.deg, assembly.dir,
-  genome_id1.col = "grey80", genome_id2.col = "grey50",
+plot_linkedCircos(blk, genomes, chr.order.list, genome_id1, genome_id2,
+  chrs1, chrs2, chr_order, chrs1_abbrev, chrs2_abbrev, cols, gap.deg,
+  assembly.dir, genome_id1.col = "grey80", genome_id2.col = "grey50",
   track.height = 0.05, adjust.alpha = F, link.alpha = 0.6, ...)
 }
 \arguments{

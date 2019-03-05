@@ -23,6 +23,7 @@
 #' @export
 run_exonerate <- function(locs,
                           verbose = T,
+                          clean = T,
                           min.score = 20){
 
   ########################################################
@@ -93,9 +94,8 @@ run_exonerate <- function(locs,
 
   if (verbose) {
     n <- nrow(locs)
-    nb <- ifelse(n < 2000, 100,
-                 ifelse(n < 5000, 500,
-                        ifelse(n < 10000, 1000, 5000)))
+    nb <- ifelse(n < 5000, 100,
+                 ifelse(n < 10000, 500,1000))
   }
 
   exon.out <- lapply(1:nrow(locs), function(i){
@@ -112,7 +112,6 @@ run_exonerate <- function(locs,
                                     min.score = min.score)
     exon <- proc_exonerate(exonerate_output = exonerate.out,
                            bed = bedt)
-
     return(exon)
   })
   exon.cds <- do.call(c, lapply(exon.out, function(x) x$cds.seq))
@@ -124,6 +123,9 @@ run_exonerate <- function(locs,
   gff.out <- gff.gene[,list(start = min(ex.start),
                             end = max(ex.end)),
                       by = list(id, chr, strand)]
+
+  if(clean)
+    unlink(c(locs$fa.file, locs$pep.file))
 
   return(list(gff.region = gff.out,
               gff.cds = gff.gene,

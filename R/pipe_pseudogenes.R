@@ -24,7 +24,8 @@ pipe_pseudogenes <- function(map,
                              diamond.sensitive = F,
                              dir.list,
                              blast.ncores = 6,
-                             genomeIDs){
+                             genomeIDs,
+                             verbose = T){
   assembly.dir = dir.list$assembly
   tmp.dir = dir.list$tmp
   peptide.dir = dir.list$peptide
@@ -34,6 +35,7 @@ pipe_pseudogenes <- function(map,
   map.wregs = getfasta_map(map = map,
                            assembly.dir = assembly.dir,
                            buffer = 1e3,
+                           tmp.dir = tmp.dir,
                            genomeIDs = genomeIDs)
   if(verbose)
     cat("Done!\n")
@@ -43,9 +45,11 @@ pipe_pseudogenes <- function(map,
   if(verbose)
     cat("Running blastx for each chromosome-genome combination ... \n")
   blast.regions = blastx_map(map = map.wregs,
+                             tmp.dir = tmp.dir,
                              n.cores = blast.ncores,
                              diamond.sensitive = diamond.sensitive,
-                             peptide.dir = dirs$peptide)
+                             peptide.dir = dirs$peptide,
+                             verbose = verbose)
 
   if(verbose)
     cat("\tDone!\n")

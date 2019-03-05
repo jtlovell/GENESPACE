@@ -9,28 +9,34 @@
 \alias{get_unmapFastas}
 \alias{write_peptideByGene}
 \alias{calc_weightedId}
+\alias{get_fasta}
 \title{Pseudogene utility functions}
 \usage{
-choose_besthits(map, genomeIDs, pep.dir, buffer = 10000, verbose = T)
+choose_besthits(map, genomeIDs, peptide.dir, buffer = 10000,
+  verbose = T)
 
-getfasta_map(map, genomeIDs, assembly.dir, buffer = 1000, verbose = T,
-  clean = T)
+getfasta_map(map, genomeIDs, assembly.dir, tmp.dir, buffer = 1000,
+  verbose = T, clean = T)
 
 convert_map2bufferBed(genomeIDs, assembly.dir, buffer, map)
 
-blastx_map(map, peptide.dir, n.cores = 6, diamond.sensitive = F,
-  clean = T)
+blastx_map(map, n.cores = 6, tmp.dir, diamond.sensitive = F,
+  clean = T, verbose = T)
 
 get_unmapFastas(map, assembly.dir, tmp.dir, clean = T)
 
 write_peptideByGene(geneIDs, genomeIDs, peptide.dir, tmp.dir)
 
 calc_weightedId(gff.cds, gff.region)
+
+get_fasta(bed, bed.file, ass.file, fa.file)
 }
 \arguments{
 \item{map}{map results data.table}
 
 \item{genomeIDs}{character, indicating genomeIDs to consider.}
+
+\item{peptide.dir}{path to peptide directory}
 
 \item{buffer}{numeric, the number of basepairs outside of the range to look at}
 
@@ -38,14 +44,12 @@ calc_weightedId(gff.cds, gff.region)
 
 \item{assembly.dir}{path to assembly fastas}
 
-\item{clean}{logical, should the intermediate files be removed?}
+\item{tmp.dir}{path to temp directory}
 
-\item{peptide.dir}{path to peptide directory}
+\item{clean}{logical, should the intermediate files be removed?}
 
 \item{diamond.sensitive}{logical, should diamond blastx be run in the
 sensitive mode?}
-
-\item{tmp.dir}{path to temp directory}
 
 \item{...}{not currently in use}
 }
@@ -66,6 +70,8 @@ chromsome-genome combination and blastx them
 \code{write_peptideByGene} split up multi-fasta into single fasta seqs
 
 \code{calc_weightedId} calculate weighted across exons from exonerate output
+
+\code{get_fasta} call bedtools getfasta
 }
 \note{
 \code{psg_utils} is a generic name for the functions documented.

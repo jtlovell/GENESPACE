@@ -4,7 +4,7 @@
 \alias{run_exonerate}
 \title{Run the exonerate program}
 \usage{
-run_exonerate(locs, verbose = T, min.score = 20)
+run_exonerate(locs, verbose = T, clean = T, min.score = 20)
 }
 \arguments{
 \item{min.score}{The number of threads for blast run}

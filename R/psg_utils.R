@@ -29,7 +29,7 @@
 #' @export
 choose_besthits <- function(map,
                             genomeIDs,
-                            pep.dir,
+                            peptide.dir,
                             buffer = 1e4,
                             verbose = T){
   if(verbose)
@@ -67,12 +67,11 @@ choose_besthits <- function(map,
   map$map.width = with(map, abs(end2 - start2))
   map$n.res1 <- map$n.res * (-1)
   map$map.width1 <- map$map.width * (-1)
-  map$n1 <- map$n * (-1)
 
   map$g1 <- as.numeric(factor(map$genome1, levels = genomeIDs))
   map$g2 <- as.numeric(factor(map$genome1, levels = genomeIDs))
   map$gdif <- with(map, abs(g1-g2))
-  setkey(map, n1, gdif, n.res1, map.width1)
+  setkey(map, gdif, n.res1, map.width1)
 
   map.best <- map[, head(.SD[1]), list(uniq.og, genome2)]
   map.best <- map.best[,colnames(map.all),with = F]
@@ -90,6 +89,7 @@ choose_besthits <- function(map,
 getfasta_map <- function(map,
                          genomeIDs,
                          assembly.dir,
+                         tmp.dir,
                          buffer = 1e3,
                          verbose = T,
                          clean = T){
@@ -117,9 +117,9 @@ getfasta_map <- function(map,
     splx = split(x, "chr2")
     out <- rbindlist(lapply(names(splx), function(j){
       y = splx[[j]]
-      bed.file = file.path(out.dir, paste0(i,".",j,".bed"))
+      bed.file = file.path(tmp.dir, paste0(i,".",j,".bed"))
       ass.file = file.path(assembly.dir, paste0(i,".fa"))
-      fa.file = file.path(out.dir, paste0(i,".",j,".fa"))
+      fa.file = file.path(tmp.dir, paste0(i,".",j,".fa"))
       get_fasta(bed = with(y,
                            data.frame(chr = chr2,
                                       start = bed.start2,
@@ -199,17 +199,13 @@ convert_map2bufferBed <- function(genomeIDs,
 #' @import data.table
 #' @export
 blastx_map <- function(map,
-                       peptide.dir,
                        n.cores = 6,
+                       tmp.dir,
                        diamond.sensitive = F,
-                       clean = T){
+                       clean = T,
+                       verbose = T){
 
-  pep.fastas <- do.call(c, lapply(genomeIDs, function(i)
-    readAAStringSet(file.path(peptide.dir,
-                              paste0(i, ".fa")))))
-
-  map$unique <- with(map, paste0(genome2, ".", chr2))
-  spl = split(map, "unique")
+  spl = split(map, "reg.id")
 
   if(diamond.sensitive){
     diamond.param =  paste("--threads",n.cores,
@@ -220,18 +216,21 @@ blastx_map <- function(map,
                            "--quiet")
   }
 
+  if(verbose)
+    cat("Running", length(spl), "blastx searches ...\n")
 
   bl.regs <- lapply(names(spl), function(i){
+    if(which(names(spl) == i) %% 10 == 0)
+      cat("\t\tCompleted:",which(names(spl) == i),"/", length(spl),"\n")
+    if(which(names(spl) == i) == length(spl))
+      cat("Done!\n")
     x = spl[[i]]
     if(verbose)
       cat(paste0("\t",i),"... ")
     db.file = file.path(tmp.dir, i)
 
-    pep.seqs <- pep.fastas[unique(x$id1)]
-    pep.file = file.path(tmp.dir, paste0(i,".pep.fa"))
-    writeXStringSet(pep.seqs, filepath = pep.file)
-
-    fa.file = x$fa.loc[1]
+    fa.file = x$reg.fa[1]
+    pep.file = x$pep.fa[1]
     blast.file = file.path(tmp.dir, paste0(i,".blast.txt"))
     run_diamondBlastx(db.file = db.file,
                       pep.fa = pep.file,
@@ -292,12 +291,12 @@ get_unmapFastas <- function(map,
                             assembly.dir,
                             tmp.dir,
                             clean = T){
-  spl = split(exmap.buf, "id2")
+  spl = split(map, "id2")
   out <- rbindlist(lapply(names(spl), function(j){
     y = spl[[j]]
     bed.file = file.path(tmp.dir, paste0(j,".bed"))
     ass.file = file.path(assembly.dir, paste0(y$genome2[1],".fa"))
-    fa.file = file.path(out.dir, paste0(j,".fa"))
+    fa.file = file.path(tmp.dir, paste0(j,".fa"))
     get_fasta(bed = with(y,
                          data.frame(chr = chr2,
                                     start = bed.start2,
@@ -364,4 +363,28 @@ calc_weightedId <- function(gff.cds, gff.region){
   setkey(gff.region, id)
   ret <- merge(gff.region, out)
   return(ret)
+}
+
+#' @title get fasta
+#' @description
+#' \code{get_fasta} call bedtools getfasta
+#' @rdname psg_utils
+#' @import data.table
+#' @export
+get_fasta <- function(bed,
+                      bed.file,
+                      ass.file,
+                      fa.file){
+
+  write.table(bed,
+              file = bed.file,
+              quote = F,
+              sep = "\t",
+              row.names = F,
+              col.names = F)
+
+  system(paste("bedtools getfasta",
+               "-fi", ass.file,
+               "-bed", bed.file,
+               "-name -fo", fa.file))
 }
