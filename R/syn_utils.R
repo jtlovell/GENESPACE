@@ -327,9 +327,6 @@ pipe_track <- function(map.ta,
   if(verbose)
     cat("n.genes =", nrow(gff.list$gff1), " ... ")
 
-
-  print(mo)
-  print(gff.list)
   # -- Pull the inferred best hit position for each gene
   map2gen <- find_genomicPos(gff1 = gff.list$gff1,
                              gff2 = gff.list$gff2,
