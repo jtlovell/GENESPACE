@@ -7,6 +7,7 @@
 \alias{convert_map2bufferBed}
 \alias{blastx_map}
 \alias{get_unmapFastas}
+\alias{write_fa2file}
 \alias{write_peptideByGene}
 \alias{calc_weightedId}
 \alias{get_fasta}
@@ -24,6 +25,9 @@ blastx_map(map, n.cores = 6, tmp.dir, diamond.sensitive = F,
   clean = T, verbose = T)
 
 get_unmapFastas(map, assembly.dir, tmp.dir, clean = T)
+
+write_fa2file(map, chunk.size = 100, n.cores = 6, tmp.dir,
+  assembly.dir, peptide.dir, verbose = T)
 
 write_peptideByGene(geneIDs, genomeIDs, peptide.dir, tmp.dir)
 
@@ -66,6 +70,8 @@ sensitive mode?}
 chromsome-genome combination and blastx them
 
 \code{get_unmapFastas} for each entry in map, pull out the fasta for id2
+
+\code{write_fa2file} swrite_fa2file
 
 \code{write_peptideByGene} split up multi-fasta into single fasta seqs
 

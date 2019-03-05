@@ -4,19 +4,20 @@
 \alias{track_synteny}
 \title{track synteny}
 \usage{
-track_synteny(map, genomeIDs, pep.dir, wind.size = 5,
-  quantiles = c(0.4, 0.6), verbose = T)
+track_synteny(genomeIDs, map, gff, quantiles = c(0.4, 0.6),
+  method = "gff", n.cores = 1, cull2map = TRUE,
+  max.reg.size = 1e+05, wind.size = 2, verbose = T)
 }
 \arguments{
-\item{map}{map results data.table}
-
 \item{genomeIDs}{character vector of genomeIDs}
 
-\item{wind.size}{Size of window to use to search for the best hit region.
-Smaller values are prone to larger errors, but larger values are slower.}
+\item{map}{map results data.table}
 
 \item{quantiles}{The quanitles of the window locaion to use to infer
 the position of the gene.}
+
+\item{wind.size}{Size of window to use to search for the best hit region.
+Smaller values are prone to larger errors, but larger values are slower.}
 
 \item{verbose}{Should updates be printed?}
 

@@ -222,8 +222,6 @@ blastx_map <- function(map,
   bl.regs <- lapply(names(spl), function(i){
     if(which(names(spl) == i) %% 10 == 0)
       cat("\t\tCompleted:",which(names(spl) == i),"/", length(spl),"\n")
-    if(which(names(spl) == i) == length(spl))
-      cat("Done!\n")
     x = spl[[i]]
     if(verbose)
       cat(paste0("\t",i),"... ")
@@ -273,6 +271,8 @@ blastx_map <- function(map,
             median(out.bl$score,na.rm = T),"\n")
       setkey(out.bl, start1)
     }
+    if(which(names(spl) == i) == length(spl))
+      cat("Done!\n")
     if(clean){
       unlink(c(paste0(db.file,".dmnd"), pep.file, fa.file, blast.file))
     }
@@ -312,6 +312,61 @@ get_unmapFastas <- function(map,
     return(y)
   }))
   return(out)
+}
+
+#' @title write_fa2file
+#' @description
+#' \code{write_fa2file} swrite_fa2file
+#' @rdname psg_utils
+#' @import data.table
+#' @export
+write_fa2file <- function(map,
+                          chunk.size = 100,
+                          n.cores = 6,
+                          tmp.dir,
+                          assembly.dir,
+                          peptide.dir,
+                          verbose = T){
+  pep.fastas <- do.call(c, lapply(genomeIDs, function(i)
+    readAAStringSet(file.path(peptide.dir,
+                              paste0(i, ".fa")))))
+  map$id2 <- with(map, paste(genome2,genome1,1:nrow(map), sep = "."))
+  spl <- split(map, "genome2")
+  reg.map <- rbindlist(lapply(names(spl), function(j){
+    y = spl[[j]]
+    if(verbose)
+      cat("\tWriting", nrow(y),j,"hits")
+    y$reg.id = with(y, paste0(genome2, ".", genome1, ".reg",
+                              ceiling((1:nrow(y))/chunk.size)))
+    sply <- split(y, "reg.id")
+    if(verbose)
+      cat(" split into", length(sply), paste0(chunk.size, "-hit blocks ... "))
+    yo <- rbindlist(mclapply(names(sply), mc.cores = n.cores, function(k){
+      z = sply[[k]]
+      bed.file = file.path(tmp.dir, paste0(k,".bed"))
+      ass.file = file.path(assembly.dir, paste0(j,".fa"))
+      fa.file = file.path(tmp.dir, paste0(k, ".fa"))
+      get_fasta(bed = with(z,
+                           data.frame(chr = chr2,
+                                      start = bed.start2,
+                                      end = bed.end2,
+                                      name = id2)),
+                bed.file = bed.file,
+                ass.file = ass.file,
+                fa.file = fa.file)
+      z$reg.fa <- fa.file
+      unlink(bed.file)
+      peps <- pep.fastas[unique(z$id1)]
+      pep.file = file.path(tmp.dir, paste0(k, ".pep.fa"))
+      writeXStringSet(peps, filepath = pep.file)
+      z$pep.fa <- pep.file
+      return(z)
+    }))
+    if(verbose)
+      cat("Done!\n")
+    return(yo)
+  }))
+  return(reg.map)
 }
 
 #' @title write peptide by gene
