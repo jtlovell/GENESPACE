@@ -10,6 +10,7 @@
 \alias{make_genomeWindow}
 \alias{pull_map}
 \alias{pipe_track}
+\alias{make_genomeWindow2}
 \alias{link_regions}
 \title{Pseudogene utility functions}
 \usage{
@@ -25,14 +26,14 @@ make_2gffs(gff, genome1, genome2, genes1.inarray, genes1.noarray,
 
 pull_altGenomePos(id1, id2, alt.gff, alt.map, clus.rank.dist = 100)
 
-make_genomeWindow(map, genome, wind.size = 5)
+make_genomeWindow(x, wind.size = 5)
 
 pull_map(map, genome1, genome2)
 
 pipe_track(map.ta, gff, cull2map = F, genome1, genome2, n.cores = 1,
   wind.size = 2, verbose = T)
 
-make_genomeWindow(map, genome, wind.size = 5)
+make_genomeWindow2(map, genome, wind.size = 5)
 
 link_regions(genome.window, quantiles)
 }
