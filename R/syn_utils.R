@@ -347,6 +347,39 @@ pipe_track <- function(map.ta,
   return(gout)
 }
 
+#' @title merge_gpMap
+#' @description
+#' \code{merge_gpMap} merge_gpMap
+#' @rdname syn_utils
+#' @import data.table
+#' @export
+merge_gpMap <- function(gff2,
+                        alt.map,
+                        gpmap){
+  g2m <- merge(alt.map[,c("id1","id2")],
+               with(gff2,
+                    data.table(id2 = id,
+                               chr2 = chr,
+                               pos2.near10Mb = round(start,-7),
+                               pos2.near100rank = round(map.rank,-2),
+                               map.rank2 = map.rank)),
+               by = "id2")
+  g2m <- g2m[!duplicated(g2m),]
+  map3gen1 <- merge(gpmap[complete.cases(gpmap),],
+                    g2m[,-5,with = F],
+                    by = c("id1", "chr2", "pos2.near10Mb"),
+                    all = T)
+  map3gen2 <- merge(gpmap[complete.cases(gpmap),],
+                    g2m[,-4,with = F],
+                    by = c("id1", "chr2", "pos2.near100rank"),
+                    all = T)
+  mns <- intersect(colnames(map3gen1), colnames(map3gen2))
+  mapout <- rbind(map3gen1[,mns, with = F],
+                  map3gen2[,mns, with = F])
+  mapout <- mapout[!duplicated(mapout),]
+  return(mapout)
+}
+
 #' @title make genome window
 #' @description
 #' \code{make_genomeWindow} make genome window for map method

@@ -10,6 +10,7 @@
 \alias{make_genomeWindow}
 \alias{pull_map}
 \alias{pipe_track}
+\alias{merge_gpMap}
 \alias{make_genomeWindow2}
 \alias{link_regions}
 \title{Pseudogene utility functions}
@@ -32,6 +33,8 @@ pull_map(map, genome1, genome2)
 
 pipe_track(map.ta, gff, cull2map = F, genome1, genome2, n.cores = 1,
   wind.size = 2, verbose = T)
+
+merge_gpMap(gff2, alt.map, gpmap)
 
 make_genomeWindow2(map, genome, wind.size = 5)
 
@@ -77,6 +80,8 @@ sensitive mode?}
 \code{pull_map} pull map for two genomes
 
 \code{pipe_track} pipeline to track hits by gff method
+
+\code{merge_gpMap} merge_gpMap
 
 \code{make_genomeWindow} make genome window for map method
 
