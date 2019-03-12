@@ -13,6 +13,9 @@
 \alias{merge_gpMap}
 \alias{make_genomeWindow2}
 \alias{link_regions}
+\alias{summarize_mapByArray}
+\alias{track_hits}
+\alias{track_synHits}
 \title{Pseudogene utility functions}
 \usage{
 cull_gpMap(gpmap, alt.map)
@@ -39,6 +42,12 @@ merge_gpMap(gff2, alt.map, gpmap)
 make_genomeWindow2(map, genome, wind.size = 5)
 
 link_regions(genome.window, quantiles)
+
+summarize_mapByArray(map, verbose = TRUE)
+
+track_hits(map, gff.spl, max.window.bp = 2e+05, verbose)
+
+track_synHits(map, gff, verbose = TRUE, max.window.bp = 1e+05)
 }
 \arguments{
 \item{map}{map results data.table}
@@ -86,6 +95,12 @@ sensitive mode?}
 \code{make_genomeWindow} make genome window for map method
 
 \code{link_regions} link regions for map method
+
+\code{summarize_mapByArray} summarize_mapByArray
+
+\code{track_hits} track_hits
+
+\code{track_synHits} track_synHits
 }
 \note{
 \code{syn_utils} is a generic name for the functions documented.

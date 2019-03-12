@@ -488,8 +488,8 @@ link_regions <- function(genome.window,
 
   setnames(xo,1,"id1")
 
-  mi1 = map[,c("genome1","id1","chr1","start1","end1")]
-  mi2 = map[,c("genome2","id2","chr2","start2","end2")]
+  mi1 = genome.window[,c("genome1","id1","chr1","start1","end1")]
+  mi2 = genome.window[,c("genome2","id2","chr2","start2","end2")]
   setnames(mi2, colnames(mi1))
   mi <- rbind(mi1, mi2)
   mi = mi[!duplicated(mi),]
@@ -499,4 +499,231 @@ link_regions <- function(genome.window,
   out$id2 <- with(out, paste(genome2, genome1, 1:nrow(out), sep = "."))
   matched$n <- 0
   return(rbind(matched, out))
+}
+
+#' @title summarize_mapByArray
+#' @description
+#' \code{summarize_mapByArray} summarize_mapByArray
+#' @rdname syn_utils
+#' @import data.table
+#' @export
+summarize_mapByArray <- function(map, verbose = TRUE){
+
+  m <- map[!is.na(map$array.id),]
+  mo <- map[is.na(map$array.id),]
+  adb <- with(m, data.table(
+    genome1 = c(genome1, genome1),
+    genome2 = c(genome2, genome2),
+    id = c(id1, id2),
+    block.id = c(block.id, block.id),
+    og = c(og1, og2),
+    chr = c(chr1, chr2),
+    start = c(start1, start2),
+    end = c(end1, end2),
+    score = c(score, score)))
+  if(verbose)
+    cat("n. initial hits =", nrow(adb))
+  adb <- data.table(adb[!duplicated(adb),])
+  setkey(adb, score)
+  adb <- adb[,tail(.SD, 1),
+             by = list(genome1, genome2, id, block.id, og, chr, start, end)]
+  adb[, pos.rank := frank((start+end)/2, ties.method = "dense"),
+      by = list(genome1, genome2, block.id, og)]
+  adb[, array.n := .N, by = list(genome1, genome2, block.id, og)]
+  adb[, dist2mid := abs(ceiling(.N/2)-pos.rank),
+      by = list(genome1, genome2, block.id, og)]
+  adb[, score.rank := frank(-score, ties.method = "dense"),
+      by = list(genome1, genome2, block.id, og)]
+  adb[, score.dist.rank := frank(((score.rank*2) + dist2mid), ties.method = "random"),
+      by = list(genome1, genome2, block.id, og)]
+  setkey(adb, genome1, genome2, chr, block.id, score.dist.rank)
+  ai <- adb[,head(.SD, 1),
+            by = list(genome1, genome2, block.id, og)]
+  if(verbose)
+    cat(" -->", nrow(array.info), "representative hits")
+
+  ai1 <- with(ai,
+              data.table(genome1 = genome1,
+                         genome2 = genome2,
+                         block.id = block.id,
+                         og1 = og,
+                         id1 = id))
+  ai2 <- with(ai,
+              data.table(genome1 = genome1,
+                         genome2 = genome2,
+                         block.id = block.id,
+                         og2 = og,
+                         id2 = id))
+
+
+  out1 <- merge(ai1, m, by = colnames(ai1))
+  setkey(out1, score)
+  out1 <- out1[,tail(.SD, 1),
+               by = list(genome1, genome2, id1, block.id, og1)]
+
+  out2 <- merge(ai2, m, by = colnames(ai2))
+  setkey(out2, score)
+  out2 <- out2[,tail(.SD, 1),
+               by = list(genome1, genome2, id2, block.id, og2)]
+
+  return(list(condensed = rbind(out1, out2, mo),
+              array.db = array.db))
+}
+
+#' @title track_hits
+#' @description
+#' \code{track_hits} track_hits
+#' @rdname syn_utils
+#' @import data.table
+#' @export
+track_hits <- function(map, gff.spl, max.window.bp = 2e5, verbose){
+  spl <- split(map, by = "block.id")
+  evy <- round(length(spl),-2)/10
+  if(verbose)
+    cat("Tracking unmapped hits across", length(spl), "blocks ...\n")
+  out.all<-rbindlist(lapply(1:length(spl), function(k){
+    if(verbose)
+      if(k %% evy == 0)
+        cat("\tCompleted",k,"/",length(spl),"\n")
+    mblk = spl[[k]]
+    gff1 <- gff.spl[[mblk$genome1[1]]][[mblk$chr1[[1]]]]
+    gff1 <- gff1[gff1$end >= min(mblk$start1) & gff1$start <= max(mblk$end1),]
+
+    gff2 <- gff.spl[[mblk$genome2[1]]][[mblk$chr2[[1]]]]
+    gff2 <- gff2[gff2$end >= min(mblk$start2) & gff2$start <= max(mblk$end2),]
+
+    gff1$inblk = gff1$id %in% mblk$id1
+    gff2$inblk = gff2$id %in% mblk$id2
+
+    setkey(gff1, chr, start, end, id)
+    setkey(gff2, chr, start, end, id)
+
+    gff1$rankblk.start <- cumsum(gff1$inblk)
+    gff2$rankblk.start <- cumsum(gff2$inblk)
+    gff1$rankblk.end <- gff1$rankblk.start+1
+    gff2$rankblk.end <- gff2$rankblk.start+1
+
+    find1 <- gff1[!gff1$inblk,]
+    look1 <- gff1[gff1$inblk,]
+    find2 <- gff2[!gff2$inblk,]
+    look2 <- gff2[gff2$inblk,]
+
+    if(nrow(look1) <= 1 | nrow(find1) < 1 ){
+      out1 <- NULL
+    }else{
+      findlist1 <- rbindlist(apply(find1[,c("rankblk.start","rankblk.end")], 1, function(x){
+        ids <- look1$id[with(look1, rankblk.start %in% x)]
+        ids2 <- mblk$id2[mblk$id1 %in% ids]
+        l2 <- look2[look2$id %in% ids2,]
+        return(with(l2, data.table(look.genome = genome[1],
+                                   look.chr = chr[1],
+                                   look.start = min(start),
+                                   look.end = max(end))))
+      }))
+      out1 <- cbind(find1, findlist1)
+    }
+
+    if(nrow(look2) <= 1 | nrow(find2) < 1 ){
+      out2 <- NULL
+    }else{
+      findlist2 <- rbindlist(apply(find2[,c("rankblk.start","rankblk.end")], 1, function(x){
+        ids <- look2$id[with(look2, rankblk.start %in% x)]
+        ids1 <- mblk$id1[mblk$id2 %in% ids]
+        l1 <- look1[look1$id %in% ids1,]
+        return(with(l1, data.table(look.genome = genome[1],
+                                   look.chr = chr[1],
+                                   look.start = min(start),
+                                   look.end = max(end))))
+      }))
+      out2 <- cbind(find2, findlist2)
+    }
+
+    out <- rbind(out1, out2)
+    out$block.id <- mblk$block.id[1]
+    out$look.width = with(out, abs(look.start - look.end))
+    return(out)
+  }))
+
+  out.small <- out.all[out.all$look.width <= max.window.bp,]
+  if(verbose)
+    cat("Done! ... Found",nrow(out.all),"total hits,",
+        nrow(out.small),"are in windows smaller than",max.window.bp,"bp\n")
+  return(out.small)
+}
+
+#' @title track_synHits
+#' @description
+#' \code{track_synHits} track_synHits
+#' @rdname syn_utils
+#' @import data.table
+#' @export
+track_synHits <- function(map,
+                          gff,
+                          verbose = TRUE,
+                          max.window.bp = 1e5){
+
+  map[ , is.sameReg := any(id1 %in% id2) & all(genome1 %in% genome2),
+       by = list(block.id)]
+  map <- map[!map$is.sameReg,]
+  if(verbose)
+    cat("Condensing arrays ... ")
+  sum.array <- summarize_mapByArray(map = map, verbose = verbose)
+  map <- sum.array$condensed
+  if(verbose)
+    cat(" ... Done!\n")
+
+  if(verbose)
+    cat("Subsetting and indexing gff to hits in map ... ")
+  all.genes <- unique(unlist(map[,c("id1","id2")]))
+
+  gff.inblk <- gff[gff$id %in% all.genes,]
+  gff.inblk[, rank := frank((start+end)/2, ties.method = "random"),
+            by = list(genome, chr)]
+  gff.spl <- lapply(split(gff.inblk, by = "genome"), function(x) split(x, by = "chr"))
+  if(verbose)
+    cat("Done!\n")
+
+  trk <- track_hits(map = map,
+                    max.window.bp = max.window.bp,
+                    gff.spl = gff.spl,
+                    verbose = T)
+
+  allmap <- map[,c("genome1","genome2","block.id","id1","id2")]
+  allmap$og <- map$og1
+  gff1 <- data.table(gff.inblk[,c("genome","id","chr","start","end","strand","rank")])
+  gff2 <- data.table(gff1)
+  setnames(gff1, paste0(colnames(gff1),"1"))
+  setnames(gff2, paste0(colnames(gff2),"2"))
+
+  allmap <- merge(gff1, merge(gff2, allmap,
+                              by = c("genome2","id2")),
+                  by = c("genome1","id1"))
+
+  nomap <- with(trk,
+                data.table(genome1 = genome,
+                           id1 = id,
+                           chr1 = chr,
+                           start1 = start,
+                           end1 = end,
+                           strand1 = strand,
+                           rank = rank,
+                           genome2 = look.genome,
+                           chr2 = look.chr,
+                           start2 = look.start,
+                           end2 = look.end,
+                           block.id = block.id))
+  am.og <- with(allmap,
+                data.table(id1 = c(id1, id2),
+                           og = c(og, og)))
+  am.og <- am.og[!duplicated(am.og$id1),]
+  nomap <- merge(nomap,
+                 am.og,
+                 by = "id1")
+  nomap[,id2:=paste(genome1, genome2, block.id, frank(start1, ties.method = "random"), sep = "."),
+        by = list(genome1, genome2, block.id)]
+
+
+  return(list(allmap = allmap,
+              nomap = nomap,
+              array.db = sum.array$array.db))
 }
