@@ -10,6 +10,8 @@
 #' @param buffer numeric, the number of basepairs outside of the range to look at
 #' @param genomeIDs character, indicating genomeIDs to consider.
 #' @param clean logical, should the intermediate files be removed?
+#' @param max.window.bp Numeric, the maximum size of region to blast
+#' @param gff.spl a list of gff objects, split by genome and chr
 #' @param diamond.sensitive logical, should diamond blastx be run in the
 #' sensitive mode?
 #'

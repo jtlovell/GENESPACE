@@ -54,6 +54,10 @@ track_synHits(map, gff, verbose = TRUE, max.window.bp = 1e+05)
 
 \item{verbose}{logical, should updates be printed?}
 
+\item{gff.spl}{a list of gff objects, split by genome and chr}
+
+\item{max.window.bp}{Numeric, the maximum size of region to blast}
+
 \item{assembly.dir}{path to assembly fastas}
 
 \item{tmp.dir}{path to temp directory}
