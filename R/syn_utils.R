@@ -569,7 +569,7 @@ summarize_mapByArray <- function(map, verbose = TRUE){
                by = list(genome1, genome2, id2, block.id, og2)]
 
   return(list(condensed = rbind(out1, out2, mo),
-              array.db = array.db))
+              array.db = adb))
 }
 
 #' @title track_hits
