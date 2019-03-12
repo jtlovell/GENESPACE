@@ -70,7 +70,7 @@ find_pseudogenes <- function(map,
   exmap =  blast.regions[!is.na(blast.regions$score),]
   exmap$start2 <- exmap$blast.coord.start2
   exmap$end2 <- exmap$blast.coord.end2
-  exmap <- exmap[,colnames(track.map2$nomap),with = F]
+  exmap <- exmap[,colnames(track.map$nomap),with = F]
 
   map.best <- choose_besthits(map = exmap,
                               peptide.dir = dir.list$peptide,
