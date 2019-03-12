@@ -542,7 +542,7 @@ summarize_mapByArray <- function(map, verbose = TRUE){
   ai <- adb[,head(.SD, 1),
             by = list(genome1, genome2, block.id, og)]
   if(verbose)
-    cat(" -->", nrow(array.info), "representative hits")
+    cat(" -->", nrow(ai), "representative hits")
 
   ai1 <- with(ai,
               data.table(genome1 = genome1,
