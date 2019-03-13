@@ -34,7 +34,7 @@ Smaller values speed things up, but lose regions.}
 \item{...}{Additional arguments passed to frNN}
 }
 \value{
-A culled b.last dataset
+A culled blast dataset
 }
 \description{
 \code{cull_syntenicBlast} An internal function, designed to be called

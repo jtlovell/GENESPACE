@@ -640,9 +640,14 @@ track_hits <- function(map, gff.spl, max.window.bp = 2e5, verbose){
       out2 <- cbind(find2, findlist2)
     }
 
-    out <- rbind(out1, out2)
-    out$block.id <- mblk$block.id[1]
-    out$look.width = with(out, abs(look.start - look.end))
+    if(is.null(out1) & is.null(out2)){
+      out <- NULL
+    }else{
+      out <- rbind(out1, out2)
+
+      out$block.id <- mblk$block.id[1]
+      out$look.width = with(out, abs(look.start - look.end))
+    }
     return(out)
   }))
 

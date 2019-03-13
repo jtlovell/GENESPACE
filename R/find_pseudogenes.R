@@ -20,7 +20,7 @@
 #'
 #' @details Internal function
 #'
-#' @return A culled b.last dataset
+#' @return A culled blast dataset
 #'
 #' @examples
 #' \dontrun{
