@@ -47,7 +47,7 @@ build_pwBlocks <- function(dir.list,
   comb <- combn(genomeIDs, 2, simplify = F)
   pw.of <- lapply(comb, function(x){
     if(verbose)
-      cat(paste0("\t",comb[[i]][1]), "<-->", comb[[i]][2],"... ")
+      cat(paste0("\t",x[1]), "<-->", x[2],"... ")
     out <- rerun_pairwiseOF(dirs = dir.list,
                             genomeIDs = x,
                             of.cores = 6,
