@@ -4,7 +4,7 @@
 \alias{merge_ofGff}
 \title{build pwBlocks}
 \usage{
-merge_ofGff(comb, pw.of, verbose = T)
+merge_ofGff(comb, pw.of, gff, verbose = T)
 }
 \arguments{
 \item{comb}{comb}

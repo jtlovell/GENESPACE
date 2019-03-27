@@ -67,7 +67,7 @@ build_pwBlocks <- function(dir.list,
   #######################################################
   if(verbose)
     cat("Merging pairwise hits with gff annotations\n")
-  pw.map <- merge_ofGff(comb = comb, pw.of = pw.of)
+  pw.map <- merge_ofGff(comb = comb, pw.of = pw.of, gff = gff)
   if(verbose)
     cat("Done!\n")
   #######################################################
