@@ -6,7 +6,7 @@
 \usage{
 build_pwBlocks(dir.list, genomeIDs, of.cores = 6, min.blockSize = 5,
   gap.multiplier = 8, clean.before.mcscanx = T, MCScanX.path,
-  radius = 100, verbose = T)
+  radius = 100, runFrom.pw.of = NULL, verbose = T)
 }
 \arguments{
 \item{dir.list}{dir.list}

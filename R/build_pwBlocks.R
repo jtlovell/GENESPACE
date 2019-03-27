@@ -31,6 +31,7 @@ build_pwBlocks <- function(dir.list,
                            clean.before.mcscanx = T,
                            MCScanX.path,
                            radius = 100,
+                           runFrom.pw.of = NULL,
                            verbose = T){
 
   if(verbose)
@@ -45,23 +46,29 @@ build_pwBlocks <- function(dir.list,
   if(verbose)
     cat("Running pairwise orthofinder calls ... \n")
   comb <- combn(genomeIDs, 2, simplify = F)
-  pw.of <- lapply(comb, function(x){
+  if(is.null(runFrom.pw.of)){
+    pw.of <- lapply(comb, function(x){
+      if(verbose)
+        cat(paste0("\t",x[1]), "<-->", x[2],"... ")
+      out <- rerun_pairwiseOF(dirs = dir.list,
+                              genomeIDs = x,
+                              of.cores = 6,
+                              gff = gff,
+                              verbose = F)
+      if(verbose)
+        cat("Done!\n")
+      return(out)
+    })
     if(verbose)
-      cat(paste0("\t",x[1]), "<-->", x[2],"... ")
-    out <- rerun_pairwiseOF(dirs = dir.list,
-                            genomeIDs = x,
-                            of.cores = 6,
-                            gff = gff,
-                            verbose = F)
+      cat("Saving pairwise gff data.tables as", file.path(getwd(),"pw.of.rda"),"... ")
+    save(pw.of, file = "pw.of1.rda")
+
     if(verbose)
       cat("Done!\n")
-    return(out)
-  })
-  if(verbose)
-    cat("Saving pairwise gff data.tables as", file.path(getwd(),"pw.of.rda"),"... ")
-  save(pw.of, file = "pw.of.rda")
-  if(verbose)
-    cat("Done!\n")
+  }else{
+    load(runFrom.pw.of)
+  }
+
   #######################################################
 
   #######################################################

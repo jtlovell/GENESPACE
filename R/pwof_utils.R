@@ -250,7 +250,9 @@ cull_blastByScore <- function(blast.file.in,
 merge_ofGff <- function(comb,
                         pw.of,
                         gff,
+                        use.recip = T,
                         verbose = T){
+
   pw.of2 <- lapply(1:length(comb), function(i){
     x = pw.of[[i]]
     if(verbose)
@@ -273,14 +275,14 @@ merge_ofGff <- function(comb,
 
     y <- read_allBlasts(gff = subset(gff, genome %in% comb[[i]]),
                         genomeIDs = comb[[i]],
-                        blast.dir = dirs$blast)
+                        blast.dir = dirs$blast,
+                        verbose = F)
     y2 <- data.table(y[, c(2, 1, 3:6, 9:10, 7:8, 11:12)])
     setnames(y2, colnames(y))
     y0 <- rbind(y, y2)
-    y <- subset(y, (id1 %in% g1.ids &
-                      id2 %in% g2.ids) |
-                  (id1 %in% g1.ids & id2 %in% g1.ids) |
-                  (id1 %in% g2.ids & id2 %in% g2.ids))
+
+    y <- subset(y0, (id1 %in% c(g2.ids, g1.ids) &
+                      id2 %in% c(g2.ids, g1.ids)))
 
     y$neg.score <- y$score * (-1)
     setkey(y, neg.score)
@@ -294,15 +296,19 @@ merge_ofGff <- function(comb,
     setkey(out, id1)
     out <- merge(x1, out)
     out <- subset(out, og.id1 == og.id2)
-
+    out$unique <- with(out, paste0(genome1, "_", genome2,".",comb[[i]][1], comb[[i]][2]))
     if(verbose)
-      cat("found", nrow(out),"in orthogroups\n ")
+      cat("found", sum(out$genome1 != out$genome2),"in orthogroups\n")
     return(out)
   })
   map <- rbindlist(pw.of2)
   map$og.id2 <- NULL
   setnames(map, "og.id1","og.id")
-  return(map)
+  map$unique.genome <- with(map, paste0(genome1, "_", genome2))
+  pw.info <- map[,c("unique.genome","unique")]
+  pw.info <- pw.info[!duplicated(pw.info$unique.genome),]
+  pw.map2 <- map[map$unique %in% pw.info$unique,]
+  return(pw.map2)
 }
 
 #' @title read_allBlasts

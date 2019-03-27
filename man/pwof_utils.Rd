@@ -33,7 +33,7 @@ make_newOFdb(tmp.dir, cull.blast.dir, peptide.dir, genomeIDs,
 
 cull_blastByScore(blast.file.in, blast.file.out, maxn, verbose = T)
 
-merge_ofGff(comb, pw.of, gff, verbose = T)
+merge_ofGff(comb, pw.of, gff, use.recip = T, verbose = T)
 
 read_allBlasts(gff, genomeIDs, blast.dir, subset2gff = F, verbose = T)
 
