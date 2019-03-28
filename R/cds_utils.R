@@ -41,6 +41,9 @@
 #' @export
 calc_selectionStats <- function(pep.file,
                                 cds.file,
+                                geneIDs = NULL,
+                                cds.dir = NULL,
+                                peptide.dir = NULL,
                                 tmp.dir,
                                 pal2nal.tool){
 
