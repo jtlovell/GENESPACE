@@ -580,8 +580,8 @@ summarize_mapByArray <- function(map, verbose = TRUE){
 #' @export
 track_hits <- function(map, gff.spl, max.window.bp = 2e5, verbose){
   spl <- split(map, by = "block.id")
-  evy <- ifelse(length(spl) < 100, 10, 100)
-
+  evy <- round(length(spl),-2)/10
+  evy <- min(evy, 10)
   if(verbose)
     cat("Tracking unmapped hits across", length(spl), "blocks ...\n")
   out.all <- rbindlist(lapply(1:length(spl), function(k){
