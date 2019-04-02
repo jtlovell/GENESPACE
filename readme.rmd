@@ -1,8 +1,18 @@
 ---
 title: "README"
-author: "JTLovell"
-date: "9/11/2018"
-output: html_document
+author: "JT Lovell"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: '2'
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
 ---
 # Overview
 

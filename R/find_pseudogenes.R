@@ -38,6 +38,10 @@ find_pseudogenes <- function(map,
                              best.hit.buffer = 5e5,
                              max.window.bp = 1e5,
                              verbose = T){
+
+  map <- subset(map, genome1 %in% genomeIDs &
+                  genome2 %in% genomeIDs)
+
   if(verbose)
     cat("##### Step. 1: Tracking Synteny ...\n")
   track.map <- track_synHits(map = map,
