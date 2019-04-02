@@ -66,7 +66,8 @@ pipe_alignCDS(cds, protein = NULL, geneIDs = NULL,
   outDir_msa = ".", outDir_codon = ".", n.cores = 6,
   verbose = FALSE)
 
-calc_selectionStats(pep.file, cds.file, tmp.dir, pal2nal.tool)
+calc_selectionStats(pep.file, cds.file, geneIDs = NULL, cds.dir = NULL,
+  peptide.dir = NULL, tmp.dir, pal2nal.tool)
 
 calc_kaks(codeml.msa.file, tmp.dir)
 

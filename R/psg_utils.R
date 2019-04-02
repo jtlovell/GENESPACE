@@ -36,7 +36,9 @@ choose_besthits <- function(map,
   if(verbose)
     cat("Determining physical clusters of blast hits within orthogroups ... ")
   map.all <- map
-  map <- map[map$n > 0,]
+  if("n" %in% colnames(map))
+    map <- map[map$n > 0,]
+
   map[,max.width := max(abs(end2-start2))+buffer,
       by = list(og, genome2, chr2)]
   map$mean2 <- rowMeans(map[,c("start2", "end2")])
