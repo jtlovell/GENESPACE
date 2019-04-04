@@ -110,7 +110,6 @@ calc_seqStats <- function(geneIDs = NULL,
     return(list(stats = out$stats,
                 tree = tre))
   })
-  print(out)
   stats <- rbindlist(lapply(out, function(x) x$stats))
   stats$og <- rep(names(geneIDs), sapply(lapply(out, function(x) x$stats), nrow))
   trees <- do.call(c, lapply(out, function(x) x$tree))
