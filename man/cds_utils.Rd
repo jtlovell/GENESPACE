@@ -11,26 +11,24 @@
 \alias{calc_4dtv}
 \alias{is.transition}
 \alias{is.transversion}
-\alias{write_axt}
 \title{selection utility functions}
 \usage{
 calc_selectionStats(pep.file, cds.file, geneIDs = NULL, cds.dir = NULL,
   peptide.dir = NULL, tmp.dir, codeml.msa.file = file.path(tmp.dir,
   "codon.aln"), msa.clu = file.path(tmp.dir, "msa.clu"),
   cds.msa.fa = file.path(tmp.dir, "msa.fa"),
+  codeml.cntr.file = file.path(tmp.dir, "tmp.cdml.ctl"),
+  codeml.output.file = file.path(tmp.dir, "tmp.cdml"),
   mafft.params = "--retree 1 --quiet", pal2nal.tool)
 
-calc_kaks(codeml.msa.file, tmp.dir)
+calc_kaks(codeml.msa.file, codeml.cntr.file, codeml.output.file, tmp.dir)
 
 parse_Codeml(codeml.output.file)
 
 make_codemlCtl(codeml.msa.file, codeml.output.file, codeml.cntr.file)
 
-align_cds(pep.file, cds.file, tmp.dir, pal2nal.tool,
-  codeml.msa.file = file.path(tmp.dir, "codon.aln"),
-  msa.clu = file.path(tmp.dir, "msa.clu"),
-  cds.msa.fa = file.path(tmp.dir, "msa.fa"),
-  mafft.params = "--retree 1 --quiet")
+align_cds(pep.file, cds.file, tmp.dir, pal2nal.tool, codeml.msa.file,
+  msa.clu, cds.msa.fa, mafft.params)
 
 pairwise_4dtv(cds.msa.fa)
 
@@ -39,8 +37,6 @@ calc_4dtv(cds.msa, round2digits = 5)
 is.transition(base1, base2)
 
 is.transversion(base1, base2)
-
-write_axt(cds.msa.fa, tmp.dir = NULL)
 }
 \arguments{
 \item{pep.file}{file path to peptide fasta file, with the sequences to align}
@@ -55,13 +51,13 @@ write_axt(cds.msa.fa, tmp.dir = NULL)
 
 \item{cds.msa.fa}{file path to the MSA in fasta format.}
 
-\item{mafft.params}{parameters to pass to mafft}
-
-\item{pal2nal.tool}{file path to the pal2nal tool, including the executable}
+\item{codeml.cntr.file}{file path to codeml control file}
 
 \item{codeml.output.file}{file path to the codeml output file}
 
-\item{codeml.cntr.file}{file path to codeml control file}
+\item{mafft.params}{parameters to pass to mafft}
+
+\item{pal2nal.tool}{file path to the pal2nal tool, including the executable}
 
 \item{cds.msa}{dna StringSet object containing the cds multiple alignment}
 
@@ -94,8 +90,6 @@ a set of sequences
 \code{is.transition} Check for base transition
 
 \code{is.transversion} Check for base transversion
-
-\code{write_axt} Converts MSA file to AXT format
 }
 \note{
 \code{cds_utils} is a generic name for the functions documented.

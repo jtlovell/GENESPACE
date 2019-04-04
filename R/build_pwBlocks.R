@@ -87,8 +87,8 @@ build_pwBlocks <- function(dir.list,
   gl <- as.numeric(factor(genomeIDs, levels = genomeIDs))
   gl <- expand.grid(gl, gl)
   genome.dt <- gd[gl[,1] < gl[,2],]
-  genome.dt <- data.table(genome1 = genome.dt[,1],
-                          genome2 = genome.dt[,2])
+  genome.dt <- data.table(genome1 = c(genome.dt[,1], genomeIDs),
+                          genome2 = c(genome.dt[,2], genomeIDs))
   pw.map <- merge(genome.dt, pw.map, by = c("genome1","genome2"))
   if(clean.before.mcscanx){
     cull.dbs <- clean_blocks(

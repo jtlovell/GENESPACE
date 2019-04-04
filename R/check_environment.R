@@ -8,7 +8,6 @@
   #' are found.
   #' @param genomeIDs Character, the vector of genome identifiers to consider
   #' for analysis
-  #' @param clean Logical, should the existing directories be cleaned out?
   #' @param check.genomes Logical, should the presence of genomes be checked?
   #' @param check.pkgs Logical, should the package installs be checked?
   #' @param ... Not currently in use
@@ -23,7 +22,6 @@
   check_environment <- function(directory,
                                 genomeIDs,
                                 clean = FALSE,
-                                check.pkgs = TRUE,
                                 check.genomes = TRUE,
                                 ...){
 
@@ -31,9 +29,9 @@
 
     dirs <- file.path(directory,
                       c("tmp", "results", "blast", "mcscanx",
-                        "cull.blast", "genome", "block"))
+                        "cull.blast", "genome", "block","cull.score.blast"))
     names(dirs) <- c("tmp", "results", "blast", "mcscanx",
-                     "cull.blast", "genome", "block")
+                     "cull.blast", "genome", "block", "cull.score")
 
     dir.out <- list()
     for (j in names(dirs)) {
@@ -91,25 +89,10 @@
 
     if (check.pkgs) {
       programs <- c("bedtools",
-                    "MCScanX",
                     "diamond",
                     "orthofinder",
                     "exonerate",
                     "samtools")
-
-      packages <- c("data.table",
-                    "Biostrings",
-                    "dbscan")
-
-      cat("Checking for R Package dependencies ... ")
-      suppressPackageStartupMessages(
-        fi <- sapply(packages, require, quietly = T, character.only = T))
-      if (all(fi)) {
-        cat("Pass!\n")
-      } else {
-        cat("Fail!\nThe following packages need to be installed:\n",
-            paste(packages[!fi], collapse = "\n"))
-      }
 
       cat("Checking for program dependencies ... ")
       fi <- sapply(programs, function(x) Sys.which(x) != "")

@@ -48,6 +48,8 @@ calc_selectionStats <- function(pep.file,
                                 codeml.msa.file = file.path(tmp.dir,"codon.aln"),
                                 msa.clu = file.path(tmp.dir,"msa.clu"),
                                 cds.msa.fa = file.path(tmp.dir,"msa.fa"),
+                                codeml.cntr.file = file.path(tmp.dir,"tmp.cdml.ctl"),
+                                codeml.output.file = file.path(tmp.dir,"tmp.cdml"),
                                 mafft.params = "--retree 1 --quiet",
                                 pal2nal.tool){
 
@@ -63,6 +65,8 @@ calc_selectionStats <- function(pep.file,
 
   # -- Calculate codeml stats
   codeml.stats <- calc_kaks(codeml.msa.file = align.files$codeml.msa.file,
+                            codeml.cntr.file = codeml.cntr.file,
+                            codeml.output.file = codeml.output.file,
                             tmp.dir = tmp.dir)
 
   # -- Calculate 4-fold site stats
@@ -85,22 +89,26 @@ calc_selectionStats <- function(pep.file,
 #' @rdname cds_utils
 #' @import data.table
 #' @export
-calc_kaks <- function(codeml.msa.file, tmp.dir){
+calc_kaks <- function(codeml.msa.file,
+                      codeml.cntr.file,
+                      codeml.output.file,
+                      tmp.dir){
 
-  codeml.cntr.file <- file.path(tmp.dir,"tmp.cdml.ctl")
-  codeml.output.file <- file.path(tmp.dir,"tmp.cdml")
+  owd <- getwd()
+  setwd(tmp.dir)
   make_codemlCtl(codeml.msa.file = codeml.msa.file,
                  codeml.output.file = codeml.output.file,
                  codeml.cntr.file = codeml.cntr.file)
 
   run_cmd <- paste("codeml", basename(codeml.cntr.file))
-  rCdml <- system(run_cmd, intern=TRUE)
+  rCdml <- system(run_cmd, intern = TRUE)
 
   if(strsplit(rCdml," ")[[1]][1] == "CODONML"){
     kaks <- parse_Codeml(codeml.output.file = codeml.output.file)
   }else{
     kaks <- NA
   }
+  setwd(owd)
   return(kaks)
 }
 
@@ -163,19 +171,19 @@ make_codemlCtl <- function(codeml.msa.file,
 #' @rdname cds_utils
 #' @export
 align_cds <- function(pep.file,
-                     cds.file,
-                     tmp.dir,
-                     pal2nal.tool,
-                     codeml.msa.file = file.path(tmp.dir,"codon.aln"),
-                     msa.clu = file.path(tmp.dir,"msa.clu"),
-                     cds.msa.fa = file.path(tmp.dir,"msa.fa"),
-                     mafft.params = "--retree 1 --quiet"){
+                      cds.file,
+                      tmp.dir,
+                      pal2nal.tool,
+                      codeml.msa.file,
+                      msa.clu,
+                      cds.msa.fa,
+                      mafft.params){
 
   # -- run msa
   mafft.com <- sprintf("mafft %s --clustalout %s > %s",
-                 mafft.params,
-                 pep.file,
-                 msa.clu)
+                       mafft.params,
+                       pep.file,
+                       msa.clu)
   msatmp <- system(mafft.com)
 
   # -- run pal2nal
@@ -184,7 +192,7 @@ align_cds <- function(pep.file,
   paltmp <- system(pal.com)
 
   pal.com <- sprintf("perl %s %s %s -output paml -nogap > %s",
-                 pal2nal.tool, msa.clu, cds.file, codeml.msa.file)
+                     pal2nal.tool, msa.clu, cds.file, codeml.msa.file)
   paltmp <- system(pal.com)
 
   return(list(cds.file = cds.file,
@@ -347,29 +355,184 @@ is.transversion <- function(base1,
   return(out)
 }
 
-#' @title Converts MSA file to AXT format
-#' @description
-#' \code{write_axt} Converts MSA file to AXT format
-#' @rdname cds_utils
-#' @import data.table
-#' @importFrom Biostrings readDNAMultipleAlignment DNAStringSet
-#' @export
-write_axt <- function(cds.msa.fa,
-                      tmp.dir = NULL){
 
-  cds.msa <- DNAStringSet(
-    readDNAMultipleAlignment(cds.msa.fa, format = "fasta"))
 
-  axt <- paste(unlist(lapply(seq(cds.msa), function(x) {
-    toString(cds.msa[[x]])
-  })), collapse = "\n")
 
-  axt <- paste0(paste(names(cds.msa), collapse = "-"),"\n", axt)
 
-  if (is.null(tmp.dir))
-    tmp.dir <- dirname(cds.msa.fa)
 
-  out_axt <- sprintf("%s/%s.axt", tmp.dir, basename(cds.msa.fa))
-  writeLines(axt, con = out_axt)
-  return(out_axt)
+
+
+
+
+
+
+calc_seqStats <- function(geneIDs = NULL,
+                          orthonet = NULL,
+                          cds.fastas,
+                          pep.fastas,
+                          tmp.dir,
+                          make.tree,
+                          pal2nal.tool = "/Users/jlovell/Documents/comparative_genomics/programs/pal2nal.v14/pal2nal.pl",
+                          verbose = T){
+
+  if (is.null(geneIDs) & is.null(orthonet))
+    stop("either geneIDs or a orthonet object must be specified")
+
+  if (is.null(geneIDs) & is.data.table(orthonet)) {
+    geneIDs <- lapply(1:nrow(orthonet), function(i) as.character(unlist(orthonet[i,-1, with = F])))
+    names(geneIDs) <- orthonet$og
+  }else{
+    if(is.list(orthonet) & is.data.table(orthonet[[1]])){
+      geneIDs <- unlist(lapply(orthonet, function(x)
+        lapply(1:nrow(x), function(i) as.character(unlist(x[i,-1, with = F])))),
+        recursive = F)
+      names(geneIDs) <- unlist(lapply(orthonet, function(x) x$og))
+    }else{
+      if(is.character(geneIDs)){
+        geneIDs <- list(geneIDs)
+        names(geneIDs) <- "NA"
+      }else{
+        stop("geneIDs must be a character vector.\n")
+      }
+    }
+  }
+
+  if(!all(unlist(geneIDs) %in% names(cds.fastas) &
+          unlist(geneIDs) %in% names(pep.fastas)))
+    stop("all geneIDs must be present in the names of both cds and peptide fastas.\n")
+
+  if(verbose & is.null(orthonet))
+    cat("Writing fasta files ... ")
+  if(verbose)
+    cat("Writing fasta files for",length(geneIDs),"orthogroups ... ")
+
+  names(geneIDs) <- gsub("[^[:alnum:]]","",names(geneIDs))
+  cds.tmp.files <- file.path(tmp.dir, paste0(names(geneIDs),".cds.tmp.fa"))
+  names(cds.tmp.files) <- names(geneIDs)
+  pep.tmp.files <- file.path(tmp.dir, paste0(names(geneIDs),".pep.tmp.fa"))
+  names(pep.tmp.files) <- names(geneIDs)
+
+  cds.list <- sapply(geneIDs, function(x)  cds.fastas[x])
+  pep.list <- sapply(geneIDs, function(x)  pep.fastas[x])
+
+  for(i in names(geneIDs)){
+    writeXStringSet(cds.list[[i]], filepath = cds.tmp.files[i])
+    writeXStringSet(pep.list[[i]], filepath = pep.tmp.files[i])
+  }
+
+  if(verbose)
+    cat("Done\n")
+
+  system.time(out <- mclapply(names(geneIDs), mc.cores = 4, function(i){
+    out <- calc_selectionStats(pep.file = pep.tmp.files[i],
+                               cds.file = cds.tmp.files[i],
+                               tmp.dir = tmp.dir,
+                               codeml.msa.file = file.path(tmp.dir,paste0(i,".codon.aln")),
+                               msa.clu = file.path(tmp.dir,paste0(i,".msa.clu")),
+                               cds.msa.fa = file.path(tmp.dir,paste0(i,".msa.fa")),
+                               pal2nal.tool = pal2nal.tool)
+
+    if(make.tree){
+      algn.fa <- out$files$cds.msa.fa
+      tre <- system(paste("fasttree -nt -quiet -nopr", algn.fa), intern = T)
+    }else{
+      tre <- NULL
+    }
+    return(list(stats = out$stats,
+                tree = tre))
+  }))
+
+
+
+
+
 }
+
+
+
+
+
+
+calc_selstatsByBlk <- function(map,
+                               n2sample = 5,
+                               plotit = T,
+                               verbose = T){
+  map[,n.inblk1 := .N,
+      by = list(genome1, genome2, chr1, chr2, block.id, og1, id1)]
+  map[,n.inblk2 := .N,
+      by = list(genome1, genome2, chr1, chr2, block.id, og1, id2)]
+  scmap <- subset(map, n.inblk1 == 1 & n.inblk2 == 1)
+
+  samp.ids <- split(scmap[,.SD[sample(.N, min(n2sample, .N))],by = block.id], by = "block.id")
+  all.ids <- unique(unlist(rbindlist(samp.ids)[,c("id1","id2")]))
+  names(samp.ids) <- paste0("block_",  names(samp.ids))
+  cds.tmp <- cds.fastas[all.ids]
+  pep.tmp <- pep.fastas[all.ids]
+
+  samp.stats <- lapply(1:length(samp.ids), function(j){
+    x = samp.ids[[j]]
+    if(verbose)
+      with(x, cat(paste0("\t",j,"/",length(samp.ids),
+                         " (block ",block.id[1],", ",
+                         genome1[1],"/", chr1[1],", ",
+                         genome2[1],"/", chr2[1],")"," ... ")))
+    stats <- rbindlist(lapply(1:nrow(x),  function(i){
+      cds.tmp.file <- file.path(tmp.dir, paste0("cds.tmp",i,".fa"))
+      pep.tmp.file <- file.path(tmp.dir, paste0("pep.tmp",i,".fa"))
+      writeXStringSet(cds.fastas[c(x$id1[i],x$id2[i])], filepath = cds.tmp.file)
+      writeXStringSet(pep.fastas[c(x$id1[i],x$id2[i])], filepath = pep.tmp.file)
+
+      out <- calc_selectionStats(pep.file = pep.tmp.file,
+                                 cds.file = cds.tmp.file,
+                                 tmp.dir = tmp.dir,
+                                 pal2nal.tool = "/Users/jlovell/Documents/comparative_genomics/programs/pal2nal.v14/pal2nal.pl")
+      unlink(cds.tmp.file)
+      unlink(pep.tmp.file)
+      return(out)
+    }))
+
+    if(verbose)
+      cat(paste0("mean ks = ", mean(stats$Ks, na.rm = T),";"),
+          "mean fdtv =", mean(stats$FDTVc, na.rm = T),"\n")
+
+    return(data.table(x[,c("block.id","genome1", "genome2", "chr1","chr2")], stats))
+  })
+
+  allstats <- rbindlist(samp.stats)
+
+  weighted.se <- function(x, w){
+    x <- x[!is.na(x) & !is.na(w)]
+    w <- w[!is.na(x) & !is.na(w)]
+    wtm <- weighted.mean(x, w)
+    wtsd <- sqrt(sum(w * (x-wtm)^2) * (sum(w)/(sum(w)^2-sum(w^2))))
+    return(wtsd / sqrt(length(x)))
+  }
+
+  blkstats <- allstats[,list(mean.FDTVc = round(weighted.mean(FDTVc, FDsites), 4),
+                             se.FDTVc = round(weighted.se(FDTVc, FDsites), 4),
+                             mean.KaKs = round(weighted.mean(KaKs, S), 4),
+                             se.KaKs = round(weighted.se(KaKs, S), 4),
+                             mean.Ka = round(weighted.mean(Ka, S), 4),
+                             se.Ka = round(weighted.se(Ka, S), 4),
+                             mean.Ks = round(weighted.mean(Ks, S), 4),
+                             se.Ks = round(weighted.se(Ks, S), 4)),
+                       by = list(block.id, genome1, genome2, chr1, chr2)]
+  if(plotit){
+    tp <- with(blkstats,
+               data.frame(x = mean.Ks,
+                          y = mean.FDTVc,
+                          xmin = mean.Ks - se.Ks,
+                          xmax = mean.Ks + se.Ks,
+                          ymin = mean.FDTVc - se.FDTVc,
+                          ymax = mean.FDTVc + se.FDTVc, stringsAsFactors = F))
+    with(tp, plot(x, y, xlim = c(min(xmin),max(xmax)),
+                  ylim = c(min(ymin), max(ymax)),
+                  xlab = "Weighted mean Ks (+/- SE)",
+                  ylab = "Weighted mean FDTVc (+/- SE)",
+                  main = paste(blkstats$genome1[1],"vs.", blkstats$genome2[1])))
+    with(tp, segments(x0 = xmin, x1 = xmax, y0 = y, y1 = y))
+    with(tp, segments(x0 = x, x1 = x, y0 = ymin, y1 = ymax))
+  }
+  return(list(byGene = allstats, byBlk = blkstats))
+}
+
