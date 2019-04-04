@@ -102,6 +102,7 @@ calc_seqStats <- function(geneIDs = NULL,
   })
 
   stats <- rbindlist(lapply(out, function(x) x$stats))
+  stats$og <- rep(names(geneIDs), sapply(lapply(out, function(x) x$stats), nrow))
   trees <- do.call(c, lapply(out, function(x) x$tree))
   names(trees) <- names(geneIDs)
   setwd(owd)
