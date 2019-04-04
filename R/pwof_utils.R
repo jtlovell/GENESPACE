@@ -250,6 +250,7 @@ cull_blastByScore <- function(blast.file.in,
 merge_ofGff <- function(comb,
                         pw.of,
                         gff,
+                        dir.list,
                         use.recip = T,
                         verbose = T){
 
@@ -275,7 +276,7 @@ merge_ofGff <- function(comb,
 
     y <- read_allBlasts(gff = subset(gff, genome %in% comb[[i]]),
                         genomeIDs = comb[[i]],
-                        blast.dir = dirs$blast,
+                        blast.dir = dir.list$blast,
                         verbose = F)
     y2 <- data.table(y[, c(2, 1, 3:6, 9:10, 7:8, 11:12)])
     setnames(y2, colnames(y))
@@ -366,22 +367,22 @@ read_allBlasts <- function(gff,
 #' @rdname pwof_utils
 #' @import data.table
 #' @export
-remake_ofInput <- function(dirs,
+remake_ofInput <- function(dir.list,
                            genomeIDs,
                            ploidy,
                            cull.blastByScore = T,
                            max.dup = 2,
                            verbose = T){
   # -- Step 1. Reformat peptides etc.
-  if(dir.exists(dirs$cull.score.blast))
-    unlink(dirs$cull.score.blast, recursive = T)
-  dir.create(dirs$cull.score.blast)
+  if(dir.exists(dir.list$cull.score.blast))
+    unlink(dir.list$cull.score.blast, recursive = T)
+  dir.create(dir.list$cull.score.blast)
 
   if(verbose)
     cat("Preparing new orthofinder-formatted species ID database ... \n")
-  make_newOFdb(tmp.dir = dirs$tmp,
-               cull.blast.dir = dirs$cull.score.blast,
-               peptide.dir = dirs$peptide,
+  make_newOFdb(tmp.dir = dir.list$tmp,
+               cull.blast.dir = dir.list$cull.score.blast,
+               peptide.dir = dir.list$peptide,
                genomeIDs = genomeIDs)
   if(verbose)
     cat("\tDone!\n")
@@ -390,7 +391,7 @@ remake_ofInput <- function(dirs,
   #######################################################
   if (verbose)
     cat("Importing gff annotations as a data.table ... \n")
-  gff <- import_gff(gff.dir = dirs$gff,
+  gff <- import_gff(gff.dir = dir.list$gff,
                     genomeIDs = genomeIDs)
   if (verbose)
     cat("\tDone!\n")
@@ -399,17 +400,17 @@ remake_ofInput <- function(dirs,
   #######################################################
   if(verbose)
     cat("Importing new and old orthofinder gene and species IDs ... ")
-  old.ids <- read_speciesIDs(of.dir = dirs$blast, genomeIDs = genomeIDs)
-  new.ids <- read_speciesIDs(of.dir = dirs$cull.score.blast, genomeIDs = genomeIDs)
+  old.ids <- read_speciesIDs(of.dir = dir.list$blast, genomeIDs = genomeIDs)
+  new.ids <- read_speciesIDs(of.dir = dir.list$cull.score.blast, genomeIDs = genomeIDs)
   id.db <- merge(old.ids, new.ids, by = "genome")
   setnames(id.db,2:3,c("n.old","n.new"))
   #
   map.db <- make_mapDB(id.db = id.db,
-                       blast.dir = dirs$blast,
-                       cull.blast.dir = dirs$cull.score.blast)
+                       blast.dir = dir.list$blast,
+                       cull.blast.dir = dir.list$cull.score.blast)
   #
-  old.genes <- read_geneIDs(of.dir = dirs$blast, gff = gff)
-  new.genes <- read_geneIDs(of.dir = dirs$cull.score.blast, gff = gff)
+  old.genes <- read_geneIDs(of.dir = dir.list$blast, gff = gff)
+  new.genes <- read_geneIDs(of.dir = dir.list$cull.score.blast, gff = gff)
   genes <- merge(old.genes[,c("genome","id","gene.num")],
                  new.genes[,c("genome","id","gene.num")],
                  by = c("genome","id"))
@@ -444,7 +445,7 @@ remake_ofInput <- function(dirs,
   if(verbose)
     cat("Culling blast by score ... \n")
 
-  map.db$score.filename <- file.path(dirs$cull.score.blast, basename(map.db$new.filename))
+  map.db$score.filename <- file.path(dir.list$cull.score.blast, basename(map.db$new.filename))
   bl <- lapply(1:nrow(map.db), function(i){
     s1 <- map.db$genome1[i]
     s2 <- map.db$genome2[i]

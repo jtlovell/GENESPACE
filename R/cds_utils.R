@@ -45,12 +45,20 @@ calc_selectionStats <- function(pep.file,
                                 cds.dir = NULL,
                                 peptide.dir = NULL,
                                 tmp.dir,
+                                codeml.msa.file = file.path(tmp.dir,"codon.aln"),
+                                msa.clu = file.path(tmp.dir,"msa.clu"),
+                                cds.msa.fa = file.path(tmp.dir,"msa.fa"),
+                                mafft.params = "--retree 1 --quiet",
                                 pal2nal.tool){
 
   # -- Do the alignments, returning both fasta and paml formats
   align.files <- align_cds(pep.file = pep.file,
                            cds.file = cds.file,
                            tmp.dir = tmp.dir,
+                           codeml.msa.file = codeml.msa.file,
+                           msa.clu = msa.clu,
+                           cds.msa.fa = cds.msa.fa,
+                           mafft.params = mafft.params,
                            pal2nal.tool = pal2nal.tool)
 
   # -- Calculate codeml stats
@@ -67,7 +75,7 @@ calc_selectionStats <- function(pep.file,
   }else{
     out.stats <- merge(fdtv.stats, codeml.stats, by = c("id1","id2"))
   }
-  return(out.stats)
+  return(list(stats = out.stats, files = align.files))
 }
 
 
@@ -79,10 +87,8 @@ calc_selectionStats <- function(pep.file,
 #' @export
 calc_kaks <- function(codeml.msa.file, tmp.dir){
 
-  owd <- getwd()
-  setwd(tmp.dir)
-  codeml.cntr.file <- file.path(getwd(),"tmp.cdml.ctl")
-  codeml.output.file <- file.path(getwd(),"tmp.cdml")
+  codeml.cntr.file <- file.path(tmp.dir,"tmp.cdml.ctl")
+  codeml.output.file <- file.path(tmp.dir,"tmp.cdml")
   make_codemlCtl(codeml.msa.file = codeml.msa.file,
                  codeml.output.file = codeml.output.file,
                  codeml.cntr.file = codeml.cntr.file)
@@ -95,7 +101,6 @@ calc_kaks <- function(codeml.msa.file, tmp.dir){
   }else{
     kaks <- NA
   }
-  setwd(owd)
   return(kaks)
 }
 

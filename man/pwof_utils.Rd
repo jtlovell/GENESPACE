@@ -33,11 +33,11 @@ make_newOFdb(tmp.dir, cull.blast.dir, peptide.dir, genomeIDs,
 
 cull_blastByScore(blast.file.in, blast.file.out, maxn, verbose = T)
 
-merge_ofGff(comb, pw.of, gff, use.recip = T, verbose = T)
+merge_ofGff(comb, pw.of, gff, dir.list, use.recip = T, verbose = T)
 
 read_allBlasts(gff, genomeIDs, blast.dir, subset2gff = F, verbose = T)
 
-remake_ofInput(dirs, genomeIDs, ploidy, cull.blastByScore = T,
+remake_ofInput(dir.list, genomeIDs, ploidy, cull.blastByScore = T,
   max.dup = 2, verbose = T)
 }
 \arguments{

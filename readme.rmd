@@ -47,7 +47,7 @@ The pipeline requires only two input directories:
 These must be placed into the `wd` directory
 
 ```{r}
-wd = "/Users/jlovell/Desktop/genespace_runs/grasses2"
+wd = "/Users/jlovell/Desktop/genespace_runs/poplar/"
 setwd(wd)
 ```
 
@@ -66,9 +66,9 @@ MCScanX.path = "/Users/jlovell/Documents/comparative_genomics/programs/MCScanX/M
 The character vector, `genomeIDs` is used throughout the pipeline and specifies the subset of genomes in the raw directories to analyze. 
 
 ```{r}
-genomeIDs = c("PhalliiHAL",
-              "Sviridis",
-              "Sbicolor")
+genomeIDs = c("Ptrichocarpa",
+              "Spurpurea",
+              "Vvinifera")
 ```
 
 To do the pairwise orthofinder runs, it dramatically improves speed to only keep the top *n* hits / gene. Since the number of expected hits varies depending on the ploidy of a genome, we also need to specify the ploidy of each element in `genomeIDs`.
@@ -84,13 +84,13 @@ GENESPACE requires the CDS and peptide multifasta files to have sequence names t
 
 ```{r}
 convert_genomes(
-  directory = wd,
-  genomeIDs = genomeIDs,
-  verbose = T,
-  transcript_str = "transcript",
-  peptide_str = "protein",
-  gff_str = "gff3",
-  cds_str = "cds")
+    directory = wd,
+    genomeIDs = genomeIDs,
+    verbose = T,
+    transcript_str = "transcript",
+    peptide_str = "protein",
+    gff_str = "gff3",
+    cds_str = "cds")  
 ```
 
 ## Make a list of the directory structure and check for dependencies
