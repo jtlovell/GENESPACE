@@ -22,6 +22,7 @@
   check_environment <- function(directory,
                                 genomeIDs,
                                 clean = FALSE,
+                                check.pkgs = TRUE,
                                 check.genomes = TRUE,
                                 ...){
 
