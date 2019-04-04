@@ -30,9 +30,9 @@
 
     dirs <- file.path(directory,
                       c("tmp", "results", "blast", "mcscanx",
-                        "cull.blast", "genome", "block","cull.score.blast"))
+                        "cull.blast", "genome", "block","cull.score"))
     names(dirs) <- c("tmp", "results", "blast", "mcscanx",
-                     "cull.blast", "genome", "block", "cull.score")
+                     "cull.blast", "genome", "block", "cull.score.blast")
 
     dir.out <- list()
     for (j in names(dirs)) {
