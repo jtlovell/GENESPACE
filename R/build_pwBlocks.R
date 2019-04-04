@@ -111,6 +111,7 @@ build_pwBlocks <- function(dir.list,
 
   syn.blks <- pipe_mcscanx(blast = pw.map,
                            gff = gff,
+                           genomeIDs = genomeIDs,
                            MCScanX.path = MCScanX.path,
                            mcscan.dir = dir.list$mcscanx,
                            mcscan.param = mcsp,

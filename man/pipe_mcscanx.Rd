@@ -4,13 +4,15 @@
 \alias{pipe_mcscanx}
 \title{Run MCScanX program}
 \usage{
-pipe_mcscanx(blast, gff, mcscan.dir, mcscan.param,
+pipe_mcscanx(blast, gff, genomeIDs, mcscan.dir, mcscan.param,
   MCScanX.path = "MCScanX", silent.mcs = T, verbose = T)
 }
 \arguments{
 \item{blast}{blast results data.table}
 
 \item{gff}{concatenated gff data.table}
+
+\item{genomeIDs}{genomeIDs}
 
 \item{mcscan.dir}{path to the directory where MCScanX will be run}
 

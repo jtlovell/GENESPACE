@@ -1,15 +1,14 @@
-#' @title build pwBlocks
+#' @title calc_seqStats
 #'
 #' @description
-#' \code{calc_seqStats} build_pwBlocks
+#' \code{calc_seqStats} calc_seqStats
 #'
 #' @param geneIDs dir.list
 #' @param orthonet genomeIDs
-#' @param cds.fastas path to the directory where MCScanX will be run
-#' @param pep.fastas parameters to supply MCScanX
-#' @param tmp.dir temporary directory
+#' @param dir.list directory list
 #' @param make.tree logical, should trees be generated?
 #' @param pal2nal.tool path to pal2nal
+#' @param n.cores number of parallel processes.
 #' @param verbose Should updates be printed?
 #' @param ... Not currently in use
 #' @details ...
@@ -24,12 +23,15 @@
 #' @export
 calc_seqStats <- function(geneIDs = NULL,
                           orthonet = NULL,
-                          cds.fastas,
-                          pep.fastas,
-                          tmp.dir,
-                          make.tree,
+                          dir.list,
+                          make.tree = TRUE,
+                          n.cores = 1,
                           pal2nal.tool = "/Users/jlovell/Documents/comparative_genomics/programs/pal2nal.v14/pal2nal.pl",
                           verbose = T){
+
+
+
+  tmp.dir <- dir.list$tmp
 
   if (is.null(geneIDs) & is.null(orthonet))
     stop("either geneIDs or a orthonet object must be specified")
@@ -57,16 +59,24 @@ calc_seqStats <- function(geneIDs = NULL,
           unlist(geneIDs) %in% names(pep.fastas)))
     stop("all geneIDs must be present in the names of both cds and peptide fastas.\n")
 
-  if(verbose & is.null(orthonet))
-    cat("Writing fasta files ... ")
-  if(verbose)
-    cat("Writing fasta files for",length(geneIDs),"orthogroups ... ")
-
   names(geneIDs) <- gsub("[^[:alnum:]]","",names(geneIDs))
   cds.tmp.files <- file.path(tmp.dir, paste0(names(geneIDs),".cds.tmp.fa"))
   names(cds.tmp.files) <- names(geneIDs)
   pep.tmp.files <- file.path(tmp.dir, paste0(names(geneIDs),".pep.tmp.fa"))
   names(pep.tmp.files) <- names(geneIDs)
+
+  if(verbose & is.null(orthonet))
+    cat("Writing fasta files ... ")
+  if(verbose)
+    cat("Writing fasta files for",length(geneIDs),"orthogroups ... ")
+
+  cds.fastas <- do.call(c, lapply(genomeIDs, function(i)
+    readDNAStringSet(file.path(dir.list$cds,
+                               paste0(i, ".fa")))))
+
+  pep.fastas <- do.call(c, lapply(genomeIDs, function(i)
+    readAAStringSet(file.path(dir.list$peptide,
+                              paste0(i, ".fa")))))
 
   cds.list <- sapply(geneIDs, function(x)  cds.fastas[x])
   pep.list <- sapply(geneIDs, function(x)  pep.fastas[x])
@@ -77,12 +87,12 @@ calc_seqStats <- function(geneIDs = NULL,
   }
 
   if(verbose)
-    cat("Done\n")
+    cat("Done\nCalculating selection statistics using",n.cores,"parallel threads ... ")
 
   owd <- getwd()
   setwd(tmp.dir)
 
-  out <- mclapply(names(geneIDs), mc.cores = 1, function(i){
+  out <- mclapply(names(geneIDs), mc.cores = n.cores, function(i){
     out <- calc_selectionStats(pep.file = pep.tmp.files[i],
                                cds.file = cds.tmp.files[i],
                                tmp.dir = tmp.dir,
@@ -106,5 +116,7 @@ calc_seqStats <- function(geneIDs = NULL,
   trees <- do.call(c, lapply(out, function(x) x$tree))
   names(trees) <- names(geneIDs)
   setwd(owd)
+  if(verbose)
+    cat("Done\n")
   return(list(stats = stats, trees = trees))
 }

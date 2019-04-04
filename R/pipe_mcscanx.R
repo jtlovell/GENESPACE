@@ -4,6 +4,7 @@
 #' \code{pipe_mcscanx} Wrapper to run MCScanX program
 #'
 #' @param blast blast results data.table
+#' @param genomeIDs genomeIDs
 #' @param gff concatenated gff data.table
 #' @param mcscan.dir path to the directory where MCScanX will be run
 #' @param mcscan.param parameters to supply MCScanX
@@ -24,6 +25,7 @@
 #' @export
 pipe_mcscanx <- function(blast,
                          gff,
+                         genomeIDs,
                          mcscan.dir,
                          mcscan.param,
                          MCScanX.path = "MCScanX",

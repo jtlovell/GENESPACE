@@ -2,10 +2,10 @@
 % Please edit documentation in R/calc_seqStats.R
 \name{calc_seqStats}
 \alias{calc_seqStats}
-\title{build pwBlocks}
+\title{calc_seqStats}
 \usage{
-calc_seqStats(geneIDs = NULL, orthonet = NULL, cds.fastas, pep.fastas,
-  tmp.dir, make.tree,
+calc_seqStats(geneIDs = NULL, orthonet = NULL, dir.list,
+  make.tree = TRUE, n.cores = 1,
   pal2nal.tool = "/Users/jlovell/Documents/comparative_genomics/programs/pal2nal.v14/pal2nal.pl",
   verbose = T)
 }
@@ -14,13 +14,11 @@ calc_seqStats(geneIDs = NULL, orthonet = NULL, cds.fastas, pep.fastas,
 
 \item{orthonet}{genomeIDs}
 
-\item{cds.fastas}{path to the directory where MCScanX will be run}
-
-\item{pep.fastas}{parameters to supply MCScanX}
-
-\item{tmp.dir}{temporary directory}
+\item{dir.list}{directory list}
 
 \item{make.tree}{logical, should trees be generated?}
+
+\item{n.cores}{number of parallel processes.}
 
 \item{pal2nal.tool}{path to pal2nal}
 
@@ -32,7 +30,7 @@ calc_seqStats(geneIDs = NULL, orthonet = NULL, cds.fastas, pep.fastas,
 Nothing.
 }
 \description{
-\code{calc_seqStats} build_pwBlocks
+\code{calc_seqStats} calc_seqStats
 }
 \details{
 ...
