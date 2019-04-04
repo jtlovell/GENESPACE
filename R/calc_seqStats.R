@@ -33,6 +33,9 @@ calc_seqStats <- function(geneIDs = NULL,
 
   tmp.dir <- dir.list$tmp
 
+  unlink(dirs$tmp, recursive = T)
+  dir.create(tmp.dir)
+
   if (is.null(geneIDs) & is.null(orthonet))
     stop("either geneIDs or a orthonet object must be specified")
 
@@ -90,15 +93,17 @@ calc_seqStats <- function(geneIDs = NULL,
     cat("Done\nCalculating selection statistics using",n.cores,"parallel threads ... ")
 
   owd <- getwd()
-  setwd(tmp.dir)
 
   out <- mclapply(names(geneIDs), mc.cores = n.cores, function(i){
+    tmp.dir2 <- file.path(tmp.dir, i)
+    dir.create(tmp.dir2)
+    setwd(tmp.dir2)
     out <- calc_selectionStats(pep.file = pep.tmp.files[i],
                                cds.file = cds.tmp.files[i],
-                               tmp.dir = tmp.dir,
-                               codeml.msa.file = file.path(tmp.dir,paste0(i,".codon.aln")),
-                               msa.clu = file.path(tmp.dir,paste0(i,".msa.clu")),
-                               cds.msa.fa = file.path(tmp.dir,paste0(i,".msa.fa")),
+                               tmp.dir = tmp.dir2,
+                               codeml.msa.file = file.path(tmp.dir2,paste0(i,".codon.aln")),
+                               msa.clu = file.path(tmp.dir2,paste0(i,".msa.clu")),
+                               cds.msa.fa = file.path(tmp.dir2,paste0(i,".msa.fa")),
                                pal2nal.tool = pal2nal.tool)
 
     if(make.tree){
@@ -107,6 +112,7 @@ calc_seqStats <- function(geneIDs = NULL,
     }else{
       tre <- NULL
     }
+    unlink(tmp.dir2, recursive = T)
     return(list(stats = out$stats,
                 tree = tre))
   })
