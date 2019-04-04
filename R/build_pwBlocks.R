@@ -83,10 +83,10 @@ build_pwBlocks <- function(dir.list,
   #######################################################
 
   #######################################################
-  pw.map <- data.table(rbind(
+  genome.dt <- data.table(rbind(
     t(combn(genomeIDs,2)),
     cbind(genomeIDs,genomeIDs)))
-  setnames(pw.map, c("genome1","genome2"))
+  setnames(genome.dt, c("genome1","genome2"))
   pw.map <- merge(genome.dt, pw.map, by = c("genome1","genome2"))
   if(clean.before.mcscanx){
     cull.dbs <- clean_blocks(
