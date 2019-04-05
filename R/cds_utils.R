@@ -41,36 +41,35 @@
 #' @export
 calc_selectionStats <- function(pep.file,
                                 cds.file,
-                                geneIDs = NULL,
-                                cds.dir = NULL,
-                                peptide.dir = NULL,
                                 tmp.dir,
-                                codeml.msa.file = file.path(tmp.dir,"codon.aln"),
-                                msa.clu = file.path(tmp.dir,"msa.clu"),
-                                cds.msa.fa = file.path(tmp.dir,"msa.fa"),
-                                codeml.cntr.file = file.path(tmp.dir,"tmp.cdml.ctl"),
-                                codeml.output.file = file.path(tmp.dir,"tmp.cdml"),
-                                mafft.params = "--retree 1 --quiet",
-                                pal2nal.tool){
+                                pal2nal.tool,
+                                return.tree = TRUE,
+                                mafft.params = "--retree 1 --quiet"){
+
+  owd <- getwd()
+  if(dir.exists(tmp.dir))
+    unlink(tmp.dir, recursive = T)
+  dir.create(tmp.dir)
+  setwd(tmp.dir)
 
   # -- Do the alignments, returning both fasta and paml formats
   align.files <- align_cds(pep.file = pep.file,
                            cds.file = cds.file,
                            tmp.dir = tmp.dir,
-                           codeml.msa.file = codeml.msa.file,
-                           msa.clu = msa.clu,
-                           cds.msa.fa = cds.msa.fa,
+                           codeml.msa.file = "codeml.msa.file",
+                           msa.clu = "msa.clu",
+                           cds.msa.fa = "cds.msa.fa",
                            mafft.params = mafft.params,
                            pal2nal.tool = pal2nal.tool)
 
   # -- Calculate codeml stats
-  codeml.stats <- calc_kaks(codeml.msa.file = align.files$codeml.msa.file,
-                            codeml.cntr.file = codeml.cntr.file,
-                            codeml.output.file = codeml.output.file,
+  codeml.stats <- calc_kaks(codeml.msa.file = "codeml.msa.file",
+                            codeml.cntr.file = "codeml.cntr.file",
+                            codeml.output.file = "codeml.output.file",
                             tmp.dir = tmp.dir)
 
   # -- Calculate 4-fold site stats
-  fdtv.stats <- pairwise_4dtv(cds.msa.fa = align.files$cds.msa.fa)
+  fdtv.stats <- pairwise_4dtv(cds.msa.fa = "cds.msa.fa")
 
   # -- return data set. If there are codeml results, merge, otherwise populate with NAs.
   if(is.na(codeml.stats)[1] & length(codeml.stats) == 1){
@@ -79,7 +78,13 @@ calc_selectionStats <- function(pep.file,
   }else{
     out.stats <- merge(fdtv.stats, codeml.stats, by = c("id1","id2"))
   }
-  return(list(stats = out.stats, files = align.files))
+
+  if(return.tree){
+    tre <- system(paste("fasttree -nt -quiet -nopr cds.msa.fa"), intern = T)
+  }else{
+    tre <- NA
+  }
+  return(list(stats = out.stats, tree = tre))
 }
 
 

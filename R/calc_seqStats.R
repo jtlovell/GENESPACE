@@ -36,6 +36,7 @@ calc_seqStats <- function(geneIDs = NULL,
   unlink(dirs$tmp, recursive = T)
   dir.create(tmp.dir)
 
+  # -- Check an conver the gene IDs, either from a simple vector or an orthonet obj.
   if (is.null(geneIDs) & is.null(orthonet))
     stop("either geneIDs or a orthonet object must be specified")
 
@@ -63,6 +64,7 @@ calc_seqStats <- function(geneIDs = NULL,
     stop("all geneIDs must be present in the names of both cds and peptide fastas.\n")
 
   names(geneIDs) <- gsub("[^[:alnum:]]","",names(geneIDs))
+
   cds.tmp.files <- file.path(tmp.dir, paste0(names(geneIDs),".cds.tmp.fa"))
   names(cds.tmp.files) <- names(geneIDs)
   pep.tmp.files <- file.path(tmp.dir, paste0(names(geneIDs),".pep.tmp.fa"))
@@ -101,20 +103,10 @@ calc_seqStats <- function(geneIDs = NULL,
     out <- calc_selectionStats(pep.file = pep.tmp.files[i],
                                cds.file = cds.tmp.files[i],
                                tmp.dir = tmp.dir2,
-                               codeml.msa.file = file.path(tmp.dir2,paste0(i,".codon.aln")),
-                               msa.clu = file.path(tmp.dir2,paste0(i,".msa.clu")),
-                               cds.msa.fa = file.path(tmp.dir2,paste0(i,".msa.fa")),
                                pal2nal.tool = pal2nal.tool)
 
-    if(make.tree){
-      algn.fa <- out$files$cds.msa.fa
-      tre <- system(paste("fasttree -nt -quiet -nopr", algn.fa), intern = T)
-    }else{
-      tre <- NULL
-    }
     unlink(tmp.dir2, recursive = T)
-    return(list(stats = out$stats,
-                tree = tre))
+    return(out)
   })
   stats <- rbindlist(lapply(out, function(x) x$stats))
   stats$og <- rep(names(geneIDs), sapply(lapply(out, function(x) x$stats), nrow))

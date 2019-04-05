@@ -13,13 +13,8 @@
 \alias{is.transversion}
 \title{selection utility functions}
 \usage{
-calc_selectionStats(pep.file, cds.file, geneIDs = NULL, cds.dir = NULL,
-  peptide.dir = NULL, tmp.dir, codeml.msa.file = file.path(tmp.dir,
-  "codon.aln"), msa.clu = file.path(tmp.dir, "msa.clu"),
-  cds.msa.fa = file.path(tmp.dir, "msa.fa"),
-  codeml.cntr.file = file.path(tmp.dir, "tmp.cdml.ctl"),
-  codeml.output.file = file.path(tmp.dir, "tmp.cdml"),
-  mafft.params = "--retree 1 --quiet", pal2nal.tool)
+calc_selectionStats(pep.file, cds.file, tmp.dir, pal2nal.tool,
+  return.tree = TRUE, mafft.params = "--retree 1 --quiet")
 
 calc_kaks(codeml.msa.file, codeml.cntr.file, codeml.output.file, tmp.dir)
 
@@ -45,19 +40,19 @@ is.transversion(base1, base2)
 
 \item{tmp.dir}{file path to temporary directory}
 
+\item{pal2nal.tool}{file path to the pal2nal tool, including the executable}
+
+\item{mafft.params}{parameters to pass to mafft}
+
 \item{codeml.msa.file}{paml-formatted CDS MSA.}
-
-\item{msa.clu}{file path to the clustall-formatted MSA}
-
-\item{cds.msa.fa}{file path to the MSA in fasta format.}
 
 \item{codeml.cntr.file}{file path to codeml control file}
 
 \item{codeml.output.file}{file path to the codeml output file}
 
-\item{mafft.params}{parameters to pass to mafft}
+\item{msa.clu}{file path to the clustall-formatted MSA}
 
-\item{pal2nal.tool}{file path to the pal2nal tool, including the executable}
+\item{cds.msa.fa}{file path to the MSA in fasta format.}
 
 \item{cds.msa}{dna StringSet object containing the cds multiple alignment}
 

@@ -580,14 +580,11 @@ summarize_mapByArray <- function(map, verbose = TRUE){
 #' @export
 track_hits <- function(map, gff.spl, max.window.bp = 2e5, verbose){
   spl <- split(map, by = "block.id")
-  evy <- round(length(spl),-2)/10
-  evy <- min(evy, 10)
   if(verbose)
     cat("Tracking unmapped hits across", length(spl), "blocks ...\n")
   out.all <- rbindlist(lapply(1:length(spl), function(k){
     if(verbose)
-      if(k %% evy == 0)
-        cat("\tCompleted",k,"/",length(spl),"\n")
+      cat("\tCompleted",k,"/",length(spl),"\n")
     mblk = spl[[k]]
     gff1 <- gff.spl[[mblk$genome1[1]]][[mblk$chr1[[1]]]]
     gff1 <- gff1[gff1$end >= min(mblk$start1) & gff1$start <= max(mblk$end1),]
@@ -694,7 +691,7 @@ track_synHits <- function(map,
   trk <- track_hits(map = map,
                     max.window.bp = max.window.bp,
                     gff.spl = gff.spl,
-                    verbose = T)
+                    verbose = verbose)
 
   allmap <- map[,c("genome1","genome2","block.id","id1","id2")]
   allmap$og <- map$og1
