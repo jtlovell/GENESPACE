@@ -92,7 +92,7 @@ build_pwBlocks <- function(dir.list,
     cull.dbs <- clean_blocks(
       map = pw.map,
       n.mappings = min.blockSize,
-      radius = 100,
+      radius = radius,
       n.cores = 1,
       verbose = T,
       clean.columns = F)

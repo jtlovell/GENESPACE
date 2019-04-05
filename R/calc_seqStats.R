@@ -59,9 +59,6 @@ calc_seqStats <- function(geneIDs = NULL,
     }
   }
 
-  if(!all(unlist(geneIDs) %in% names(cds.fastas) &
-          unlist(geneIDs) %in% names(pep.fastas)))
-    stop("all geneIDs must be present in the names of both cds and peptide fastas.\n")
 
   names(geneIDs) <- gsub("[^[:alnum:]]","",names(geneIDs))
 
@@ -82,6 +79,11 @@ calc_seqStats <- function(geneIDs = NULL,
   pep.fastas <- do.call(c, lapply(genomeIDs, function(i)
     readAAStringSet(file.path(dir.list$peptide,
                               paste0(i, ".fa")))))
+
+
+  if(!all(unlist(geneIDs) %in% names(cds.fastas) &
+          unlist(geneIDs) %in% names(pep.fastas)))
+    stop("all geneIDs must be present in the names of both cds and peptide fastas.\n")
 
   cds.list <- sapply(geneIDs, function(x)  cds.fastas[x])
   pep.list <- sapply(geneIDs, function(x)  pep.fastas[x])
