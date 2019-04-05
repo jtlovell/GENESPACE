@@ -28,6 +28,7 @@ calc_seqStats <- function(geneIDs = NULL,
                           dir.list,
                           make.tree = TRUE,
                           n.cores = 1,
+                          clean = T,
                           pal2nal.tool = "/Users/jlovell/Documents/comparative_genomics/programs/pal2nal.v14/pal2nal.pl",
                           verbose = T){
 
@@ -35,8 +36,11 @@ calc_seqStats <- function(geneIDs = NULL,
 
   tmp.dir <- dir.list$tmp
 
-  unlink(dirs$tmp, recursive = T)
-  dir.create(tmp.dir)
+  if(clean){
+    unlink(dirs$tmp, recursive = T)
+    dir.create(tmp.dir)
+
+  }
 
   # -- Check an conver the gene IDs, either from a simple vector or an orthonet obj.
   if (is.null(geneIDs) & is.null(orthonet))
@@ -101,6 +105,7 @@ calc_seqStats <- function(geneIDs = NULL,
   owd <- getwd()
 
   out <- mclapply(names(geneIDs), mc.cores = n.cores, function(i){
+
     tmp.dir2 <- file.path(tmp.dir, i)
     dir.create(tmp.dir2)
     setwd(tmp.dir2)
@@ -108,8 +113,9 @@ calc_seqStats <- function(geneIDs = NULL,
                                cds.file = cds.tmp.files[i],
                                tmp.dir = tmp.dir2,
                                pal2nal.tool = pal2nal.tool)
-
-    unlink(tmp.dir2, recursive = T)
+    if(clean){
+      unlink(tmp.dir2, recursive = T)
+    }
     return(out)
   })
   stats <- rbindlist(lapply(out, function(x) x$stats))
