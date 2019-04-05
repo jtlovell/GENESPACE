@@ -4,8 +4,8 @@
 \alias{calc_seqStats}
 \title{calc_seqStats}
 \usage{
-calc_seqStats(geneIDs = NULL, orthonet = NULL, map = NULL, dir.list,
-  make.tree = TRUE, n.cores = 1,
+calc_seqStats(geneIDs = NULL, orthonet = NULL, map, dir.list,
+  make.tree = TRUE, n.cores = 1, clean = T,
   pal2nal.tool = "/Users/jlovell/Documents/comparative_genomics/programs/pal2nal.v14/pal2nal.pl",
   verbose = T)
 }

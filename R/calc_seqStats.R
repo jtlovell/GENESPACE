@@ -24,7 +24,7 @@
 #' @export
 calc_seqStats <- function(geneIDs = NULL,
                           orthonet = NULL,
-                          map = NULL,
+                          map,
                           dir.list,
                           make.tree = TRUE,
                           n.cores = 1,
@@ -86,6 +86,17 @@ calc_seqStats <- function(geneIDs = NULL,
     readAAStringSet(file.path(dir.list$peptide,
                               paste0(i, ".fa")))))
 
+  m <- map[map$id1 %in% unique(as.character(unlist(geneIDs))) &
+             map$id1 %in% unique(as.character(unlist(geneIDs))),]
+  mi <- data.table(id = c(m$id1, m$id2),
+                   gn = c(m$gn1, m$gn2))
+  mi <- mi[!duplicated(mi),]
+  cds.fastas <- cds.fastas[mi$id]
+  pep.fastas <- pep.fastas[mi$id]
+  names(cds.fastas) <- mi$gn
+  names(pep.fastas) <- mi$gn
+
+  geneIDs <- lapply(geneIDs, function(x) mi$gn[mi$id %in% x])
 
   if(!all(unlist(geneIDs) %in% names(cds.fastas) &
           unlist(geneIDs) %in% names(pep.fastas)))
@@ -119,14 +130,27 @@ calc_seqStats <- function(geneIDs = NULL,
     return(out)
   })
   stats <- rbindlist(lapply(out, function(x) x$stats))
-  stats$og <- rep(names(geneIDs), sapply(lapply(out, function(x) x$stats), nrow))
+  setnames(stats, c("id1","id2"),c("gn1","gn2"))
   trees <- do.call(c, lapply(out, function(x) x$tree))
   names(trees) <- names(geneIDs)
   setwd(owd)
 
-  if(!is.null(map)){
-    stats <- merge(map, stats, by = c("id1","id2"))
+
+  mapo <- map[,c("genome1","genome2","id1","id2","gn1","gn2",
+                 "chr1","chr2","start1","start2","end1","end2",
+                 "strand1","strand2","score","og1","block.id")]
+  map1 <- mapo[,c(2,1,4,3,6,5,8,7,10,9,12,11,14,13,15:17)]
+  setnames(map1,colnames(mapo))
+  mapi <- rbind(mapo,map1)
+  mapi <- mapi[!duplicated(mapi),]
+  stats <- merge(mapi, stats, by = c("gn1","gn2"))
+
+  for(i in 1:length(trees)){
+    for(j in 1:nrow(mi)){
+      trees[[i]] <- gsub(mi[j,2],mi[j,1],trees[[i]] )
+    }
   }
+
 
   if(verbose)
     cat("Done\n")
