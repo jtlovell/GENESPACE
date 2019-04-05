@@ -9,6 +9,7 @@
 #' @param make.tree logical, should trees be generated?
 #' @param pal2nal.tool path to pal2nal
 #' @param n.cores number of parallel processes.
+#' @param map optional map object
 #' @param verbose Should updates be printed?
 #' @param ... Not currently in use
 #' @details ...
@@ -23,6 +24,7 @@
 #' @export
 calc_seqStats <- function(geneIDs = NULL,
                           orthonet = NULL,
+                          map = NULL,
                           dir.list,
                           make.tree = TRUE,
                           n.cores = 1,
@@ -115,6 +117,11 @@ calc_seqStats <- function(geneIDs = NULL,
   trees <- do.call(c, lapply(out, function(x) x$tree))
   names(trees) <- names(geneIDs)
   setwd(owd)
+
+  if(!is.null(map)){
+    stats <- merge(map, stats, by = c("id1","id2"))
+  }
+
   if(verbose)
     cat("Done\n")
   return(list(stats = stats, trees = trees))

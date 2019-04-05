@@ -4,7 +4,7 @@
 \alias{calc_seqStats}
 \title{calc_seqStats}
 \usage{
-calc_seqStats(geneIDs = NULL, orthonet = NULL, dir.list,
+calc_seqStats(geneIDs = NULL, orthonet = NULL, map = NULL, dir.list,
   make.tree = TRUE, n.cores = 1,
   pal2nal.tool = "/Users/jlovell/Documents/comparative_genomics/programs/pal2nal.v14/pal2nal.pl",
   verbose = T)
@@ -13,6 +13,8 @@ calc_seqStats(geneIDs = NULL, orthonet = NULL, dir.list,
 \item{geneIDs}{dir.list}
 
 \item{orthonet}{genomeIDs}
+
+\item{map}{optional map object}
 
 \item{dir.list}{directory list}
 
