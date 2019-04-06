@@ -22,6 +22,7 @@
 #' none yet
 #' }
 #' @import data.table
+#' @importFrom utils combn
 #' @export
 build_pwBlocks <- function(dir.list,
                            genomeIDs,
@@ -33,52 +34,81 @@ build_pwBlocks <- function(dir.list,
                            radius = 100,
                            runFrom.pw.of = NULL,
                            verbose = T){
+  #######################################################
+  # -- Error checking
+  stop_withMessage(c(dir.exists(unlist(dir.list))),
+                   paste(dir.list[!dir.exists(unlist(dir.list))], "does not exist"))
+  stop_withMessage(c(is.character(genomeIDs),
+                     length(genomeIDs) > 1,
+                     missing(genomeIDs)),
+                   "genomeIDs must be a character vector of length > 1")
+  stop_withMessage(c(is.numeric(of.cores),
+                     is.numeric(min.blockSize),
+                     is.numeric(gap.multiplier),
+                     is.numeric(radius)),
+                   "of.cores, min.blockSize, gap.multiplier, radius all must be numeric")
+  stop_withMessage(c(dir.exists(MCScanX.path), file.exists(),
+                     is.character(str2parse)),
+                   "str2parse must be a single character")
 
-  if(verbose)
+  MCScanX.tool <- file.path(MCScanX.path,"MCScanX")
+  stop_withMessage(c(is.logical(verbose),
+                     is.logical(clean.before.mcscanx)),
+                   "verbose and clean.before.mcscanx must be logical")
+  stop_withMessage(is.null(runFrom.pw.of) | file.exists(runFrom.pw.of),
+                   "verbose and clean.before.mcscanx must be logical")
+  of.cores <- as.integer(of.cores)
+  min.blockSize <- as.integer(min.blockSize)
+  gap.multiplier <- as.integer(gap.multiplier)
+  radius <- as.integer(radius)
+  #######################################################
+
+  #######################################################
+  if (verbose)
     cat("Importing gff annotations as data.tables ... \n")
   gff <- import_gff(gff.dir = dir.list$gff,
                     genomeIDs = genomeIDs)
-  if(verbose)
+  if (verbose)
     cat("\tDone!\n")
   #######################################################
 
   #######################################################
-  if(verbose)
+  if (verbose)
     cat("Running pairwise orthofinder calls ... \n")
   comb <- combn(genomeIDs, 2, simplify = F)
-  if(is.null(runFrom.pw.of)){
+  if (is.null(runFrom.pw.of)) {
     pw.of <- lapply(comb, function(x){
-      if(verbose)
+      if (verbose)
         cat(paste0("\t",x[1]), "<-->", x[2],"... ")
       out <- rerun_pairwiseOF(dirs = dir.list,
                               genomeIDs = x,
                               of.cores = 6,
                               gff = gff,
                               verbose = F)
-      if(verbose)
+      if (verbose)
         cat("Done!\n")
       return(out)
     })
-    if(verbose)
-      cat("Saving pairwise gff data.tables as", file.path(getwd(),"pw.of.rda"),"... ")
+    if (verbose)
+      cat("Saving pairwise gff data.tables as",
+          file.path(getwd(),"pw.of.rda"),"... ")
     save(pw.of, file = "pw.of1.rda")
 
-    if(verbose)
+    if (verbose)
       cat("Done!\n")
   }else{
     load(runFrom.pw.of)
   }
-
   #######################################################
 
   #######################################################
-  if(verbose)
+  if (verbose)
     cat("Merging pairwise hits with gff annotations\n")
   pw.map <- merge_ofGff(comb = comb,
                         pw.of = pw.of,
                         gff = gff,
                         dir.list = dir.list)
-  if(verbose)
+  if (verbose)
     cat("Done!\n")
   #######################################################
 
@@ -88,7 +118,7 @@ build_pwBlocks <- function(dir.list,
     cbind(genomeIDs,genomeIDs)))
   setnames(genome.dt, c("genome1","genome2"))
   pw.map <- merge(genome.dt, pw.map, by = c("genome1","genome2"))
-  if(clean.before.mcscanx){
+  if (clean.before.mcscanx) {
     cull.dbs <- clean_blocks(
       map = pw.map,
       n.mappings = min.blockSize,

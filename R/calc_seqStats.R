@@ -32,12 +32,15 @@ calc_seqStats <- function(geneIDs = NULL,
                           pal2nal.tool = "/Users/jlovell/Documents/comparative_genomics/programs/pal2nal.v14/pal2nal.pl",
                           verbose = T){
 
+  # -- since we do change the working directory, this ensures that we come back where we started
+  start.wd <- getwd()
+  on.exit(setwd(start.wd))
 
 
   tmp.dir <- dir.list$tmp
 
   if(clean){
-    unlink(dirs$tmp, recursive = T)
+    unlink(tmp.dir, recursive = T)
     dir.create(tmp.dir)
 
   }

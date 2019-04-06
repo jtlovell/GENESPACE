@@ -52,7 +52,7 @@ readRename_blastGenes <- function(gene.dict1,
                                   blast.file.out,
                                   verbose = T){
   d <- fread(blast.file.in, key = "V2")
-  if(verbose)
+  if (verbose)
     cat("Processing", nrow(d), "raw hits ")
   d <- merge(gene.dict2, d)
   setkey(d, V1)
@@ -65,11 +65,15 @@ readRename_blastGenes <- function(gene.dict1,
   setkey(d, V13)
   d <- d[!duplicated(d[,c("V1","V2")])]
   d$V13 <- NULL
-  if(verbose)
+  if (verbose)
     cat(paste0("(",nrow(d)," unique) "))
 
-  write.table(d, file = blast.file.out, sep = "\t",
-              row.names = F, col.names =F, quote = F)
+  write.table(d,
+              file = blast.file.out,
+              sep = "\t",
+              row.names = F,
+              col.names = F,
+              quote = F)
 }
 
 
@@ -79,23 +83,35 @@ readRename_blastGenes <- function(gene.dict1,
 #' @rdname pwof_utils
 #' @import data.table
 #' @export
-mirror_blast <- function(blast.file1, blast.file2, verbose = T){
+mirror_blast <- function(blast.file1,
+                         blast.file2,
+                         verbose = T){
   d1 <- fread(blast.file1, key = "V12")
   d2 <- fread(blast.file2, key = "V12")
-  d2 <- data.table(d2[,c(2,1,3:6,9:10,7:8,11:12)])
+  d2 <- data.table(d2[,c(2, 1, 3:6, 9:10, 7:8, 11:12)])
   setnames(d2, colnames(d1))
   d <- data.table(rbind(d1, d2), key = "V12")
-  if(verbose)
-    cat("Read in", nrow(d),"hits ... ")
+  if (verbose)
+    cat("Read in", nrow(d), "hits ... ")
 
-  do <- d[,tail(.SD, 1), by = list(V1, V2)]
-  if(verbose)
-    cat("Writing", nrow(do), "unique best hits ... ")
+  do <- d[ , tail(.SD, 1), by = list(V1, V2)]
+  if (verbose)
+    cat("Writing",
+        nrow(do),
+        "unique best hits ... ")
 
-  write.table(do, file = blast.file1, sep = "\t",
-              row.names = F, col.names =F, quote = F)
-  write.table(do[,c(2,1,3:6,9:10,7:8,11:12)], file = blast.file2, sep = "\t",
-              row.names = F, col.names =F, quote = F)
+  write.table(do,
+              file = blast.file1,
+              sep = "\t",
+              row.names = F,
+              col.names = F,
+              quote = F)
+  write.table(do[ ,c(2,1, 3:6, 9:10, 7:8, 11:12)],
+              file = blast.file2,
+              sep = "\t",
+              row.names = F,
+              col.names = F,
+              quote = F)
 }
 
 
@@ -230,15 +246,15 @@ cull_blastByScore <- function(blast.file.in,
                               maxn,
                               verbose = T){
   d <- fread(blast.file.in, key = "V12")
-  if(verbose)
+  if (verbose)
     cat("Read in", nrow(d),"hits ... ")
 
   do <- d[,tail(.SD, maxn), by = list(V1)]
-  if(verbose)
+  if (verbose)
     cat("Writing", nrow(do), "hits in the top", maxn, "... ")
 
   write.table(do, file = blast.file.out, sep = "\t",
-              row.names = F, col.names =F, quote = F)
+              row.names = F, col.names = F, quote = F)
 }
 
 #' @title merge_ofGff
@@ -255,15 +271,21 @@ merge_ofGff <- function(comb,
                         verbose = T){
 
   pw.of2 <- lapply(1:length(comb), function(i){
-    x = pw.of[[i]]
-    if(verbose)
-      cat(paste0("\t",comb[[i]][1]),"<-->", comb[[i]][2],"... ")
-    x[,n := length(unique(genome)), by = og]
+    x <- pw.of[[i]]
+    if (verbose)
+      cat(paste0("\t", comb[[i]][1]),
+          "<-->", comb[[i]][2], "... ")
+    x[ , n := length(unique(genome)), by = og]
     x <- subset(x, n > 1)
 
-    x$og.id <- paste0(comb[[i]][1],"_",comb[[i]][2],"_", as.numeric(as.factor(x$og)))
+    x$og.id <- paste0(comb[[i]][1], "_",
+                      comb[[i]][2], "_",
+                      as.numeric(as.factor(x$og)))
 
-    x$n <- NULL; x$order <- NULL; x$strand <- NULL; x$og <- NULL
+    x$n <- NULL
+    x$order <- NULL
+    x$strand <- NULL
+    x$og <- NULL
 
     x1 <- data.table(x)
     x2 <- data.table(x)
@@ -278,7 +300,7 @@ merge_ofGff <- function(comb,
                         genomeIDs = comb[[i]],
                         blast.dir = dir.list$blast,
                         verbose = F)
-    y2 <- data.table(y[, c(2, 1, 3:6, 9:10, 7:8, 11:12)])
+    y2 <- data.table(y[ , c(2, 1, 3:6, 9:10, 7:8, 11:12)])
     setnames(y2, colnames(y))
     y0 <- rbind(y, y2)
 
@@ -287,28 +309,33 @@ merge_ofGff <- function(comb,
 
     y$neg.score <- y$score * (-1)
     setkey(y, neg.score)
-    y <- y[!duplicated(y[,c("id1","id2")]),]
+    y <- y[!duplicated(y[ , c("id1","id2")]), ]
     y$neg.score <- NULL
 
-    if(verbose)
-      cat("initial hits =", nrow(y),"... ")
+    if (verbose)
+      cat("initial hits =", nrow(y), "... ")
     setkey(y, id2)
     out <- merge(x2, y)
     setkey(out, id1)
     out <- merge(x1, out)
     out <- subset(out, og.id1 == og.id2)
-    out$unique <- with(out, paste0(genome1, "_", genome2,".",comb[[i]][1], comb[[i]][2]))
-    if(verbose)
-      cat("found", sum(out$genome1 != out$genome2),"in orthogroups\n")
+    out$unique <- with(out,
+                       paste0(genome1, "_",
+                              genome2, ".", comb[[i]][1],
+                              comb[[i]][2]))
+    if (verbose)
+      cat("found",
+          sum(out$genome1 != out$genome2),
+          "in orthogroups\n")
     return(out)
   })
   map <- rbindlist(pw.of2)
   map$og.id2 <- NULL
-  setnames(map, "og.id1","og.id")
+  setnames(map, "og.id1", "og.id")
   map$unique.genome <- with(map, paste0(genome1, "_", genome2))
-  pw.info <- map[,c("unique.genome","unique")]
-  pw.info <- pw.info[!duplicated(pw.info$unique.genome),]
-  pw.map2 <- map[map$unique %in% pw.info$unique,]
+  pw.info <- map[ , c("unique.genome", "unique")]
+  pw.info <- pw.info[!duplicated(pw.info$unique.genome), ]
+  pw.map2 <- map[map$unique %in% pw.info$unique, ]
   return(pw.map2)
 }
 
@@ -323,19 +350,20 @@ read_allBlasts <- function(gff,
                            blast.dir,
                            subset2gff = F,
                            verbose = T){
-  if(verbose)
+  if (verbose)
     cat("Importing original orthofinder database ... ")
   ofdat <- import_ofResults(
     gff = gff,
     genomeIDs = genomeIDs,
     blast.dir = blast.dir,
     verbose = F)
-  if(verbose)
+
+  if (verbose)
     cat("Done!\n")
   of.geneIndex <- ofdat$gene.index
   of.blastFiles <- ofdat$species.mappings
   of.blastFiles <- subset(of.blastFiles, genome1 %in% genomeIDs & genome2 %in% genomeIDs)
-  if(verbose)
+  if (verbose)
     cat("Reading all blast files into memory ... ")
   all.blast <- rbindlist(lapply(of.blastFiles$filename, fread,
                                 col.names = c("gn1", "gn2", "perc.iden", "align.length",
@@ -343,20 +371,20 @@ read_allBlasts <- function(gff,
                                               "q.end", "s.start",
                                               "s.end", "eval", "score"),
                                 key = "gn2"))
-  if(verbose)
+  if (verbose)
     cat("Done!\nParsing results and merging with geneIDs ... ")
   of.geneIndex1 <- data.table(of.geneIndex)
   setnames(of.geneIndex1, c("gn1","id1"))
   setkey(of.geneIndex1, "gn1")
   of.geneIndex2 <- data.table(of.geneIndex)
-  setnames(of.geneIndex2, c("gn2","id2"))
+  setnames(of.geneIndex2, c("gn2", "id2"))
   setkey(of.geneIndex2, "gn2")
   m <- merge(of.geneIndex2, all.blast)
   setkey(m, "gn1")
   m <- merge(of.geneIndex1, m)
   m$gn1 <- NULL
   m$gn2 <- NULL
-  if(verbose)
+  if (verbose)
     cat("Done!\n")
   return(m)
 }
@@ -374,17 +402,18 @@ remake_ofInput <- function(dir.list,
                            max.dup = 2,
                            verbose = T){
   # -- Step 1. Reformat peptides etc.
-  if(dir.exists(dir.list$cull.score.blast))
-    unlink(dir.list$cull.score.blast, recursive = T)
+  if (dir.exists(dir.list$cull.score.blast))
+    unlink(dir.list$cull.score.blast,
+           recursive = T)
   dir.create(dir.list$cull.score.blast)
 
-  if(verbose)
+  if (verbose)
     cat("Preparing new orthofinder-formatted species ID database ... \n")
   make_newOFdb(tmp.dir = dir.list$tmp,
                cull.blast.dir = dir.list$cull.score.blast,
                peptide.dir = dir.list$peptide,
                genomeIDs = genomeIDs)
-  if(verbose)
+  if (verbose)
     cat("\tDone!\n")
   #######################################################
 
@@ -398,12 +427,15 @@ remake_ofInput <- function(dir.list,
   #######################################################
 
   #######################################################
-  if(verbose)
+  if (verbose)
     cat("Importing new and old orthofinder gene and species IDs ... ")
-  old.ids <- read_speciesIDs(of.dir = dir.list$blast, genomeIDs = genomeIDs)
-  new.ids <- read_speciesIDs(of.dir = dir.list$cull.score.blast, genomeIDs = genomeIDs)
-  id.db <- merge(old.ids, new.ids, by = "genome")
-  setnames(id.db,2:3,c("n.old","n.new"))
+  old.ids <- read_speciesIDs(of.dir = dir.list$blast,
+                             genomeIDs = genomeIDs)
+  new.ids <- read_speciesIDs(of.dir = dir.list$cull.score.blast,
+                             genomeIDs = genomeIDs)
+  id.db <- merge(old.ids, new.ids,
+                 by = "genome")
+  setnames(id.db, 2:3, c("n.old","n.new"))
   #
   map.db <- make_mapDB(id.db = id.db,
                        blast.dir = dir.list$blast,
@@ -414,8 +446,14 @@ remake_ofInput <- function(dir.list,
   genes <- merge(old.genes[,c("genome","id","gene.num")],
                  new.genes[,c("genome","id","gene.num")],
                  by = c("genome","id"))
-  g1 <- with(genes,  data.table(V1 = gene.num.x, new1 = gene.num.y, key = "V1"))
-  g2 <- with(genes,  data.table(V2 = gene.num.x, new2 = gene.num.y, key = "V2"))
+  g1 <- with(genes,
+             data.table(V1 = gene.num.x,
+                        new1 = gene.num.y,
+                        key = "V1"))
+  g2 <- with(genes,
+             data.table(V2 = gene.num.x,
+                        new2 = gene.num.y,
+                        key = "V2"))
   if (verbose)
     cat("\tDone!\n")
   #######################################################
@@ -425,43 +463,41 @@ remake_ofInput <- function(dir.list,
     cat("Reading blast file, replacing IDs and renaming ... \n")
 
   d <- lapply(1:nrow(map.db), function(i){
-    if(verbose)
-      cat(paste0("\t",map.db$genome1[i]),"-->",map.db$genome2[i],"... ")
-    bl <-readRename_blastGenes(gene.dict1 = g1,
+    if (verbose)
+      cat(paste0("\t", map.db$genome1[i]),
+          "-->", map.db$genome2[i], "... ")
+    bl <- readRename_blastGenes(gene.dict1 = g1,
                                gene.dict2 = g2,
                                blast.file.in = map.db$filename[i],
                                blast.file.out = map.db$new.filename[i])
-    if(verbose)
+    if (verbose)
       cat("Done!\n")
     return(bl)
   })
-
-  #######################################################
-
-
   #######################################################
 
   #######################################################
-  if(verbose)
+  if (verbose)
     cat("Culling blast by score ... \n")
 
-  map.db$score.filename <- file.path(dir.list$cull.score.blast, basename(map.db$new.filename))
+  map.db$score.filename <- file.path(dir.list$cull.score.blast,
+                                     basename(map.db$new.filename))
   bl <- lapply(1:nrow(map.db), function(i){
     s1 <- map.db$genome1[i]
     s2 <- map.db$genome2[i]
-    maxn <- (ploidy[s1]*max.dup)/2
+    maxn <- (ploidy[s1] * max.dup) / 2
     if(verbose)
-      cat(paste0("\t",s1),"-->",s2,"... ")
-    blast.file.in = map.db$new.filename[i]
-    blast.file.out = map.db$score.filename[i]
+      cat(paste0("\t", s1), "-->", s2, "... ")
+    blast.file.in <- map.db$new.filename[i]
+    blast.file.out <- map.db$score.filename[i]
     cull_blastByScore(blast.file.in = blast.file.in,
                       blast.file.out = blast.file.out,
                       maxn = maxn,
                       verbose = T)
-    if(verbose)
+    if (verbose)
       cat("Done!\n")
   })
-  if(verbose)
+  if (verbose)
     cat("\tDone!\n")
   return(map.db)
 }
