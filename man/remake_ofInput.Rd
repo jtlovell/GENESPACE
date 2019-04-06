@@ -2,7 +2,7 @@
 % Please edit documentation in R/remake_ofInput.R
 \name{remake_ofInput}
 \alias{remake_ofInput}
-\title{build pwBlocks}
+\title{remake_ofInput}
 \usage{
 remake_ofInput(dir.list, genomeIDs, ploidy, cull.blastByScore = T,
   max.dup = 2, verbose = T)
@@ -12,20 +12,13 @@ remake_ofInput(dir.list, genomeIDs, ploidy, cull.blastByScore = T,
 
 \item{genomeIDs}{genomeIDs}
 
+\item{ploidy}{named numeric vector corresponding to the genomeIDs}
+
+\item{cull.blastByScore}{should blasts be culled to the top hits?}
+
+\item{max.dup}{maximum ploidy / 2 multiplier}
+
 \item{verbose}{Should updates be printed?}
-
-\item{mcscan.dir}{path to the directory where MCScanX will be run}
-
-\item{gap.multiplier}{parameters to supply MCScanX}
-
-\item{MCScanX.path}{the path to the the MCScanX program. If in the path,
-just use "MCScanX".}
-
-\item{min.blockSize}{min.blockSize}
-
-\item{radius}{radius}
-
-\item{clean.before.mcscanx}{clean.before.mcscanx}
 
 \item{...}{Not currently in use}
 }
@@ -33,7 +26,7 @@ just use "MCScanX".}
 Nothing.
 }
 \description{
-\code{build_pwBlocks} build_pwBlocks
+\code{remake_ofInput} remake_ofInput
 }
 \details{
 ...

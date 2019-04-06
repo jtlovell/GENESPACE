@@ -1,17 +1,13 @@
-#' @title build pwBlocks
+#' @title remake_ofInput
 #'
 #' @description
-#' \code{build_pwBlocks} build_pwBlocks
+#' \code{remake_ofInput} remake_ofInput
 #'
 #' @param dir.list dir.list
 #' @param genomeIDs genomeIDs
-#' @param mcscan.dir path to the directory where MCScanX will be run
-#' @param gap.multiplier parameters to supply MCScanX
-#' @param MCScanX.path the path to the the MCScanX program. If in the path,
-#' just use "MCScanX".
-#' @param min.blockSize min.blockSize
-#' @param radius radius
-#' @param clean.before.mcscanx clean.before.mcscanx
+#' @param ploidy named numeric vector corresponding to the genomeIDs
+#' @param cull.blastByScore should blasts be culled to the top hits?
+#' @param max.dup maximum ploidy / 2 multiplier
 #' @param verbose Should updates be printed?
 #' @param ... Not currently in use
 #' @details ...
