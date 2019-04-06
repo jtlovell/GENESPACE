@@ -28,8 +28,7 @@ import_gff <- function(gff.dir,
                        whichAttr = 2){
   #######################################################
   # -- Error checking
-  stop_withMessage(c(dir.exists(gff.dir),
-                     missing(gff.dir)),
+  stop_withMessage(dir.exists(gff.dir) | missing(gff.dir),
                    paste(gff.dir, "does not exist"))
   stop_withMessage(c(is.character(genomeIDs),
                      length(genomeIDs) > 1,
