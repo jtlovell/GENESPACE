@@ -30,9 +30,9 @@ import_gff <- function(gff.dir,
   # -- Error checking
   stop_withMessage(dir.exists(gff.dir) | missing(gff.dir),
                    paste(gff.dir, "does not exist"))
-  stop_withMessage(c(is.character(genomeIDs),
-                     length(genomeIDs) > 1,
-                     missing(genomeIDs)),
+  stop_withMessage(all(c(is.character(genomeIDs),
+                         length(genomeIDs) > 1)) |
+                     missing(genomeIDs),
                    "genomeIDs must be a character vector of length > 1")
   stop_withMessage(is.numeric(whichAttr),
                    "whichAttr must be an integer")
