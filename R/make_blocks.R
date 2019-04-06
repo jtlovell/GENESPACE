@@ -29,6 +29,8 @@ make_blocks <- function(map,
                         clean.columns = T,
                         ties.method = "dense",
                         ...){
+
+
   if(clean.columns){
     cols2keep <- c("block.id", "orthogroup",
                    "genome1", "genome2",
@@ -40,12 +42,14 @@ make_blocks <- function(map,
     cols2keep <- cols2keep[cols2keep %in% colnames(map)]
     map <- map[,cols2keep, with = F]
   }
+
   map <- data.table(map)
   if (rename.blocks) {
     map$block.id <- as.numeric(as.factor(with(map, paste(genome1, genome2, block.id))))
   }
 
   setkey(map, chr1, chr2, start1, start2)
+
   if (rerank) {
     map[,rank1 := frank(start1,
                         ties.method = ties.method),
@@ -54,6 +58,7 @@ make_blocks <- function(map,
                         ties.method = ties.method),
         by = list(genome1, genome2, chr2)]
   }
+
   if (drop.NAs) {
     map <- map[complete.cases(map),]
   }
