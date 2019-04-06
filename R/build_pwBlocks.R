@@ -38,9 +38,9 @@ build_pwBlocks <- function(dir.list,
   # -- Error checking
   stop_withMessage(c(dir.exists(unlist(dir.list))),
                    paste(dir.list[!dir.exists(unlist(dir.list))], "does not exist"))
-  stop_withMessage(c(is.character(genomeIDs),
-                     length(genomeIDs) > 1,
-                     missing(genomeIDs)),
+  stop_withMessage(is.character(genomeIDs) &
+                     length(genomeIDs) > 1 |
+                     missing(genomeIDs),
                    "genomeIDs must be a character vector of length > 1")
   stop_withMessage(c(is.numeric(of.cores),
                      is.numeric(min.blockSize),
