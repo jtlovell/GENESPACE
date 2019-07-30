@@ -4,7 +4,7 @@
 \alias{convert_genomes}
 \title{Move and organize raw genome data}
 \usage{
-convert_genomes(genomeIDs, directory,
+convert_genomes(genomeIDs, directory, peptide.only = F,
   peptide_str = "protein_primaryTranscriptOnly",
   cds_str = "cds_primaryTranscriptOnly", gff_str = "gene.gff3",
   parse_fastaHeader.FUN = function(y) strsplit(gsub(".*locus=", "", y),
@@ -37,43 +37,7 @@ The function does not return anything to the R console.
 for the GENESPACE pipeline
 }
 \details{
-While this is not required, GENESPACE needs very specific
-formating of the annotations files in an exact subdirectory structure.
-See documentation for `check_environment` for more information. `convert_genomes`
-makes the formatting for the program easier and ensures that subdirectory
-structure is correct.
-To run this succesfully, the input directory must contain the following
-subdirectories
- \itemize{
-   \item{**raw_assembly**: which contains a single fasta file for each
-   entry in `genomeIDs``, named $genomeID.fa.}
-   \item{**raw_annotation**: which contains a single subdirectory for each
-   entry in `genomeIDs``, named $genomeID. Within each subdirectory, there
-   needs to be four annotations files : the cds.fasta, peptide.fasta,
-   annotation.gff3 and transcript.fasta.}
- }
-
-The function runs the following steps:
-\enumerate{
-  \item{**Makes necessary subdirectories**: GENESPACE needs a subdirectory
-  called `genome`, which contains the assemblies, gff annotations and the
-  three annotation fasta files.}
-  \item{**Copies annotation files**: Within each genomeIDs `raw_annotation`
-  subdirectory, searches for the file containing the `gff_str`, `cds_str`,
-  `peptide_str`. The files containing these strings
-  are copied into the `genome/gff`, `genome/cds`, `genome/peptide` subdirectories, then renamed with each genomeIDs.}
-  \item{**Copies assembly files**: The assembly files are copied as is
-  into the `genome/assembly` subdirectory. Then, `samtools faidx` is
-  called to index the assembly.}
-  \item{**Rename annotation fasta headers**: Often the fasta headers
-  in annotation files contain a lot of information aside from the
-  gene identifier. To speed up downstream analysis, we want to subset
-  annotation files on exact matches with gff gene IDs. To do this, we
-  simply parse the fasta headers through the function specified in
-  `parse_fastaHeader.FUN`. By default, this drops all text before the
-  first occurance of '*locus=', then takes the first whitespace-separated
-  entry in the header.}
-}
+...
 }
 \examples{
 \dontrun{

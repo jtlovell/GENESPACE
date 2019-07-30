@@ -3,52 +3,67 @@
 #' @description
 #' \code{remake_ofInput} remake_ofInput
 #'
-#' @param dir.list dir.list
-#' @param genomeIDs genomeIDs
-#' @param ploidy named numeric vector corresponding to the genomeIDs
-#' @param cull.blastByScore should blasts be culled to the top hits?
-#' @param max.dup maximum ploidy / 2 multiplier
-#' @param verbose Should updates be printed?
-#' @param ... Not currently in use
+#' @param genomeIDs character, genome identifiers
+#' @param ploidy named integer vector, of length equal to genomeIDs, and named
+#' with each genome ID.
+#' @param dir.list list, containing paths to relevant directories.
+#' @param max.dup integer, n top hits to retain for each gene.
+#' @param verbose should updates be printed?
+#' @param ... Additional arguments passed on to import_gff
 #' @details ...
-#' @return Nothing.
+#' @return The function does not return anything to the R console.
 #'
 #' @examples
 #' \dontrun{
 #' none yet
 #' }
 #' @import data.table
-#' @importFrom utils combn
 #' @export
 remake_ofInput <- function(dir.list,
                            genomeIDs,
-                           ploidy,
-                           cull.blastByScore = T,
+                           ploidy = NULL,
+                           run.of = F,
+                           gff = NULL,
                            max.dup = 2,
-                           verbose = T){
-  # -- Step 1. Reformat peptides etc.
+                           n.cores = 1,
+                           verbose = T,
+                           ...){
+
+  if (dir.exists(dir.list$cull.blast))
+    unlink(dir.list$cull.blast, recursive = T)
+  dir.create(dir.list$cull.blast)
+
   if (dir.exists(dir.list$cull.score.blast))
-    unlink(dir.list$cull.score.blast,
-           recursive = T)
+    unlink(dir.list$cull.score.blast, recursive = T)
   dir.create(dir.list$cull.score.blast)
+
+  if (dir.exists(dir.list$tmp))
+    unlink(dir.list$tmp, recursive = T)
+  dir.create(dir.list$tmp)
 
   if (verbose)
     cat("Preparing new orthofinder-formatted species ID database ... \n")
   make_newOFdb(tmp.dir = dir.list$tmp,
-               cull.blast.dir = dir.list$cull.score.blast,
+               cull.blast.dir = dir.list$cull.blast,
                peptide.dir = dir.list$peptide,
                genomeIDs = genomeIDs)
+  fs <- list.files(dir.list$cull.blast, full.names = T)
+  cpd <- file.copy(fs, dir.list$cull.score.blast)
   if (verbose)
     cat("\tDone!\n")
   #######################################################
 
   #######################################################
-  if (verbose)
-    cat("Importing gff annotations as a data.table ... \n")
-  gff <- import_gff(gff.dir = dir.list$gff,
-                    genomeIDs = genomeIDs)
-  if (verbose)
-    cat("\tDone!\n")
+  if(is.null(gff)){
+    if (verbose)
+      cat("Importing gff annotations as a data.table ... \n")
+    gff <- import_gff(gff.dir = dir.list$gff,
+                      genomeIDs = genomeIDs,
+                      ...)
+    if (verbose)
+      cat("\tDone!\n")
+  }
+
   #######################################################
 
   #######################################################
@@ -56,18 +71,19 @@ remake_ofInput <- function(dir.list,
     cat("Importing new and old orthofinder gene and species IDs ... ")
   old.ids <- read_speciesIDs(of.dir = dir.list$blast,
                              genomeIDs = genomeIDs)
-  new.ids <- read_speciesIDs(of.dir = dir.list$cull.score.blast,
+  new.ids <- read_speciesIDs(of.dir = dir.list$cull.blast,
                              genomeIDs = genomeIDs)
-  id.db <- merge(old.ids, new.ids,
-                 by = "genome")
-  setnames(id.db, 2:3, c("n.old","n.new"))
+  id.db <- merge(old.ids, new.ids, by = "genome")
+  setnames(id.db,2:3,c("n.old","n.new"))
   #
   map.db <- make_mapDB(id.db = id.db,
                        blast.dir = dir.list$blast,
-                       cull.blast.dir = dir.list$cull.score.blast)
+                       cull.blast.dir = dir.list$cull.blast)
   #
-  old.genes <- read_geneIDs(of.dir = dir.list$blast, gff = gff)
-  new.genes <- read_geneIDs(of.dir = dir.list$cull.score.blast, gff = gff)
+  old.genes <- read_geneIDs(of.dir = dir.list$blast,
+                            gff = gff)
+  new.genes <- read_geneIDs(of.dir = dir.list$cull.blast,
+                            gff = gff)
   genes <- merge(old.genes[,c("genome","id","gene.num")],
                  new.genes[,c("genome","id","gene.num")],
                  by = c("genome","id"))
@@ -84,13 +100,12 @@ remake_ofInput <- function(dir.list,
   #######################################################
 
   #######################################################
-  if(verbose)
+  if (verbose)
     cat("Reading blast file, replacing IDs and renaming ... \n")
 
   d <- lapply(1:nrow(map.db), function(i){
     if (verbose)
-      cat(paste0("\t", map.db$genome1[i]),
-          "-->", map.db$genome2[i], "... ")
+      cat(paste0("\t",map.db$genome1[i]),"-->",map.db$genome2[i],"... ")
     bl <- readRename_blastGenes(gene.dict1 = g1,
                                 gene.dict2 = g2,
                                 blast.file.in = map.db$filename[i],
@@ -99,22 +114,24 @@ remake_ofInput <- function(dir.list,
       cat("Done!\n")
     return(bl)
   })
+  if (verbose)
+    cat("\tDone!\n")
+
   #######################################################
 
   #######################################################
   if (verbose)
     cat("Culling blast by score ... \n")
-
   map.db$score.filename <- file.path(dir.list$cull.score.blast,
                                      basename(map.db$new.filename))
   bl <- lapply(1:nrow(map.db), function(i){
     s1 <- map.db$genome1[i]
     s2 <- map.db$genome2[i]
-    maxn <- (ploidy[s1] * max.dup) / 2
-    if(verbose)
-      cat(paste0("\t", s1), "-->", s2, "... ")
-    blast.file.in <- map.db$new.filename[i]
-    blast.file.out <- map.db$score.filename[i]
+    maxn <- (ploidy[s2]*max.dup)/2
+    if (verbose)
+      cat(paste0("\t",s1),"-->",s2,"... ")
+    blast.file.in = map.db$new.filename[i]
+    blast.file.out = map.db$score.filename[i]
     cull_blastByScore(blast.file.in = blast.file.in,
                       blast.file.out = blast.file.out,
                       maxn = maxn,
@@ -122,7 +139,8 @@ remake_ofInput <- function(dir.list,
     if (verbose)
       cat("Done!\n")
   })
+
   if (verbose)
     cat("\tDone!\n")
-  return(map.db)
+  return(list(files = map.db, gff = gff))
 }

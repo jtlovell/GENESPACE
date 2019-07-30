@@ -1,7 +1,7 @@
 Package: GENESPACE
 Type: Package
 Title: Gene-space Alignments of Whole-Genome Sequence Data
-Version: 0.3.0
+Version: 0.4.1
 Author: JT Lovell
 Maintainer: JT Lovell <jlovell@hudsonalpha.org>
 Description: Collinear blocks are formed from parsed BLAST results 
@@ -11,11 +11,7 @@ Description: Collinear blocks are formed from parsed BLAST results
       that include both annotated and unannotated gene sequence variation. 
 Depends: data.table
 Imports: dbscan,
-  parallel,
-  GenomicRanges,
-  Biostrings,
-  circlize,
-  compiler
+  Biostrings
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true

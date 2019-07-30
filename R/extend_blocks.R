@@ -12,10 +12,7 @@
 #' 'order' (gene order within that genome).
 #' @param blast the blast dataset to screen for syntenic hits
 #' @param n.iter Number of iterations to run
-#' @param plotit Logical, should plots be made? Will not work with
-#' n.core > 1.
 #' @param rank.buffer The buffer, in gene rank order.
-#' @param n.cores Number of parallel processes to run, when possible
 #' @param radius Numeric, length of 1, specifiying the
 #' radius to search for hits. Passed to clean_blocks
 #' @param n.mappings Numeric, length of 1, specifiying the
@@ -37,20 +34,13 @@
 extend_blocks <- function(map,
                           gff,
                           blast,
+                          genomeIDs,
                           n.iter = 1,
                           rank.buffer = 250,
                           verbose = TRUE,
-                          plotit = FALSE,
-                          clean.it = TRUE,
-                          n.cores = 1,
+                          clean.it = FALSE,
                           radius = 10,
-                          n.mappings = 5,
-                          ...){
-
-  actually.plotit <- FALSE
-  if (!clean.it) {
-    n.iter <- 1
-  }
+                          n.mappings = 5){
 
   if (verbose)
     cat("Culling by pairwise genome comparison ...\n")
@@ -58,33 +48,40 @@ extend_blocks <- function(map,
     if (verbose & n.iter > 1)
       cat("Iteration", i, ":\n")
 
-    if (plotit & i == n.iter) {
-      actually.plotit <- TRUE
-    }
     toclean <- cull_syntenicBlast(gff = gff,
                                   map = map,
                                   blast = blast,
-                                  plotit = actually.plotit,
                                   rank.buffer = rank.buffer,
-                                  verbose = verbose,
-                                  n.cores = n.cores,
-                                  ...)
-    toclean$rank1 <- NULL
-    toclean$rank2 <- NULL
+                                  verbose = verbose)
+    toclean <- toclean[!duplicated(toclean[,c("id1","id2")]),]
+    out <- make_blocks(toclean, rename.blocks = F)
     if (clean.it) {
-      out <- clean_blocks(map = toclean,
+      out <- clean_blocks(map = out$map,
                           radius = radius,
-                          n.mappings = n.mappings,
-                          n.cores = n.cores)
-      map <- out$map
-    } else {
-      setkey(blast, id1, id2)
-      syn.ids <- toclean[ ,c("id1", "id2")]
-      setkey(blast, id1, id2)
-      setkey(syn.ids, id1, id2)
-      out <- merge(syn.ids, blast)
+                          genomeIDs = genomeIDs,
+                          n.mappings = n.mappings)
     }
-  }
+    map <- data.table(out$map)
 
-  return(out)
+    wh1 <- grep("1$", colnames(map))
+    wh2 <- grep("2$", colnames(map))
+    who <- which(!grepl("1$|2$", colnames(map)))
+
+    n1 <- colnames(map)[wh1]
+    n2 <- colnames(map)[wh2]
+    no <- colnames(map)[who]
+    m1 <- map[,c(n1,n2,no), with = F]
+    m2 <- map[,c(n2,n1,no), with = F]
+    setnames(m2, c(n1,n2,no))
+    mt <- rbind(m1, m2)
+
+    map <- make_blocks(mt[!duplicated(mt[,c("id1","id2")]),], clean.columns = F)
+  }
+  ids.syn <- paste(map$id1, map$id2)
+  ns <- subset(blast, !(paste(id1, id2) %in% ids.syn |
+                         paste(id2, id1) %in% ids.syn))
+
+  return(list(map = out$map,
+              block = out$block,
+              non.syn.blast = ns))
 }

@@ -4,11 +4,9 @@
 \alias{clean_blocks}
 \title{Clean form_syntenicBlocks output}
 \usage{
-clean_blocks(map, rerank = TRUE, radius = c(10, 100, 10),
-  n.mappings = c(5, 20, 5), n.cores = 1, clean.by.unique.genes = T,
-  min.unique.genes = ceiling(n.mappings/2),
-  min.unique.og = ceiling(n.mappings/2), clean.by.og = F,
-  clean.columns = T, verbose = T, ...)
+clean_blocks(map, genomeIDs, rerank = TRUE, radius = 100,
+  n.mappings = 10, verbose = TRUE, by.blk = F, final.n.mapping = 2,
+  final.radius = 2, ...)
 }
 \arguments{
 \item{map}{the map data.table or data.frame}
@@ -19,9 +17,14 @@ clean_blocks(map, rerank = TRUE, radius = c(10, 100, 10),
 
 \item{n.mappings}{numeric, how many mappings are required for a cluster?}
 
-\item{n.cores}{The number of parallel processes to run.}
+\item{verbose}{logical, should updates be printed?}
+
+\item{...}{Not currently in use}
 
 \item{clean.by.unique.genes}{Logical, should blocks with few unique genes
+be culled?}
+
+\item{clean.by.og}{Logical, should blocks with few unique orthogroups
 be culled?}
 
 \item{min.unique.genes}{numeric, legnth 1, if clean.by.unique.genes,
@@ -30,15 +33,10 @@ this is the number of unique genes needed for a block to be kept.}
 \item{min.unique.og}{numeric, legnth 1, if clean.by.og,
 this is the number of unique orthogroups needed for a block to be kept.}
 
-\item{clean.by.og}{Logical, should blocks with few unique orthogroups
-be culled?}
-
 \item{clean.columns}{logical, should extrac columns be dropped when
 blocks are generated? Passed to make_blocks. Can speed things up.}
 
-\item{verbose}{logical, should updates be printed?}
-
-\item{...}{Not currently in use}
+\item{n.cores}{The number of parallel processes to run.}
 }
 \value{
 A list of length 2, block and map, as output by make_blocks.

@@ -14,99 +14,25 @@
 #' @param parse_fastaHeader.FUN The function to be used to parse the fasta headers.
 #' @param verbose should updates be printed?
 #' @param ... Not currently in use
-#' @details While this is not required, GENESPACE needs very specific
-#' formating of the annotations files in an exact subdirectory structure.
-#' See documentation for `check_environment` for more information. `convert_genomes`
-#' makes the formatting for the program easier and ensures that subdirectory
-#' structure is correct.
-#' To run this succesfully, the input directory must contain the following
-#' subdirectories
-#'  \itemize{
-#'    \item{**raw_assembly**: which contains a single fasta file for each
-#'    entry in `genomeIDs``, named $genomeID.fa.}
-#'    \item{**raw_annotation**: which contains a single subdirectory for each
-#'    entry in `genomeIDs``, named $genomeID. Within each subdirectory, there
-#'    needs to be four annotations files : the cds.fasta, peptide.fasta,
-#'    annotation.gff3 and transcript.fasta.}
-#'  }
-#'
-#' The function runs the following steps:
-#' \enumerate{
-#'   \item{**Makes necessary subdirectories**: GENESPACE needs a subdirectory
-#'   called `genome`, which contains the assemblies, gff annotations and the
-#'   three annotation fasta files.}
-#'   \item{**Copies annotation files**: Within each genomeIDs `raw_annotation`
-#'   subdirectory, searches for the file containing the `gff_str`, `cds_str`,
-#'   `peptide_str`. The files containing these strings
-#'   are copied into the `genome/gff`, `genome/cds`, `genome/peptide` subdirectories, then renamed with each genomeIDs.}
-#'   \item{**Copies assembly files**: The assembly files are copied as is
-#'   into the `genome/assembly` subdirectory. Then, `samtools faidx` is
-#'   called to index the assembly.}
-#'   \item{**Rename annotation fasta headers**: Often the fasta headers
-#'   in annotation files contain a lot of information aside from the
-#'   gene identifier. To speed up downstream analysis, we want to subset
-#'   annotation files on exact matches with gff gene IDs. To do this, we
-#'   simply parse the fasta headers through the function specified in
-#'   `parse_fastaHeader.FUN`. By default, this drops all text before the
-#'   first occurance of '*locus=', then takes the first whitespace-separated
-#'   entry in the header.}
-#' }
+#' @details ...
 #' @return The function does not return anything to the R console.
 #'
 #' @examples
 #' \dontrun{
 #' none yet
 #' }
-#' @importFrom compiler cmpfun
 #' @importFrom Biostrings readAAStringSet readDNAStringSet writeXStringSet
 #' @export
 convert_genomes <- function(genomeIDs,
-                           directory,
-                           peptide_str = "protein_primaryTranscriptOnly",
-                           cds_str = "cds_primaryTranscriptOnly",
-                           gff_str = "gene.gff3",
-                           parse_fastaHeader.FUN = function(y)
-                             strsplit(gsub(".*locus=", "", y)," ")[[1]][1],
-                           verbose = T,
-                           ...){
-  #######################################################
-  #######################################################
-  parse_fastaHeader <- function(fasta.dir,
-                                is.peptide = T,
-                                pattern = "fa",
-                                verbose = T,
-                                parse_fastaHeader.FUN,
-                                ...){
-
-    files <- list.files(fasta.dir,
-                        pattern = pattern,
-                        full.names = T)
-
-    if (verbose)
-      cat("Renaming fasta headers ...\n")
-    ss <- lapply(files, function(i){
-      if (verbose)
-        cat("...", i, "\n\t")
-      if (is.peptide) {
-        x <- readAAStringSet(i)
-      }else{
-        x <- readDNAStringSet(i)
-      }
-      if (verbose)
-        cat("original names (e.g.):",
-            names(x)[1])
-      names(x) <- sapply(names(x), parse_fastaHeader.FUN)
-      if (verbose)
-        cat("\n\tparsed names (e.g.):",
-            names(x)[1],"\n")
-      writeXStringSet(x, filepath = i)
-    })
-  }
-  #######################################################
-  #######################################################
-  parse_fastaHeader <- cmpfun(parse_fastaHeader)
-  #######################################################
-  #######################################################
+                            directory,
+                            peptide.only = F,
+                            peptide_str = "protein_primaryTranscriptOnly",
+                            cds_str = "cds_primaryTranscriptOnly",
+                            gff_str = "gene.gff3",
+                            parse_fastaHeader.FUN = function(y)
+                              strsplit(gsub(".*locus=", "", y)," ")[[1]][1],
+                            verbose = T,
+                            ...){
 
   raw_assembly.dir <- file.path(directory, "raw_assemblies")
   raw_annot.dir <- file.path(directory, "raw_annotations")
@@ -115,13 +41,21 @@ convert_genomes <- function(genomeIDs,
   if (!all(genomeIDs %in% dir(raw_annot.dir)))
     stop("all specified genomeIDs must be folder names in raw_annot.dir\n")
 
-  strs <- c(peptide_str,
-            cds_str,
-            gff_str)
-  names(strs) <- c("peptide","cds","gff")
+  if(peptide.only){
+    strs <- c(peptide_str,
+              gff_str)
+    names(strs) <- c("peptide","gff")
+  }else{
+    strs <- c(peptide_str,
+              cds_str,
+              gff_str)
+    names(strs) <- c("peptide","cds","gff")
+  }
+
+
   file.lists <- sapply(names(strs), USE.NAMES = T, simplify = F, function(j){
     sapply(genomeIDs, function(i){
-        list.files(file.path(raw_annot.dir, i),
+      list.files(file.path(raw_annot.dir, i),
                  pattern = strs[j], full.names = T)
     })
   })
@@ -134,16 +68,20 @@ convert_genomes <- function(genomeIDs,
 
   # 1. make the directories
   input.dir <- file.path(directory, "genome")
-  if (!file.exists(input.dir)) {
-    system(paste("mkdir", input.dir))
+  if (file.exists(input.dir))
+    unlink(input.dir, recursive = T)
+  dir.create(input.dir)
+
+  if(peptide.only){
+    ftypes <- c("peptide",
+                "gff")
   }else{
-    system(paste("rm -r", input.dir))
-    system(paste("mkdir", input.dir))
+    ftypes <- c("peptide",
+                "cds",
+                "gff",
+                "assembly")
   }
-  ftypes <- c("peptide",
-              "cds",
-              "gff",
-              "assembly")
+
 
   subdirs <- sapply(ftypes, USE.NAMES = T, simplify = F, function(x){
     fp <- file.path(input.dir, x)
@@ -173,33 +111,42 @@ convert_genomes <- function(genomeIDs,
   }
 
   # 3. Index genomes
-  if (verbose)
-    cat("Moving and indexing assembly fastas\n")
+  if(!peptide.only){
+    if (verbose)
+      cat("Moving and indexing assembly fastas\n")
 
-  assem.dir <- subdirs[["assembly"]]
-  ass.file <- file.path(raw_assembly.dir,paste0(genomeIDs,".fa"))
-  nu <- file.copy(ass.file,
-                  assem.dir)
+    assem.dir <- subdirs[["assembly"]]
+    ass.file <- file.path(raw_assembly.dir,paste0(genomeIDs,".fa"))
+    nu <- file.copy(ass.file,
+                    assem.dir)
 
-  fais <- list.files(assem.dir,
-                    pattern = ".fai$",
-                    full.names = T)
-  if (length(fais) > 0)
-    nu <- file.remove(fais)
+    fais <- list.files(assem.dir,
+                       pattern = ".fai$",
+                       full.names = T)
+    if (length(fais) > 0)
+      nu <- file.remove(fais)
 
-  assem.fas <- list.files(assem.dir,
-                          pattern = ".fa$",
-                          full.names = T)
-  for (i in assem.fas)
-    system(paste("samtools faidx", i))
+    assem.fas <- list.files(assem.dir,
+                            pattern = ".fa$",
+                            full.names = T)
+    if (Sys.which("samtools") == "") {
+      warning("samtools is not in the path, keep in mind that indexed assemblies are required for pseudogene inference.\n")
+    }else{
+      for (i in assem.fas)
+        system(paste("samtools faidx", i))
+    }
+  }
+
 
   # 4. re-name annotation fastas with gene name (not model).
   if (verbose)
     cat("Renaming annotation fasta headers\n")
-  tmp <- parse_fastaHeader(fasta.dir = subdirs$cds,
-                           is.peptide = F,
-                           verbose = F,
-                           parse_fastaHeader.FUN = parse_fastaHeader.FUN)
+  if(!peptide.only){
+    tmp <- parse_fastaHeader(fasta.dir = subdirs$cds,
+                             is.peptide = F,
+                             verbose = F,
+                             parse_fastaHeader.FUN = parse_fastaHeader.FUN)
+  }
 
   tmp <- parse_fastaHeader(fasta.dir = subdirs$peptide,
                            is.peptide = T,

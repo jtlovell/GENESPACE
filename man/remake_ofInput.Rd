@@ -4,26 +4,25 @@
 \alias{remake_ofInput}
 \title{remake_ofInput}
 \usage{
-remake_ofInput(dir.list, genomeIDs, ploidy, cull.blastByScore = T,
-  max.dup = 2, verbose = T)
+remake_ofInput(dir.list, genomeIDs, ploidy = NULL, run.of = F,
+  gff = NULL, max.dup = 2, n.cores = 1, verbose = T, ...)
 }
 \arguments{
-\item{dir.list}{dir.list}
+\item{dir.list}{list, containing paths to relevant directories.}
 
-\item{genomeIDs}{genomeIDs}
+\item{genomeIDs}{character, genome identifiers}
 
-\item{ploidy}{named numeric vector corresponding to the genomeIDs}
+\item{ploidy}{named integer vector, of length equal to genomeIDs, and named
+with each genome ID.}
 
-\item{cull.blastByScore}{should blasts be culled to the top hits?}
+\item{max.dup}{integer, n top hits to retain for each gene.}
 
-\item{max.dup}{maximum ploidy / 2 multiplier}
+\item{verbose}{should updates be printed?}
 
-\item{verbose}{Should updates be printed?}
-
-\item{...}{Not currently in use}
+\item{...}{Additional arguments passed on to import_gff}
 }
 \value{
-Nothing.
+The function does not return anything to the R console.
 }
 \description{
 \code{remake_ofInput} remake_ofInput

@@ -19,13 +19,13 @@
 #' }
 #' @import data.table
 #' @export
-pull_orthoNet <- function(blast,
+pull_orthoNet <- function(map,
                           genomeIDs,
                           drop.tandems = F,
                           verbose = T){
 
-  blast <- blast[blast$genome1 %in% genomeIDs &
-                   blast$genome2 %in% genomeIDs,]
+  blast <- map[map$genome1 %in% genomeIDs &
+                 map$genome2 %in% genomeIDs,]
 
   if (!"array.id" %in% colnames(blast)) {
     drop.tandems <- FALSE
@@ -51,7 +51,7 @@ pull_orthoNet <- function(blast,
   bl <- with(blast,
              data.table(genome = c(genome1, genome2),
                         id = c(id1, id2),
-                        og = c(og1, og2),
+                        og.id = c(og.id, og.id),
                         score = c(score, score)))
   bl <- bl[!duplicated(bl[,-4,with = F]),]
   bl$genome <- factor(bl$genome, levels = genomeIDs)
@@ -60,17 +60,17 @@ pull_orthoNet <- function(blast,
 
   if (verbose)
     cat("Ranking hits by score ... ")
-  bl[,rank := frank(score*(-1), ties.method = "random"),
-     by = list(genome, og)]
+  bl[,rank := frank(-score, ties.method = "random"),
+     by = list(genome, og.id)]
   if (verbose)
     cat("Done!\n")
 
   if (verbose)
     cat("Counting hits by genome and orthogroup ... ")
   bll <- bl[,list(count = .N),
-            by = list(genome, og)]
+            by = list(genome, og.id)]
 
-  out <- dcast(bll, og ~ genome, value.var = "count")
+  out <- dcast(bll, og.id ~ genome, value.var = "count")
   out[is.na(out)] <- 0
 
   out$comb <- apply(out[,-1,with = F], 1, function(x) paste(x, collapse = "_"))
@@ -87,11 +87,11 @@ pull_orthoNet <- function(blast,
   names(spl) <- ns
 
   outl <- lapply(spl, function(x){
-    tmp <- bl[bl$og %in% x$og,]
-    tmpw <- dcast(tmp, og ~ genome + rank, value.var = "id")
+    tmp <- bl[bl$og.id %in% x$og.id,]
+    tmpw <- dcast(tmp, og.id ~ genome + rank, value.var = "id")
     return(tmpw)
   })
-  if(verbose)
+  if (verbose)
     cat("Done!\n")
 
   return(outl)

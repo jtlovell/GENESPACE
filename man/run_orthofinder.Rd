@@ -2,49 +2,36 @@
 % Please edit documentation in R/run_orthofinder.R
 \name{run_orthofinder}
 \alias{run_orthofinder}
-\title{Run the orthofinder program}
+\title{Run orthofinder from R}
 \usage{
-run_orthofinder(peptide.dir = NULL, tmp.dir, blast.dir,
-  blast.threads = 16, og.threads = 1, verbose = T, og.silent = F,
-  remake.pep.only = F, ...)
+run_orthofinder(peptide.dir, tmp.dir, blast.dir, blast.threads = 16,
+  og.threads = 1, verbose = T)
 }
 \arguments{
-\item{peptide.dir}{The path to the directory containing
-the peptide fasta sequence files. If NULL, the orthofinder algorithm is
-run on pre-existing blast results.}
+\item{peptide.dir}{file.path to the directory storing peptide fastas}
 
-\item{tmp.dir}{The path to the directory where temporary
-files will be stored then deleted}
+\item{tmp.dir}{file.path to the temporary directory}
 
-\item{blast.dir}{The path to the directory where the blast
-results should be stored}
+\item{blast.dir}{file.path to the directory to store blast results}
 
-\item{blast.threads}{Numeric, how many parallel threads
-should be used for blast?}
+\item{blast.threads}{Integer, specifying the number of parallel threads to use for
+the blasts algorithm}
 
-\item{og.threads}{Numeric, how many parallel threads
-should be used for orthogroup construction}
+\item{og.threads}{Integer, specifying the number of parallel threads to use for
+the orthofinder algorithm}
 
-\item{verbose}{Logical, should updates be printed.}
-
-\item{og.silent}{Logical, should orthofinder stout be suppressed?}
-
-\item{remake.pep.only}{Logical, should the process be stopped once peptide
-files are re-formatted?}
+\item{verbose}{logical, should updates be printed?}
 
 \item{...}{Not currently in use}
 }
 \value{
-Nothing, writes results to the blast.dir directory
+Nothing
 }
 \description{
-\code{run_orthofinder} A simple wrapper to run orthofinder from R.
+\code{run_orthofinder} Utility function to run orthofinder
 }
 \details{
-To run successfully, the peptide directory must be populated with a set of
-primary gene model peptide sequences. R must also be called from an environment
-with orthofinder and diamond program paths specified. Diamond paramters (e.g. number of
-cores to use, etc.) must be specified within orthofinders parameter file.
+...
 }
 \examples{
 \dontrun{
