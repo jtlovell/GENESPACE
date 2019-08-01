@@ -8,7 +8,7 @@ convert_genomes(genomeIDs, directory, peptide.only = F,
   peptide_str = "protein_primaryTranscriptOnly",
   cds_str = "cds_primaryTranscriptOnly", gff_str = "gene.gff3",
   parse_fastaHeader.FUN = function(y) strsplit(gsub(".*locus=", "", y),
-  " ")[[1]][1], verbose = T, ...)
+  " ")[[1]][1], verbose = T)
 }
 \arguments{
 \item{genomeIDs}{genome identifiers}
@@ -26,8 +26,6 @@ below.}
 \item{parse_fastaHeader.FUN}{The function to be used to parse the fasta headers.}
 
 \item{verbose}{should updates be printed?}
-
-\item{...}{Not currently in use}
 }
 \value{
 The function does not return anything to the R console.

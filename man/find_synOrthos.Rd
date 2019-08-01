@@ -5,8 +5,10 @@
 \title{Synteny-constrained orthology pipeline}
 \usage{
 find_synOrthos(dir.list, gff, map, genomeIDs, n.cores = 1, verbose = T,
-  min.homology.score = 50, min.homology.prop.of.best = 0.8,
-  enforce.brkpts = TRUE, rank.buffer = 100)
+  run.gene.trees = F, min.homology.score = 50,
+  min.homology.prop.of.best = 0.8, enforce.brkpts = TRUE,
+  silent.orthofinder = FALSE, block.orthology.threshold = 0.5,
+  rank.buffer = 100)
 }
 \arguments{
 \item{dir.list}{The directory list produced by check_environment}

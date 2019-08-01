@@ -35,13 +35,37 @@ find_synOrthos <- function(dir.list,
                            genomeIDs,
                            n.cores = 1,
                            verbose = T,
+                           run.gene.trees = F,
                            min.homology.score = 50,
                            min.homology.prop.of.best = 0.8,
                            enforce.brkpts = TRUE,
+                           silent.orthofinder = FALSE,
+                           block.orthology.threshold = 0.5,
                            rank.buffer = 100){
 
   if(verbose)
-    cat("Preparing environment ... \n")
+    cat("\nFormatting and returning block and map objects ... ")
+  m <- data.table(map)
+  m[,block.id := paste0("blk_",as.numeric(as.factor(paste(genome1, genome2, chr1, chr2, block.id))))]
+
+  wh1 <- grep("1$", colnames(m))
+  wh2 <- grep("2$", colnames(m))
+  who <- which(!grepl("1$|2$", colnames(m)))
+
+  n1 <- colnames(m)[wh1]
+  n2 <- colnames(m)[wh2]
+  no <- colnames(m)[who]
+  m1 <- m[,c(n1,n2,no), with = F]
+  m2 <- m[,c(n2,n1,no), with = F]
+  setnames(m2, c(n1,n2,no))
+  mt <- rbind(m1, m2)
+
+  mo <- make_blocks(mt[!duplicated(mt[,c("id1","id2")]),], clean.columns = F)
+  map <- mo$map
+  blk <- mo$block
+
+  if(verbose)
+    cat("Done!\nPreparing environment ... \n")
 
   of.dir <- dir.list$syn.blast
   mb <- make_blocks(map, rename.blocks = F)
@@ -163,9 +187,18 @@ find_synOrthos <- function(dir.list,
   if (verbose)
     cat("\tRunning orthofinder ... ")
 
-  com <- paste("orthofinder", "-b", of.dir,
-               "-a", n.cores,
-               "-og 1>/dev/null 2>&1")
+  if (run.gene.trees) {
+    com <- paste("orthofinder", "-b", of.dir,
+                 "-a", n.cores)
+  }else{
+    com <- paste("orthofinder", "-b", of.dir,
+                 "-a", n.cores,
+                 "-og")
+  }
+  if(silent.orthofinder){
+    com <- paste(com, "1>/dev/null 2>&1")
+  }
+
   system(com)
   if (verbose)
     cat("Done!\n\tCompiling results ... ")
@@ -194,8 +227,15 @@ find_synOrthos <- function(dir.list,
     min.score = min.homology.score,
     prop.of.best = min.homology.prop.of.best)
 
-  return(list(map = y.ortho,
+  if(run.gene.trees){
+    y.ortho <- add_orthology(map = y.ortho,
+                             of.dir = of.dir,
+                             verbose = T,
+                             block.orthology.threshold = block.orthology.threshold)
+  }
+  out <- make_blocks(y.ortho,rerank = T,rename.blocks = F,add.metadata = F,clean.columns = F)
+  return(list(map = out$map,
               blast = blast.out,
-              blk = blk,
+              blk = out$block,
               syn.homologs = syn.homos))
 }

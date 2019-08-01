@@ -59,6 +59,9 @@
 \alias{find_blocksToExtend}
 \alias{find_leftBlk}
 \alias{find_rightBlk}
+\alias{find_adjBlks1}
+\alias{find_adjBlks2}
+\alias{add_orthology}
 \title{selection utility functions}
 \usage{
 parse_fastaHeader(fasta.dir, is.peptide = T, pattern = "fa",
@@ -193,6 +196,12 @@ find_blocksToExtend(blk, chr.end.buffer = 5, ovl.buffer = 3,
 find_leftBlk(st.rank, end.ranks, chrs, chr, ovl.buffer, same.chr.buffer)
 
 find_rightBlk(st.ranks, end.rank, chrs, chr, ovl.buffer, same.chr.buffer)
+
+find_adjBlks1(b, ovl.buffer, same.chr.buffer)
+
+find_adjBlks2(b, ovl.buffer, same.chr.buffer)
+
+add_orthology(of.dir, map, verbose, block.orthology.threshold)
 }
 \arguments{
 \item{fasta.dir}{file path to}
@@ -562,6 +571,12 @@ linear coordinates..
 \code{find_leftBlk} find_leftBlk
 
 \code{find_rightBlk} find_rightBlk
+
+\code{find_adjBlks1} find_adjBlks1
+
+\code{find_adjBlks2} find_adjBlks2
+
+\code{add_orthology} add_orthology
 }
 \note{
 \code{genespace_utils} is a generic name for the functions documented.

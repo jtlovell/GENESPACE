@@ -13,7 +13,6 @@
 #' @param gff_str character string to identify gff annotation file
 #' @param parse_fastaHeader.FUN The function to be used to parse the fasta headers.
 #' @param verbose should updates be printed?
-#' @param ... Not currently in use
 #' @details ...
 #' @return The function does not return anything to the R console.
 #'
@@ -31,8 +30,7 @@ convert_genomes <- function(genomeIDs,
                             gff_str = "gene.gff3",
                             parse_fastaHeader.FUN = function(y)
                               strsplit(gsub(".*locus=", "", y)," ")[[1]][1],
-                            verbose = T,
-                            ...){
+                            verbose = T){
 
   raw_assembly.dir <- file.path(directory, "raw_assemblies")
   raw_annot.dir <- file.path(directory, "raw_annotations")
