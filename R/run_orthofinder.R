@@ -3,14 +3,17 @@
 #' @description
 #' \code{run_orthofinder} Utility function to run orthofinder
 #'
-#' @param peptide.dir file.path to the directory storing peptide fastas
-#' @param tmp.dir file.path to the temporary directory
-#' @param blast.dir file.path to the directory to store blast results
+#' @param peptide.dir file.path, to the subdirectory containing
+#' the parsed peptide files
+#' @param tmp.dir file.path, to the subdirectory
+#' where the temporary results should be written
+#' @param output.dir file.path, to the subdirectory
+#' where the results should be written
 #' @param blast.threads Integer, specifying the number of parallel threads to use for
 #' the blasts algorithm
 #' @param og.threads Integer, specifying the number of parallel threads to use for
 #' the orthofinder algorithm
-#' @param verbose logical, should updates be printed?
+#' @param verbose logical, should updates be printed to the console?
 #' @param ... Not currently in use
 #'
 #' @details ...
@@ -25,7 +28,7 @@
 #' @export
 run_orthofinder <- function(peptide.dir,
                             tmp.dir,
-                            blast.dir,
+                            output.dir,
                             blast.threads = 16,
                             og.threads = 1,
                             verbose = T){
@@ -50,7 +53,7 @@ run_orthofinder <- function(peptide.dir,
 
   if (verbose)
     cat("Moving blasts results to",
-        blast.dir,
+        output.dir,
         "\n")
   blast.loc <- dirname(list.files(tmp.dir,
                                   pattern = "SequenceIDs",
@@ -80,9 +83,14 @@ run_orthofinder <- function(peptide.dir,
              og.files,
              sp.id.files,
              seq.id.files)
-  if (dir.exists(blast.dir))
-    unlink(blast.dir, recursive = T)
-  dir.create(blast.dir)
+  if (dir.exists(output.dir))
+    unlink(output.dir, recursive = T)
+  dir.create(output.dir)
   nu <- file.copy(files,
-                  blast.dir)
+                  output.dir)
+  if (verbose)
+    cat("\tDecompressing blast results\n")
+  system(paste("gunzip -f",
+               file.path(output.dir,
+                         "*.gz")))
 }

@@ -1,9 +1,9 @@
 Package: GENESPACE
 Type: Package
 Title: Gene-space Alignments of Whole-Genome Sequence Data
-Version: 0.4.1
-Author: JT Lovell
-Maintainer: JT Lovell <jlovell@hudsonalpha.org>
+Version: 0.5.1
+Author: John T. Lovell
+Maintainer: John T. Lovell <jlovell@hudsonalpha.org>
 Description: Collinear blocks are formed from parsed BLAST results 
       and fed into MCScanX. These blocks are re-aligned and local
       pairwise matches are validated. The pairwise associations are
@@ -11,7 +11,8 @@ Description: Collinear blocks are formed from parsed BLAST results
       that include both annotated and unannotated gene sequence variation. 
 Depends: data.table
 Imports: dbscan,
-  Biostrings
+  Biostrings,
+  igraph
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true

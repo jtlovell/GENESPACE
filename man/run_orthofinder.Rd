@@ -4,15 +4,18 @@
 \alias{run_orthofinder}
 \title{Run orthofinder from R}
 \usage{
-run_orthofinder(peptide.dir, tmp.dir, blast.dir, blast.threads = 16,
+run_orthofinder(peptide.dir, tmp.dir, output.dir, blast.threads = 16,
   og.threads = 1, verbose = T)
 }
 \arguments{
-\item{peptide.dir}{file.path to the directory storing peptide fastas}
+\item{peptide.dir}{file.path, to the subdirectory containing
+the parsed peptide files}
 
-\item{tmp.dir}{file.path to the temporary directory}
+\item{tmp.dir}{file.path, to the subdirectory
+where the temporary results should be written}
 
-\item{blast.dir}{file.path to the directory to store blast results}
+\item{output.dir}{file.path, to the subdirectory
+where the results should be written}
 
 \item{blast.threads}{Integer, specifying the number of parallel threads to use for
 the blasts algorithm}
@@ -20,7 +23,7 @@ the blasts algorithm}
 \item{og.threads}{Integer, specifying the number of parallel threads to use for
 the orthofinder algorithm}
 
-\item{verbose}{logical, should updates be printed?}
+\item{verbose}{logical, should updates be printed to the console?}
 
 \item{...}{Not currently in use}
 }

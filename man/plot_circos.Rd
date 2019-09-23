@@ -4,10 +4,11 @@
 \alias{plot_circos}
 \title{build plot_circos}
 \usage{
-plot_circos(map, genomes, gff, chr.list, chr.abbrev.fun = function(x) x,
+plot_circos(map, genomes, gff, chr.list, col.list = NULL,
+  chr.abbrev.fun = function(x) x,
   chr.order = 1:length(unlist(chr.list)), border.track.height = 0.05,
   link.alpha = 0.6, gap.ingenome = NULL, gap.outgenome = NULL,
-  use.rank = T, palette = pal_genespace,
+  use.rank = T, palette = rainbow,
   genome.cols = greys(length(genomes)), gap.deg = rep(0.5,
   length(unlist(chr.list))))
 }
@@ -21,6 +22,8 @@ plot_circos(map, genomes, gff, chr.list, chr.abbrev.fun = function(x) x,
 \item{chr.list}{list, named by genome labels (label will
 replace the genomes element). Must be same length as genomes.
 Character vector must contain chromosome IDs within the genomes.}
+
+\item{col.list}{list, with colors that matches chr.list}
 
 \item{chr.abbrev.fun}{function, to strip characters off of chromosome IDs}
 
@@ -37,6 +40,8 @@ Character vector must contain chromosome IDs within the genomes.}
 \item{use.rank}{logical, should ranks or bp coordinates be plotted?}
 
 \item{palette}{function, palette function for colors}
+
+\item{genome.cols}{color vector, to color the genomes.}
 
 \item{gap.deg}{numeric, degree of gaps, either of length 1, or the number
 of unique chromosomes}

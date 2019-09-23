@@ -30,9 +30,18 @@ Character vector must contain chromosome IDs within the genomes.}
 
 \item{gff}{data.table, format similar to gff}
 
+\item{points.per.curve}{numeric, specify how complex the curves
+should be. Higher values yield larger file sizes, but smoother
+curves}
+
 \item{vertical.plot.buffer}{numeric, buffer above / below riparian plot}
 
 \item{horiz.plot.buffer}{numeric, buffer left / right of riparian plot}
+
+\item{lab.chr}{logical, should chromosomes be labled?}
+
+\item{lab.chr.1only}{logical, should only the chromosomes of the
+first genome be labeled?}
 
 \item{use.rank}{logical, should ranks or bp coordinates be plotted?}
 
@@ -60,6 +69,9 @@ by gaps in riparian plot}
 \item{chr.segm.lwd}{numeric, chromosome line segment thickness
 in riparian plot}
 
+\item{chr.segm.col}{color, what color should the chromosome
+segments be?}
+
 \item{chr.buff}{numeric, how far should all line segments stop away
 from chromosome line segments in riparian plot}
 
@@ -68,6 +80,14 @@ represent syntenic blocks in riparian plot}
 
 \item{blk.border}{logical (or character coerced to color), of the block
 borders in riparian plot}
+
+\item{simplify.poly}{numeric, how much polygon simplification
+should happen.}
+
+\item{blks2highlight}{character, indicating which blocks
+should be highlighted}
+
+\item{highlight.cols}{color vector, colors for highlighted blocks}
 
 \item{geneID.abbrev.fun}{function, to strip characters off of gene IDs
 in riparian plot}
@@ -86,6 +106,8 @@ color of lines connecting syntenic orthologs in riparian plot}
 \item{scale2dodge}{numeric, scaling factor for geneID dodging,
 in riparian plot. Larger values do more dodging.}
 
+\item{annotate.genes}{logical, should genes be annotated?}
+
 \item{genes2plot}{character, genes / orthology networks to plot
 in riparian plot}
 
@@ -94,12 +116,6 @@ in riparian plot. Must be of same length as genes2plot.}
 
 \item{gene.colors}{character, to be coerced to a color.
 in riparian plot. If specified, must be same length as genes2plot}
-
-\item{palette}{function, palette function for colors}
-
-\item{chr.order}{numeric, order of chromosomes, passed only to circos}
-
-\item{plot.type}{character, one of dotplot, circos, riparian}
 
 \item{...}{not currently in use}
 }

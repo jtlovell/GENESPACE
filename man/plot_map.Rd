@@ -5,9 +5,9 @@
 \title{build pwBlocks}
 \usage{
 plot_map(palette = pal_genespace, chr.list, map, gff, genomeIDs,
-  blk = NULL, gap.prop = 0.01, use.rank = T, col.byBlk = T,
-  label.blocks = F, chr.abbrev.fun = function(x) x, pch = ".",
-  alpha = 0.5, text.cex = 0.5, plot.self = F, cex.axis = 0.8, ...)
+  gap.prop = 0.01, use.rank = T, col.byBlk = T, label.blocks = F,
+  chr.abbrev.fun = function(x) x, pch = ".", alpha = 0.5,
+  text.cex = 0.5, plot.self = F, cex.axis = 0.8, ...)
 }
 \arguments{
 \item{palette}{function, palette function for colors}
@@ -20,13 +20,31 @@ Character vector must contain chromosome IDs within the genomes.}
 
 \item{gff}{data.table, format similar to gff}
 
+\item{genomeIDs}{character, genomes to plot}
+
+\item{gap.prop}{numeric, proportion of teh genome to use for gaps
+between chromosomes}
+
 \item{use.rank}{logical, should ranks or bp coordinates be plotted?}
+
+\item{col.byBlk}{logical, should the blocks be colored independently?}
+
+\item{label.blocks}{logical, should text labeling the blocks
+be added to the plots?}
 
 \item{chr.abbrev.fun}{function, to strip characters off of chromosome IDs}
 
-\item{...}{additional arguments passed to plot}
+\item{pch}{numeric, passed on to plot.}
 
-\item{genomes}{character, genomes to plot}
+\item{alpha}{numeric (0-1) specifying transparency of points.}
+
+\item{text.cex}{numeric, size of the block labels, passed on to plot.}
+
+\item{plot.self}{logical, should intra-genomic plots be made?}
+
+\item{cex.axis}{numeric, size of axis text, passed on to plot.}
+
+\item{...}{additional arguments passed to plot}
 }
 \value{
 Nothing.

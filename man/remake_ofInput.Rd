@@ -2,22 +2,30 @@
 % Please edit documentation in R/remake_ofInput.R
 \name{remake_ofInput}
 \alias{remake_ofInput}
-\title{remake_ofInput}
+\title{re-make orthofinder input}
 \usage{
-remake_ofInput(dir.list, genomeIDs, ploidy = NULL, run.of = F,
-  gff = NULL, max.dup = 2, n.cores = 1, verbose = T, ...)
+remake_ofInput(dir.list, genomeIDs, ploidy = NULL, gff = NULL,
+  max.dup = 2, min.score = 50, verbose = T, n.cores = 1, ...)
 }
 \arguments{
-\item{dir.list}{list, containing paths to relevant directories.}
+\item{dir.list}{list, containing the paths to various genespace
+subdirectories.}
 
-\item{genomeIDs}{character, genome identifiers}
+\item{genomeIDs}{character vector, specifying the genomeIDs to include.}
 
 \item{ploidy}{named integer vector, of length equal to genomeIDs, and named
 with each genome ID.}
 
+\item{gff}{data.table, containing the parsed gff annotations,
+as produced by import_gff.}
+
 \item{max.dup}{integer, n top hits to retain for each gene.}
 
-\item{verbose}{should updates be printed?}
+\item{min.score}{numeric, the minimum blast bit score to retain}
+
+\item{verbose}{logical, should updates be printed to the console?}
+
+\item{n.cores}{integer length 1, the number of parallel processes}
 
 \item{...}{Additional arguments passed on to import_gff}
 }
@@ -25,7 +33,8 @@ with each genome ID.}
 The function does not return anything to the R console.
 }
 \description{
-\code{remake_ofInput} remake_ofInput
+\code{remake_ofInput} re-make orthofinder input, culling
+by top hits for each genome and optionally by score.
 }
 \details{
 ...

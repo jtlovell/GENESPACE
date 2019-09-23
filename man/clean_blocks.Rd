@@ -4,39 +4,39 @@
 \alias{clean_blocks}
 \title{Clean form_syntenicBlocks output}
 \usage{
-clean_blocks(map, genomeIDs, rerank = TRUE, radius = 100,
-  n.mappings = 10, verbose = TRUE, by.blk = F, final.n.mapping = 2,
-  final.radius = 2, ...)
+clean_blocks(map, gff, genomeIDs, rerank = TRUE, radius = 100,
+  n.mappings = 10, verbose = TRUE, expand.all.combs = TRUE,
+  complete.graphs = T, ignore.self = T)
 }
 \arguments{
-\item{map}{the map data.table or data.frame}
+\item{map}{data.table, containing the merged gff and blast results}
+
+\item{gff}{data.table, containing the parsed gff annotations,
+as produced by import_gff.}
+
+\item{genomeIDs}{character vector, specifying the genomeIDs to include.
+If NULL (default), taken as all unique elements in the 'genome' column
+of the gff data.table.}
 
 \item{rerank}{logical, should the ranks be re-calculated prior to cleaning?}
 
-\item{radius}{numeric, what should the radius of 2d density clustering be?}
+\item{radius}{numeric, the radius to search within for syntenic
+mappings. Length must match that of n.mappings.}
 
-\item{n.mappings}{numeric, how many mappings are required for a cluster?}
+\item{n.mappings}{numeric, the number of mappings required within a
+given radius. Length must match that of radius}
 
-\item{verbose}{logical, should updates be printed?}
+\item{verbose}{logical, should updates be printed to the console?}
+
+\item{expand.all.combs}{logical, should all possible combinations be
+reported, or just the unique combinations? Passed on to complete_graph.}
+
+\item{complete.graphs}{logical, should complete_graph be run?}
+
+\item{ignore.self}{logical, should the subgraphs be built agnostic to
+the existence of within-genome hits? Passed on to complete_graph.}
 
 \item{...}{Not currently in use}
-
-\item{clean.by.unique.genes}{Logical, should blocks with few unique genes
-be culled?}
-
-\item{clean.by.og}{Logical, should blocks with few unique orthogroups
-be culled?}
-
-\item{min.unique.genes}{numeric, legnth 1, if clean.by.unique.genes,
-this is the number of unique genes needed for a block to be kept.}
-
-\item{min.unique.og}{numeric, legnth 1, if clean.by.og,
-this is the number of unique orthogroups needed for a block to be kept.}
-
-\item{clean.columns}{logical, should extrac columns be dropped when
-blocks are generated? Passed to make_blocks. Can speed things up.}
-
-\item{n.cores}{The number of parallel processes to run.}
 }
 \value{
 A list of length 2, block and map, as output by make_blocks.

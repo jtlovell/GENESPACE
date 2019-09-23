@@ -1,14 +1,20 @@
-#' @title remake_ofInput
+#' @title re-make orthofinder input
 #'
 #' @description
-#' \code{remake_ofInput} remake_ofInput
+#' \code{remake_ofInput} re-make orthofinder input, culling
+#' by top hits for each genome and optionally by score.
 #'
-#' @param genomeIDs character, genome identifiers
+#' @param genomeIDs character vector, specifying the genomeIDs to include.
+#' @param verbose logical, should updates be printed to the console?
 #' @param ploidy named integer vector, of length equal to genomeIDs, and named
 #' with each genome ID.
-#' @param dir.list list, containing paths to relevant directories.
+#' @param dir.list list, containing the paths to various genespace
+#' subdirectories.
 #' @param max.dup integer, n top hits to retain for each gene.
-#' @param verbose should updates be printed?
+#' @param n.cores integer length 1, the number of parallel processes
+#' @param min.score numeric, the minimum blast bit score to retain
+#' @param gff data.table, containing the parsed gff annotations,
+#' as produced by import_gff.
 #' @param ... Additional arguments passed on to import_gff
 #' @details ...
 #' @return The function does not return anything to the R console.
@@ -22,11 +28,11 @@
 remake_ofInput <- function(dir.list,
                            genomeIDs,
                            ploidy = NULL,
-                           run.of = F,
                            gff = NULL,
                            max.dup = 2,
-                           n.cores = 1,
+                           min.score = 50,
                            verbose = T,
+                           n.cores = 1,
                            ...){
 
   if (dir.exists(dir.list$cull.blast))
@@ -46,6 +52,7 @@ remake_ofInput <- function(dir.list,
   make_newOFdb(tmp.dir = dir.list$tmp,
                cull.blast.dir = dir.list$cull.blast,
                peptide.dir = dir.list$peptide,
+               n.cores = n.cores,
                genomeIDs = genomeIDs)
   fs <- list.files(dir.list$cull.blast, full.names = T)
   cpd <- file.copy(fs, dir.list$cull.score.blast)
@@ -54,7 +61,7 @@ remake_ofInput <- function(dir.list,
   #######################################################
 
   #######################################################
-  if(is.null(gff)){
+  if (is.null(gff)) {
     if (verbose)
       cat("Importing gff annotations as a data.table ... \n")
     gff <- import_gff(gff.dir = dir.list$gff,
@@ -77,7 +84,7 @@ remake_ofInput <- function(dir.list,
   setnames(id.db,2:3,c("n.old","n.new"))
   #
   map.db <- make_mapDB(id.db = id.db,
-                       blast.dir = dir.list$blast,
+                       of.dir = dir.list$blast,
                        cull.blast.dir = dir.list$cull.blast)
   #
   old.genes <- read_geneIDs(of.dir = dir.list$blast,
@@ -108,6 +115,7 @@ remake_ofInput <- function(dir.list,
       cat(paste0("\t",map.db$genome1[i]),"-->",map.db$genome2[i],"... ")
     bl <- readRename_blastGenes(gene.dict1 = g1,
                                 gene.dict2 = g2,
+                                min.score = min.score,
                                 blast.file.in = map.db$filename[i],
                                 blast.file.out = map.db$new.filename[i])
     if (verbose)

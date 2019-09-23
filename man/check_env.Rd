@@ -5,7 +5,7 @@
 \title{Make sure everything is setup}
 \usage{
 check_env(directory, genomeIDs, clean = FALSE, peptide.only = FALSE,
-  check.pkgs = TRUE, check.genomes = TRUE, ...)
+  check.pkgs = TRUE, check.genomes = TRUE)
 }
 \arguments{
 \item{directory}{File path, where the subdirectory folders (e.g. raw_assemblies)
@@ -13,6 +13,11 @@ are found.}
 
 \item{genomeIDs}{Character, the vector of genome identifiers to consider
 for analysis}
+
+\item{clean}{Logical, should all directories and files be deleted, except
+the raw_annotations and raw_assemblies? Use with caution.}
+
+\item{peptide.only}{Logical, should only peptides be converted/checked?}
 
 \item{check.pkgs}{Logical, should the package installs be checked?}
 

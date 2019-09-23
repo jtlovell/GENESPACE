@@ -2,49 +2,42 @@
 % Please edit documentation in R/extend_blocks.R
 \name{extend_blocks}
 \alias{extend_blocks}
-\title{Synteny-constrained orthology pipeline}
+\title{Extend and complete syntenic mappings}
 \usage{
-extend_blocks(map, gff, blast, genomeIDs, n.iter = 1,
-  rank.buffer = 250, verbose = TRUE, clean.it = FALSE, radius = 10,
-  n.mappings = 5)
+extend_blocks(gff, genomeIDs, dir.list, map, verbose = T,
+  use.score.cull.blast = T, rank.buffer)
 }
 \arguments{
-\item{map}{The map data.frame or data.table}
+\item{gff}{data.table, containing the parsed gff annotations,
+as produced by import_gff.}
 
-\item{gff}{The gff-like data.table or data.frame produced by
-form_syntenicBlocks. Can also be made by hand - just a parsed gff
-file with the following columns: 'id' (gene identifier), 'chr',
-'start', 'end', 'strand', 'genome' (matching an element in genomeIDs),
-'order' (gene order within that genome).}
+\item{genomeIDs}{character vector, specifying the genomeIDs to include.
+If NULL default, taken as all unique elements in the 'genome' column
+of the gff data.table.}
 
-\item{blast}{the blast dataset to screen for syntenic hits}
+\item{dir.list}{list, containing the paths to various genespace
+subdirectories.}
 
-\item{n.iter}{Number of iterations to run}
+\item{map}{data.table, containing the merged gff and blast results}
 
-\item{rank.buffer}{The buffer, in gene rank order.}
+\item{verbose}{logical, should updates be printed to the console?}
 
-\item{verbose}{Logical, should updates be printed}
+\item{use.score.cull.blast}{logical, should the blasts be from the
+score.cull directory, or just the genome.cull directory?}
 
-\item{clean.it}{Should the cleaning step be run?}
+\item{rank.buffer}{numeric, the radius to search within for syntenic
+mappings.}
 
-\item{radius}{Numeric, length of 1, specifiying the
-radius to search for hits. Passed to clean_blocks}
-
-\item{n.mappings}{Numeric, length of 1, specifiying the
-minimum number of hits in a radius. Passed to clean_blocks}
-
-\item{...}{Additional arguments passed to cull_syntenicBlast}
+\item{...}{Not currently in use}
 }
 \value{
-A 4-element list of block, map, blast output and
-orthofinder output.
+A blast data.table, without block.id information
 }
 \description{
-\code{extend_blocks} Subset blast hits to syntenic regions and
-re-run orthofinder.
+\code{extend_blocks} Extend and complete syntenic mappings.
 }
 \details{
-None yet
+...
 }
 \examples{
 \dontrun{

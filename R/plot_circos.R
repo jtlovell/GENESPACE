@@ -9,6 +9,8 @@
 #' @param chr.list list, named by genome labels (label will
 #' replace the genomes element). Must be same length as genomes.
 #' Character vector must contain chromosome IDs within the genomes.
+#' @param col.list list, with colors that matches chr.list
+#' @param genome.cols color vector, to color the genomes.
 #' @param palette function, palette function for colors
 #' @param use.rank logical, should ranks or bp coordinates be plotted?
 #' @param chr.abbrev.fun function, to strip characters off of chromosome IDs
@@ -35,6 +37,7 @@ plot_circos <- function(map,
                         genomes,
                         gff,
                         chr.list,
+                        col.list = NULL,
                         chr.abbrev.fun = function(x) x,
                         chr.order = 1:length(unlist(chr.list)),
                         border.track.height = 0.05,
@@ -42,7 +45,7 @@ plot_circos <- function(map,
                         gap.ingenome = NULL,
                         gap.outgenome = NULL,
                         use.rank = T,
-                        palette = pal_genespace,
+                        palette = rainbow,
                         genome.cols = greys(length(genomes)),
                         gap.deg = rep(.5, length(unlist(chr.list)))){
 
@@ -54,9 +57,11 @@ plot_circos <- function(map,
         gap.outgenome)))
   }
 
-  col.list <- chr.list
-  for (i in 1:length(col.list))
-    col.list[[i]] <- palette(length(col.list[[i]]) + 2)[-c(1, length(col.list[[i]]) + 2)]
+  if (is.null(col.list)) {
+    col.list <- chr.list
+    for (i in 1:length(col.list))
+      col.list[[i]] <- palette(length(col.list[[i]]) + 2)[-c(1, length(col.list[[i]]) + 2)]
+  }
 
   gff <- format_gffChrlist(gff = gff,
                            chr.list = chr.list,

@@ -10,6 +10,9 @@
 #' for analysis
 #' @param check.genomes Logical, should the presence of genomes be checked?
 #' @param check.pkgs Logical, should the package installs be checked?
+#' @param clean Logical, should all directories and files be deleted, except
+#' the raw_annotations and raw_assemblies? Use with caution.
+#' @param peptide.only Logical, should only peptides be converted/checked?
 #' @param ... Not currently in use
 #' @details Needs to be run prior to the pipeline. Makes some objects that are required.
 #' @return List of directory names and paths.
@@ -24,8 +27,7 @@ check_env <- function(directory,
                       clean = FALSE,
                       peptide.only = FALSE,
                       check.pkgs = TRUE,
-                      check.genomes = TRUE,
-                      ...){
+                      check.genomes = TRUE){
 
   cat("Making R variables and necessary directories... ")
 

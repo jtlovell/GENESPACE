@@ -8,7 +8,8 @@ convert_genomes(genomeIDs, directory, peptide.only = F,
   peptide_str = "protein_primaryTranscriptOnly",
   cds_str = "cds_primaryTranscriptOnly", gff_str = "gene.gff3",
   parse_fastaHeader.FUN = function(y) strsplit(gsub(".*locus=", "", y),
-  " ")[[1]][1], verbose = T)
+  " ")[[1]][1], only.gffGenes = F, verbose = T, drop.comment = T,
+  ...)
 }
 \arguments{
 \item{genomeIDs}{genome identifiers}
@@ -16,6 +17,8 @@ convert_genomes(genomeIDs, directory, peptide.only = F,
 \item{directory}{file path to the base directory. Must contain two subdirectories:
 raw_annotations and raw_assemblies. The directory structures of these are outlined
 below.}
+
+\item{peptide.only}{Logical, should only peptides be converted/checked?}
 
 \item{peptide_str}{character string to identify primary peptide fasta file}
 
@@ -25,7 +28,13 @@ below.}
 
 \item{parse_fastaHeader.FUN}{The function to be used to parse the fasta headers.}
 
+\item{only.gffGenes}{Logical, should only genes that are also found in the
+gff be used? If TRUE, be careful to pass the correct additional arguments
+to import_gff.}
+
 \item{verbose}{should updates be printed?}
+
+\item{...}{additional arguments passed to import_gff}
 }
 \value{
 The function does not return anything to the R console.

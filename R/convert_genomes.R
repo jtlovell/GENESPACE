@@ -12,7 +12,12 @@
 #' @param peptide_str character string to identify primary peptide fasta file
 #' @param gff_str character string to identify gff annotation file
 #' @param parse_fastaHeader.FUN The function to be used to parse the fasta headers.
+#' @param peptide.only Logical, should only peptides be converted/checked?
+#' @param only.gffGenes Logical, should only genes that are also found in the
+#' gff be used? If TRUE, be careful to pass the correct additional arguments
+#' to import_gff.
 #' @param verbose should updates be printed?
+#' @param ... additional arguments passed to import_gff
 #' @details ...
 #' @return The function does not return anything to the R console.
 #'
@@ -30,7 +35,10 @@ convert_genomes <- function(genomeIDs,
                             gff_str = "gene.gff3",
                             parse_fastaHeader.FUN = function(y)
                               strsplit(gsub(".*locus=", "", y)," ")[[1]][1],
-                            verbose = T){
+                            only.gffGenes = F,
+                            verbose = T,
+                            drop.comment = T,
+                            ...){
 
   raw_assembly.dir <- file.path(directory, "raw_assemblies")
   raw_annot.dir <- file.path(directory, "raw_annotations")
@@ -105,9 +113,21 @@ convert_genomes <- function(genomeIDs,
       }else{
         system(paste("cp", x, outname))
       }
+      if(drop.comment){
+        system(paste("sed -i \'\' \'/^#/ d\'", outname))
+      }
     }
   }
 
+  if(only.gffGenes){
+    if(verbose)
+      cat("Loading and parsing gff annotations ...\n")
+    gff <- import_gff(gff.dir = subdirs$gff,
+                      genomeIDs = genomeIDs,
+                      ...)
+  }else{
+    gff <- NULL
+  }
   # 3. Index genomes
   if(!peptide.only){
     if (verbose)
@@ -143,12 +163,16 @@ convert_genomes <- function(genomeIDs,
     tmp <- parse_fastaHeader(fasta.dir = subdirs$cds,
                              is.peptide = F,
                              verbose = F,
+                             only.gffGenes = only.gffGenes,
+                             gff = gff,
                              parse_fastaHeader.FUN = parse_fastaHeader.FUN)
   }
 
   tmp <- parse_fastaHeader(fasta.dir = subdirs$peptide,
                            is.peptide = T,
                            verbose = F,
+                           only.gffGenes = only.gffGenes,
+                           gff = gff,
                            parse_fastaHeader.FUN = parse_fastaHeader.FUN)
 
   if (verbose)

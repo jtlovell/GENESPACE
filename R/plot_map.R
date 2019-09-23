@@ -5,12 +5,22 @@
 #'
 #' @param map data.table, format similar to blast
 #' @param gff data.table, format similar to gff
-#' @param genomes character, genomes to plot
+#' @param genomeIDs character, genomes to plot
 #' @param chr.list list, named by genome labels (label will
 #' replace the genomes element). Must be same length as genomes.
 #' Character vector must contain chromosome IDs within the genomes.
+#' @param gap.prop numeric, proportion of teh genome to use for gaps
+#' between chromosomes
 #' @param palette function, palette function for colors
 #' @param use.rank logical, should ranks or bp coordinates be plotted?
+#' @param col.byBlk logical, should the blocks be colored independently?
+#' @param label.blocks logical, should text labeling the blocks
+#' be added to the plots?
+#' @param pch numeric, passed on to plot.
+#' @param text.cex numeric, size of the block labels, passed on to plot.
+#' @param cex.axis numeric, size of axis text, passed on to plot.
+#' @param plot.self logical, should intra-genomic plots be made?
+#' @param alpha numeric (0-1) specifying transparency of points.
 #' @param chr.abbrev.fun function, to strip characters off of chromosome IDs
 #' @param ... additional arguments passed to plot
 #'
@@ -29,7 +39,6 @@ plot_map <- function(palette = pal_genespace,
                      map,
                      gff,
                      genomeIDs,
-                     blk = NULL,
                      gap.prop = 0.01,
                      use.rank = T,
                      col.byBlk = T,
@@ -41,6 +50,9 @@ plot_map <- function(palette = pal_genespace,
                      plot.self = F,
                      cex.axis = .8,
                      ...){
+
+  if (!"block.id" %in% colnames(map))
+    map[,block.id := 1]
 
   if(length(genomeIDs) != length(chr.list))
     stop("GenomeIDs must be of same length as names of chr.list\n")
@@ -75,10 +87,15 @@ plot_map <- function(palette = pal_genespace,
   m <- merge(merge(m, g1, by = "id1"), g2, by= "id2")
 
 
-  cmb <- combn(genomeIDs,2)
-  if(plot.self){
-    cmb <- cbind(cmb, sapply(genomeIDs, function(x) c(x,x)))
+  if(length(genomeIDs) == 1){
+    cmb <- rbind(genomeIDs, genomeIDs)
+  }else{
+    cmb <- combn(genomeIDs,2)
+    if(plot.self){
+      cmb <- cbind(cmb, sapply(genomeIDs, function(x) c(x,x)))
+    }
   }
+
   for(i in 1:ncol(cmb)){
     g1 = cmb[1,i]
     g2 = cmb[2,i]

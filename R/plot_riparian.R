@@ -9,10 +9,8 @@
 #' @param chr.list list, named by genome labels (label will
 #' replace the genomes element). Must be same length as genomes.
 #' Character vector must contain chromosome IDs within the genomes.
-#' @param palette function, palette function for colors
 #' @param use.rank logical, should ranks or bp coordinates be plotted?
 #' @param chr.abbrev.fun function, to strip characters off of chromosome IDs
-#' @param chr.order numeric, order of chromosomes, passed only to circos
 #' @param vertical.plot.buffer numeric, buffer above / below riparian plot
 #' @param horiz.plot.buffer numeric, buffer left / right of riparian plot
 #' @param chr.bg.col character, to be coerced to a color of the point behind
@@ -52,7 +50,20 @@
 #' in riparian plot. Must be of same length as genes2plot.
 #' @param gene.colors character, to be coerced to a color.
 #' in riparian plot. If specified, must be same length as genes2plot
-#' @param plot.type character, one of dotplot, circos, riparian
+#' @param lab.chr logical, should chromosomes be labled?
+#' @param lab.chr.1only logical, should only the chromosomes of the
+#' first genome be labeled?
+#' @param chr.segm.col color, what color should the chromosome
+#' segments be?
+#' @param simplify.poly numeric, how much polygon simplification
+#' should happen.
+#' @param points.per.curve numeric, specify how complex the curves
+#' should be. Higher values yield larger file sizes, but smoother
+#' curves
+#' @param blks2highlight character, indicating which blocks
+#' should be highlighted
+#' @param highlight.cols color vector, colors for highlighted blocks
+#' @param annotate.genes logical, should genes be annotated?
 #' @param ... not currently in use
 #'
 #' @return Nothing.
@@ -69,7 +80,6 @@ plot_riparian <- function(map,
                           chr.list,
                           genomes,
                           gff,
-
                           points.per.curve = 1000,
                           vertical.plot.buffer = 1,
                           horiz.plot.buffer = .01,
