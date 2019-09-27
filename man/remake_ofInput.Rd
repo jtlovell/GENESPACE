@@ -4,8 +4,9 @@
 \alias{remake_ofInput}
 \title{re-make orthofinder input}
 \usage{
-remake_ofInput(dir.list, genomeIDs, ploidy = NULL, gff = NULL,
-  max.dup = 2, min.score = 50, verbose = T, n.cores = 1, ...)
+remake_ofInput(dir.list, genomeIDs, ploidy = NULL, gff, max.dup = 2,
+  min.score = 50, verbose = T, n.cores = 1,
+  overwrite.output.dir = FALSE, ...)
 }
 \arguments{
 \item{dir.list}{list, containing the paths to various genespace

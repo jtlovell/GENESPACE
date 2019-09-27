@@ -4,8 +4,8 @@
 \alias{complete_graph}
 \title{Fill out culled blast hits}
 \usage{
-complete_graph(map, gff, genomeIDs = NULL, ignore.self, expand.all.combs,
-  verbose = T)
+complete_graph(map, gff, genomeIDs = NULL, ignore.self,
+  keep.all.self.hits = T, verbose = T)
 }
 \arguments{
 \item{map}{data.table, containing the merged gff and blast results}
@@ -20,10 +20,10 @@ of the gff data.table.}
 \item{ignore.self}{logical, should the subgraphs be built agnostic to
 the existence of within-genome hits?}
 
+\item{verbose}{logical, should updates be printed?}
+
 \item{expand.all.combs}{logical, should all possible combinations be
 reported, or just the unique combinations?}
-
-\item{verbose}{logical, should updates be printed?}
 
 \item{...}{Not currently in use}
 }

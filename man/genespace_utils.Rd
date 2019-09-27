@@ -2,6 +2,14 @@
 % Please edit documentation in R/genespace_utils.R, R/plot_utils.R
 \name{genespace_utils}
 \alias{genespace_utils}
+\alias{read_ofBlast}
+\alias{reduce_recipBlast}
+\alias{pull_orthologs}
+\alias{write_ofBlast2file}
+\alias{merge_gffWithBlast}
+\alias{prep_ofDB}
+\alias{find_ofFiles}
+\alias{check_gsDir}
 \alias{read_ogs}
 \alias{make_newOFdb}
 \alias{readRename_blastGenes}
@@ -12,7 +20,6 @@
 \alias{cull_blastByScore}
 \alias{find_whichInBuffer}
 \alias{run_dbs}
-\alias{run_mcs}
 \alias{mirror_map}
 \alias{clean_it}
 \alias{format_gffChrlist}
@@ -31,10 +38,28 @@
 \alias{cos_y}
 \title{GENESPACE utility functions}
 \usage{
+read_ofBlast(gids, blast.files)
+
+reduce_recipBlast(genomeIDs, blast, intergenome.only = F)
+
+pull_orthologs(of.dir)
+
+write_ofBlast2file(blast, output.dir)
+
+merge_gffWithBlast(gff, blast, include.gene.num, include.genome.num,
+  mirror)
+
+prep_ofDB(tmp.dir, orig.dir, peptide.dir, output.dir, n.cores, genomeIDs,
+  verbose, min.score, copy2dir = NULL)
+
+find_ofFiles(of.dir)
+
+check_gsDir(dir2check, overwrite.output.dir)
+
 read_ogs(of.dir, gff)
 
-make_newOFdb(tmp.dir, cull.blast.dir, peptide.dir, genomeIDs,
-  verbose = T, n.cores = 1)
+make_newOFdb(tmp.dir, output.dir, peptide.dir, genomeIDs, verbose = T,
+  n.cores = 1)
 
 readRename_blastGenes(gene.dict1, gene.dict2, blast.file.in,
   blast.file.out, min.score = NULL, verbose = T)
@@ -43,7 +68,7 @@ read_speciesIDs(of.dir, genomeIDs)
 
 make_mapDB(id.db, of.dir, cull.blast.dir)
 
-read_geneIDs(of.dir, gff)
+read_geneIDs(of.dir, gff, species.num.id)
 
 import_ofResults(gff, of.dir, verbose = T, genomeIDs)
 
@@ -52,9 +77,6 @@ cull_blastByScore(blast.file.in, blast.file.out, maxn, verbose = T)
 find_whichInBuffer(x, y, which.in.blk, rank.buffer)
 
 run_dbs(map, radius, n.mappings)
-
-run_mcs(blast, gff, genomeIDs, mcscan.dir, MCScanX.tool, mcscan.param,
-  silent.mcs)
 
 mirror_map(map, keycol = NULL)
 
@@ -95,6 +117,12 @@ get_xClus(x, n.reps, dodge.x, scale2dodge = 2)
 cos_y(y.start, y.end, n.out, n.sample = n.out)
 }
 \arguments{
+\item{genomeIDs}{character vector, specifying the genomeIDs to include.}
+
+\item{blast}{data.table, containing the merged gff and blast results.
+Unlike the 'map' object, which really just needs merged gff coordinates,
+this must have all the blast8 columns. See details.}
+
 \item{of.dir}{file.path, to the subdirectory containing
 blast results}
 
@@ -104,18 +132,16 @@ as produced by import_gff.}
 \item{tmp.dir}{file.path, to the subdirectory
 where the temporary results should be written}
 
-\item{cull.blast.dir}{file.path, to the subdirectory
-where the culled blast results should be written}
-
 \item{peptide.dir}{file.path, to the subdirectory containing
 the parsed peptide files}
 
-\item{genomeIDs}{character vector, specifying the genomeIDs to include.}
+\item{n.cores}{integer length 1, the number of parallel processes
+to run.}
 
 \item{verbose}{logical, should updates be printed to the console?}
 
-\item{n.cores}{integer length 1, the number of parallel processes
-to run.}
+\item{min.score}{numeric length 1, specifying the minimum blast
+bit score for a hit to be retained.}
 
 \item{gene.dict1}{data.table with column names V1, new1, keyed on
 V1. V1 contains the original geneIDs, new1 contains the new geneIDs}
@@ -128,10 +154,10 @@ V2. V2 contains the original geneIDs, new2 contains the new geneIDs}
 \item{blast.file.out}{file.path, to the filename to which the
 blast results should be written}
 
-\item{min.score}{numeric length 1, specifying the minimum blast
-bit score for a hit to be retained.}
-
 \item{id.db}{genome ID dictionary}
+
+\item{cull.blast.dir}{file.path, to the subdirectory
+where the culled blast results should be written}
 
 \item{maxn}{integer length 1, indicating the maximum number of
 hits to be retained per query.}
@@ -147,21 +173,6 @@ mappings. Length must match that of n.mappings.}
 
 \item{n.mappings}{numeric, the number of mappings required within a
 given radius. Length must match that of radius}
-
-\item{blast}{data.table, containing the merged gff and blast results.
-Unlike the 'map' object, which really just needs merged gff coordinates,
-this must have all the blast8 columns. See details.}
-
-\item{mcscan.dir}{file.path, to the subdirectory containing
-the mcscanx output, or where mcscanx results should be written.}
-
-\item{MCScanX.tool}{file.path, specifying the path to the
-MCScanX program.}
-
-\item{mcscan.param}{character string, of all parameters to
-pass to MCScanX}
-
-\item{silent.mcs}{logical, should MCScanX progress be reported?}
 
 \item{genomes}{character, length}
 
@@ -289,6 +300,22 @@ subdirectories.}
 \description{
 \code{genespace_utils} Functions for GENESPACE
 
+\code{reduce_recipBlast} reduce_recipBlast
+
+\code{reduce_recipBlast} reduce_recipBlast
+
+\code{pull_orthologs} pull_orthologs
+
+\code{write_ofBlast2file} write_ofBlast2file
+
+\code{merge_gffWithBlast} merge_gffWithBlast
+
+\code{prep_ofDB} prep_ofDB
+
+\code{find_ofFiles} find_ofFiles
+
+\code{check_gsDir} check_gsDir
+
 \code{read_ogs} fread_ogs
 
 \code{make_newOFdb} make_newOFdb
@@ -308,8 +335,6 @@ subdirectories.}
 \code{find_whichInBuffer} find_whichInBuffer
 
 \code{run_dbs} run_dbs
-
-\code{run_mcs} run_mcs
 
 \code{mirror_map} mirror_map
 

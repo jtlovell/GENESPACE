@@ -39,199 +39,129 @@
 #' @import data.table
 #' @importFrom igraph clusters graph_from_data_frame
 #' @export
-assign_synHomologs <- function(map,
-                               syn.blast = NULL,
+assign_synHomologs <- function(gff,
                                genomeIDs,
-                               gff,
+                               map,
                                dir.list,
                                rank.buffer,
-                               verbose,
-                               min.homolog.score = 50,
-                               min.perc.iden = NULL,
-                               min.prop.of.best = .8,
+                               min.propBestScore4homolog = .5,
+                               min.score4homolog = 50,
+                               verbose = T,
+                               quiet.orthofinder = F,
                                n.cores = 1){
 
-  add_orthology <- function(of.dir,
-                            map,
-                            verbose = T){
-    if(verbose)
-      cat("Pulling orthologs ... \n")
-    m <- data.table(map[,c("genome1","genome2","id1","id2","og.id")])
-    og.dir <- dirname(list.files(file.path(of.dir, "OrthoFinder"),
-                                 pattern = "Orthologues_",recursive = T,
-                                 include.dirs = T, full.names = T))[1]
-    ortholog.dirs <- list.files(og.dir, pattern = "^Orthologues_",
-                                include.dirs = T, full.names = T)
-    og.out <- rbindlist(lapply(ortholog.dirs, function(x){
-      fs <- list.files(x, full.names = T)
-      if(verbose)
-        cat("\tRunning", gsub("Orthologues_","",basename(x)), "... ")
-
-      rd <- rbindlist(lapply(fs, function(y) {
-
-        tmp <- fread(y)
-
-        allgenes <- rbindlist(apply(tmp[,c(2:3),with = F],1,function(z){
-          eg <- c(strsplit(z[1],",")[[1]],strsplit(z[2],", ")[[1]])
-          return(expand.grid(eg, eg))
-        }))
-        setnames(allgenes,c("id1","id2"))
-        allgenes[,genome1 := colnames(tmp)[2]]
-        allgenes[,genome2 := colnames(tmp)[3]]
-
-        return(allgenes)
-      }))
-
-      if(verbose)
-        cat("Done!\n")
-      return(rd)
-    }))
-
-    og.out[,is.ortholog := TRUE]
-    map.out <- merge(og.out, map, by = colnames(og.out)[1:4], all.y = T)
-    map.out$is.ortholog[map.out$id1 == map.out$id2] <- TRUE
-    map.out$is.ortholog[is.na(map.out$is.ortholog)] <- FALSE
-
-    return(map.out)
-  }
-
-  pull_synHomos <- function(syn.blast,
-                            syn.ortho.map,
-                            min.score,
-                            prop.of.best,
-                            min.perc.iden){
-
-    if (is.na(min.score)) {
-      sb <- subset(syn.blast, perc.iden >= min.perc.iden)
-
-    }else{
-      sb <- subset(syn.blast, score >= min.score)
-    }
-
-    sb[,propscore1 := score/max(score),
-       by = list(genome2, chr2, id1)]
-    sb[,propscore2 := score/max(score),
-       by = list(genome1, chr1, id2)]
-    sb <- subset(sb,
-                 propscore1 > prop.of.best |
-                   propscore2 > prop.of.best)
-    mu <- with(syn.ortho.map, unique(paste(id1, id2)))
-    so <- subset(sb, !paste(id1, id2) %in% mu)
-    return(so)
-  }
-
-
-  io_blast4of <- function(of.dir, gff, blast, genomeIDs){
-    gi1 <- read_geneIDs(of.dir = of.dir, gff = gff)[,c("id","gene.num")]
-    gi2 <- data.table(gi1)
-    setnames(gi1, c("id1","gn1"))
-    setnames(gi2, c("id2","gn2"))
-    blast$gn2 <- blast$gn1 <- NULL
-    blast <- merge(gi1, merge(gi2, blast, by = "id2"), by = "id1")
-
-    #######################################################
-    si <- read_speciesIDs(of.dir = of.dir, genomeIDs = genomeIDs)
-    combs <- expand.grid(si$genome, si$genome)
-    combs.n <- expand.grid(si$genome.num, si$genome.num)
-    combs.file <- file.path(of.dir, paste0("Blast",combs.n[,1],"_", combs.n[,2],".txt"))
-    cols2write <- c("gn1","gn2","perc.iden","align.length","n.mismatch","n.gapOpen",
-                    "q.start","q.end","s.start","s.end","eval","score")
-    for (i in 1:nrow(combs)) {
-      tmp <- subset(blast,
-                    genome1 == combs[i,1] &
-                      genome2 == combs[i,2])[,cols2write, with = F]
-      write.table(tmp, sep = "\t",
-                  file = combs.file[i],
-                  quote = F,
-                  col.names = F,
-                  row.names = F)
-    }
-  }
-
-  if (is.null(syn.blast)) {
-    if(verbose)
-      cat("Extracting syntenic blast hits for each unique chromosome combination ... \n")
-    syn.blast <- extend_blocks(
-      gff = gff,
-      genomeIDs = genomeIDs,
-      map = map,
-      dir.list = dir.locs,
-      use.score.cull.blast = F,
-      rank.buffer = rank.buffer,
-      verbose = F)
-  }else{
-    cat("Using previously calculated syntenic blast results ... ")
-  }
+  ####################################################################
+  # - Get the blast hits to feed to orthofinder
   if(verbose)
-    cat("\tDone!\nLoading all blast hits into memory ... ")
-  all.blast <- read_allBlasts(
+    cat("Pulling syntenic blast hits (this might take a while) ... ")
+  syn.blast <- extend_blocks(
     gff = gff,
     genomeIDs = genomeIDs,
-    of.dir = dir.locs$cull.blast,
-    check.ogs = F,
-    add.gff = T,
+    map = mirror_map(map),
+    dir.list = dir.list,
+    use.score.cull.blast = F,
+    rank.buffer = rank.buffer,
+    verbose = F)
+  syn.blast[, genome.num1 := NULL]
+  syn.blast[, genome.num2 := NULL]
+
+
+  ####################################################################
+  # - Move over peptides, make gene/genomeIDs, etc.
+  if(verbose)
+    cat("Done!\nMaking new orthofinder database ... ")
+  make_newOFdb(
+    tmp.dir = dir.list$tmp,
+    peptide.dir = dir.list$peptide,
+    genomeIDs = genomeIDs,
     verbose = F,
-    keep.geneNum = T)
+    n.cores = 1,
+    output.dir = dir.list$syn.blast)
+
+  ####################################################################
+  # - Read in the new ids, merge with blast and write to file
+  if(verbose)
+    cat("Done!\nReformatting blast results ... ")
+  si <- read_speciesIDs(
+    of.dir = dir.list$syn.blast,
+    genomeIDs = genomeIDs)
+
+  gi <- read_geneIDs(
+    of.dir = dir.list$syn.blast,
+    gff = gff,
+    species.num.id = si)
+
+  blast.in <- merge_gffWithBlast(
+    gff = gi,
+    blast = syn.blast,
+    include.gene.num = T,
+    include.genome.num = T,
+    mirror = T)
 
   if(verbose)
-    cat("Done!\nBuilding new orthofinder database ... ")
-  sb <- with(syn.blast,
-             rbind(data.table(id1 = id1, id2 = id2),
-                   data.table(id1 = id2, id2 = id1)))
-  sb <- sb[!duplicated(sb),]
-  syn.all.blast <- merge(all.blast, sb, by = c("id1","id2"))
+    cat("Done!\nWriting blast results to the orthofinder directory ... ")
+  write_ofBlast2file(
+    blast = blast.in,
+    output.dir = dir.list$syn.blast)
 
-  of.dir <- dir.list$syn.blast
-  make_newOFdb(tmp.dir = dir.list$tmp,
-               cull.blast.dir = of.dir,
-               peptide.dir = dir.list$peptide,
-               genomeIDs = genomeIDs,
-               verbose = F)
+  ####################################################################
+  # - Run orthofinder on syntenic blast hits
   if(verbose)
-    cat("Done!\nPrepping blast for orthofinder ... ")
-  nothing <- io_blast4of(of.dir = of.dir,
-                         gff = gff,
-                         blast = syn.all.blast,
-                         genomeIDs = genomeIDs)
-  if(verbose)
-    cat("Done!\nRunning orthofinder ... \n#######################\n")
-  com <- paste("orthofinder", "-b", of.dir,
+    cat("Done!\nRunning orthofinder (this might take a while) ... ")
+  com <- paste("orthofinder",
+               "-b", dir.list$syn.blast,
                "-a", n.cores)
+  if(quiet.orthofinder)
+    com <- paste(com, "1>/dev/null 2>&1")
   system(com)
 
-  if (verbose)
-    cat("\n#######################\nDone!\nCompiling orthogroups ... ")
-  og <- read_ogs(of.dir, gff = gff)
-  og1 <- data.table(id1 = og$id,
-                    og1 = og$og)
-  og2 <- data.table(id2 = og$id,
-                    og2 = og$og)
-
-  yo <- merge(og1, merge(og2, syn.all.blast, by = "id2"), by = "id1")
-
-  y.ortho <- subset(yo, og1 == og2)
-  y.ortho$og.id <-  gsub(":", "", y.ortho$og1, fixed = T)
-  y.ortho$og1 <- y.ortho$og2 <-  NULL
+  ####################################################################
+  # - read in ids and genomes of genes in orthogroups
   if(verbose)
-    cat("Done!\nPulling syntenic homologs ... ")
-  syn.homos <- pull_synHomos(
-    syn.blast = syn.blast,
-    syn.ortho.map = y.ortho,
-    min.score = min.homolog.score,
-    min.perc.iden = min.perc.iden,
-    prop.of.best = min.prop.of.best)
-  if(verbose)
-    cat("Done!\nSplitting orthologs and paralogs ... ")
-  syn.homos[,hit.type := "syntenic.homolog"]
-  y.out <- add_orthology(of.dir = of.dir, map = y.ortho)
-  y.out[,hit.type := ifelse(is.ortholog, "ortholog","paralog")]
-  y.out <- y.out[,colnames(y.out) %in% colnames(syn.homos), with = F]
-  syn.homos <- syn.homos[,colnames(syn.homos) %in% colnames(y.out), with = F]
-
-  out <- mirror_map(map = rbind(y.out, syn.homos),
-                    keycol = "hit.type")
+    cat("Done!\nParsing orthogroups ... ")
+  orthogroup.dt <- read_ogs(
+    of.dir = dir.list$syn.blast,
+    gff = gff)
+  orthogroup.dt[,is.ortholog := id1 == id2 & genome1 == genome2]
 
   if(verbose)
-    cat("Done!\n")
-  return(out)
+    cat("Done!\nExtracting orthologs ... ")
+  ortholog.dt <- pull_orthologs(
+    of.dir = dir.list$syn.blast)
+
+  if(verbose)
+    cat("Done!\nMerging blast and qualifying orthologs, paralogs and syntenic homologs ... ")
+  ogs <- rbind(ortholog.dt,
+               orthogroup.dt)
+  ogs <- ogs[!duplicated(ogs[,c("genome1","genome2","id1","id2")]),]
+
+  blast.out <- merge(
+    blast.in,
+    ogs,
+    by = c("genome1","genome2","id1","id2"),
+    all.x = T)
+
+  blast.out[,best1 := max(score),
+            by = list(genome1, genome2, id1)]
+  blast.out[,best2 := max(score),
+            by = list(genome2, genome1, id2)]
+
+  blast.homo <- subset(
+    blast.out,
+    (score >= best1 * min.propBestScore4homolog &
+       score >= best2 * min.propBestScore4homolog &
+       score >= min.score4homolog) |
+      !is.na(is.ortholog))
+  blast.homo[,best1 := NULL]
+  blast.homo[,best2 := NULL]
+
+  blast.homo[,hit.type := ifelse(is.na(is.ortholog), "syntenic.homolog",
+                                 ifelse(is.ortholog, "ortholog","paralog"))]
+  if(verbose)
+    with(blast.homo,
+         cat("Done!\nReturning a blast data set with:\n\tn.orthologs =",
+             sum(hit.type == "ortholog"),"\n\tn.paralogs =",
+             sum(hit.type == "paralog"),"\n\tn.other syntenic homologs =",
+             sum(hit.type == "syntenic.homolog"),"\nDone!\n"))
+  return(blast.homo)
 }

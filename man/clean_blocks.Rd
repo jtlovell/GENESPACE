@@ -31,8 +31,6 @@ given radius. Length must match that of radius}
 \item{expand.all.combs}{logical, should all possible combinations be
 reported, or just the unique combinations? Passed on to complete_graph.}
 
-\item{complete.graphs}{logical, should complete_graph be run?}
-
 \item{ignore.self}{logical, should the subgraphs be built agnostic to
 the existence of within-genome hits? Passed on to complete_graph.}
 

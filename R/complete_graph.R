@@ -38,34 +38,29 @@ complete_graph <- function(map,
                            gff,
                            genomeIDs = NULL,
                            ignore.self,
-                           expand.all.combs,
+                           keep.all.self.hits = T,
                            verbose = T){
 
   if (is.null(genomeIDs))
     genomeIDs <- unique(gff$genome)
-
+  map.in <- data.table(map)
   map <- subset(map,
                 genome1 %in% genomeIDs &
                   genome2 %in% genomeIDs)
-  gff <- subset(gff, genome %in% genomeIDs)
-
-  gff1 <- data.table(gff)
-  setnames(gff1,
-           paste0(colnames(gff1), "1"))
-
-  gff2 <- data.table(gff)
-  setnames(gff2,
-           paste0(colnames(gff2), "2"))
+  gff[,gn := paste0("gene",1:nrow(gff))]
+  map[,gn1 := gff$gn[match(paste(genome1, id1), paste(gff$genome, gff$id))]]
+  map[,gn2 := gff$gn[match(paste(genome2, id2), paste(gff$genome, gff$id))]]
 
   if (verbose)
     cat("Building graph ... ")
 
   if (ignore.self) {
     gene2gene <- subset(map,
-                        genome1 != genome2)[,c("id1","id2")]
+                        genome1 != genome2)
   }else{
-    gene2gene <- map[,c("id1","id2")]
+    gene2gene <- data.table(map)
   }
+  gene2gene <- gene2gene[,c("gn1","gn2")]
 
   clusters <- clusters(
     graph_from_data_frame(
@@ -77,54 +72,46 @@ complete_graph <- function(map,
              data.table(
                id = names(membership),
                group = membership))
-  gffi <- data.table(gff)
-  gffi[,genome := factor(genome,
-                         levels = genomeIDs)]
-  setkey(gffi, genome, chr, start)
-  gffi[,gene.num := 1:nrow(gffi)]
-
-  df <- merge(gffi[,c("id","gene.num")],
-              df,
-              by = "id")
-  df[,id := NULL]
-  setnames(df, 1, "id")
-
   if (verbose)
     cat("Done!\nCompleting subgraphs ... ")
 
-  mdf <- setDT(df)[order(id),
-                   unique(id),
-                   by = group]
-  if (expand.all.combs) {
-    out.comb <- mdf[mdf,
-                    on = .(group),
-                    .(group, x.V1, i.V1),
-                    nomatch = 0L,
-                    allow.cartesian = TRUE]
-  }else{
-    out.comb <- mdf[mdf,
-                    on = .(group, V1 <= V1),
-                    .(group, x.V1, i.V1),
-                    nomatch = 0L,
-                    allow.cartesian = TRUE]
-  }
+  out.comb <- merge(df,
+                    df,
+                    by = "group",
+                    allow.cartesian = T)
+  setnames(out.comb, c("og.id", "gn1","gn2"))
+  out.comb[,id1 := gff$id[match(gn1, gff$gn)]]
+  out.comb[,id2 := gff$id[match(gn2, gff$gn)]]
 
   if (verbose)
     cat("Done!\nMerging with gff ... ")
-  out.comb[,id1 := gffi$id[match(x.V1, gffi$gene.num)]]
-  out.comb[,id2 := gffi$id[match(i.V1, gffi$gene.num)]]
-  setnames(out.comb, "group", "og.id")
-  out.comb[,x.V1 := NULL]
-  out.comb[,i.V1 := NULL]
+
+  gff1 <- data.table(gff)
+  setnames(gff1,
+           paste0(colnames(gff1), "1"))
+
+  gff2 <- data.table(gff)
+  setnames(gff2,
+           paste0(colnames(gff2), "2"))
+
+  oc <- out.comb[,c("gn1","gn2")]
+  if(keep.all.self.hits){
+    ugn <- unique(unlist(oc))
+    ugi <- unique(unlist(subset(oc, gn1 == gn2)))
+    ugn <- ugn[!ugn %in% ugn]
+    oc <- rbind(oc,
+                data.table(gn1 = ugn,
+                           gn2 = ugn))
+  }
+
   gffo <- merge(gff1,
                 merge(gff2,
-                      out.comb,
-                      by = "id2"),
-                by = "id1")
-
+                      oc,
+                      by = "gn2"),
+                by = "gn1")
   if (verbose)
     cat("Done!\n")
   gffo[, block.id := 1]
-  gffo[, og.id := paste0("grp_", og.id)]
+
   return(gffo)
 }

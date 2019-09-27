@@ -34,44 +34,8 @@ extend_blocks <- function(gff,
                           map,
                           verbose = T,
                           use.score.cull.blast = T,
+                          return.reg.only = F,
                           rank.buffer){
-  rerank_mapFromGff <- function(gff, map, genomeIDs){
-    gff <- subset(gff, genome %in% genomeIDs)
-    spl.map <- split(map, by = c("genome1","genome2","chr1"))
-    spl.gff <- split(gff, by = c("genome","chr"))
-    mo1 <- rbindlist(lapply(spl.map, function(x){
-      gc <- paste(x$genome1[1], x$chr1[1], sep = ".")
-      y <- subset(spl.gff[[gc]], id %in% x$id1)
-      x <- x[,c("genome1","genome2","chr1","chr2","id1","id2")]
-      y[,rank := frankv(y, cols = c("start","end"), ties.method = "random")]
-      o <- merge(x,
-                 with(y,
-                      data.table(id1 = id,
-                                 start1 = start,
-                                 end1 = end,
-                                 rank1 = rank)),
-                 by = "id1")
-
-    }))
-
-    spl.map <- split(mo1, by = c("genome1","genome2","chr2"))
-    map <- rbindlist(lapply(spl.map, function(x){
-      gc <- paste(x$genome2[1], x$chr2[1], sep = ".")
-      y <- subset(spl.gff[[gc]], id %in% x$id2)
-      y[,rank := frankv(y, cols = c("start","end"), ties.method = "random")]
-      o <- merge(x,
-                 with(y,
-                      data.table(id2 = id,
-                                 start2 = start,
-                                 end2 = end,
-                                 rank2 = rank)),
-                 by = "id2")
-
-    }))
-    setcolorder(map, c(3:6,2,1,7:8,11,9,12,10))
-    setkey(map, chr1, chr2, start1, start2)
-    return(map)
-  }
 
   if (use.score.cull.blast) {
     of.dir <- dir.list$cull.score.blast
@@ -79,46 +43,95 @@ extend_blocks <- function(gff,
     of.dir <- dir.list$cull.blast
   }
 
-  all.blast <- read_allBlasts(
-    gff = gff,
-    genomeIDs = genomeIDs,
-    of.dir = of.dir,
-    check.ogs = F,
-    add.gff = T,
-    keep.geneNum = F,
-    verbose = verbose)
-
-  comb <- data.table(rbind(t(combn(genomeIDs, 2, simplify = T)),
-                           t(sapply(genomeIDs, rep, 2))))
-  setnames(comb, c("genome1", "genome2"))
-  map <- merge(map, comb, by = c("genome1", "genome2"))
+  gff <- data.table(gff[,c("id","chr","start","end","strand","genome","order")])
 
   if(verbose)
-    cat("Subsetting blast hits to chromosomes found in syntenic blocks ... ")
-  all.blast[,what := "blast"]
-  map[,what := "map"]
-  cn <- colnames(all.blast)[colnames(all.blast) %in% colnames(map)]
-  spl.map <- split(map, by = c("genome1","genome2","chr1","chr2"))
-  spl.blast <- split(all.blast, by = c("genome1","genome2","chr1","chr2"))
-  blast <- rbindlist(spl.blast[names(spl.map)])
+    cat("Importing orthofinder database and blast results ...")
+  sids <- read_speciesIDs(
+    of.dir = of.dir,
+    genomeIDs = genomeIDs)
+  gids <- read_geneIDs(
+    of.dir = of.dir,
+    species.num.id = sids,
+    gff = gff)
 
-  z <- rbind(map[, cn, with = F],
-             blast[, cn, with = F])
-  z <- z[!duplicated(z[,c("id1","id2")]),]
+  blast <- read_ofBlast(
+    gids = gids,
+    blast.files = list.files(
+      path = of.dir,
+      pattern = "^Blast",
+      full.names = T))
+
+  blast.more <- read_ofBlast(
+    gids = gids,
+    blast.files = list.files(
+      path = dir.list$cull.blast,
+      pattern = "^Blast",
+      full.names = T))
+
+  if(verbose)
+    cat("Done!\nSubsetting blast hits to chromosomes found in syntenic blocks ... ")
+  all.blast <- reduce_recipBlast(
+    genomeIDs = genomeIDs,
+    blast = mirror_map(blast),
+    intergenome.only = F)
+
+  all.map <- reduce_recipBlast(
+    genomeIDs = genomeIDs,
+    blast = mirror_map(map),
+    intergenome.only = F)
+
+  all.map <- merge(all.map[,c("genome1","genome2","id1","id2")],
+                   blast.more,
+                   by = c("genome1","genome2","id1","id2"))
+
+
+  map.gcs <- with(all.map, unique(
+    paste(genome1, genome2, chr1, chr2)))
+  all.blast <- subset(blast, paste(
+    genome1, genome2, chr1, chr2) %in% map.gcs)
+
+
+  all.blast[,what := "blast"]
+  all.map[,what := "map"]
+
+  cn <- colnames(all.blast)[colnames(all.blast) %in% colnames(all.map)]
+
+  z <- rbind(all.map[, cn, with = F],
+             all.blast[, cn, with = F])
+  z <- z[!duplicated(z[,c("genome1","genome2","id1","id2")]),]
 
   if(verbose)
     cat("Done!\nReranking blast hits by position in gff ... ")
-  zo <- rerank_mapFromGff(
-    map = z,
-    gff = gff,
-    genomeIDs = genomeIDs)
+  zid <- merge(gff,
+               with(z,  data.table(
+                 genome = c(genome1, genome2),
+                 id = c(id1, id2))),
+               by = c("genome","id"))
+  zid <- zid[!duplicated(zid),]
+  setkey(zid, genome, chr, start, end)
+  zid[,rank := frank(start, ties.method = "dense"),
+      by = list(genome, chr)]
+  zid1 <- with(zid,
+               data.table(genome1 = genome,
+                          id1 = id,
+                          rank1 = rank))
+  zid2 <- with(zid,
+               data.table(genome2 = genome,
+                          id2 = id,
+                          rank2 = rank))
+  zo <- merge(zid1,
+              merge(zid2,
+                    z,
+                    by = c("genome2","id2")),
+              by = c("genome1","id1"))
+  spl.map <- split(zo, by = c("genome1","genome2","chr1","chr2"))
 
-  zo <- merge(zo, z[,c("id1","id2","what")], by = c("id1","id2"))
   if(verbose)
     cat("Done!\nSearching for syntenic hits within", length(spl.map),"pairwise chromosome combinations ...\n")
-  spl.map <- split(zo, by = c("genome1","genome2","chr1","chr2"))
+
   out <- rbindlist(lapply(names(spl.map), function(i){
-    if(which(names(spl.map) == i) %% 100 == 0)
+    if(which(names(spl.map) == i) %% 100 == 0 & verbose)
       cat("\tCompleted",which(names(spl.map) == i),"/",length(spl.map),"\n")
     z <- spl.map[[i]]
     wh <- find_whichInBuffer(x = z$rank1,
@@ -128,8 +141,57 @@ extend_blocks <- function(gff,
     return(data.table(z[wh,]))
   }))
   if(verbose)
-    cat("\tDone!\n")
-  out <- merge(all.blast, out[,c("genome1","genome2","id1","id2")], by = c("genome1","genome2","id1","id2"))
-  out[,what := NULL]
+    cat("\tDone!\nPulling collinear hits ... ")
+  out <- merge(blast.more,
+               out[,c("genome1","genome2","id1","id2")],
+               by = c("genome1","genome2","id1","id2"))
+
+  if(!return.reg.only){
+    syntenic.blast <- run_MCScanX(
+      blast = mirror_map(out),
+      gff = gff,
+      mcscan.dir = dir.list$mcscanx,
+      overwrite.output.dir = T,
+      genomeIDs = genomeIDs,
+      MCScanX.path = MCScanX.path,
+      MCScanX.s.param = 5,
+      MCScanX.m.param = 50,
+      verbose = F)
+
+    if(verbose)
+      cat("Done!\nCompleting subgraphs ... ")
+
+    comp2 <- complete_graph(
+      map = syntenic.blast,
+      gff = gff,
+      ignore.self = T,
+      verbose = F)
+
+    if(verbose)
+      cat("Done!\nRe-Searching for syntenic hits near collinear blocks  ... ")
+    zo <- merge(comp2[,c("genome1","genome2","id1","id2")],
+                zo,
+                by = c("genome1","genome2","id1","id2"))
+    spl.map <- split(zo, by = c("genome1","genome2","chr1","chr2"))
+    out <- rbindlist(lapply(names(spl.map), function(i){
+      z <- spl.map[[i]]
+      wh <- find_whichInBuffer(x = z$rank1,
+                               y = z$rank2,
+                               which.in.blk = which(z$what == "map"),
+                               rank.buffer = rank.buffer)
+      return(data.table(z[wh,]))
+    }))
+
+    bl.iden <- subset(blast.more[,c("genome1","genome2","id1","id2")],
+                      genome1 == genome2 & id1 == id2)
+    out2 <- merge(blast.more,
+                  rbind(out[,c("genome1","genome2","id1","id2")],
+                        bl.iden),
+                  by = c("genome1","genome2","id1","id2"))
+    if(verbose)
+      cat("Done!\n")
+    out <- data.table(out2)
+  }
+
   return(out)
 }

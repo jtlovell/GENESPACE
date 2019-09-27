@@ -1,8 +1,318 @@
 ---
-title: GENESPACE readme
-author: John T. Lovell
-date: 19-September 2019
+title: "GENESPACE readme"
+author: "John T. Lovell"
+date: "19-September 2019"
+output: pdf_document
 ---
+
+
+## GENESPACE in a nutshell
+
+The GENESPACE R package, in its most basic form, constructs syntenic blocks from blast results, culls blast results to those in proximity to syntenic blocks, then parses the syntenic blast hits into orthologs, paralogs and un-clustered homologs. GENESPACE does this on whole-genome annotation data (i.e. gff3 and peptide fasta files) and can opperate on anywhere from 2 to 16 diploid genomes simultaneously (depending on memory availability.
+
+GENESPACE includes a primary pipeline, which finds syntenic homologs, orthologs and paralogs (*see the 'pipeline documentation' subheading below for full details on each function call*). The package also includes a method for genome annotation parsing, three main plotting routines, and syntenic block parsing and gene-location predicting functions. The plotting and parsing functions must be run interactively in R. The pipeline can be run interactively  as a single function call. In the future, we will also implement running the pipeline as an Rscript call from the command line. 
+
+In R, run the pipeline as a single command: `pipe_GENESPACE`. There are three major settings for `pipe_GENESPACE`, which primarily affect the size, density and blast-scores of hits included in syntenic blocks:
+
+### The default pipeline:
+
+#### Blast results calculation and processing:
+
+All pairwise blast hits are calculated with `diamond` either separately, or within the `orthofinder` program. Blast results are then culled to the top 2 hits within each haplotype (so, if a diploid is mapped to a dipliod, four hits would be retained for each gene; if it were mapped to a tetraploid, eight hits would be retained). All hits with a bit score < 50 are dropped. 
+
+#### Initial orthogroup inference: 
+
+separate run of `orthofinder` is made for each pair of genomes using the culled blast results. Only those hits within 'orthogroups' are retained. 
+
+#### Pruning blast hits to synteny: 
+
+Blocks are formed using `MCScanX` from the culled and orthogroup-constrained blast results, allowing 5x as many gaps in the alignment as 50% of the minimum block size (MBS, default = 10), then pruned with `dbscan` to blocks with MBS hits within a fixed gene-rank radius 5x MBS. All orthogroups are then 'completed', where `igraph` expands the orthogroups to include all possible combinations among genomes. These blast hits are then pruned with `dbscan` with identical parameters as above. 
+
+#### Block cleaning and extension: 
+
+To fill potential gaps in blocks left by the stochastic nature of varying orthogroup connectivity, we pull all blast results that passed the score threshold (agnostic to orthogroup identity) that are within a 100-gene radius of any syntenic block and re-form blocks with `MCScanX` with the same parameters as above. 
+
+#### Syntenic orthology inference: 
+
+All blast results are culled to those within a 50-gene rank radius of any syntenic block for all genomes. `orthofinder` is run on this entire set, and blast hits are parsed into orthologs, paralogs, or un-clustered homologs. By default, hits that were not in an orthogroup (neither orthologs or paralogs) with a score < 50 or < 50% of the best bit score for that gene -by- unique genome combination are dropped from this dataset. 
+
+### The 'relaxed' method:
+
+This follows the default closely, but allows for smaller blocks (MBS = 5) and more gapped alignments (10x MBS). The major difference is that the inital orthofinder run is conducted on all genomes simultaneously. For a set with few, closely related genomes, this will largely result in the same blocks as default; however, as more genomes are included across greater phylogenetic distances, this can retain more diverged regions. 
+
+### The 'ancientWGD' method:
+
+The goal with this parameterization is to retain as many hits as possible and to capture regions associated with ancient whole-genome duplications (WGDs). To do this, the initial orthofinder step is completely ignored, MBS = 5 and 20x MBS large gaps are allowed. The intial block extension radius is doubled to 200 genes and homologs with a score > 20 and 20% of the best score are retained. 
+
+
+
+## Example 1: Syntenic orthology among Human, Chimpanzee and Mouse genomes
+
+*For this and other examples, we will not run the pipeline in one fell swoop, but will work our way though it step by step.*
+
+*The gff3 and peptide annotation files were downloaded from (ensemble genomes)[https://uswest.ensembl.org/info/data/ftp/index.html] on 19-September 2019.*
+
+The first step of GENESPACE is to move the annotation files into a subdirectory of your working directory called '/raw_annotations'. You also can make a subdirectory called '/raw_assemblies', but this can be empty, or contain the assembly fastas, labeled [genomeID].fa. For each genome of interest, make a folder with the name you want to call the genome. 
+
+So, the directory structure looks like this:
+
+```
+/genespace_directory
+  /raw_annotations
+    /human
+      /Homo_sapiens.GRCh38.97.abinitio.gff3.gz
+      /Homo_sapiens.GRCh38.pep.abinitio.fa.gz
+    /chimanzee
+      /Pan_troglodytes.Pan_tro_3.0.97.abinitio.gff3.gz
+      /Pan_troglodytes.Pan_tro_3.0.pep.abinitio.fa.gz
+    /mouse
+      /Mus_musculus.GRCm38.97.abinitio.gff3.gz
+      /Mus_musculus.GRCm38.pep.abinitio.fa.gz
+  /raw_assemblies
+    /human.fa
+    /chimpanzee.fa
+    /mouse.fa
+```
+
+GENESPACE requires a very specific format for the gff and the fasta files: the attribute column of the gff must have an entry that matches exactly the header name in the fasta. But the files in the `raw_annotation` subdirectory can be any format, but must be parsed by the `convert_genomes` function. This decompresses the files and parses the fasta header via a user-specified function and regular expression. 
+
+For example, the first three raw human sequences:
+```
+>GENSCAN00000000001 pep chromosome:GRCh38:5:122151991:122153085:1 transcript:GENSCAN00000000001 transcript_biotype:protein_coding
+MERGKKKRISNKLQQTFHHSKEPTFLINQAGLLSSDSYSSLSPETESVNPGENIKTDTQK
+...
+
+>GENSCAN00000000002 pep chromosome:GRCh38:5:122675795:122676286:1 transcript:GENSCAN00000000002 transcript_biotype:protein_coding
+MMNRMAPENFQPDPFINRNDSNMKYEELEALFSQTMFPDRNLQEKLALKRNLLESTGKGL
+...
+
+>GENSCAN00000000003 pep chromosome:GRCh38:5:121876146:121916483:-1 transcript:GENSCAN00000000003 transcript_biotype:protein_coding
+MDDSKGNGKRAKIRGKGPKIFLKSLLATLPNTSYVCASEPQLSPYLCEFFPGVNLLDVEH
+...
+```
+
+So, we run `convert_genome`, which adds a new subdirectory to the working directory. To do this, we need to specify the character strings that identify the peptide files and the gff. 
+The peptide files are named "[speciesID].[genomeVersion].pep.abinitio.fa.gz". 
+The gff3 files are named similarly "[speciesID].[genomeVersion].abinitio.gff3.gz". 
+
+```
+convert_genomes(
+  directory = wd,
+  genomeIDs = genomeIDs,
+  verbose = T,
+  peptide_str = "pep",  # 'pep' distinguishes the peptide fasta files
+  peptide.only = T,     # only worry about the peptide and gff3 files
+  gff_str = "gff"       # 'gff' distinguishes the gff3 annotations
+)
+```
+
+```
+/genespace_directory
+  /raw_annotations
+  /raw_assemblies
+  /genome
+    /gff
+      /human.gff3
+      /chimpanzee.gff3
+      /mouse.gff3
+    /peptide
+      /human.fa
+      /chimpanzee.gff3
+      /mouse.gff3
+```
+
+The `human.fa` peptide fasta in the genome/peptide subdirectory now has different headers:
+
+```
+>GENSCAN00000000001
+MGVKMLLVLQSETGRGRRRRGGRRGRRRRRREEKKEDEEEEAVAVAAAVAVEEEEGEEEGEEEGVEEEEEDGRRRKKKKK
+
+>GENSCAN00000000002
+MAGSQPQRLAHPLLSLPLTSASGSPGLEQEDRTTRAINRVTWPCIMIWCRIPLCEAKAASANFSTWKAVTSPCALVAQNP
+
+>GENSCAN00000000003
+MENQIIQTAGRTGQESGAAHRRDDATSILQHLGSPAKGWENCQGEGVSDEALAPTMLLLLLVFFLRKPFVSIAVLIFHVT
+```
+
+The gff3 annotations are unchanged, except that they have been renamed as [genomeID].fa and decompressed. The first six lines of `human.gff3` looks like this (below). You'll notice that only entries where the 3rd column has 'mRNA'  have entries in the 9th 'attribute' column that match the geneIDs in the fasta. 
+
+```
+1	ensembl	mRNA	12190	14149	.	+	.	ID=transcript:17672;Name=GENSCAN00000017672;version=1
+1	ensembl	exon	12190	12227	.	+	.	Parent=transcript:17672;Name=127823;exon_id=127823;version=1
+1	ensembl	exon	12613	12721	.	+	.	Parent=transcript:17672;Name=127824;exon_id=127824;version=1
+1	ensembl	exon	14051	14149	.	+	.	Parent=transcript:17672;Name=127825;exon_id=127825;version=1
+1	ensembl	mRNA	14696	24886	.	-	.	ID=transcript:17670;Name=GENSCAN00000017670;version=1
+1	ensembl	exon	14696	14829	.	-	.	Parent=transcript:17670;Name=127818;exon_id=127818;version=1
+``` 
+
+So, when we read in the gff3 annotation, we'll want to keep the mRNA lines, and retain the 2nd entry in the attribute column, removing the 'Name=' string. In GENESPACE, we read the gff into memory and parse it use `import_gff`; this also simplifies the output to just the genomeID, geneID, chromosome, start, end, and strand data.
+
+```
+gff <- import_gff(
+  gff.dir = dir.locs$gff,
+  genomeIDs = genomeIDs, 
+  use = "mRNA")
+```
+
+```
+                   id chr  start    end strand genome order
+1: GENSCAN00000017672   1  12190  14149      +  human     1
+2: GENSCAN00000017670   1  14696  24886      -  human     2
+3: GENSCAN00000017677   1  51913 106974      +  human     3
+```
+
+The last pre-processing step is to build out the remaining subdirectories and get a list of these in memory with: `check_env`.
+
+```
+dir.locs <- check_env(
+  directory = genespace/working/directory,
+  genomeIDs = c("Human", "Chimpanzee", "Mouse"),
+  peptide.only = T)
+```
+
+Which adds a few new subdirectories to the file tree:
+```
+/genespace_directory
+  /raw_annotations
+  /raw_assemblies
+  /genome         # parsed and decompressed annotations and assembly files
+  /blast          # populated by run_orthofinder
+  /tmp            # generic tmp directory
+  /cull.blast     # blast files culled to the genomes of interest
+  /cull.score     # blast files culled score thresholds
+  /syn.blast      # blast files culled to synteny
+  /mcscanx        # mcscanx working directory
+  /results        # where results are stored
+```
+
+The `dir.locs` object that it creates contains paths to each of these subdirctories. 
+
+
+Now that we have all of the files formatted correctly and put in the right place, we can get our blast results. `run_orthofinder` is a wrapper for the `orthofinder` program, but by default, only re-formats the files and runs the pairwise reciprocal blast searches with `diamond`. Blast searches can be slow. If doing more than 3 or 4 genomes and on a personal computer, consider running this overnight, or doing it on a cluster and copying the /blast directory back into your current working directory. 
+
+
+```
+with(dir.locs,  run_orthofinder(
+  output.dir = blast, 
+  overwrite.output.dir = T,
+  peptide.dir = peptide,
+  blast.threads = 9,
+  og.threads = 4))
+```
+
+
+So, everything is ready to run the main GENESPACE pipeline. 
+
+Step 1: Cull the blast results to the genomes of interest and the top hits for each gene. 
+
+```
+init <- remake_ofInput(
+  dir.list = dir.locs,        # the list of subdirectories from check_env
+  genomeIDs = c("Human", "Chimpanzee", "Mouse"),      # the names of the genomes, matches the names of the raw_annotation folder
+  ploidy = c(2,2,2),          # ploidies
+  gff = gff,  
+  min.score = 50,             # no blast hit less than this score are kept
+  run.of = F,                 # 
+  max.dup = 4,                # maximum number of hits to retain / diploid genome
+  overwrite.output.dir = F,  
+  n.cores = 6)
+```
+
+Step 2: Run orthofinder algorthm, restricted to each pair of genomes and on the culled blast hits
+
+```
+pwblast <- rerun_orthofinder(
+  dir.list = dir.locs,
+  gff = gff,
+  genomeIDs = genomeIDs,
+  n.cores = 6,
+  method = 'pairwise')      # do the pairwise method
+```
+  
+Step 3: Form collinear blocks via MCScanX
+
+```
+mcsblks <- run_MCScanX(
+  blast = mirror_map(pwblast),
+  gff = gff,
+  mcscan.dir = dir.locs$mcscanx,
+  overwrite.output.dir = T,
+  genomeIDs = genomeIDs,
+  MCScanX.path = MCScanX.path,      # path to MCScanX install
+  MCScanX.s.param = 10,             # the minimum number of hits in a block
+  MCScanX.m.param = 100,            # the number of gaps allowed
+  verbose = T)
+```
+
+Now is a good time to check out plots to see what the initial collinear blocks look like
+
+```
+chrl <- match_synChrs(
+  gff = gff,
+  map = mcsblks$map,
+  genomeIDs = genomeIDs,
+  smallestchrsize2keep = 100,
+  genome1.chrs = c(1:23, c("X","Y")))
+dp.res <- plot_map(
+  chr.list = chrl,
+  map = mcsblks$map,
+  palette = circos.palette,
+  gff = gff,
+  genomeIDs = genomeIDs,
+  plot.self = T)
+```
+
+clnblks <- clean_blocks(
+  map = mcsblks$map,
+  gff = gff,
+  genomeIDs = genomeIDs,
+  complete.graphs = F,
+  n.mappings = 20,
+  radius = 100)
+
+comp.map <- complete_graph(
+  map = clnblks$map,
+  gff = gff,
+  ignore.self = T,
+  expand.all.combs = T)
+
+ext.blast <- extend_blocks(
+  gff = gff,
+  genomeIDs = genomeIDs,
+  map = comp.map,
+  dir.list = dir.locs,
+  rank.buffer = 100,
+  verbose = T)
+
+mcsblks2 <- run_MCScanX(
+  blast = mirror_map(ext.blast),
+  gff = gff,
+  mcscan.dir = dir.locs$mcscanx,
+  overwrite.output.dir = T,
+  genomeIDs = genomeIDs,
+  MCScanX.path = MCScanX.path,
+  MCScanX.s.param = 10,
+  MCScanX.m.param = 50,
+  verbose = T)
+
+assblks <- assign_synHomologs(
+  genomeIDs = genomeIDs,
+  map = mcsblks2$map,
+  min.score4homolog = 50,
+  min.propBestScore4homolog = .5,
+  gff = gff,
+  dir.list = dir.locs,
+  rank.buffer = 50,
+  verbose = T,
+  quiet.orthofinder = T,
+  n.cores = 6)
+
+
+
+
+
+
+
 
 ## Introduction
 

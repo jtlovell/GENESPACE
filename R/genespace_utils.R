@@ -18,9 +18,6 @@
 #' subdirectories.
 #' @param verbose logical, should updates be printed to the console?
 #' @param ... Not currently in use
-#' @param MCScanX.tool file.path, specifying the path to the
-#' MCScanX program.
-#' @param silent.mcs logical, should MCScanX progress be reported?
 #' @param id.db genome ID dictionary
 #' @param cull.blast.dir file.path, to the subdirectory
 #' where the culled blast results should be written
@@ -43,10 +40,6 @@
 #' where the temporary results should be written
 #' @param peptide.dir file.path, to the subdirectory containing
 #' the parsed peptide files
-#' @param mcscan.dir file.path, to the subdirectory containing
-#' the mcscanx output, or where mcscanx results should be written.
-#' @param mcscan.param character string, of all parameters to
-#' pass to MCScanX
 #'
 #'
 #' @note \code{genespace_utils} is a generic name for the functions documented.
@@ -54,6 +47,408 @@
 #' If called, \code{genespace_utils} returns its own arguments.
 #'
 #'
+
+
+#' @title reduce_recipBlast
+#' @description
+#' \code{reduce_recipBlast} reduce_recipBlast
+#' @rdname genespace_utils
+#' @import data.table
+#' @export
+read_ofBlast <- function(gids,
+                         blast.files){
+  all.blast <- rbindlist(lapply(blast.files, function(x)
+    fread(x,
+          col.names = c("gn1", "gn2", "perc.iden", "align.length",
+                        "n.mismatch", "n.gapOpen", "q.start",
+                        "q.end", "s.start",
+                        "s.end", "eval", "score"),
+          key = "gn2")))
+  if("gene.num" %in% colnames(gids))
+    setnames(gids, "gene.num","gn")
+  gids1 <- data.table(gids)
+  setnames(gids1, paste0(colnames(gids),"1"))
+  gids2 <- data.table(gids)
+  setnames(gids2, paste0(colnames(gids),"2"))
+  all.blast <- merge(gids1,
+                     merge(gids2,
+                           all.blast,
+                           by = "gn2"),
+                     by = "gn1")
+  return(all.blast)
+}
+
+#' @title reduce_recipBlast
+#' @description
+#' \code{reduce_recipBlast} reduce_recipBlast
+#' @rdname genespace_utils
+#' @import data.table
+#' @export
+reduce_recipBlast <- function(genomeIDs,
+                              blast,
+                              intergenome.only = F){
+  ug <- data.table(t(combn(genomeIDs,2)))
+  setnames(ug, c("genome1","genome2"))
+
+  if(!intergenome.only)
+    ug <- rbind(ug,
+              data.table(genome1 = genomeIDs,
+                         genome2 = genomeIDs))
+  out <- merge(blast,
+               ug,
+               by = c("genome1","genome2"))
+  return(out)
+}
+
+#' @title pull_orthologs
+#' @description
+#' \code{pull_orthologs} pull_orthologs
+#' @rdname genespace_utils
+#' @import data.table
+#' @export
+pull_orthologs <- function(of.dir){
+  ortholog.dirs <- list.files(
+    file.path(of.dir, "OrthoFinder"),
+    pattern = "Orthologues_",
+    recursive = T,
+    include.dirs = T,
+    full.names = T)
+  og.files <- unlist(
+    lapply(ortholog.dirs, list.files, full.names = T))
+
+  if(length(og.files) == 0)
+    stop("Could not find orthologue files ... did you do a full orthofinder run?\n")
+
+  og.ids <- rbindlist(lapply(og.files, function(x){
+    og2 <- fread(x)
+    gn <- colnames(og2)
+    mel <- melt(og2, id.vars = "Orthogroup")
+    setnames(mel, 1:2, c("og","genome"))
+    lon <- mel[,list(id = unlist(sapply(value, function(x) strsplit(x, ", ")))),
+               by = list(og, genome)]
+    l1 <- with(subset(lon, genome == gn[2]),
+               data.table(og = og,
+                          genome1 = genome,
+                          id1 = id))
+    l2 <- with(subset(lon, genome == gn[3]),
+               data.table(og = og,
+                          genome2 = genome,
+                          id2 = id))
+    mer <- merge(l1,
+                 l2,
+                 by = "og",
+                 allow.cartesian = T)
+    mer[,is.ortholog := TRUE]
+    return(mer)
+  }))
+
+  og.ids <- og.ids[!duplicated(og.ids[,c("genome1","genome2","id1","id2")]),]
+  return(og.ids)
+}
+
+
+#' @title write_ofBlast2file
+#' @description
+#' \code{write_ofBlast2file} write_ofBlast2file
+#' @rdname genespace_utils
+#' @import data.table
+#' @export
+write_ofBlast2file <- function(blast,
+                               output.dir){
+  cols2write <- c("gn1","gn2","perc.iden","align.length","n.mismatch","n.gapOpen",
+                  "q.start","q.end","s.start","s.end","eval","score")
+  if (!all(c("genome.num1", "genome.num2", cols2write) %in% colnames(blast)))
+    stop("blast must have genome.num1 and genome.num2 columns\n")
+
+  spl <- split(blast,
+               by = c("genome.num1",
+                      "genome.num2"))
+
+  ns <- names(spl)[order(names(spl))]
+
+  names(ns) <- paste0("Blast",
+                      gsub(".", "_",ns, fixed = T),
+                      ".txt")
+
+  for (i in 1:length(ns)) {
+    n <- ns[i]
+    fn <- names(ns)[i]
+    write.table(
+      spl[[n]][,cols2write, with = F],
+      sep = "\t",
+      file = file.path(output.dir, fn),
+      quote = F,
+      col.names = F,
+      row.names = F)
+  }
+}
+
+#' @title merge_gffWithBlast
+#' @description
+#' \code{merge_gffWithBlast} merge_gffWithBlast
+#' @rdname genespace_utils
+#' @import data.table
+#' @export
+merge_gffWithBlast <- function(gff,
+                               blast,
+                               include.gene.num,
+                               include.genome.num,
+                               mirror){
+  if(mirror)
+    blast <- mirror_map(blast)
+
+  if(include.gene.num & include.genome.num){
+    g1 <- with(gff, data.table(
+      genome1 = genome,
+      id1 = id,
+      genome.num1 = genome.num,
+      gn1 = gene.num))
+
+    g2 <- with(gff, data.table(
+      genome2 = genome,
+      id2 = id,
+      genome.num2 = genome.num,
+      gn2 = gene.num))
+
+    if("genome.num1" %in% colnames(blast))
+      blast[,genome.num1 := NULL]
+    if("genome.num2" %in% colnames(blast))
+      blast[,genome.num2 := NULL]
+    if("gn1" %in% colnames(blast))
+      blast[,gn1 := NULL]
+    if("gn2" %in% colnames(blast))
+      blast[,gn2 := NULL]
+
+  }else{
+    if(include.gene.num){
+      g1 <- with(gff, data.table(
+        genome1 = genome,
+        id1 = id,
+        gn1 = gene.num))
+
+      g2 <- with(gff, data.table(
+        genome2 = genome,
+        id2 = id,
+        gn2 = gene.num))
+
+      if("gn1" %in% colnames(blast))
+        blast[,gn1 := NULL]
+      if("gn2" %in% colnames(blast))
+        blast[,gn2 := NULL]
+
+    }else{
+      if(include.genome.num){
+        g1 <- with(gff, data.table(
+          genome1 = genome,
+          id1 = id,
+          genome.num1 = genome.num))
+
+        g2 <- with(gff, data.table(
+          genome2 = genome,
+          id2 = id,
+          genome.num2 = genome.num))
+
+        if("genome.num1" %in% colnames(blast))
+          blast[,genome.num1 := NULL]
+        if("genome.num2" %in% colnames(blast))
+          blast[,genome.num2 := NULL]
+
+      }else{
+        g1 <- with(gff, data.table(
+          genome1 = genome,
+          id1 = id))
+
+        g2 <- with(gff, data.table(
+          genome2 = genome,
+          id2 = id))
+      }
+    }
+  }
+
+
+  blast <- merge(
+    g1,
+    merge(
+      g2,
+      blast,
+      by = c("genome2","id2")),
+    by = c("genome1","id1"))
+
+  blast <- mirror_map(blast)
+  return(blast)
+}
+
+#' @title prep_ofDB
+#' @description
+#' \code{prep_ofDB} prep_ofDB
+#' @rdname genespace_utils
+#' @import data.table
+#' @export
+prep_ofDB <- function(tmp.dir,
+                      orig.dir,
+                      peptide.dir,
+                      output.dir,
+                      n.cores,
+                      genomeIDs,
+                      verbose,
+                      min.score,
+                      copy2dir = NULL){
+  if (verbose)
+    cat("Preparing new orthofinder-formatted species ID database ... \n")
+  make_newOFdb(
+    tmp.dir = tmp.dir,
+    output.dir = output.dir,
+    peptide.dir = peptide.dir,
+    verbose = verbose,
+    n.cores = n.cores,
+    genomeIDs = genomeIDs)
+
+  fs <- list.files(path = output.dir,
+                   full.names = T)
+  if (!is.null(copy2dir))
+    if (dir.exists(copy2dir))
+    cpd <- file.copy(from = fs,
+                     to = copy2dir)
+  if (verbose)
+    cat("\tDone!\n")
+  #######################################################
+
+  #######################################################
+  if (verbose)
+    cat("Importing new and old orthofinder gene and species IDs ... ")
+  old.ids <- read_speciesIDs(of.dir = orig.dir,
+                             genomeIDs = genomeIDs)
+  new.ids <- read_speciesIDs(of.dir = output.dir,
+                             genomeIDs = genomeIDs)
+
+  id.db <- merge(old.ids, new.ids, by = "genome")
+  setnames(id.db,2:3,c("n.old","n.new"))
+  #
+  map.db <- make_mapDB(id.db = id.db,
+                       of.dir = orig.dir,
+                       cull.blast.dir = output.dir)
+  #
+  old.genes <- read_geneIDs(of.dir = orig.dir,
+                            gff = gff,
+                            species.num.id = old.ids)
+  new.genes <- read_geneIDs(of.dir = output.dir,
+                            gff = gff,
+                            species.num.id = new.ids)
+  genes <- merge(old.genes[,c("genome","id","gene.num")],
+                 new.genes[,c("genome","id","gene.num")],
+                 by = c("genome","id"))
+  g1 <- with(genes,
+             data.table(V1 = gene.num.x,
+                        new1 = gene.num.y,
+                        key = "V1"))
+  g2 <- with(genes,
+             data.table(V2 = gene.num.x,
+                        new2 = gene.num.y,
+                        key = "V2"))
+  if (verbose)
+    cat("\tDone!\n")
+  #######################################################
+
+  #######################################################
+  if (verbose)
+    cat("Reading blast file, replacing IDs and renaming ... \n")
+
+  d <- lapply(1:nrow(map.db), function(i){
+    if (verbose)
+      cat(paste0("\t", map.db$genome1[i]),
+          "-->", map.db$genome2[i], "... ")
+    bl <- readRename_blastGenes(
+      gene.dict1 = g1,
+      gene.dict2 = g2,
+      verbose = verbose,
+      min.score = min.score,
+      blast.file.in = map.db$filename[i],
+      blast.file.out = map.db$new.filename[i])
+    if (verbose)
+      cat("Done!\n")
+  })
+  return(map.db)
+}
+
+#' @title find_ofFiles
+#' @description
+#' \code{find_ofFiles} find_ofFiles
+#' @rdname genespace_utils
+#' @import data.table
+#' @export
+find_ofFiles <- function(of.dir){
+  blast.loc <- dirname(
+    list.files(
+      of.dir,
+      pattern = "SequenceIDs",
+      recursive = T,
+      full.names = T)[1])
+
+  ortho.loc <- dirname(
+    list.files(
+      of.dir,
+      pattern = "Orthogroups.txt",
+      recursive = T,
+      full.names = T)[1])
+
+  blast.files <- list.files(
+    blast.loc,
+    pattern = "Blast*",
+    full.names = T)
+
+  fa.files <- list.files(
+    blast.loc,
+    pattern = "Species*",
+    full.names = T)
+
+  fa.files <- fa.files[grep(".fa$", fa.files)]
+
+  dmnd.files <- list.files(
+    blast.loc,
+    pattern = "diamondDBSpecies*",
+    full.names = T)
+
+  og.files <- file.path(
+    ortho.loc,
+    "Orthogroups.txt")
+  sp.id.files <- file.path(
+    blast.loc,
+    "SpeciesIDs.txt")
+  seq.id.files <- file.path(
+    blast.loc,
+    "SequenceIDs.txt")
+
+  files <- c(blast.files,
+             fa.files,
+             dmnd.files,
+             og.files,
+             sp.id.files,
+             seq.id.files)
+  return(files)
+}
+
+#' @title check_gsDir
+#' @description
+#' \code{check_gsDir} check_gsDir
+#' @rdname genespace_utils
+#' @import data.table
+#' @export
+check_gsDir <- function(dir2check, overwrite.output.dir){
+  if (!dir.exists(dir2check)) {
+    dir.create(dir2check)
+  }else{
+    if (overwrite.output.dir) {
+      unlink(dir2check, recursive = T)
+      dir.create(dir2check)
+    }else{
+      if (length(dir(dir2check)) > 0)
+        stop(dir2check, "is not empty and overwrite.output.dir = F\n\t",
+             "Change the output directory if you wish to retain these files\n\t",
+             "Set overwrite.output.dir = TRUE to overwrite this directory\n")
+    }
+  }
+}
+
 
 #' @title read_ogs
 #' @description
@@ -65,20 +460,20 @@ read_ogs <- function(of.dir,
                      gff){
 
   ortho.loc <- dirname(list.files(of.dir,
-                                  pattern = "Orthogroups.txt",
+                                  pattern = "Orthogroups.tsv",
                                   recursive = T,
                                   full.names = T)[1])
-  og2 <- readLines(file.path(ortho.loc,
-                             "Orthogroups.txt"))
-  og2 <- lapply(og2, function(x) strsplit(x, " ")[[1]])
-  og.name <- sapply(og2, function(x) x[1])
-  og.length <- sapply(og2, length) - 1
-  og.ids <- sapply(og2, function(x) x[-1])
-  og.dt <- data.table(og = rep(og.name, og.length),
-                      id = unlist(og.ids),
-                      stringsAsFactors = F)
-  og.gff <- merge(gff, og.dt, by = "id")
-  return(og.gff)
+  og2 <- fread(file.path(ortho.loc,
+                         "Orthogroups.tsv"))
+  gn <- colnames(og2)
+  mel <- melt(og2, id.vars = "Orthogroup")
+  setnames(mel, 1:2, c("og","genome"))
+  lon <- mel[,list(id = unlist(sapply(value, function(x) strsplit(x, ", ")))),
+             by = list(og, genome)]
+  l1 <- with(lon, data.table(og = og, genome1 = genome, id1 = id))
+  l2 <- with(lon, data.table(og = og, genome2 = genome, id2 = id))
+  mer <- merge(l1, l2, by = "og", allow.cartesian = T)
+  return(mer)
 }
 
 #' @title make_newOFdb
@@ -88,7 +483,7 @@ read_ogs <- function(of.dir,
 #' @import data.table
 #' @export
 make_newOFdb <- function(tmp.dir,
-                         cull.blast.dir,
+                         output.dir,
                          peptide.dir,
                          genomeIDs,
                          verbose = T,
@@ -98,8 +493,8 @@ make_newOFdb <- function(tmp.dir,
   unlink(tmp.dir, recursive = T)
   dir.create(tmp.dir)
 
-  unlink(cull.blast.dir, recursive = T)
-  dir.create(cull.blast.dir)
+  unlink(output.dir, recursive = T)
+  dir.create(output.dir)
 
   if (verbose)
     cat("Done!\n\tCopying peptide fastas ... ")
@@ -115,19 +510,27 @@ make_newOFdb <- function(tmp.dir,
 
   if (verbose)
     cat("Done!\n\tMoving results to cull.blast directory ... ")
-  blast.loc <- dirname(list.files(tmp.dir, pattern = "SequenceIDs",
-                                  recursive = T, full.names = T)[1])
-  fa.files <- list.files(blast.loc, pattern = "Species*",
+  blast.loc <- dirname(
+    list.files(tmp.dir,
+               pattern = "SequenceIDs",
+               recursive = T,
+               full.names = T)[1])
+  fa.files <- list.files(path = blast.loc,
+                         pattern = "Species*",
                          full.names = T)
   fa.files <- fa.files[grep(".fa$", fa.files)]
-  dmnd.files <- list.files(blast.loc, pattern = "diamondDBSpecies*",
+  dmnd.files <- list.files(path = blast.loc,
+                           pattern = "diamondDBSpecies*",
                            full.names = T)
 
   sp.id.files <- file.path(blast.loc, "SpeciesIDs.txt")
   seq.id.files <- file.path(blast.loc, "SequenceIDs.txt")
-  files <- c(fa.files, dmnd.files,
-             sp.id.files, seq.id.files)
-  nu <- file.copy(files, cull.blast.dir)
+  files <- c(fa.files,
+             dmnd.files,
+             sp.id.files,
+             seq.id.files)
+  nu <- file.copy(files,
+                  output.dir)
   if (verbose)
     cat("Done!\n")
 }
@@ -199,8 +602,7 @@ read_speciesIDs <- function(of.dir,
                                  "genome"))
   si$genome <- gsub(".fa$", "", si$genome)
   si <- si[match(genomeIDs, si$genome),]
-  rownames(si) <- si$genome
-  return(si)
+  return(data.table(si))
 }
 
 #' @title make_mapDB
@@ -231,7 +633,7 @@ make_mapDB <- function(id.db,
                                paste0("Blast",
                                       sm$n.new1, "_", sm$n.new2,
                                       ".txt"))
-  return(sm)
+  return(data.table(sm))
 }
 
 #' @title read_geneIDs
@@ -241,7 +643,8 @@ make_mapDB <- function(id.db,
 #' @import data.table
 #' @export
 read_geneIDs <- function(of.dir,
-                         gff){
+                         gff,
+                         species.num.id){
   gi <- fread(file.path(of.dir,
                         "SequenceIDs.txt"),
               sep = ":",
@@ -249,8 +652,13 @@ read_geneIDs <- function(of.dir,
               header = F,
               strip.white = T,
               col.names = c("gene.num", "id"))
-  setkey(gff, id)
-  setkey(gi, id)
+  gi[,genome.num := as.integer(sapply(gene.num, function(x)
+    strsplit(x,"_")[[1]][1]))]
+  gi <- merge(species.num.id, gi, by = "genome.num")
+
+  setkey(gi, genome, id)
+  setkey(gff, genome, id)
+
   gi <- merge(gff, gi)
   return(gi)
 }
@@ -428,128 +836,6 @@ run_dbs <- function(map,
                 minPts = n.mappings)
   map[,cluster := dbs$cluster]
   return(map)
-}
-
-#' @title run_mcs
-#' @description
-#' \code{run_mcs} run_mcs
-#' @rdname genespace_utils
-#' @import data.table
-#' @export
-run_mcs <- function(blast,
-                    gff,
-                    genomeIDs,
-                    mcscan.dir,
-                    MCScanX.tool,
-                    mcscan.param,
-                    silent.mcs){
-  ######################################################################
-  ######################################################################
-  parse_mcs <- function(mcs.file){
-    if (length(readLines(paste0(mcs.file, ".collinearity"))) < 12) {
-      return(NULL)
-    }else{
-      mcscan.raw <- read.delim(paste0(mcs.file, ".collinearity"),
-                               sep = "\t", header = F,
-                               comment.char = "#", strip.white = T,
-                               stringsAsFactors = F)
-
-      fac <- as.numeric(as.factor(sapply(as.character(mcscan.raw$V1), function(x)
-        strsplit(x, "-")[[1]][1])))
-      genes <- with(mcscan.raw, c(V2, V3))
-      out <- data.table(id1 = mcscan.raw$V2,
-                        id2 = mcscan.raw$V3,
-                        block.id = fac)
-      out <- data.table(out)
-      setkey(out, id1, id2)
-      return(out)
-    }
-  }
-  ######################################################################
-  ######################################################################
-
-  ######################################################################
-  ######################################################################
-  prep_mcs <- function(blast,
-                       gff,
-                       genomeIDs,
-                       mcscan.dir,
-                       mcscan.param,
-                       MCScanX.tool,
-                       silent.mcs){
-
-    if (length(unique(gff$genome)) == 1) {
-      ga <- gff
-      gb <- gff
-      ga$genome <- "a"
-      gb$genome <- "b"
-      gff <- rbind(gb, ga)
-      gff$genome <- factor(gff$genome,
-                           levels = c("a", "b"))
-    } else {
-      gff$genome <- factor(gff$genome,
-                           levels = genomeIDs)
-    }
-
-    setkey(gff, genome)
-
-    gff[,chr.num := frank(chr, ties.method = "dense"),
-        by = genome]
-    gff$rank.start = frank(gff, genome, chr, start, ties.method = "dense")
-    gff$rank.end = frank(gff, genome, chr, end, ties.method = "dense")
-    gff[,genome.num := frank(genome, ties.method = "dense")]
-
-    lets <- paste0(letters,letters)[1:length(unique(gff$genome))]
-    gff$genome.abbrev <- paste0(lets[gff$genome.num],1)
-
-    gff.in <- gff[,c("genome.abbrev", "id", "rank.start", "rank.end")]
-
-
-    blast.in <- blast[,c("id1", "id2", "perc.iden", "align.length",
-                         "n.mismatch", "n.gapOpen", "q.start", "q.end",
-                         "s.start", "s.end", "eval", "score")]
-    write.table(gff.in,
-                file = file.path(mcscan.dir, "xyz.gff"),
-                row.names = F,
-                col.names = F,
-                quote = F, sep = "\t")
-    write.table(blast.in,
-                file = file.path(mcscan.dir, "xyz.blast"),
-                row.names = F,
-                col.names = F,
-                quote = F, sep = "\t")
-    if (silent.mcs) {
-      com <- paste(MCScanX.tool, mcscan.param,
-                   file.path(mcscan.dir, "xyz"), "&> /dev/null")
-    } else {
-      com <- paste(MCScanX.tool, mcscan.param,
-                   file.path(mcscan.dir, "xyz"))
-    }
-
-    system(com)
-    return(file.path(mcscan.dir, "xyz"))
-  }
-  ######################################################################
-  ######################################################################
-
-  mcs.file <- prep_mcs(blast = blast,
-                       gff = gff,
-                       genomeIDs,
-                       mcscan.dir = mcscan.dir,
-                       mcscan.param = mcscan.param,
-                       MCScanX.tool = MCScanX.tool,
-                       silent.mcs = silent.mcs)
-  mcs.parsed <- parse_mcs(mcs.file)
-  if (!is.null(mcs.parsed)) {
-    blast <- data.table(blast)
-    setkey(blast, id1, id2)
-    setkey(mcs.parsed, id1, id2)
-    map.out <- data.table(merge(mcs.parsed, blast))
-    setkey(map.out, block.id, chr1, start1)
-    return(map.out)
-  }else{
-    return(blast[0,])
-  }
 }
 
 #' @title mirror_map

@@ -5,7 +5,7 @@
 \title{Read all blast files}
 \usage{
 read_allBlasts(gff, genomeIDs, of.dir, check.ogs = T, add.gff = F,
-  keep.geneNum = F, verbose = T)
+  keep.geneNum = F, simple = F, blast.files = NULL, verbose = T)
 }
 \arguments{
 \item{gff}{data.table, containing the parsed gff annotations,

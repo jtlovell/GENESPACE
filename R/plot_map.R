@@ -69,14 +69,18 @@ plot_map <- function(palette = pal_genespace,
   chr.coords[,mean := (start+end) / 2]
 
   if(col.byBlk){
-    m <- map[,c("id1","id2","block.id")]
+    m <- map[,c("id1","id2","genome1","genome2","block.id")]
     m <- rbind(m, data.table(id1 = m$id2,
                              id2 = m$id1,
+                             genome1 = m$genome2,
+                             genome2 = m$genome1,
                              block.id = m$block.id))
   }else{
-    m <- map[,c("id1","id2")]
+    m <- map[,c("id1","id2","genome1","genome2")]
     m <- rbind(m, data.table(id1 = m$id2,
-                             id2 = m$id1))
+                             id2 = m$id1,
+                             genome1 = m$genome2,
+                             genome2 = m$genome1))
   }
   m <- m[!duplicated(m),]
 
@@ -84,7 +88,7 @@ plot_map <- function(palette = pal_genespace,
   g2 <- data.table(gff)
   setnames(g1, paste0(colnames(gff), "1"))
   setnames(g2, paste0(colnames(gff), "2"))
-  m <- merge(merge(m, g1, by = "id1"), g2, by= "id2")
+  m <- merge(merge(m, g1, by = c("genome1","id1")), g2, by= c("genome2","id2"))
 
 
   if(length(genomeIDs) == 1){

@@ -12,7 +12,6 @@
 #' @param rerank logical, should the ranks be re-calculated prior to cleaning?
 #' @param verbose logical, should updates be printed to the console?
 #' @param ... Not currently in use
-#' @param complete.graphs logical, should complete_graph be run?
 #' @param ignore.self logical, should the subgraphs be built agnostic to
 #' the existence of within-genome hits? Passed on to complete_graph.
 #' @param expand.all.combs logical, should all possible combinations be
@@ -94,46 +93,6 @@ clean_blocks <- function(map,
           nrow(cleaned$map), "\n")
   }
   #######################################################
-
-  if (complete.graphs) {
-    if (is.null(gff))
-      stop("Must specify gff in order to complete.graphs\n")
-    comp <- complete_graph(map = map,
-                          gff = gff,
-                          genomeIDs = genomeIDs,
-                          verbose = verbose,
-                          expand.all.combs = expand.all.combs,
-                          ignore.self = ignore.self)
-
-    comb <- data.table(
-      rbind(
-        t(combn(genomeIDs, 2, simplify = T)),
-        t(sapply(genomeIDs, rep, 2))))
-    setnames(comb, c("genome1", "genome2"))
-
-    comp <- merge(
-      comp,
-      comb,
-      by = c("genome1", "genome2"))
-
-    if (verbose)
-      cat("Re-building blocks with radius =",
-          radius[length(radius)],
-          "and n.mappings =",
-          n.mappings[length(n.mappings)],
-          "...\n")
-
-    cleaned <- clean_it(
-      map = comp,
-      genomeIDs = genomeIDs,
-      rerank = TRUE,
-      radius = radius[length(radius)],
-      n.mappings = n.mappings[length(n.mappings)],
-      verbose = verbose)
-    map <- data.table(cleaned$map)
-    if (verbose)
-      cat("\tDone!\n")
-  }
 
   map[,block.id := paste0("blk_",
                           as.numeric(

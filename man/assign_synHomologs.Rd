@@ -4,22 +4,19 @@
 \alias{assign_synHomologs}
 \title{Assign syntenic homologs}
 \usage{
-assign_synHomologs(map, syn.blast = NULL, genomeIDs, gff, dir.list,
-  rank.buffer, verbose, min.homolog.score = 50, min.perc.iden = NULL,
-  min.prop.of.best = 0.8, n.cores = 1)
+assign_synHomologs(gff, genomeIDs, map, dir.list, rank.buffer,
+  min.propBestScore4homolog = 0.5, min.score4homolog = 50,
+  verbose = T, quiet.orthofinder = F, n.cores = 1)
 }
 \arguments{
-\item{map}{data.table, containing the merged gff and blast results}
-
-\item{syn.blast}{data.table, optional, containing the
-syntenic blast hits to feed to orthofinder.}
+\item{gff}{data.table, containing the parsed gff annotations,
+as produced by import_gff.}
 
 \item{genomeIDs}{character vector, specifying the genomeIDs to include.
 If NULL (default), taken as all unique elements in the 'genome' column
 of the gff data.table.}
 
-\item{gff}{data.table, containing the parsed gff annotations,
-as produced by import_gff.}
+\item{map}{data.table, containing the merged gff and blast results}
 
 \item{dir.list}{list, containing the paths to various genespace
 subdirectories.}
@@ -29,6 +26,12 @@ mappings.}
 
 \item{verbose}{logical, should updates be printed to the console?}
 
+\item{n.cores}{integer length 1, the number of parallel processes
+to run.}
+
+\item{syn.blast}{data.table, optional, containing the
+syntenic blast hits to feed to orthofinder.}
+
 \item{min.homolog.score}{numeric, minimum blast bit score to be
 included}
 
@@ -37,9 +40,6 @@ identity to be included}
 
 \item{min.prop.of.best}{numeric, minimum proportion of top score for
 each gene to be included.}
-
-\item{n.cores}{integer length 1, the number of parallel processes
-to run.}
 
 \item{...}{Not currently in use}
 }
