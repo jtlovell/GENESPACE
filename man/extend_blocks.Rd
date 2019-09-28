@@ -5,7 +5,8 @@
 \title{Extend and complete syntenic mappings}
 \usage{
 extend_blocks(gff, genomeIDs, dir.list, map, verbose = T,
-  use.score.cull.blast = T, rank.buffer)
+  MCScanX.s.param = 5, MCScanX.m.param = 50, MCScanX.path,
+  use.score.cull.blast = T, return.reg.only = F, rank.buffer)
 }
 \arguments{
 \item{gff}{data.table, containing the parsed gff annotations,

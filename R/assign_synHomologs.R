@@ -61,6 +61,7 @@ assign_synHomologs <- function(gff,
     dir.list = dir.list,
     use.score.cull.blast = F,
     rank.buffer = rank.buffer,
+    return.reg.only = T,
     verbose = F)
   syn.blast[, genome.num1 := NULL]
   syn.blast[, genome.num2 := NULL]

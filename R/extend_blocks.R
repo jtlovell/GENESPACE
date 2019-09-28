@@ -33,6 +33,9 @@ extend_blocks <- function(gff,
                           dir.list,
                           map,
                           verbose = T,
+                          MCScanX.s.param = 5,
+                          MCScanX.m.param = 50,
+                          MCScanX.path,
                           use.score.cull.blast = T,
                           return.reg.only = F,
                           rank.buffer){
@@ -154,8 +157,8 @@ extend_blocks <- function(gff,
       overwrite.output.dir = T,
       genomeIDs = genomeIDs,
       MCScanX.path = MCScanX.path,
-      MCScanX.s.param = 5,
-      MCScanX.m.param = 50,
+      MCScanX.s.param = MCScanX.s.param,
+      MCScanX.m.param = MCScanX.m.param,
       verbose = F)
 
     if(verbose)
