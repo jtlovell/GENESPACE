@@ -4,10 +4,24 @@
 \alias{plot_map}
 \title{build pwBlocks}
 \usage{
-plot_map(palette = pal_genespace, chr.list, map, gff, genomeIDs,
-  gap.prop = 0.01, use.rank = T, col.byBlk = T, label.blocks = F,
-  chr.abbrev.fun = function(x) x, pch = ".", alpha = 0.5,
-  text.cex = 0.5, plot.self = F, cex.axis = 0.8, ...)
+plot_map(
+  palette = pal_genespace,
+  chr.list,
+  map,
+  gff,
+  genomeIDs,
+  gap.prop = 0.01,
+  use.rank = T,
+  col.byBlk = T,
+  label.blocks = F,
+  chr.abbrev.fun = function(x) x,
+  pch = ".",
+  alpha = 0.5,
+  text.cex = 0.5,
+  plot.self = F,
+  cex.axis = 0.8,
+  ...
+)
 }
 \arguments{
 \item{palette}{function, palette function for colors}

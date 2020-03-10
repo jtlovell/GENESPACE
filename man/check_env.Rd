@@ -4,8 +4,14 @@
 \alias{check_env}
 \title{Make sure everything is setup}
 \usage{
-check_env(directory, genomeIDs, clean = FALSE, peptide.only = FALSE,
-  check.pkgs = TRUE, check.genomes = TRUE)
+check_env(
+  directory,
+  genomeIDs,
+  clean = FALSE,
+  peptide.only = FALSE,
+  check.pkgs = TRUE,
+  check.genomes = TRUE
+)
 }
 \arguments{
 \item{directory}{File path, where the subdirectory folders (e.g. raw_assemblies)

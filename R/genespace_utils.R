@@ -49,33 +49,106 @@
 #'
 
 
-#' @title reduce_recipBlast
+#' @title make_initialGenespacePipe
 #' @description
-#' \code{reduce_recipBlast} reduce_recipBlast
+#' \code{make_initialGenespacePipe} make_initialGenespacePipe
 #' @rdname genespace_utils
-#' @import data.table
 #' @export
-read_ofBlast <- function(gids,
-                         blast.files){
-  all.blast <- rbindlist(lapply(blast.files, function(x)
-    fread(x,
-          col.names = c("gn1", "gn2", "perc.iden", "align.length",
-                        "n.mismatch", "n.gapOpen", "q.start",
-                        "q.end", "s.start",
-                        "s.end", "eval", "score"),
-          key = "gn2")))
-  if("gene.num" %in% colnames(gids))
-    setnames(gids, "gene.num","gn")
-  gids1 <- data.table(gids)
-  setnames(gids1, paste0(colnames(gids),"1"))
-  gids2 <- data.table(gids)
-  setnames(gids2, paste0(colnames(gids),"2"))
-  all.blast <- merge(gids1,
-                     merge(gids2,
-                           all.blast,
-                           by = "gn2"),
-                     by = "gn1")
-  return(all.blast)
+make_initialGenespacePipe <- function(working.directory,
+                                      verbose,
+                                      genomeIDs,
+                                      cds_str,
+                                      peptide_str,
+                                      blast.threads,
+                                      n.cores,
+                                      ploidy,
+                                      max.dup,
+                                      min.score,
+                                      use.topn,
+                                      only.orthogroups,
+                                      orthofinder.method,
+                                      blast.rda.2start,
+                                      MCScanX.m.param.synteny,
+                                      MCScanX.s.param.synteny,
+                                      dbs.radius.synteny,
+                                      dbs.hits.synteny,
+                                      MCScanX.m.param.extend,
+                                      MCScanX.s.param.extend,
+                                      extend.use.score.cull.blast,
+                                      extend.rank.buffer,
+                                      syntenic.rank.buffer,
+                                      min.score4homolog,
+                                      min.propBestScore4homolog){
+  return(list(
+    step1.convert.genomes = list(
+      run.it = FALSE,
+      directory = working.directory,
+      verbose = verbose,
+      genomeIDs = genomeIDs,
+      cds_str = cds_str,
+      peptide_str =  peptide_str,
+      desc = "Step 1: Raw genomes will NOT be converted from raw format to GENESPACE format"),
+
+    step2.run.orthofinder = list(
+      run.it = FALSE,
+      blast.threads = blast.threads,
+      og.threads = n.cores,
+      verbose = verbose,
+      genomeIDs = genomeIDs,
+      desc = "Step 2: Orthofinder will NOT be used to generate all pairwise blast results"),
+
+    step3.remake.orthofinder.input =  list(
+      run.it = FALSE,
+      verbose = verbose,
+      genomeIDs = genomeIDs,
+      ploidy = ploidy,
+      max.dup = max.dup,
+      min.score = min.score,
+      n.cores = n.cores,
+      desc = "Step 3: Blast files will NOT be remade and culled to the top scores"),
+
+    step4.rerun.orthofinder =  list(
+      run.it = FALSE,
+      n.cores = n.cores,
+      use.topn = use.topn,
+      only.orthogroups = only.orthogroups,
+      method = orthofinder.method,
+      verbose = verbose,
+      genomeIDs = genomeIDs,
+      blast.rda.2start = blast.rda.2start,
+      desc = "Step 4: Orthofinder will NOT be run on culled data\n\t",
+      "Using data saved in",blast.rda.2start),
+
+    step5.prune.blast2synteny =  list(
+      run.it = FALSE,
+      MCScanX.m.param = MCScanX.m.param.synteny,
+      MCScanX.s.param = MCScanX.s.param.synteny,
+      dbs.radius = dbs.radius.synteny,
+      dbs.hits = dbs.hits.synteny,
+      MCScanX.path = MCScanX.path,
+      verbose = verbose,
+      genomeIDs = genomeIDs,
+      desc = "Step 5: Blast results will NOT be pruned to those in syntenic blocks"),
+
+    step6.extend.blocks =  list(
+      run.it = FALSE,
+      verbose = verbose,
+      genomeIDs = genomeIDs,
+      MCScanX.m.param = MCScanX.m.param.extend,
+      MCScanX.s.param = MCScanX.s.param.extend,
+      use.score.cull.blast = extend.use.score.cull.blast,
+      rank.buffer = extend.rank.buffer,
+      desc = "Step 6: Sytenic blocks will NOT be extended, where possible"),
+
+    step7.assign.syntenic.homologs =  list(
+      run.it = FALSE,
+      rank.buffer = syntenic.rank.buffer,
+      min.score4homolog = min.score4homolog,
+      min.propBestScore4homolog = min.propBestScore4homolog,
+      n.cores = n.cores,
+      verbose = verbose,
+      genomeIDs = genomeIDs,
+      desc = "Step 7: Syntenic hits will NOT be assigned as paralogs / orthologs")))
 }
 
 #' @title reduce_recipBlast
@@ -108,7 +181,7 @@ reduce_recipBlast <- function(genomeIDs,
 #' @export
 pull_orthologs <- function(of.dir){
   ortholog.dirs <- list.files(
-    file.path(of.dir, "OrthoFinder"),
+    of.dir,
     pattern = "Orthologues_",
     recursive = T,
     include.dirs = T,
@@ -506,7 +579,7 @@ make_newOFdb <- function(tmp.dir,
     cat("Done!\n\tRe-making orthofinder input format ... ")
   system(paste("orthofinder", "-f", tmp.dir,
                "-a", n.cores, "-S diamond",
-               "-op >/dev/null 2>&1"))
+               "-op  1>/dev/null 2>&1"))
 
   if (verbose)
     cat("Done!\n\tMoving results to cull.blast directory ... ")
@@ -783,14 +856,28 @@ import_ofResults <- function(gff,
 cull_blastByScore <- function(blast.file.in,
                               blast.file.out,
                               maxn,
+                              rbh.only = F,
                               verbose = T){
   d <- fread(blast.file.in, key = "V12")
   if (verbose)
     cat("Read in", nrow(d), "hits ... ")
-  do <- d[,tail(.SD, maxn), by = list(V1)]
-  if (verbose)
-    cat(nrow(do),
-        "top", maxn, "hits ... ")
+  if (rbh.only) {
+    d[,sr1 := frank(-V12, ties.method = "dense"),
+      by = "V1"]
+    d[,sr2 := frank(-V12, ties.method = "dense"),
+      by = "V2"]
+    do <- subset(d, sr1 == 1 & sr2 == 1)
+    do[,sr1 := NULL]
+    do[,sr2 := NULL]
+    if (verbose)
+      cat(nrow(do),
+          "reciprocal best blast hits ... ")
+  }else{
+    do <- d[,tail(.SD, maxn), by = list(V1)]
+    if (verbose)
+      cat(nrow(do),
+          "top", maxn, "hits ... ")
+  }
   write.table(do,
               file = blast.file.out,
               sep = "\t",

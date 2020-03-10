@@ -4,20 +4,33 @@
 \alias{plot_riparian}
 \title{plot_riparian}
 \usage{
-plot_riparian(map, chr.list, genomes, gff, points.per.curve = 1000,
-  vertical.plot.buffer = 1, horiz.plot.buffer = 0.01, lab.chr = T,
-  lab.chr.1only = F, use.rank = T, chr.bg.col = rgb(1, 1, 1, 0.8),
-  chr.bg.pch = 16, chr.bg.cex = 2.5, chr.id.col = "black",
-  chr.id.cex = 0.8, chr.lab.buff = chr.buff/2,
-  chr.abbrev.fun = function(x) gsub("^0", "", gsub("_", "",
-  gsub("scaffold", "", gsub("chr", "", tolower(x))))), gap.prop = 0.02,
-  chr.segm.lwd = 4, chr.segm.col = "black", chr.buff = 0.05,
-  blk.col = rgb(0, 0, 1, 0.1), blk.border = FALSE,
-  simplify.poly = 0.25, blks2highlight = NULL, highlight.cols = NULL,
-  geneID.abbrev.fun = function(x) gsub("_", "", x), geneid.cex = 0.5,
-  geneid.offset = 0.2, dodge.geneIDs = 0.01,
-  ortho.col = "darkorange3", scale2dodge = 2, annotate.genes = NULL,
-  genes2plot = NULL, gene.labels = NULL, gene.colors = NULL)
+plot_riparian(
+  map,
+  chr.list,
+  genomeIDs,
+  gff,
+  points.per.curve = 1000,
+  vertical.plot.buffer = 1,
+  horiz.plot.buffer = 0.01,
+  lab.chr = T,
+  lab.chr.1only = F,
+  use.rank = T,
+  chr.bg.col = rgb(1, 1, 1, 0.8),
+  chr.bg.pch = 16,
+  chr.bg.cex = 2.5,
+  chr.id.col = "black",
+  chr.id.cex = 0.8,
+  chr.lab.buff = chr.buff/2,
+  chr.abbrev.fun = function(x) gsub("^0", "", gsub("_", "", gsub("scaffold", "",
+    gsub("chr", "", tolower(x))))),
+  gap.prop = 0.02,
+  chr.segm.lwd = 4,
+  chr.segm.col = "black",
+  chr.buff = 0.05,
+  blk.col = rgb(0, 0, 1, 0.1),
+  blk.border = FALSE,
+  simplify.poly = 0.25
+)
 }
 \arguments{
 \item{map}{data.table, format similar to blast}
@@ -26,22 +39,11 @@ plot_riparian(map, chr.list, genomes, gff, points.per.curve = 1000,
 replace the genomes element). Must be same length as genomes.
 Character vector must contain chromosome IDs within the genomes.}
 
-\item{genomes}{character, genomes to plot}
-
 \item{gff}{data.table, format similar to gff}
-
-\item{points.per.curve}{numeric, specify how complex the curves
-should be. Higher values yield larger file sizes, but smoother
-curves}
 
 \item{vertical.plot.buffer}{numeric, buffer above / below riparian plot}
 
 \item{horiz.plot.buffer}{numeric, buffer left / right of riparian plot}
-
-\item{lab.chr}{logical, should chromosomes be labled?}
-
-\item{lab.chr.1only}{logical, should only the chromosomes of the
-first genome be labeled?}
 
 \item{use.rank}{logical, should ranks or bp coordinates be plotted?}
 
@@ -69,9 +71,6 @@ by gaps in riparian plot}
 \item{chr.segm.lwd}{numeric, chromosome line segment thickness
 in riparian plot}
 
-\item{chr.segm.col}{color, what color should the chromosome
-segments be?}
-
 \item{chr.buff}{numeric, how far should all line segments stop away
 from chromosome line segments in riparian plot}
 
@@ -81,41 +80,7 @@ represent syntenic blocks in riparian plot}
 \item{blk.border}{logical (or character coerced to color), of the block
 borders in riparian plot}
 
-\item{simplify.poly}{numeric, how much polygon simplification
-should happen.}
-
-\item{blks2highlight}{character, indicating which blocks
-should be highlighted}
-
-\item{highlight.cols}{color vector, colors for highlighted blocks}
-
-\item{geneID.abbrev.fun}{function, to strip characters off of gene IDs
-in riparian plot}
-
-\item{geneid.cex}{numeric, gene ID character expansion factor in riparian plot}
-
-\item{geneid.offset}{numeric, amount of space between geneID lines and
-text in riparian plot}
-
-\item{dodge.geneIDs}{numeric, amount of distance to dodge geneIDs
-in riparian plot}
-
-\item{ortho.col}{character, to be coerced to a color, specifying the
-color of lines connecting syntenic orthologs in riparian plot}
-
-\item{scale2dodge}{numeric, scaling factor for geneID dodging,
-in riparian plot. Larger values do more dodging.}
-
-\item{annotate.genes}{logical, should genes be annotated?}
-
-\item{genes2plot}{character, genes / orthology networks to plot
-in riparian plot}
-
-\item{gene.labels}{character, labels for geneIDs to plot
-in riparian plot. Must be of same length as genes2plot.}
-
-\item{gene.colors}{character, to be coerced to a color.
-in riparian plot. If specified, must be same length as genes2plot}
+\item{genomes}{character, genomes to plot}
 
 \item{...}{not currently in use}
 }

@@ -4,9 +4,19 @@
 \alias{prune_blast2synteny}
 \title{prune_blast2synteny}
 \usage{
-prune_blast2synteny(blast, gff, genomeIDs, dir.list, MCScanX.path,
-  MCScanX.s.param = 10, MCScanX.m.param = 100, dbs.radius = 100,
-  dbs.hits = 20, overwrite.output.dir, verbose = T)
+prune_blast2synteny(
+  blast,
+  gff,
+  genomeIDs,
+  dir.list,
+  MCScanX.path,
+  MCScanX.s.param = 10,
+  MCScanX.m.param = 100,
+  dbs.radius = 100,
+  dbs.hits = 20,
+  overwrite.output.dir,
+  verbose = T
+)
 }
 \arguments{
 \item{blast}{data.table, containing the merged gff and blast results.

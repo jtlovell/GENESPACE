@@ -4,9 +4,18 @@
 \alias{clean_blocks}
 \title{Clean form_syntenicBlocks output}
 \usage{
-clean_blocks(map, gff, genomeIDs, rerank = TRUE, radius = 100,
-  n.mappings = 10, verbose = TRUE, expand.all.combs = TRUE,
-  complete.graphs = T, ignore.self = T)
+clean_blocks(
+  map,
+  gff,
+  genomeIDs,
+  rerank = TRUE,
+  radius = 100,
+  n.mappings = 10,
+  verbose = TRUE,
+  expand.all.combs = TRUE,
+  complete.graphs = T,
+  ignore.self = T
+)
 }
 \arguments{
 \item{map}{data.table, containing the merged gff and blast results}

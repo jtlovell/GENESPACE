@@ -19,7 +19,9 @@
 #'
 #' @examples
 #' \dontrun{
-#' none yet
+#' gff <- import_gff(
+#' gff.dir = dir.locs$gff,
+#' genomeIDs = genomeIDs)
 #' }
 #' @import data.table
 #' @export
@@ -31,8 +33,33 @@ import_gff <- function(gff.dir,
                        str2parse = ";",
                        whichAttr = 2){
 
-  #######################################################
-  #######################################################
+  # -- check the params
+  ################################################
+  ################################################
+  ################################################
+  if (!is.character(genomeIDs) | length(genomeIDs) == 1)
+    stop("genomeIDs must be a character vector of length > 1\n")
+
+  if (!is.character(use) | length(use) != 1)
+    stop("use must be a single string to search for in the 3rd gff column\n")
+
+  if (!is.character(str2drop) | length(str2drop) != 1)
+    stop("str2drop must be a single string to remove in the 9th gff column\n")
+
+  if (!is.character(str2parse) | length(str2parse) != 1)
+    stop("str2parse must be a single string
+         to use as the demiliter in the 9th gff column\n")
+
+  if (!is.numeric(whichAttr) | length(str2parse) != 1)
+    stop("whichAttr must be a single number,
+         specifying which parsed field in the 9th gff column contains the gene identifier\n")
+  if (!dir.exists(gff.dir))
+    stop("can't find gff.dir ... \n")
+  ################################################
+  ################################################
+  ################################################
+
+  ################################################
   parse_gff <- function(gff.file,
                         str2drop = "Name=",
                         str2parse = ";",

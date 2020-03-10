@@ -52,7 +52,14 @@ assign_synHomologs <- function(gff,
 
   ####################################################################
   # - Get the blast hits to feed to orthofinder
-  if(verbose)
+  if ("og" %in% colnames(map))
+    map[,og := NULL]
+  if ("og.x" %in% colnames(map))
+    map[,og.x := NULL]
+  if ("og.y" %in% colnames(map))
+    map[,og.y := NULL]
+
+  if (verbose)
     cat("Pulling syntenic blast hits (this might take a while) ... ")
   syn.blast <- extend_blocks(
     gff = gff,
@@ -63,13 +70,17 @@ assign_synHomologs <- function(gff,
     rank.buffer = rank.buffer,
     return.reg.only = T,
     verbose = F)
-  syn.blast[, genome.num1 := NULL]
-  syn.blast[, genome.num2 := NULL]
+
+  if ("genome.num1" %in% colnames(syn.blast))
+    syn.blast[, genome.num1 := NULL]
+  if ("genome.num2" %in% colnames(syn.blast))
+    syn.blast[, genome.num2 := NULL]
+
 
 
   ####################################################################
   # - Move over peptides, make gene/genomeIDs, etc.
-  if(verbose)
+  if (verbose)
     cat("Done!\nMaking new orthofinder database ... ")
   make_newOFdb(
     tmp.dir = dir.list$tmp,
@@ -151,6 +162,7 @@ assign_synHomologs <- function(gff,
     blast.out,
     (score >= best1 * min.propBestScore4homolog &
        score >= best2 * min.propBestScore4homolog &
+
        score >= min.score4homolog) |
       !is.na(is.ortholog))
   blast.homo[,best1 := NULL]
@@ -158,11 +170,17 @@ assign_synHomologs <- function(gff,
 
   blast.homo[,hit.type := ifelse(is.na(is.ortholog), "syntenic.homolog",
                                  ifelse(is.ortholog, "ortholog","paralog"))]
-  if(verbose)
+  if (verbose)
     with(blast.homo,
          cat("Done!\nReturning a blast data set with:\n\tn.orthologs =",
              sum(hit.type == "ortholog"),"\n\tn.paralogs =",
              sum(hit.type == "paralog"),"\n\tn.other syntenic homologs =",
              sum(hit.type == "syntenic.homolog"),"\nDone!\n"))
+
+  if ("og.y" %in% colnames(blast.homo))
+    blast.homo[,og := og.y]
+  if ("og.x" %in% colnames(blast.homo))
+    blast.homo[,og.x := NULL]
+
   return(blast.homo)
 }

@@ -4,8 +4,14 @@
 \alias{complete_graph}
 \title{Fill out culled blast hits}
 \usage{
-complete_graph(map, gff, genomeIDs = NULL, ignore.self,
-  keep.all.self.hits = T, verbose = T)
+complete_graph(
+  map,
+  gff,
+  genomeIDs = NULL,
+  ignore.self,
+  keep.all.self.hits = T,
+  verbose = T
+)
 }
 \arguments{
 \item{map}{data.table, containing the merged gff and blast results}

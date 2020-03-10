@@ -4,9 +4,15 @@
 \alias{parse_fastaHeader}
 \title{Rename fasta header}
 \usage{
-parse_fastaHeader(fasta.dir, is.peptide = T, pattern = "fa",
-  gff = NULL, only.gffGenes = TRUE, parse_fastaHeader.FUN,
-  verbose = T)
+parse_fastaHeader(
+  fasta.dir,
+  is.peptide = T,
+  pattern = "fa",
+  gff = NULL,
+  only.gffGenes = TRUE,
+  parse_fastaHeader.FUN,
+  verbose = T
+)
 }
 \arguments{
 \item{fasta.dir}{file path, where fasta files are stored}

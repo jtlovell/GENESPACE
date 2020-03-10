@@ -4,18 +4,24 @@
 \alias{plot_circos}
 \title{build plot_circos}
 \usage{
-plot_circos(map, genomes, gff, chr.list, col.list = NULL,
+plot_circos(
+  map,
+  genomeIDs,
+  gff,
+  chr.list,
+  track.margin = c(0.005, 0.005),
+  link.col.list = NULL,
+  border.col.list = NULL,
   chr.abbrev.fun = function(x) x,
-  chr.order = 1:length(unlist(chr.list)), border.track.height = 0.05,
-  link.alpha = 0.6, gap.ingenome = NULL, gap.outgenome = NULL,
-  use.rank = T, palette = rainbow,
-  genome.cols = greys(length(genomes)), gap.deg = rep(0.5,
-  length(unlist(chr.list))))
+  border.track.height = 0.025,
+  link.alpha = 0.6,
+  use.rank = TRUE,
+  genome.cols = greys(length(genomes)),
+  gap.deg = rep(0.5, length(unlist(chr.list)))
+)
 }
 \arguments{
 \item{map}{data.table, format similar to blast}
-
-\item{genomes}{character, genomes to plot}
 
 \item{gff}{data.table, format similar to gff}
 
@@ -23,28 +29,30 @@ plot_circos(map, genomes, gff, chr.list, col.list = NULL,
 replace the genomes element). Must be same length as genomes.
 Character vector must contain chromosome IDs within the genomes.}
 
-\item{col.list}{list, with colors that matches chr.list}
+\item{link.col.list}{list, with colors that matches chr.list}
 
 \item{chr.abbrev.fun}{function, to strip characters off of chromosome IDs}
-
-\item{chr.order}{numeric, order of chromosomes, passed only to circos}
 
 \item{border.track.height}{numeric, size of exterior circos track}
 
 \item{link.alpha}{numeric, transparency of circos links}
 
-\item{gap.ingenome}{numeric, size of gaps within genomes, overrides gap.deg}
-
-\item{gap.outgenome}{numeric,  size of gaps among genomes, overrides gap.deg}
-
 \item{use.rank}{logical, should ranks or bp coordinates be plotted?}
-
-\item{palette}{function, palette function for colors}
 
 \item{genome.cols}{color vector, to color the genomes.}
 
 \item{gap.deg}{numeric, degree of gaps, either of length 1, or the number
 of unique chromosomes}
+
+\item{genomes}{character, genomes to plot}
+
+\item{palette}{function, palette function for colors}
+
+\item{chr.order}{numeric, order of chromosomes, passed only to circos}
+
+\item{gap.ingenome}{numeric, size of gaps within genomes, overrides gap.deg}
+
+\item{gap.outgenome}{numeric,  size of gaps among genomes, overrides gap.deg}
 
 \item{...}{not currently in use}
 }

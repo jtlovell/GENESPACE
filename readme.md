@@ -2,7 +2,9 @@
 title: "GENESPACE readme"
 author: "John T. Lovell"
 date: "19-September 2019"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 

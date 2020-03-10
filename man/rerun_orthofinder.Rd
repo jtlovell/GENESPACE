@@ -4,9 +4,16 @@
 \alias{rerun_orthofinder}
 \title{build_synBlocks}
 \usage{
-rerun_orthofinder(dir.list, gff, genomeIDs, n.cores = 1,
-  use.topn = TRUE, method = "pairwise", only.orthogroups = T,
-  verbose = TRUE)
+rerun_orthofinder(
+  dir.list,
+  gff,
+  genomeIDs,
+  n.cores = 1,
+  use.topn = TRUE,
+  method = "pairwise",
+  only.orthogroups = T,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{dir.list}{list, containing the paths to various genespace

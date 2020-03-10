@@ -4,8 +4,14 @@
 \alias{draw_blkPolygon}
 \title{draw_blkPolygon}
 \usage{
-draw_blkPolygon(blk, chr.buffer, blk.border, simplify.poly,
-  points.per.curve)
+draw_blkPolygon(
+  blk,
+  chr.buffer,
+  blk.border,
+  blk.col,
+  simplify.poly,
+  points.per.curve
+)
 }
 \description{
 \code{draw_blkPolygon} draw blk Polygon

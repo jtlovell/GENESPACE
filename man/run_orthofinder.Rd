@@ -4,8 +4,14 @@
 \alias{run_orthofinder}
 \title{Run orthofinder from R}
 \usage{
-run_orthofinder(peptide.dir, output.dir, blast.threads = 16,
-  og.threads = 1, overwrite.output.dir = FALSE, verbose = T)
+run_orthofinder(
+  peptide.dir,
+  output.dir,
+  blast.threads = 16,
+  og.threads = 1,
+  overwrite.output.dir = FALSE,
+  verbose = T
+)
 }
 \arguments{
 \item{peptide.dir}{file.path, to the subdirectory containing

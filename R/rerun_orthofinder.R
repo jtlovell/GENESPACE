@@ -121,18 +121,17 @@ rerun_orthofinder <- function(dir.list,
     gfl[,run.genome1 := NULL]
     gfl[,run.genome2 := NULL]
 
-    blast <- read_allBlasts(
+    blast <- import_allBlasts(
       gff = gff,
       keep.geneNum = F,
-      add.gff = F,
-      check.ogs = F,
-      of.dir = dir.list$cull.score.blast,
+      add.orthogroups = F,
+      orthofinder.dir = dir.list$cull.score.blast,
       genomeIDs = genomeIDs,
-      verbose = F,
-      blast.files = list.files(path = dir.list$cull.score.blast,
-                               pattern = "^Blast",
-                               full.names = T),
-      simple = T)
+      blast.files = list.files(
+        path = dir.list$cull.score.blast,
+        pattern = "^Blast",
+        full.names = T))
+
     out <- merge(gfl,
                  blast,
                  by = c("genome1","genome2","id1","id2"))
@@ -157,28 +156,13 @@ rerun_orthofinder <- function(dir.list,
                  "-og")
     system(com)
 
-    blast <- read_allBlasts(
+    blast <- import_allBlasts(
       gff = gff,
       keep.geneNum = F,
-      add.gff = F,
-      check.ogs = F,
-      of.dir = tmp.dir,
-      genomeIDs = genomeIDs,
-      verbose = F,
-      blast.files = list.files(path = tmp.dir,
-                               pattern = "^Blast",
-                               full.names = T),
-      simple = T)
+      add.orthogroups = T,
+      orthofinder.dir = tmp.dir,
+      genomeIDs = genomeIDs)
 
-
-    if (only.orthogroups) {
-      gf <- read_ogs(
-        of.dir = tmp.dir,
-        gff = gff)
-      blast <- merge(blast,
-                     gf,
-                     by = c("genome1","genome2","id1","id2"))
-    }
     out <- data.table(blast)
   }
 

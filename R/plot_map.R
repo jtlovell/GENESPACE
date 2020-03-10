@@ -134,7 +134,7 @@ plot_map <- function(palette = pal_genespace,
         pts <- subset(tmap, chr1 == tchr1$chr[j] &
                         chr2 == tchr2$chr[k])
         if(nrow(pts) > 0){
-          with(pts, points(start.p1, start.p2, pch = ".", col = col))
+          with(pts, points(start.p1, start.p2, pch =pch, col = col))
           if(label.blocks){
             bt <- pts[, list(min1 = min(start.p1),
                              min2 = min(start.p2),

@@ -120,15 +120,24 @@ format_mapChrlist <- function(map,
                               genomes,
                               forCircos = F,
                               do.cumulative = T){
-  map <- rbindlist(lapply(1:(length(genomes) - 1), function(i){
-    tmp <- subset(map, genome1 == genomes[i] &
-                    chr1 %in% chr.list[[i]] &
-                    genome2 == genomes[i + 1] &
-                    chr2 %in% chr.list[[i + 1]])
-    tmp$genome1 <- names(chr.list)[i]
-    tmp$genome2 <- names(chr.list)[i + 1]
-    return(tmp)
-  }))
+  if(length(genomes) == 1){
+    map <- subset(map, genome1 == genomes &
+                    chr1 %in% chr.list[[1]] &
+                    genome2 == genomes &
+                    chr2 %in% chr.list[[1]])
+    map$genome1 <- names(chr.list)
+    map$genome2 <- names(chr.list)
+  }else{
+    map <- rbindlist(lapply(1:(length(genomes) - 1), function(i){
+      tmp <- subset(map, genome1 == genomes[i] &
+                      chr1 %in% chr.list[[i]] &
+                      genome2 == genomes[i + 1] &
+                      chr2 %in% chr.list[[i + 1]])
+      tmp$genome1 <- names(chr.list)[i]
+      tmp$genome2 <- names(chr.list)[i + 1]
+      return(tmp)
+    }))
+  }
 
   gi <- genomes
   genomes <- as.character(names(chr.list))
@@ -142,14 +151,14 @@ format_mapChrlist <- function(map,
                          chr2 = chr,
                          pos2 = start.p))
 
-  map <- map[!duplicated(map[,c("block.id","og.id",
+  map <- map[!duplicated(map[,c("block.id",
                                 "genome1","genome2",
                                 "id1","id2")]),]
   gf1 <- gf1[!duplicated(gf1), ]
   gf2 <- gf2[!duplicated(gf2), ]
 
   map <- merge(gf2,
-               map[,c("block.id","og.id",
+               map[,c("block.id",
                       "genome1","genome2",
                       "id1","id2")],
                by = c("id2"))
@@ -157,12 +166,13 @@ format_mapChrlist <- function(map,
                map, by = c("id1"))
 
   if (forCircos) {
-    combns <- data.table(t(combn(genomes,2)))
-    setnames(combns, c("genome1", "genome2"))
-    map <- merge(combns,
-                 map,
-                 by = c("genome1", "genome2"))
-
+    if(length(genomes) > 1){
+      combns <- data.table(t(combn(genomes,2)))
+      setnames(combns, c("genome1", "genome2"))
+      map <- merge(combns,
+                   map,
+                   by = c("genome1", "genome2"))
+    }
   }else{
     combs <- data.table(y1 = 0:(length(genomes) - 2),
                         y2 = 1:(length(genomes) - 1),
@@ -172,7 +182,6 @@ format_mapChrlist <- function(map,
     map <- rbind(map,
                  with(map,
                       data.table(block.id = block.id,
-                                 og.id = og.id,
                                  genome1 = genome2,
                                  genome2 = genome1,
                                  id1 = id2,
@@ -315,6 +324,7 @@ make_fais <- function(genomes,
 draw_blkPolygon <- function(blk,
                             chr.buffer,
                             blk.border,
+                            blk.col,
                             simplify.poly,
                             points.per.curve){
   blk[,unique := paste(genome1, genome2)]
@@ -346,14 +356,13 @@ draw_blkPolygon <- function(blk,
 draw_genePolygon <- function(map,
                              genes2plot,
                              chr.buff,
-                             ortho.col,
+                             gene.col,
                              simplify.poly,
                              points.per.curve){
-  ogs2plot <- map$og.id[map$id1 %in% genes2plot |
-                          map$id2 %in% genes2plot]
-  mapt <- subset(map,og.id %in% ogs2plot)
-  mapt[,unique := paste(genome1, genome2)]
-  spl <- split(mapt, by = "unique")
+
+  map[,unique := paste(genome1, genome2)]
+  map <- subset(map, id1 %in% genes2plot | id2 %in% genes2plot)
+  spl <- split(map, by = "unique")
   for (j in names(spl)) {
     tmp <- spl[[j]]
     ys <- chr.buff + tmp$y1[1]
@@ -369,9 +378,9 @@ draw_genePolygon <- function(map,
         s2 = pos2,
         e2 = pos2,
         y = y,
-        fill.color = ortho.col,
+        fill.color = gene.col,
         simplify.poly = simplify.poly,
-        border.color = ortho.col))
+        border.color = gene.col))
     }
   }
 }
@@ -430,25 +439,25 @@ annotate_riparian <- function(map,
 
 
   mapg1$lab1 <- geneID.abbrev.fun(mapg1$id)
-  for (i in 1:nrow(mapg1)) {
-    if (mapg1$id[i] %in% genes2plot) {
-      if (is.null(names(genes2plot))) {
-        mapg1$lab1[i] <- mapg1$id[i]
-      }else{
-        mapg1$lab1[i] <- names(genes2plot)[genes2plot == mapg1$id[i]]
-      }
-    }
-  }
+  # for (i in 1:nrow(mapg1)) {
+  #   if (mapg1$id[i] %in% genes2plot) {
+  #     if (is.null(names(genes2plot))) {
+  #       mapg1$lab1[i] <- mapg1$id[i]
+  #     }else{
+  #       mapg1$lab1[i] <- names(genes2plot)[genes2plot == mapg1$id[i]]
+  #     }
+  #   }
+  # }
   mapg2$lab2 <- geneID.abbrev.fun(mapg2$id)
-  for (i in 1:nrow(mapg2)) {
-    if (mapg2$id[i] %in% genes2plot) {
-      if (is.null(names(genes2plot))) {
-        mapg2$lab2[i] <- mapg2$id[i]
-      }else{
-        mapg2$lab2[i] <- names(genes2plot)[genes2plot == mapg2$id[i]]
-      }
-    }
-  }
+  # for (i in 1:nrow(mapg2)) {
+  #   if (mapg2$id[i] %in% genes2plot) {
+  #     if (is.null(names(genes2plot))) {
+  #       mapg2$lab2[i] <- mapg2$id[i]
+  #     }else{
+  #       mapg2$lab2[i] <- names(genes2plot)[genes2plot == mapg2$id[i]]
+  #     }
+  #   }
+  # }
 
   with(mapg1,
        text(lab1,
@@ -598,6 +607,7 @@ make_polygon <- function(s1,
     x1 <- x1[wh]
     x3 <- x3[wh]
   }
+
   polygon(c(x1,x2,x3,x4),
           c(y1,y2,y3,y4),
           col = fill.color,

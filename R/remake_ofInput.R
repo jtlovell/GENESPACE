@@ -31,18 +31,18 @@ remake_ofInput <- function(dir.list,
                            gff,
                            max.dup = 2,
                            min.score = 50,
-                           verbose = T,
+                           verbose = TRUE,
                            n.cores = 1,
                            overwrite.output.dir = FALSE,
+                           rbh.only = F,
                            ...){
 
   peptide.dir <- dir.list$peptide
   blast.dir <- dir.list$blast
   cull.blast.dir <- dir.list$cull.blast
   cull.score.blast.dir <- dir.list$cull.score.blast
-  tmp.dir <- file.path(getwd(),"gs.remake.tmp")
 
-  # -- Make tmp directory
+  tmp.dir <- file.path(getwd(), "gs.remake.tmp")
   if (dir.exists(tmp.dir))
     unlink(tmp.dir,
            recursive = T)
@@ -50,6 +50,60 @@ remake_ofInput <- function(dir.list,
   on.exit(
     expr = unlink(tmp.dir,
                   recursive = T))
+
+  if (is.null(ploidy))
+    ploidy <- rep(2, length(genomeIDs))
+  if (length(ploidy) == 1)
+    ploidy <- rep(ploidy, length(genomeIDs))
+
+  if (length(min.score) > 1)
+    min.score <- min.score[1]
+
+  ################################################
+  ################################################
+  ################################################
+  if (!is.data.table(gff))
+    stop("gff must be a data table containing annotation information\n")
+
+  if (!is.character(genomeIDs) |
+      length(genomeIDs) == 1)
+    stop("genomeIDs must be a character vector of length > 1\n")
+
+  if (!is.list(dir.list))
+    stop("dir.list must be a list of directories\n")
+
+  if (!all(dir.exists(c(
+    blast.dir,
+    cull.blast.dir,
+    cull.score.blast.dir,
+    tmp.dir,
+    peptide.dir))))
+    stop("it looks like there is something wrong with directories,
+         have you called check_env?")
+
+  if (!all(is.numeric(max.dup),
+           length(max.dup) == 1,
+           max.dup > 0))
+    stop("max.dup must be a numeric vector > 0 of length 1\n")
+
+
+  if (!all(is.numeric(ploidy),
+           length(ploidy) == length(genomeIDs)))
+    stop("ploidy must be a numeric vector with the same length as genomeIDs\n")
+
+  if (min(ploidy) < 1) {
+    warning("some ploidies are less than haploid, these will be set to haploid (ploidy = 1)")
+    ploidy[ploidy < 1 | is.na(ploidy)] <- 1
+  }
+
+  if (!is.logical(verbose))
+    verbose <- FALSE
+
+  ################################################
+  ################################################
+  ################################################
+
+
 
   # -- Check the output directories
   check_gsDir(dir2check = cull.blast.dir,
@@ -76,8 +130,10 @@ remake_ofInput <- function(dir.list,
   #######################################################
   if (verbose)
     cat("Culling blast by score ... \n")
-  map.db$score.filename <- file.path(cull.score.blast.dir,
-                                     basename(map.db$new.filename))
+  map.db$score.filename <- file.path(
+    cull.score.blast.dir,
+    basename(map.db$new.filename))
+
   bl <- lapply(1:nrow(map.db), function(i){
     s1 <- map.db$genome1[i]
     s2 <- map.db$genome2[i]
@@ -86,15 +142,16 @@ remake_ofInput <- function(dir.list,
       cat(paste0("\t",s1),"-->",s2,"... ")
     blast.file.in = map.db$new.filename[i]
     blast.file.out = map.db$score.filename[i]
-    cull_blastByScore(blast.file.in = blast.file.in,
-                      blast.file.out = blast.file.out,
-                      maxn = maxn,
-                      verbose = T)
+    cull_blastByScore(
+      blast.file.in = blast.file.in,
+      blast.file.out = blast.file.out,
+      maxn = maxn,
+      rbh.only = rbh.only,
+      verbose = T)
     if (verbose)
       cat("Done!\n")
   })
 
   if (verbose)
     cat("\tDone!\n")
-  return(list(files = map.db, gff = gff))
 }

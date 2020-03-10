@@ -4,8 +4,17 @@
 \alias{run_MCScanX}
 \title{run_MCScanX}
 \usage{
-run_MCScanX(blast, genomeIDs, mcscan.dir, gff, MCScanX.s.param,
-  MCScanX.m.param, MCScanX.path, overwrite.output.dir = F, verbose = T)
+run_MCScanX(
+  blast,
+  genomeIDs,
+  mcscan.dir,
+  gff,
+  MCScanX.s.param,
+  MCScanX.m.param,
+  MCScanX.path,
+  overwrite.output.dir = F,
+  verbose = T
+)
 }
 \arguments{
 \item{blast}{data.table, containing the merged gff and blast results.

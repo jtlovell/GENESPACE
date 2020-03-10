@@ -56,7 +56,9 @@ prune_blast2synteny <- function(blast,
     MCScanX.s.param = MCScanX.s.param,
     MCScanX.m.param = MCScanX.m.param,
     verbose = F)
-
+  sblast <- subset(blast, genome1 == genome2 & id1 == id2)
+  mcs1 <- rbind(mcs1,sblast, fill = T)
+  mcs1 <- mcs1[!duplicated(mcs1),]
   if(verbose)
     cat("Done!\nCompleting unconnected inter-genomic sub-graphs ... ")
   comp1 <- complete_graph(
@@ -64,11 +66,15 @@ prune_blast2synteny <- function(blast,
     gff = gff,
     ignore.self = T,
     verbose = F)
+  comp1 <- rbind(comp1,sblast, fill = T)
+  comp1 <- comp1[!duplicated(comp1),]
 
   comp1 <- reduce_recipBlast(
     genomeIDs = genomeIDs,
     blast = comp1,
     intergenome.only = T)
+  comp1 <- rbind(comp1,sblast, fill = T)
+  comp1 <- comp1[!duplicated(comp1),]
 
   if(verbose)
     cat("Done!\nInitial fixed-radius pruning of inter-genomic hits ... ")
@@ -79,6 +85,8 @@ prune_blast2synteny <- function(blast,
     radius = dbs.radius,
     n.mappings = dbs.hits,
     verbose = F)$map
+  cln1 <- rbind(cln1, sblast, fill = T)
+  cln1 <- cln1[!duplicated(cln1),]
 
   if(verbose)
     cat("Done!\nCompleting unconnected sub-graphs ... ")
@@ -87,11 +95,15 @@ prune_blast2synteny <- function(blast,
     gff = gff,
     ignore.self = T,
     verbose = F)
+  comp.final <- rbind(comp.final,sblast, fill = T)
+  comp.final <- comp.final[!duplicated(comp.final),]
 
   comp.final <- reduce_recipBlast(
     genomeIDs = genomeIDs,
     blast = comp.final,
     intergenome.only = F)
+  comp.final <- rbind(comp.final,sblast, fill = T)
+  comp.final <- comp.final[!duplicated(comp.final),]
 
   if(verbose)
     cat("Done!\nFinal fixed-radius pruning via dbscan ... \n")
@@ -102,10 +114,22 @@ prune_blast2synteny <- function(blast,
     radius = dbs.radius,
     n.mappings = dbs.hits,
     verbose = verbose)$map
+  clean.final <- rbind(clean.final,sblast, fill = T)
+  clean.final <- clean.final[!duplicated(clean.final),]
+
+  if(verbose)
+    cat("Done!\nCompleting unconnected sub-graphs ... ")
+  comp.out <- complete_graph(
+    map = clean.final,
+    gff = gff,
+    ignore.self = T,
+    verbose = F)
+  comp.out <- rbind(comp.out,sblast, fill = T)
+  comp.out <- comp.out[!duplicated(comp.out),]
 
   if(verbose)
     cat("\tDone!\n")
-  return(mirror_map(clean.final))
+  return(comp.out)
 }
 
 

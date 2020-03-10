@@ -4,15 +4,25 @@
 \alias{genespace_palette}
 \title{Palettes for GENESPACE}
 \usage{
-genespace_palette(n, name, choose = NULL, maroons = c("#640000",
-  "#A03F43", "#C88C8C"), reds = c("#b71600", "red", "#FFAAAA"),
-  oranges = c("#f95c00", "#ff7f15", "#FFB469"), yellows = c("#cd950c",
-  "#ffc800", "#ffee7a"), ygreens = c("#68a200", "#95de2b", "#cef375"),
-  greens = c("#207910", "#00C00C", "#92f690"), cyans = c("#007266",
-  "#00d0b9", "#99ffe1"), lblues = c("#00446E", "#10B2FF", "#9AE4FF"),
-  blues = c("#00098C", "#3947ff", "#68a4ff"), purples = c("#5200B6",
-  "#9258FF", "#C3B0FF"), magentas = c("#960096", "#ec40ec", "#ff98ff"),
-  alpha = 1, return.function = F, plotit = T)
+genespace_palette(
+  n,
+  name,
+  choose = NULL,
+  maroons = c("#640000", "#A03F43", "#C88C8C"),
+  reds = c("#b71600", "red", "#FFAAAA"),
+  oranges = c("#f95c00", "#ff7f15", "#FFB469"),
+  yellows = c("#cd950c", "#ffc800", "#ffee7a"),
+  ygreens = c("#68a200", "#95de2b", "#cef375"),
+  greens = c("#207910", "#00C00C", "#92f690"),
+  cyans = c("#007266", "#00d0b9", "#99ffe1"),
+  lblues = c("#00446E", "#10B2FF", "#9AE4FF"),
+  blues = c("#00098C", "#3947ff", "#68a4ff"),
+  purples = c("#5200B6", "#9258FF", "#C3B0FF"),
+  magentas = c("#960096", "#ec40ec", "#ff98ff"),
+  alpha = 1,
+  return.function = F,
+  plotit = T
+)
 }
 \arguments{
 \item{n}{numeric, length 1, the number of colors to return}

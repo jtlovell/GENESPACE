@@ -4,8 +4,15 @@
 \alias{make_blocks}
 \title{Make list of map and block data.tables}
 \usage{
-make_blocks(map, rerank = T, drop.NAs = F, rename.blocks = F,
-  add.metadata = F, clean.columns = T, ties.method = "dense")
+make_blocks(
+  map,
+  rerank = T,
+  drop.NAs = F,
+  rename.blocks = F,
+  add.metadata = F,
+  clean.columns = T,
+  ties.method = "dense"
+)
 }
 \arguments{
 \item{map}{the map data.table or data.frame}

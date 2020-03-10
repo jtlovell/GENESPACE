@@ -44,7 +44,8 @@ finalize_blocks <- function(assigned.map,
                             dir.list,
                             MCScanX.s.param = 5,
                             MCScanX.path,
-                            MCScanX.m.param = 50, verbose = T){
+                            MCScanX.m.param = 50,
+                            verbose = T){
 
   split_homologsBySynteny <- function(map){
     zo <- subset(map, hit.type %in% c("paralog", "ortholog"))
@@ -70,7 +71,7 @@ finalize_blocks <- function(assigned.map,
     }))
     intra.o <- subset(out, syn.with.ortho & genome1 == genome2)
     intra.p <- subset(out, !syn.with.ortho & genome1 == genome2)
-    inter.b <- subset(assblks, genome1 != genome2 &
+    inter.b <- subset(map, genome1 != genome2 &
                         hit.type %in% c("paralog", "ortholog"))
     return(list(intra.ortholog = intra.o,
                 intra.paralog = intra.p,
@@ -135,8 +136,40 @@ finalize_blocks <- function(assigned.map,
   }
 
   if(verbose)
-    cat("Splitting hits into three categories:\n")
-  homo.list <- split_homologsBySynteny(assblks)
+    cat("Pruning hits to collinear blocks with MCScanX ... ")
+  sblast <- subset(assigned.map, genome1 == genome2 & id1 == id2)
+  collin.blast <- run_MCScanX(
+    blast = assigned.map,
+    gff = gff,
+    mcscan.dir = dir.list$mcscanx,
+    overwrite.output.dir = T,
+    genomeIDs = genomeIDs,
+    MCScanX.path = MCScanX.path,
+    MCScanX.s.param = MCScanX.s.param,
+    MCScanX.m.param = MCScanX.m.param,
+    verbose = F)
+  collin.blast <- rbind(collin.blast,sblast, fill = T)
+  collin.blast <- collin.blast[!duplicated(collin.blast[,c("id1","id2","genome1","genome2")]),]
+
+  if(verbose)
+    cat("Done!\nCompleting subgraphs ... ")
+  compl.blast <- complete_graph(
+    map = collin.blast,
+    gff = gff,
+    ignore.self = T,
+    verbose = F)
+  compl.blast <- rbind(compl.blast,sblast, fill = T)
+  compl.blast <- compl.blast[!duplicated(compl.blast[,c("id1","id2","genome1","genome2")]),]
+
+  compl.blast <- merge(
+    compl.blast[,c("genome1","genome2","id1","id2")],
+    assigned.map,
+    by = c("genome1","genome2","id1","id2"))
+
+  if(verbose)
+    cat("Done!\nSplitting hits into three categories ... \n")
+  homo.list <- split_homologsBySynteny(compl.blast)
+
   if(verbose)
     cat("\tn. intra-specific orthologs (or syntenic paralogs):",nrow(homo.list[[1]]),
         "\n\tn. intra-specific paralogs (distant from ortholog blocks):",nrow(homo.list[[2]]),
@@ -144,29 +177,19 @@ finalize_blocks <- function(assigned.map,
 
   if(verbose)
     cat("Re-building blocks for each group: \n")
-  each.blks <- lapply(names(homo.list), function(i){
+  each.blks <- rbindlist(lapply(names(homo.list), function(i){
     if(verbose)
-      cat(i,"...\n\tMCScanX block formation ... ")
-    x <- homo.list[[i]]
-    blks <- pipe_mcscanx(
-      blast = x,
-      gff = gff,
-      dir.list = dir.locs,
-      genomeIDs = genomeIDs,
-      MCScanX.path = MCScanX.path,
-      MCScanX.s.param = MCScanX.s.param,
-      MCScanX.m.param = MCScanX.m.param,
-      verbose = F)
-    if(verbose)
-      cat("Done!\n")
-    cl3 <- clean_3x(blks$map,
+      cat(paste0("\t",i),"... ")
+    cl3 <- clean_3x(homo.list[[i]],
                     genomeIDs = genomeIDs,
                     radii = radii,
-                    verbose = verbose)
-    cl3[,blk.type := i]
+                    verbose = F)
     if(verbose)
-      cat("\tSolving overlapping block coordinates and adding un-mapped genes ... ")
+      cat("Done!\n")
+    cl3[,blk.type := i]
     return(cl3)
-  })
+  }), fill = T)
+
   return(each.blks)
 }
+

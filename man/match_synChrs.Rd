@@ -4,8 +4,13 @@
 \alias{match_synChrs}
 \title{match_syntenicChrs}
 \usage{
-match_synChrs(map, gff, genomeIDs, genome1.chrs = NULL,
-  smallestchrsize2keep = NULL)
+match_synChrs(
+  map,
+  gff,
+  genomeIDs,
+  genome1.chrs = NULL,
+  smallestchrsize2keep = NULL
+)
 }
 \arguments{
 \item{map}{A data.table with at least the 10 necessary blast columns}

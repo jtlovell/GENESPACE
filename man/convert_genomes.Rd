@@ -4,12 +4,19 @@
 \alias{convert_genomes}
 \title{Move and organize raw genome data}
 \usage{
-convert_genomes(genomeIDs, directory, peptide.only = F,
+convert_genomes(
+  genomeIDs,
+  directory,
+  peptide.only = F,
   peptide_str = "protein_primaryTranscriptOnly",
-  cds_str = "cds_primaryTranscriptOnly", gff_str = "gene.gff3",
-  parse_fastaHeader.FUN = function(y) strsplit(gsub(".*locus=", "", y),
-  " ")[[1]][1], only.gffGenes = F, verbose = T, drop.comment = T,
-  ...)
+  cds_str = "cds_primaryTranscriptOnly",
+  gff_str = "gene.gff3",
+  parse_fastaHeader.FUN = function(y) strsplit(gsub(".*locus=", "", y), " ")[[1]][1],
+  only.gffGenes = F,
+  verbose = T,
+  drop.comment = T,
+  ...
+)
 }
 \arguments{
 \item{genomeIDs}{genome identifiers}

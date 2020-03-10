@@ -9,7 +9,7 @@
 #' @param chr.list list, named by genome labels (label will
 #' replace the genomes element). Must be same length as genomes.
 #' Character vector must contain chromosome IDs within the genomes.
-#' @param col.list list, with colors that matches chr.list
+#' @param link.col.list list, with colors that matches chr.list
 #' @param genome.cols color vector, to color the genomes.
 #' @param palette function, palette function for colors
 #' @param use.rank logical, should ranks or bp coordinates be plotted?
@@ -34,43 +34,35 @@
 #' @importFrom grDevices rainbow
 #' @export
 plot_circos <- function(map,
-                        genomes,
+                        genomeIDs,
                         gff,
                         chr.list,
-                        col.list = NULL,
+                        track.margin = c(0.005, 0.005),
+                        link.col.list = NULL,
+                        border.col.list = NULL,
                         chr.abbrev.fun = function(x) x,
-                        chr.order = 1:length(unlist(chr.list)),
-                        border.track.height = 0.05,
+                        border.track.height = 0.025,
                         link.alpha = 0.6,
-                        gap.ingenome = NULL,
-                        gap.outgenome = NULL,
-                        use.rank = T,
-                        palette = rainbow,
+                        use.rank = TRUE,
                         genome.cols = greys(length(genomes)),
                         gap.deg = rep(.5, length(unlist(chr.list)))){
 
   on.exit(circos.clear())
 
-  if (is.null(gap.deg)) {
-    gap.deg <- unlist(lapply(chr.list, function(x)
-      c(rep(gap.ingenome, (length(x) - 1)),
-        gap.outgenome)))
-  }
+  ####################################################################
+  # 1. Get genomic coordinates from gff file
+  gff <- format_gffChrlist(
+    gff = gff,
+    chr.list = chr.list,
+    genomes = genomeIDs,
+    use.rank = use.rank,
+    gap.prop = 0,
+    do.cumulative = F)
 
-  if (is.null(col.list)) {
-    col.list <- chr.list
-    for (i in 1:length(col.list))
-      col.list[[i]] <- palette(length(col.list[[i]]) + 2)[-c(1, length(col.list[[i]]) + 2)]
-  }
-
-  gff <- format_gffChrlist(gff = gff,
-                           chr.list = chr.list,
-                           genomes = genomes,
-                           use.rank = use.rank,
-                           gap.prop = gap.prop,
-                           do.cumulative = F)
+  ####################################################################
+  # 2. Format and (optionally) rerank map
+  m <- data.table(map)
   if (use.rank) {
-    m <- map
     m[,start1 := as.integer(frank(start1, ties.method = "dense")),
       by = list(genome1, genome2, chr1)]
     m[,start2 := as.integer(frank(start2, ties.method = "dense")),
@@ -79,16 +71,17 @@ plot_circos <- function(map,
       by = list(genome1, genome2, chr1)]
     m[,end2 := as.integer(frank(end2, ties.method = "dense")),
       by = list(genome1, genome2, chr2)]
-  }else{
-    m <- map
   }
-  map <- format_mapChrlist(map = m,
-                           gff = gff,
-                           chr.list = chr.list,
-                           genomes = genomes,
-                           forCircos = T)
-  genomes <- names(chr.list)
-  # -- make the block object
+
+  map <- format_mapChrlist(
+    map = m,
+    gff = gff,
+    chr.list = chr.list,
+    genomes = genomeIDs,
+    forCircos = T)
+
+  ####################################################################
+  # 3. make the block object
   blk <- map[,list(start1 = min(pos1),
                    start2 = min(pos2),
                    end1 = max(pos1),
@@ -97,63 +90,79 @@ plot_circos <- function(map,
                        genome1, genome2,
                        chr1, chr2)]
 
-  fais <- make_fais(genomes = genomes, gff = gff)
-  fais[, chr := chr.abbrev.fun(chr)]
-  fais$unique <- with(fais, paste(genome, chr))
+  ####################################################################
+  # 4. Make a fasta index-like object from the gff
+  fais <- make_fais(
+    genomes = genomeIDs,
+    gff = gff)
 
-  init <- with(fais,
-               data.frame(name = unique,
-                          start = start,
-                          end = end,
-                          stringsAsFactors = F))
-  if (!is.null(chr.order)) {
-    if (length(chr.order) != nrow(init)) {
-      warning("chr.order not of same length as chr.list, ignoring\n")
-    }else{
-      init <- init[chr.order, ]
-    }
+  fais[, chr := chr.abbrev.fun(chr)]
+  fais[, unique := paste(genome, chr)]
+
+  init <- with(fais, data.frame(
+    name = unique,
+    start = start,
+    end = end,
+    stringsAsFactors = F))
+
+  ####################################################################
+  # 5. Make a data.table with order of chromosomes
+  chrl.dt <- rbindlist(lapply(names(chr.list), function(i)
+    data.table(name = paste(i, chr.abbrev.fun(chr.list[[i]])),
+               col = add_alpha(link.col.list[[i]], alpha = link.alpha))))
+  init <- init[match(chrl.dt$name, init$name),]
+
+  if (!is.null(border.col.list)) {
+    chrl.bord.dt <- rbindlist(lapply(names(border.col.list), function(i)
+      data.table(name = paste(i, chr.abbrev.fun(chr.list[[i]])),
+                 col = border.col.list[[i]])))
   }
 
+  ####################################################################
+  # 6. Make bed files for each side of the links
+  bed <- data.table(blk)
+  bed[,name1 := paste(genome1, chr.abbrev.fun(chr1))]
+  bed[,name2 := paste(genome2, chr.abbrev.fun(chr2))]
+  bed[,ord1 := as.numeric(factor(name1, levels = chrl.dt$name))]
+  bed[,ord2 := as.numeric(factor(name2, levels = chrl.dt$name))]
+  bed <- subset(bed, ord1 < ord2 | (ord1 == ord2 & start1 < start2))
+
+  bed1 <- with(bed, data.frame(
+    chr = name1,
+    start = start1,
+    end = end1,
+    value = 1,
+    stringsAsFactors = F))
+
+  bed2 <- with(bed, data.frame(
+    chr = name2,
+    start = start2,
+    end = end2,
+    value = 1,
+    stringsAsFactors = F))
+
+  ####################################################################
+  # 6. Initiate the circos plot
   circos.par(start.degree = 90,
              clock.wise = TRUE,
+             track.margin = track.margin,
              "gap.degree" = gap.deg)
   circos.genomicInitialize(init)
-  genome.cols <- NULL
-  if (is.null(genome.cols) |
-      length(genome.cols) != length(genomes))
-    genome.cols <- grey.colors(n = length(genomes))
-  fais$color <- NA
-  for (i in 1:length(names(chr.list))) {
-    fais$color[fais$genome == names(chr.list)[i]] <- genome.cols[i]
+
+  ####################################################################
+  # 7. (optionally) plot the border
+  if (!is.null(border.col.list)) {
+    circos.track(ylim = c(0, .15),
+                 bg.col = chrl.bord.dt$col,
+                 bg.border = NA,
+                 cell.padding = circos.par("cell.padding") - 0.01,
+                 track.height = border.track.height)
   }
 
-  # circos.track(ylim = c(0, 1),
-  #              bg.col = "white",
-  #              bg.border = NA,
-  #              track.height = border.track.height)
 
-
-  bed <- blk
-  col.dt <- data.table(genome = rep(names(col.list),
-                                    sapply(col.list, length)),
-                       chr = unlist(chr.list),
-                       col = sapply(unlist(col.list), add_alpha, alpha = link.alpha))
-  col.dt$name <- with(col.dt, paste(genome, chr.abbrev.fun(chr)))
-  bed1 <- with(bed,
-               data.frame(chr = paste(genome1, chr.abbrev.fun(chr1)),
-                          start = start1,
-                          end = end1,
-                          value = 1,
-                          stringsAsFactors = F))
-  link.col <- col.dt$col[match(bed1$chr,col.dt$name)]
-
-  bed2 <- with(bed,
-               data.frame(chr = paste(genome2, chr.abbrev.fun(chr2)),
-                          start = start2,
-                          end = end2,
-                          value = 1,
-                          stringsAsFactors = F))
-
+  ####################################################################
+  # 8. Plot the links
+  link.col <- chrl.dt$col[match(bed1$chr,chrl.dt$name)]
   circos.genomicLink(bed1[,c(1:3)],
                      bed2[,c(1:3)],
                      col = link.col,

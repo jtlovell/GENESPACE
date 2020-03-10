@@ -4,8 +4,15 @@
 \alias{import_gff}
 \title{Import a gff annotation}
 \usage{
-import_gff(gff.dir, genomeIDs, use = "gene", verbose = T,
-  str2drop = "Name=", str2parse = ";", whichAttr = 2)
+import_gff(
+  gff.dir,
+  genomeIDs,
+  use = "gene",
+  verbose = T,
+  str2drop = "Name=",
+  str2parse = ";",
+  whichAttr = 2
+)
 }
 \arguments{
 \item{gff.dir}{file.path, to the subdirectory containing
@@ -36,6 +43,8 @@ Imports and parses the gff annotation
 }
 \examples{
 \dontrun{
-none yet
+gff <- import_gff(
+gff.dir = dir.locs$gff,
+genomeIDs = genomeIDs)
 }
 }

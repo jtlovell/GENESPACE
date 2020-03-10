@@ -2,7 +2,7 @@
 % Please edit documentation in R/genespace_utils.R, R/plot_utils.R
 \name{genespace_utils}
 \alias{genespace_utils}
-\alias{read_ofBlast}
+\alias{make_initialGenespacePipe}
 \alias{reduce_recipBlast}
 \alias{pull_orthologs}
 \alias{write_ofBlast2file}
@@ -38,7 +38,33 @@
 \alias{cos_y}
 \title{GENESPACE utility functions}
 \usage{
-read_ofBlast(gids, blast.files)
+make_initialGenespacePipe(
+  working.directory,
+  verbose,
+  genomeIDs,
+  cds_str,
+  peptide_str,
+  blast.threads,
+  n.cores,
+  ploidy,
+  max.dup,
+  min.score,
+  use.topn,
+  only.orthogroups,
+  orthofinder.method,
+  blast.rda.2start,
+  MCScanX.m.param.synteny,
+  MCScanX.s.param.synteny,
+  dbs.radius.synteny,
+  dbs.hits.synteny,
+  MCScanX.m.param.extend,
+  MCScanX.s.param.extend,
+  extend.use.score.cull.blast,
+  extend.rank.buffer,
+  syntenic.rank.buffer,
+  min.score4homolog,
+  min.propBestScore4homolog
+)
 
 reduce_recipBlast(genomeIDs, blast, intergenome.only = F)
 
@@ -46,11 +72,19 @@ pull_orthologs(of.dir)
 
 write_ofBlast2file(blast, output.dir)
 
-merge_gffWithBlast(gff, blast, include.gene.num, include.genome.num,
-  mirror)
+merge_gffWithBlast(gff, blast, include.gene.num, include.genome.num, mirror)
 
-prep_ofDB(tmp.dir, orig.dir, peptide.dir, output.dir, n.cores, genomeIDs,
-  verbose, min.score, copy2dir = NULL)
+prep_ofDB(
+  tmp.dir,
+  orig.dir,
+  peptide.dir,
+  output.dir,
+  n.cores,
+  genomeIDs,
+  verbose,
+  min.score,
+  copy2dir = NULL
+)
 
 find_ofFiles(of.dir)
 
@@ -58,11 +92,23 @@ check_gsDir(dir2check, overwrite.output.dir)
 
 read_ogs(of.dir, gff)
 
-make_newOFdb(tmp.dir, output.dir, peptide.dir, genomeIDs, verbose = T,
-  n.cores = 1)
+make_newOFdb(
+  tmp.dir,
+  output.dir,
+  peptide.dir,
+  genomeIDs,
+  verbose = T,
+  n.cores = 1
+)
 
-readRename_blastGenes(gene.dict1, gene.dict2, blast.file.in,
-  blast.file.out, min.score = NULL, verbose = T)
+readRename_blastGenes(
+  gene.dict1,
+  gene.dict2,
+  blast.file.in,
+  blast.file.out,
+  min.score = NULL,
+  verbose = T
+)
 
 read_speciesIDs(of.dir, genomeIDs)
 
@@ -72,7 +118,13 @@ read_geneIDs(of.dir, gff, species.num.id)
 
 import_ofResults(gff, of.dir, verbose = T, genomeIDs)
 
-cull_blastByScore(blast.file.in, blast.file.out, maxn, verbose = T)
+cull_blastByScore(
+  blast.file.in,
+  blast.file.out,
+  maxn,
+  rbh.only = F,
+  verbose = T
+)
 
 find_whichInBuffer(x, y, which.in.blk, rank.buffer)
 
@@ -82,11 +134,23 @@ mirror_map(map, keycol = NULL)
 
 clean_it(map, genomeIDs, rerank, radius, n.mappings, verbose)
 
-format_gffChrlist(gff, genomes, chr.list, use.rank, gap.prop,
-  do.cumulative = T)
+format_gffChrlist(
+  gff,
+  genomes,
+  chr.list,
+  use.rank,
+  gap.prop,
+  do.cumulative = T
+)
 
-format_mapChrlist(map, gff, chr.list, genomes, forCircos = F,
-  do.cumulative = T)
+format_mapChrlist(
+  map,
+  gff,
+  chr.list,
+  genomes,
+  forCircos = F,
+  do.cumulative = T
+)
 
 convert_gff2coords(gff, chr.list, gap.prop)
 
@@ -96,15 +160,43 @@ add_gap(fais, gap.prop)
 
 make_fais(genomes, gff)
 
-draw_genePolygon(map, genes2plot, chr.buff, ortho.col, simplify.poly,
-  points.per.curve)
+draw_genePolygon(
+  map,
+  genes2plot,
+  chr.buff,
+  gene.col,
+  simplify.poly,
+  points.per.curve
+)
 
-annotate_riparian(map, genomes, chr.buff, dodge.geneIDs, scale2dodge,
-  geneid.cex, geneid.offset, gene.colors, geneID.abbrev.fun, genes2plot)
+annotate_riparian(
+  map,
+  genomes,
+  chr.buff,
+  dodge.geneIDs,
+  scale2dodge,
+  geneid.cex,
+  geneid.offset,
+  gene.colors,
+  geneID.abbrev.fun,
+  genes2plot
+)
 
-label_riparian(fais, chr.segm.lwd, chr.segm.col, genomes, chr.lab.buff,
-  chr.bg.col, chr.bg.cex, chr.bg.pch, chr.id.col, chr.id.cex, lab.chr,
-  lab.chr.1only, chr.abbrev.fun)
+label_riparian(
+  fais,
+  chr.segm.lwd,
+  chr.segm.col,
+  genomes,
+  chr.lab.buff,
+  chr.bg.col,
+  chr.bg.cex,
+  chr.bg.pch,
+  chr.id.col,
+  chr.id.cex,
+  lab.chr,
+  lab.chr.1only,
+  chr.abbrev.fun
+)
 
 add_alpha(col, alpha = 1)
 
@@ -117,7 +209,15 @@ get_xClus(x, n.reps, dodge.x, scale2dodge = 2)
 cos_y(y.start, y.end, n.out, n.sample = n.out)
 }
 \arguments{
-\item{genomeIDs}{character vector, specifying the genomeIDs to include.}
+\item{verbose}{logical, should}
+
+\item{genomeIDs}{character, length}
+
+\item{n.cores}{integer length 1, the number of parallel processes
+to run.}
+
+\item{min.score}{numeric length 1, specifying the minimum blast
+bit score for a hit to be retained.}
 
 \item{blast}{data.table, containing the merged gff and blast results.
 Unlike the 'map' object, which really just needs merged gff coordinates,
@@ -126,22 +226,13 @@ this must have all the blast8 columns. See details.}
 \item{of.dir}{file.path, to the subdirectory containing
 blast results}
 
-\item{gff}{data.table, containing the parsed gff annotations,
-as produced by import_gff.}
+\item{gff}{gff-like data.table}
 
 \item{tmp.dir}{file.path, to the subdirectory
 where the temporary results should be written}
 
 \item{peptide.dir}{file.path, to the subdirectory containing
 the parsed peptide files}
-
-\item{n.cores}{integer length 1, the number of parallel processes
-to run.}
-
-\item{verbose}{logical, should updates be printed to the console?}
-
-\item{min.score}{numeric length 1, specifying the minimum blast
-bit score for a hit to be retained.}
 
 \item{gene.dict1}{data.table with column names V1, new1, keyed on
 V1. V1 contains the original geneIDs, new1 contains the new geneIDs}
@@ -166,7 +257,7 @@ hits to be retained per query.}
 
 \item{y}{numeric, length}
 
-\item{map}{data.table, containing the merged gff and blast results}
+\item{map}{map-formatted data.table}
 
 \item{radius}{numeric, the radius to search within for syntenic
 mappings. Length must match that of n.mappings.}
@@ -201,8 +292,6 @@ given radius. Length must match that of radius}
 \item{genes2plot}{character, length}
 
 \item{chr.buff}{numeric, length}
-
-\item{ortho.col}{character, length}
 
 \item{simplify.poly}{logical, should}
 
@@ -289,18 +378,12 @@ subdirectories.}
 
 \item{cols}{character, length}
 
-\item{genomeIDs}{character, length}
-
-\item{gff}{gff-like data.table}
-
-\item{map}{map-formatted data.table}
-
-\item{verbose}{logical, should}
+\item{ortho.col}{character, length}
 }
 \description{
 \code{genespace_utils} Functions for GENESPACE
 
-\code{reduce_recipBlast} reduce_recipBlast
+\code{make_initialGenespacePipe} make_initialGenespacePipe
 
 \code{reduce_recipBlast} reduce_recipBlast
 

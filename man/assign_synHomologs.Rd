@@ -4,9 +4,18 @@
 \alias{assign_synHomologs}
 \title{Assign syntenic homologs}
 \usage{
-assign_synHomologs(gff, genomeIDs, map, dir.list, rank.buffer,
-  min.propBestScore4homolog = 0.5, min.score4homolog = 50,
-  verbose = T, quiet.orthofinder = F, n.cores = 1)
+assign_synHomologs(
+  gff,
+  genomeIDs,
+  map,
+  dir.list,
+  rank.buffer,
+  min.propBestScore4homolog = 0.5,
+  min.score4homolog = 50,
+  verbose = T,
+  quiet.orthofinder = F,
+  n.cores = 1
+)
 }
 \arguments{
 \item{gff}{data.table, containing the parsed gff annotations,

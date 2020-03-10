@@ -4,9 +4,17 @@
 \alias{finalize_blocks}
 \title{finalize_blocks}
 \usage{
-finalize_blocks(assigned.map, radii, gff, genomeIDs, dir.list,
-  MCScanX.s.param = 5, MCScanX.path, MCScanX.m.param = 50,
-  verbose = T)
+finalize_blocks(
+  assigned.map,
+  radii,
+  gff,
+  genomeIDs,
+  dir.list,
+  MCScanX.s.param = 5,
+  MCScanX.path,
+  MCScanX.m.param = 50,
+  verbose = T
+)
 }
 \arguments{
 \item{assigned.map}{data.table, containing the merged gff and blast results}
