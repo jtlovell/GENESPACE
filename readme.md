@@ -1,388 +1,288 @@
 ---
-title: "GENESPACE readme"
-author: "John T. Lovell"
-date: "19-September 2019"
+title: "A guide to GENESPACE"
+author: "JT Lovell"
+date: "5/13/2021"
 output:
   html_document:
     df_print: paged
+    toc: TRUE
 ---
 
+# 0. Overview
 
-## GENESPACE in a nutshell
+GENESPACE is a comparative genomics framework implemented in the R environment for statistical computing. The premise is that, when analyzing high-quality genome assemblies and annotations, we can improve the confidence of evolutionary inference by combining two sources of evidence for common ancestry: synteny/collinearity of gene order on chromosomes and coding sequence similarity (homology). In addition to providing a second line of evidence beyond sequence similarity, synteny offers a mechanism by which gene order can be predicted across genomes, even when presence-absence variation means that not all genomes are represented in every orthology network ('orthogroup'). Further, since all inference is constrained within syntenic regions, genespace is agnostic to ploidy, segmental duplicates, inversions and other chromosomal complexities. 
 
-The GENESPACE R package, in its most basic form, constructs syntenic blocks from blast results, culls blast results to those in proximity to syntenic blocks, then parses the syntenic blast hits into orthologs, paralogs and un-clustered homologs. GENESPACE does this on whole-genome annotation data (i.e. gff3 and peptide fasta files) and can opperate on anywhere from 2 to 16 diploid genomes simultaneously (depending on memory availability.
+GENESPACE outputs a synteny-constrained and -anchored orthogroup pan-genome annotation among multiple genomes. This simple text file allows for extraction and exploration of regional (e.g. a QTL interval) gene-level variation, a necessary step to integrate comparative and quantitatve genomic goals. 
 
-GENESPACE includes a primary pipeline, which finds syntenic homologs, orthologs and paralogs (*see the 'pipeline documentation' subheading below for full details on each function call*). The package also includes a method for genome annotation parsing, three main plotting routines, and syntenic block parsing and gene-location predicting functions. The plotting and parsing functions must be run interactively in R. The pipeline can be run interactively  as a single function call. In the future, we will also implement running the pipeline as an Rscript call from the command line. 
+# 1. Setup
 
-In R, run the pipeline as a single command: `pipe_GENESPACE`. There are three major settings for `pipe_GENESPACE`, which primarily affect the size, density and blast-scores of hits included in syntenic blocks:
+### 1.1 Installing Dependencies
 
-### The default pipeline:
+GENESPACE is designed only for use MacOSX and Linux. Testing on OSX 10.16 (Big Sur) and __ (). 
+Requires the following third party software to run:
 
-#### Blast results calculation and processing:
+- orthofinder (v2.5.2 or later)
+- diamond (v2.0.8.146 or later)
+- MCScanX (MCScanX_h)
+- R (v4.0.3 or later)
 
-All pairwise blast hits are calculated with `diamond` either separately, or within the `orthofinder` program. Blast results are then culled to the top 2 hits within each haplotype (so, if a diploid is mapped to a dipliod, four hits would be retained for each gene; if it were mapped to a tetraploid, eight hits would be retained). All hits with a bit score < 50 are dropped. 
+And R package dependencies:
 
-#### Initial orthogroup inference: 
+- R/data.table (v1.13.6 or later)
+- R/igraph (v1.2.6 or later)
+- R/Biostrings (v2.58.0 or later)
+- R/dbscan (v1.1-5 or later)
 
-separate run of `orthofinder` is made for each pair of genomes using the culled blast results. Only those hits within 'orthogroups' are retained. 
+Orthofinder and diamond2 can be installed from conda/miniconda: `conda install -c bioconda orthofinder`. MCScanX must be [installed](https://github.com/wyp1125/MCScanX) independently. R can also be installed via conda or from [CRAN](https://cran.r-project.org/mirrors.html). 
 
-#### Pruning blast hits to synteny: 
+### 1.2 Install GENESPACE
 
-Blocks are formed using `MCScanX` from the culled and orthogroup-constrained blast results, allowing 5x as many gaps in the alignment as 50% of the minimum block size (MBS, default = 10), then pruned with `dbscan` to blocks with MBS hits within a fixed gene-rank radius 5x MBS. All orthogroups are then 'completed', where `igraph` expands the orthogroups to include all possible combinations among genomes. These blast hits are then pruned with `dbscan` with identical parameters as above. 
+To install GENESPACE, enter R, either by typing `R` into the command line or `open -na rstudio` for RStudio. 
 
-#### Block cleaning and extension: 
+If not installed, install the `devtools` package via `install.packages("devtools")`. This will permit one-line installation from the gitlab repo. 
 
-To fill potential gaps in blocks left by the stochastic nature of varying orthogroup connectivity, we pull all blast results that passed the score threshold (agnostic to orthogroup identity) that are within a 100-gene radius of any syntenic block and re-form blocks with `MCScanX` with the same parameters as above. 
+Install genespace: `devtools::install.gitlab("https://code.jgi.doe.gov/plant/genespace-r")`
 
-#### Syntenic orthology inference: 
+This should also install the dependencies, `data.table`, `igraph`, and `dbscan`. For full functionality, also install the following:
+`Biostrings` and `Rutils`. 
 
-All blast results are culled to those within a 50-gene rank radius of any syntenic block for all genomes. `orthofinder` is run on this entire set, and blast hits are parsed into orthologs, paralogs, or un-clustered homologs. By default, hits that were not in an orthogroup (neither orthologs or paralogs) with a score < 50 or < 50% of the best bit score for that gene -by- unique genome combination are dropped from this dataset. 
+If devtools is not available or you'd prefer, you can install from the provided GENESPACE.tar.gz file, saved in a location where you have execute privileges. If running on the command line, prior to entering R, run: `R cmd install path/to/GENESPACE.tar.gz`. Alternatively, if running GENESPACE from RStudio, open Rstudio once the orthofinder conda environment is activated, then install GENESPACE by clicking on the 'install' icon under the 'packages' tab. Select 'install from package archive file' and navigate to the location of the saved GENESPACE.tar.gz file. 
 
-### The 'relaxed' method:
+### 1.3 Input data format
 
-This follows the default closely, but allows for smaller blocks (MBS = 5) and more gapped alignments (10x MBS). The major difference is that the inital orthofinder run is conducted on all genomes simultaneously. For a set with few, closely related genomes, this will largely result in the same blocks as default; however, as more genomes are included across greater phylogenetic distances, this can retain more diverged regions. 
+GENESPACE requires two inputs for each genome: primary transcript annotation peptide fasta files and gene feature coordinates. The sequence headers in the fasta must be able to parsed to match the attributes column of the gff3 gene annotation. 
 
-### The 'ancientWGD' method:
+If data comes from phytozome, you want the 'gene.gff3' and 'protein_primaryTranscriptOnly.fa' files. 
 
-The goal with this parameterization is to retain as many hits as possible and to capture regions associated with ancient whole-genome duplications (WGDs). To do this, the initial orthofinder step is completely ignored, MBS = 5 and 20x MBS large gaps are allowed. The intial block extension radius is doubled to 200 genes and homologs with a score > 20 and 20% of the best score are retained. 
+If data comes from NCBI, you to get the data from the 'FTP directory for RefSeq assembly' file tree and download the 'genomic.gff.gz' and 'translated_cds.faa.gz' files. 
+
+If getting data from other sources, you may need to ensure that your gene IDs can be properly matched. It is not necessary to have only the primary transcript, as GENESPACE will take the longest uniquely named sequence. However, in many cases the longest transcript is not the primary, so care should be taken. 
 
 
+# 2. Pipeline overview
 
-## Example 1: Syntenic orthology among Human, Chimpanzee and Mouse genomes
+### 2.1 Set the parameters for the run
 
-*For this and other examples, we will not run the pipeline in one fell swoop, but will work our way though it step by step.*
+The first step in GENESPACE is to specify all downstream parameters. This approach is preferable to parameterization of individual functions for consistency across calls. Further, most major issues with data structure, software dependencies or directory permissions will be discovered straight away. 
 
-*The gff3 and peptide annotation files were downloaded from (ensemble genomes)[https://uswest.ensembl.org/info/data/ftp/index.html] on 19-September 2019.*
-
-The first step of GENESPACE is to move the annotation files into a subdirectory of your working directory called '/raw_annotations'. You also can make a subdirectory called '/raw_assemblies', but this can be empty, or contain the assembly fastas, labeled [genomeID].fa. For each genome of interest, make a folder with the name you want to call the genome. 
-
-So, the directory structure looks like this:
-
-```
-/genespace_directory
-  /raw_annotations
-    /human
-      /Homo_sapiens.GRCh38.97.abinitio.gff3.gz
-      /Homo_sapiens.GRCh38.pep.abinitio.fa.gz
-    /chimanzee
-      /Pan_troglodytes.Pan_tro_3.0.97.abinitio.gff3.gz
-      /Pan_troglodytes.Pan_tro_3.0.pep.abinitio.fa.gz
-    /mouse
-      /Mus_musculus.GRCm38.97.abinitio.gff3.gz
-      /Mus_musculus.GRCm38.pep.abinitio.fa.gz
-  /raw_assemblies
-    /human.fa
-    /chimpanzee.fa
-    /mouse.fa
-```
-
-GENESPACE requires a very specific format for the gff and the fasta files: the attribute column of the gff must have an entry that matches exactly the header name in the fasta. But the files in the `raw_annotation` subdirectory can be any format, but must be parsed by the `convert_genomes` function. This decompresses the files and parses the fasta header via a user-specified function and regular expression. 
-
-For example, the first three raw human sequences:
-```
->GENSCAN00000000001 pep chromosome:GRCh38:5:122151991:122153085:1 transcript:GENSCAN00000000001 transcript_biotype:protein_coding
-MERGKKKRISNKLQQTFHHSKEPTFLINQAGLLSSDSYSSLSPETESVNPGENIKTDTQK
-...
-
->GENSCAN00000000002 pep chromosome:GRCh38:5:122675795:122676286:1 transcript:GENSCAN00000000002 transcript_biotype:protein_coding
-MMNRMAPENFQPDPFINRNDSNMKYEELEALFSQTMFPDRNLQEKLALKRNLLESTGKGL
-...
-
->GENSCAN00000000003 pep chromosome:GRCh38:5:121876146:121916483:-1 transcript:GENSCAN00000000003 transcript_biotype:protein_coding
-MDDSKGNGKRAKIRGKGPKIFLKSLLATLPNTSYVCASEPQLSPYLCEFFPGVNLLDVEH
-...
-```
-
-So, we run `convert_genome`, which adds a new subdirectory to the working directory. To do this, we need to specify the character strings that identify the peptide files and the gff. 
-The peptide files are named "[speciesID].[genomeVersion].pep.abinitio.fa.gz". 
-The gff3 files are named similarly "[speciesID].[genomeVersion].abinitio.gff3.gz". 
+A fully parameterized `setup_genespace` might look like this:
 
 ```
-convert_genomes(
-  directory = wd,
-  genomeIDs = genomeIDs,
-  verbose = T,
-  peptide_str = "pep",  # 'pep' distinguishes the peptide fasta files
-  peptide.only = T,     # only worry about the peptide and gff3 files
-  gff_str = "gff"       # 'gff' distinguishes the gff3 annotations
-)
+gsPars <- setup_genespace(
+  genomeIDs = c("Switchgrass", "Rice"),
+  orthofinderMethod = "fast",
+  outgroup = NULL,
+  speciesIDs = c("Pvirgatum", "Osativa"),
+  versionIDs = c("v5.1", "v7.0"),
+  rawGenomeDir = "/rawGenomeRep",
+  ploidy = c(2,1),
+  nCores = 4,
+  path2orthofinder = "orthofinder", # assuming installed via conda and in env
+  path2diamond = "diamond", # assuming installed via conda and in env
+  path2mcscanx = "programs/MCScanX",
+  gffString = "gene.gff",
+  pepString = "pep",
+  verbose = TRUE)
 ```
 
+- `genomeIDs`: what you want to call each genome. These need to be unique even if the underlying data is duplicated. If one of these genomes should be an outgroup and used only for orthogroup inference and not synteny, this genomeID should be specied under `outgroup`. By default, there are no outgroups. 
+- `ploidy`: the expected ploidy of each genome. This is the genome ploidy, which does not necesarily match the organisms cytotype (e.g. most diploid species have haploid genomes)
+- `speciesIDs`: only used to detect the raw annotation files (see below)
+- `versionIDs`: only used to detect the raw annotation files (see below)
+- `rawGenomeDir`: a path to a directory containing all raw gzipped annotation files
+    - In this directory, make a subdirectory for each species you'd like to run
+    - The species directories contain a subdirectory for each unique genome version to use. 
+    - Each genome version subdirectory contains a subdirectory 'annotation', which contains the raw genome annotations. For example:
+    - gff: genespace_runs/rawGenomeRepo/Pvirgatum/v5.1/annotation/gene.gff3.gz
+    - peptide: genespace_runs/rawGenomeRepo/Pvirgatum/v5.1/annotation/pep.fa.gz
+    - This is the raw output structure of data downloaded from phytozome. 
+    
+This is also where the paths for the 3rd party software are checked. If not in the path when R was opened (or from a conda env), the paths need to be specified, for example:
+
+- `path2mcscanx = "/programs/MCScanX"`
+- `path2diamond = "/programs/diamond"`
+- `path2orthofinder = "/programs/orthofinder"`
+
+### 2.2 Convert to GENESPACE file format
+
+The basic gff and peptide header conversions are accomplished by `match_gffFasta` or the more user-friendly `parse_ncbi` and `parse_phytozome` functions. 
+
+This is how `match_gffFasta` can be parameterized. It should allow for pretty much any format of fasta and gff3.
 ```
-/genespace_directory
-  /raw_annotations
-  /raw_assemblies
-  /genome
-    /gff
-      /human.gff3
-      /chimpanzee.gff3
-      /mouse.gff3
-    /peptide
-      /human.fa
-      /chimpanzee.gff3
-      /mouse.gff3
-```
-
-The `human.fa` peptide fasta in the genome/peptide subdirectory now has different headers:
-
-```
->GENSCAN00000000001
-MGVKMLLVLQSETGRGRRRRGGRRGRRRRRREEKKEDEEEEAVAVAAAVAVEEEEGEEEGEEEGVEEEEEDGRRRKKKKK
-
->GENSCAN00000000002
-MAGSQPQRLAHPLLSLPLTSASGSPGLEQEDRTTRAINRVTWPCIMIWCRIPLCEAKAASANFSTWKAVTSPCALVAQNP
-
->GENSCAN00000000003
-MENQIIQTAGRTGQESGAAHRRDDATSILQHLGSPAKGWENCQGEGVSDEALAPTMLLLLLVFFLRKPFVSIAVLIFHVT
-```
-
-The gff3 annotations are unchanged, except that they have been renamed as [genomeID].fa and decompressed. The first six lines of `human.gff3` looks like this (below). You'll notice that only entries where the 3rd column has 'mRNA'  have entries in the 9th 'attribute' column that match the geneIDs in the fasta. 
-
-```
-1	ensembl	mRNA	12190	14149	.	+	.	ID=transcript:17672;Name=GENSCAN00000017672;version=1
-1	ensembl	exon	12190	12227	.	+	.	Parent=transcript:17672;Name=127823;exon_id=127823;version=1
-1	ensembl	exon	12613	12721	.	+	.	Parent=transcript:17672;Name=127824;exon_id=127824;version=1
-1	ensembl	exon	14051	14149	.	+	.	Parent=transcript:17672;Name=127825;exon_id=127825;version=1
-1	ensembl	mRNA	14696	24886	.	-	.	ID=transcript:17670;Name=GENSCAN00000017670;version=1
-1	ensembl	exon	14696	14829	.	-	.	Parent=transcript:17670;Name=127818;exon_id=127818;version=1
-``` 
-
-So, when we read in the gff3 annotation, we'll want to keep the mRNA lines, and retain the 2nd entry in the attribute column, removing the 'Name=' string. In GENESPACE, we read the gff into memory and parse it use `import_gff`; this also simplifies the output to just the genomeID, geneID, chromosome, start, end, and strand data.
-
-```
-gff <- import_gff(
-  gff.dir = dir.locs$gff,
-  genomeIDs = genomeIDs, 
-  use = "mRNA")
+match_gffFasta(
+  genomeIDs, # genomeIDs to parse
+  path2rawGff3, # where the raw gff of these genome are
+  path2rawPeptide, # where the raw peptide fasta for these genomes are
+  gffEntryType = "gene", # column 3 string to match
+  gffIdColumn = "Name", # attribute column ; separated field to use
+  headerEntryIndex = 4, # field to use in the fasta header
+  headerSep = " ", # field separator i the fasta header
+  headerStripText = "locus=", # text to drop in the fasta header
+  troubleshoot = TRUE) # print the pre and post-parsed head of the files
 ```
 
-```
-                   id chr  start    end strand genome order
-1: GENSCAN00000017672   1  12190  14149      +  human     1
-2: GENSCAN00000017670   1  14696  24886      -  human     2
-3: GENSCAN00000017677   1  51913 106974      +  human     3
-```
-
-The last pre-processing step is to build out the remaining subdirectories and get a list of these in memory with: `check_env`.
+The different parsers can be combined by specifying `overwrite = TRUE`. For example, 
+to parse genomes from NCBI, phytozome and a third party with a different format:
 
 ```
-dir.locs <- check_env(
-  directory = genespace/working/directory,
-  genomeIDs = c("Human", "Chimpanzee", "Mouse"),
-  peptide.only = T)
-```
-
-Which adds a few new subdirectories to the file tree:
-```
-/genespace_directory
-  /raw_annotations
-  /raw_assemblies
-  /genome         # parsed and decompressed annotations and assembly files
-  /blast          # populated by run_orthofinder
-  /tmp            # generic tmp directory
-  /cull.blast     # blast files culled to the genomes of interest
-  /cull.score     # blast files culled score thresholds
-  /syn.blast      # blast files culled to synteny
-  /mcscanx        # mcscanx working directory
-  /results        # where results are stored
-```
-
-The `dir.locs` object that it creates contains paths to each of these subdirctories. 
-
-
-Now that we have all of the files formatted correctly and put in the right place, we can get our blast results. `run_orthofinder` is a wrapper for the `orthofinder` program, but by default, only re-formats the files and runs the pairwise reciprocal blast searches with `diamond`. Blast searches can be slow. If doing more than 3 or 4 genomes and on a personal computer, consider running this overnight, or doing it on a cluster and copying the /blast directory back into your current working directory. 
-
-
-```
-with(dir.locs,  run_orthofinder(
-  output.dir = blast, 
-  overwrite.output.dir = T,
-  peptide.dir = peptide,
-  blast.threads = 9,
-  og.threads = 4))
-```
-
-
-So, everything is ready to run the main GENESPACE pipeline. 
-
-Step 1: Cull the blast results to the genomes of interest and the top hits for each gene. 
-
-```
-init <- remake_ofInput(
-  dir.list = dir.locs,        # the list of subdirectories from check_env
-  genomeIDs = c("Human", "Chimpanzee", "Mouse"),      # the names of the genomes, matches the names of the raw_annotation folder
-  ploidy = c(2,2,2),          # ploidies
-  gff = gff,  
-  min.score = 50,             # no blast hit less than this score are kept
-  run.of = F,                 # 
-  max.dup = 4,                # maximum number of hits to retain / diploid genome
-  overwrite.output.dir = F,  
-  n.cores = 6)
-```
-
-Step 2: Run orthofinder algorthm, restricted to each pair of genomes and on the culled blast hits
-
-```
-pwblast <- rerun_orthofinder(
-  dir.list = dir.locs,
-  gff = gff,
-  genomeIDs = genomeIDs,
-  n.cores = 6,
-  method = 'pairwise')      # do the pairwise method
-```
+parse_phyotozome(gsParam = gsp, genomeIDs = "Rice") # gsp from setup_genespace
+parse_ncbi(gsParam = gsp, genomeIDs = "Zmays", overwrite = T)
+with(gsp, match_gffFasta(
+  genomeIDs = genomeIDs[1],
+  path2rawGff3 = gffRaw[1],
+  headerEntryIndex = 3,
+  headerStripText = "locus=",
+  path2rawPeptide = peptideRaw[1],
+  overwrite = T, troubleshoot = T))
   
-Step 3: Form collinear blocks via MCScanX
-
-```
-mcsblks <- run_MCScanX(
-  blast = mirror_map(pwblast),
-  gff = gff,
-  mcscan.dir = dir.locs$mcscanx,
-  overwrite.output.dir = T,
-  genomeIDs = genomeIDs,
-  MCScanX.path = MCScanX.path,      # path to MCScanX install
-  MCScanX.s.param = 10,             # the minimum number of hits in a block
-  MCScanX.m.param = 100,            # the number of gaps allowed
-  verbose = T)
+# running without overwrite = TRUE after parsing each just returns the paths
+# which you will need later
+gsa <- parse_phyotozome(gsParam = gsp) 
 ```
 
-Now is a good time to check out plots to see what the initial collinear blocks look like
+### 2.3 Build the orthofinder database
+
+GENESPACE relies on a database of blast-like diamond2 hits that are subsequently clustered into orthogroups by `orthofinder`. We offer two distinct methods for generation of these data, which are specified in `setup_genespace`
+
+1. `orthofinderMethod = "fast"`: This approach runs `diamond2 --fast` on all unique combinations of genomes (not all pairwise combinations) and then stops after orthogroup inference via `orthofinder -og`. While this approach is roughly 10x faster than the default method, it is an approximation and should be used ONLY IN THE FOLLOWING CASES:
+    - the genomes that are being analyzed (excluding the outgroup) are very closely related (e.g. within species pangenomes).
+    - the user does not care much about the presence of highly-diverged gene arrays or other forms of gene duplications (e.g. WGD).
+    - the user only wants to visually explore the patterns of synteny 
+2. `orthofinderMethod = "default"`: This simply runs `orthofinder -f` which, by default runs `diamond2 --sensitive` and uses gene trees for dissection of orthogroups. While slower, this method will be far better at detecting ancient whole-genome duplications or orthology among diverged genomes. 
+
+To build the orthofinder database from R:
 
 ```
-chrl <- match_synChrs(
-  gff = gff,
-  map = mcsblks$map,
-  genomeIDs = genomeIDs,
-  smallestchrsize2keep = 100,
-  genome1.chrs = c(1:23, c("X","Y")))
-dp.res <- plot_map(
-  chr.list = chrl,
-  map = mcsblks$map,
-  palette = circos.palette,
-  gff = gff,
-  genomeIDs = genomeIDs,
-  plot.self = T)
+blastDB <- build_OFDb(
+  gsParam = gsp, # from setup_genespace
+  gsAnnot = gsa) # from parse_phytozome (or whatever)
 ```
 
-clnblks <- clean_blocks(
-  map = mcsblks$map,
-  gff = gff,
-  genomeIDs = genomeIDs,
-  complete.graphs = F,
-  n.mappings = 20,
-  radius = 100)
+### 2.4 Set parameters for synteny constraint
 
-comp.map <- complete_graph(
-  map = clnblks$map,
-  gff = gff,
-  ignore.self = T,
-  expand.all.combs = T)
+GENESPACE relies on high-confidence, but broadly defined syntenic regions to vizualize data and build a pangenome. This step uses a priori defined ploidy and user-specified synteny parameters to split diamond2 hits into syntenic and non-syntenic regions. 
 
-ext.blast <- extend_blocks(
-  gff = gff,
-  genomeIDs = genomeIDs,
-  map = comp.map,
-  dir.list = dir.locs,
-  rank.buffer = 100,
-  verbose = T)
+First, the user must specify the synteny parameters for the run. Here is an example, but there are other parameters that can be specified for polyploids etc. 
 
-mcsblks2 <- run_MCScanX(
-  blast = mirror_map(ext.blast),
-  gff = gff,
-  mcscan.dir = dir.locs$mcscanx,
-  overwrite.output.dir = T,
-  genomeIDs = genomeIDs,
-  MCScanX.path = MCScanX.path,
-  MCScanX.s.param = 10,
-  MCScanX.m.param = 50,
-  verbose = T)
+```
+synp <- set_syntenyParams(
+  gsParam = gsp, # from setup_genespace
+  gsAnnot = gsa, # from parse_phytozome (or whatever)
+  nGaps = 5, # passed to MCScanX -m parameter
+  blkSize = 5, # passed to MCScanX -s parameter
+  nSecondHits = 0, # number of hits beyond what is expected by ploidy
+  synBuff = 100, # gene-rank order distance around MCScanX-defined 'anchors'
+  onlyOg = TRUE) # only consider hits between members of the same orthogroup?
+```
 
-assblks <- assign_synHomologs(
-  genomeIDs = genomeIDs,
-  map = mcsblks2$map,
-  min.score4homolog = 50,
-  min.propBestScore4homolog = .5,
-  gff = gff,
-  dir.list = dir.locs,
-  rank.buffer = 50,
-  verbose = T,
-  quiet.orthofinder = T,
-  n.cores = 6)
+The default specification is very robust when using moderately evenly phylogenetically distributed genomes. However, this step is separate from overall genespace parameterization because, in some cases deciding how GENESPACE looks for synteny must be more carefully specified. For example, if running 10 grass genomes and pineapple, the user probably expects there to be far smaller and less contiguous blocks of synteny between the grasses and pineapple than within the grasses. As such, the user could edit the synp object to increase the number of gaps in searches involving pineapple as follows:
 
+```
+which2change <- with(synp, 
+  genome1 != genome2 & (genome1 == "Pineapple" | genome2 == "Pineapple"))
+synp$nGaps[which2change] <- 25
+```
 
+### 2.5 split hits into syntenic and non-syntenic regions
 
+Once the synteny parameters are specified, they are passed to `extract_synteny`, which uses the rules to decide synteny with a simple command:
 
+```
+synh <- extract_synteny(
+  synParam = synp, # from set_syntenyParams
+  gsParam = gsp, # from setup_genespace
+  gsAnnot = gsa) # from parse_phytozome (or whatever)
+```
 
+This automatically produces a low-resolution pdf with the positions of syntenic regions for each genome comparison, stored in /results/syntenicRegionHeatmap.pdf. We recommend that the user looks at this plot to ensure that the number and positions of syntenic regions looks right. If not, re-parameterize and re-run. 
 
+### 2.6 make high-confidence syntenic blocks
 
+The key to making high-confidence syntenic block coordinates is five-fold:
 
-## Introduction
+1. Restrict the search to broad syntenic regions 
+2. Use only high-confidence hits; GENESPACE only 'sees' reciprocal-best-hits and hits where both target and query are in the same orthogroup. 
+3. Use within-region gene-rank order as the x-y positions for block construction (reranked for only high confidence hits) 
+4. Use MCScanX to cull hits to collinear regions (but not for block assignment)
+5. Use a density-based block assigner, like `dbscan`. 
 
-As chromosome-scale whole genome assemblies and annotations become more common across many taxonomic groups, it is crucial to be able to make evolutionary inference regarding sequences that are derived from common ancestors. There are two major lines of evidence to test whether genes are related: 1) sequence similarity (i.e. homology) and 2) similarity of physically proximate genes (i.e. synteny). If genes from two species are homologous, it is possible they arose from duplications (i.e. paralogs), are members of conserved similar gene familes but are unrelated, and arose from a speciation event and share a common ancestor (i.e. orthologs). The same is true for synteny, which can be related to ancient duplications or retained gene order since speciation. However, our confidence in the type of evolutionary relationship between sequences can be increased by testing for the presence of *syntenic* orthologs and paralogs. 
+Genespace accomplishes this via `pull_synOgs`. 
 
-To date, a number of programs can infer synteny and homology, and a number of studies have combined the two principals. The R package, 'GENESPACE' does this explicitly by first inferring homologous gene networks ('orthogroups') through the `orthofinder` program, then parses orthogroups into syntenic blocks via `MCScanX`. Finally, blast hits are constrained to syntenic regions and classified as orthologous or paralogous through `orthofinder`. The three output files are 1) a bedmap with syntenic block coordinates, 2) an annotated blast file with all syntenic homologs, and 3) a bedmap with the expected syntenic blocks of all genes.
+```
+synOgFiles <- pull_synOgs(
+  synParam = synp, # from set_syntenyParams
+  gsParam = gsp, # from setup_genespace
+  gsAnnot = gsa) # from parse_phytozome (or whatever)
+```
 
-## What can GENESPACE do for me?
+This produces all the files needed for GENESPACE plotting routines (see below), including the blockCoordinates. 
 
-GENESPACE is an R package designed to improve the speed, sensitivity, utility and visualization of comparative genomics in the post-genomic world. It is best run interactively in R, but also can be called as a pipeline from the command line. 
+### 2.7 Construct the syntenic pangenome database
 
-The primary functionality of GENESPACE is **to develop high-confidence mappings between orthologous genes from multiple related genomes**. Depending on the system and parameters, GENESPACE can also effectively map paralogs among genomes that have undergone both recent and ancient whole genome duplication (WGD) events (e.g. how much synteny is retained, age of WGD, pattern of gene retention, etc.). GENESPACE also can produce highly-customizable publication-quality plots. It outputs datasets that can be used to infer a number of downstream attributes, including tandem arrays, pseudogenization, ancestral state reconstructions and selection / neutrality staatistics. 
+The final step of GENESPACE is to decode the syntenic hits, block coordinates and inferred syntenic positions of missing genes into a pangenome. This is accomplished by `build_pgDb`. 
 
-##  Data Requirements
+```
+pgFiles <- build_pgDb(
+  synParam = synp, # from set_syntenyParams
+  gsParam = gsp, # from setup_genespace
+  gsAnnot = gsa, # from parse_phytozome (or whatever)
+  synOgFiles = synOgFiles) # from pull_synOgs
+```
 
-GENESPACE is written for default parameters to work directly off the JGI phytozome geneome annotation format (https://phytozome.jgi.doe.gov/pz/portal.html); however, nearly all formatting can be accomodated. 
+This produces a pangenome annotation and saves it to a text file. If working in a fairly small space, the entire pangenome can be read into memory with:
 
-**NOTE** Depending on the RAM available, GENESPACE can run up to 12 diploid genomes (6 tetraploid genomes, etc.). However, we recommend doing smaller runs (<= 8 genomes) unless synteny is at least marginally conserved across all species. 
+```
+pg <- read_pangenome(
+  gsParam = gsp, 
+  wholeThing = TRUE,
+  referenceGenome = gsp$genomeIDs[1])
+```
 
-To run GENESPACE, you need:
+This converts a 'long' formatted pangenome text file into a more human-readable format with a column for each genome and a row for each unique position in the pangenome, anchored against physical positions of genes in the specified reference genome. 
 
-1. complete gene annotations from >= 2 genomes. 
-2. gff3-formatted gene annotations 
-3. fasta files containing peptide sequence for the primary transcript of each gene.
-4. the gff3 and fasta files need to have gene identifiers that can be used to link the two.
-5. there must be some synteny between genomes. GENESPACE cannot be used to find related genes between very diverged species (i.e. plants and animals), nor should it be used to look at very ancient whole genome duplications. 
+For most cases, we expect the user to seek specific regions. This can be accomplished through several methods of querying. For example, to pull all elements of the pangenome in the first 10Mb of Chr01 for the first genome:
 
-**NOTE** Genomes must have decent contiguity. The required level of contiguity depends on the minimum desired syntenic block size. But, the larger the syntenic blocks, the better the results. So, if using genomes with small or un-ordered contigs, take the results lightly. 
+```
+pg <- read_pangenome(
+  gsParam = gsp, 
+  referenceGenome = gsp$genomeIDs[1],
+  chr = "Chr01",
+  regionStart = 0, 
+  regionEnd = 10e6)
+```
 
-## System Requirements
+# 3. Plotting
 
-1. MacOSX or LINUX 
-2. R v3.5.2 or later
-3. OrthoFinder version 2.3.3 or later
-4. MCScanX downloaded from http://chibba.pgml.uga.edu/mcscan2/
+### 3.1 Dotplots
 
+### 3.2 Riparian plots
 
-## Running GENESPACE interactively
-
-With the initial v0.5 release, the GENESPACE pipeline must be run interactively. Later releases will have a commaand line one-liner to call the whole thing. 
-
-### Data formatting 
-
-GENESPACE requires an orthofinder-formatted blast search result, where the gff3 'attribute' columns match the gene IDs in the fasta headers. We can achieve these results via the sata preparatation pipeline:
-
-1. `convert_genomes`: Format / simplify fasta head and match the gene ID in gff3. 
-2. `run_orthofinder`: Wrapper to run orthofinder and aggregate results
-3. `remake_ofInput`: Subset blast results (i.e. to top hits by gene)
-4. `rerun_orthofinder`: Re-run orthofinder on subsetted blast results.
-
-### Forming and finalizing syntenic blocks
-
-Determining sequence similarity is fairly trival. Programs like orthofinder can parse such blast results. 
-
-5. `pipe_mcscanx`: an R wrapper for the MCScanX program. Clusters hits into collinear blocks and drops non-collinear blast hits. 
-6. `clean_blocks`: uses fixed-radius 2d density clustering to retain hits in high-quality blocks. 
-7. `complete_graph`: fills out incomplete complete networks (e.g. for genes A,B,C: [A-B,B-C] --> [A-B,B-C,C-A])
-8. `extend_blocks`: searches for any blast hits within a fixed radius of previously defined syntenic blocks. Crucial for under-retained duplicate regions, as these may get broken up into small pieces by MCScanX and clean_blocks. Should be followed by a final pipe_mcscanx run. 
-
-### Classifying hits as orthologous, paralogous or other
-
-9. `assign_synHomologs`: searches for all syntenic blast hits, feeds these to orthofinder, builds gene trees and returns an annotated blast file with a column specifying the hit as ortholog, paralog, or syntenic homolog.
-
-### An example with mammals. 
+### 3.3 Pangenome PAV plots
 
 
 
+# 4. Legal
+
+GENESPACE R Package (GENESPACE) Copyright (c) 2021,HudsonAlpha Institute for Biotechnology. All rights reserved.
+
+If you have questions about your rights to use or distribute this software, please contact Berkeley Lab's Intellectual Property Office at IPO@lbl.gov.
+
+NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S. Government consequently retains certain rights. As such, the U.S. Government has been granted for itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in the Software to reproduce, distribute copies to the public, prepare derivative  works, and perform publicly and display publicly, and to permit others to do so.
 
 
+*** License Agreement ***
+
+GENESPACE R Package (GENESPACE) Copyright (c) 2021, HudsonAlpha Institute for Biotechnology. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+(1) Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+(2) Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+(3) Neither the name of the HudsonAlpha Institute for Biotechnology nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+You are under no obligation whatsoever to provide any bug fixes, patches, or upgrades to the features, functionality or performance of the source code ("Enhancements") to anyone; however, if you choose to make your Enhancements available either publicly, or directly to Lawrence Berkeley National Laboratory, without imposing a separate written license agreement for such Enhancements, then you hereby grant the following license: a non-exclusive, royalty-free perpetual license to install, use, modify, prepare derivative works, incorporate into other computer software, distribute, and sublicense such enhancements or derivative works thereof, in binary and source code form.
