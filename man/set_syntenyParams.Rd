@@ -6,20 +6,18 @@
 \usage{
 set_syntenyParams(
   gsParam,
-  gsAnnot,
-  nGaps = 5,
+  onlyOgAnchors = TRUE,
+  onlyOgAnchorsSecond = TRUE,
   blkSize = 5,
+  blkSizeSecond = blkSize,
+  nGaps = 5,
+  nGapsSecond = nGaps,
   nSecondHits = 0,
   synBuff = 100,
-  onlyOg = TRUE,
-  nGapsHomeo = nGaps,
-  nGapsSecond = nGaps,
-  blkSizeHomeo = blkSize,
-  blkSizeSecond = blkSize,
-  synBuffHomeo = synBuff,
   synBuffSecond = synBuff,
-  onlyOgHomeo = TRUE,
-  onlyOgSecond = FALSE
+  selfRegionMask = synBuff * 2,
+  dropInterleavesSmallerThan = 2,
+  minRbhScore = 50
 )
 }
 \arguments{
@@ -28,17 +26,23 @@ by setup_genespace, but can be built manually. Must have the following
 elements: blast (file.path to the original orthofinder run) and ploidy
 (integer vector of genome ploidies named by genomeIDs).}
 
-\item{gsAnnot}{list of length 2, containing the genespace annotation paths
-'gff' and 'peptide' -- file path character vector with the locations of
-the peptide and gff-like annotation files. Each element is named by the
-associated genomeID in gsParam. Can be made manually as a list with the
-'peptide' entry as a named vector of paths to the parsed peptide fastas.}
+\item{onlyOgAnchors}{logical, should only hits in orthogroups be considered
+for anchors?}
+
+\item{onlyOgAnchorsSecond}{logical should only hits in orthogroups be
+considered for anchors in secondary blocks?}
+
+\item{blkSize}{integer of length 1, specifying the -s param to mcscanx}
+
+\item{blkSizeSecond}{see blkSize, but passed to the secondary scan if
+nSecondaryHits > 0.}
 
 \item{nGaps}{integer of length 1, specifying the -m param to mcscanx
 for the primary MCScanX run. This acts on the results from the initial
 MCScanX run.}
 
-\item{blkSize}{integer of length 1, specifying the -s param to mcscanx}
+\item{nGapsSecond}{see nGaps, but passed to secondary hits after masking
+primary hits.}
 
 \item{nSecondHits}{integer of length 1, specifying the number of blast
 hits to include after masking.}
@@ -48,32 +52,17 @@ to consider a hit syntenic. This parameter is also used to limit the search
 radius in dbscan-based blk calculation. Larger values will return larger
 tandem arrays but also may permit inclusion of spurious non-syntenic networks}
 
-\item{onlyOg}{Logical of length 1 specifying if blast anchors
-should only be formed from hits in the same orthogroups}
-
-\item{nGapsHomeo}{see nGaps, but passed to homeolog  hits after masking
-primary hits.}
-
-\item{nGapsSecond}{see nGaps, but passed to secondary hits after masking
-primary hits.}
-
-\item{blkSizeHomeo}{see blkSize, but passed to the homeolog scan if
-nSecondaryHits > 0.}
-
-\item{blkSizeSecond}{see blkSize, but passed to the secondary scan if
-nSecondaryHits > 0.}
-
-\item{synBuffHomeo}{see syntenyBuffer. Applied only to synteny
-construction of homeolog hits.}
-
 \item{synBuffSecond}{see syntenyBuffer. Applied only to synteny
 construction of secondary hits.}
 
-\item{onlyOgHomeo}{see onlyOg. Applied only to
-synteny construction of homeolog hits.}
+\item{selfRegionMask}{integer specifying the size of the region (radius, gene
+rank order) surrounding self hits to mask for secondary/homeologous hits}
 
-\item{onlyOgSecond}{see onlyOg. Applied only to
-synteny construction of secondary hits.}
+\item{dropInterleavesSmallerThan}{integer specifying the smallest block to
+keep in the split interleaves synteny step}
+
+\item{minRbhScore}{integer specifying the minimum blast bit score to allow
+for a RBH to be included}
 }
 \value{
 ...
