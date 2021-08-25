@@ -1,18 +1,16 @@
 #' @title Build orthofinder database
 #'
 #' @description
-#' \code{build_ofDb} Simplified blast database construction for and orthogroup
+#' \code{run_orthofinder} Simplified blast database construction for and orthogroup
 #' construction in orthofinder.
 #'
-#' @param gsAnnot list of length 2, containing the genespace annotation paths
-#' 'gff' and 'peptide' -- file path character vector with the locations of
-#' the peptide and gff-like annotation files. Each element is named by the
-#' associated genomeID in gsParam
 #' @param gsParam A list of genespace parameters. This should be created
 #' by setup_genespace, but can be built manually. Must have the following
 #' elements: blast (file.path to the original orthofinder run), synteny (
 #' file.path to the directory where syntenic results are stored), genomeIDs (
 #' character vector of genomeIDs).
+#' @param overwrite logical, should results be overwritten?
+#' @param onlyCheckRun logical, should nothing be done but see if there is a run
 #'
 #' @details Build pairwise blast database without running both sides of
 #' pairwise blasts. The genome with more genes is set as the query, then to
@@ -34,203 +32,309 @@
 #' \dontrun{
 #' # coming soon
 #' }
-#' @import R.utils
+#' @note \code{run_orthofinder} is a generic name for the functions documented.
+#' \cr
+#' If called, \code{run_orthofinder} returns its own arguments.
+#'
+
+#' @title fast_ofDb
+#' @description
+#' \code{fast_ofDb} fast_ofDb
+#' @rdname run_orthofinder
 #' @import data.table
 #' @export
-build_OFDb <- function(gsAnnot,
-                       gsParam){
+run_orthofinder <- function(gsParam, overwrite = FALSE){
+  if(is.null(gsParam$params$synteny))
+    stop("must run set_syntenyParams first\n")
+  beenRun <- find_orthofinderResults(gsParam, onlyCheckRun = T)
+  if(beenRun & !overwrite){
+    warning("orthofinder run exists & !overwrite, so not running")
+    gsParam <- find_orthofinderResults(gsParam, onlyCheckRun = F)
+  }else{
+    if(is.na(gsParam$paths$orthofinderCall)){
+      com <- default_ofDb(gsParam)
+    }else{
+      if(gsParam$params$orthofinderMethod == "fast"){
+        if(gsParam$params$verbose)
+          cat("\tRunning 'draft' a.k.a 'fast' genespace orthofinder method",
+              "\n\t############################################################",
+              "\n\t***NOTE***\n\tThis method should only be used for:",
+              "\n\t\t(1) closely related diploid species or",
+              "\n\t\t(2) visualization/genome QC purposes",
+              "\n\tIf you are building a multi-species or polyploid pangenome, cancel this and rerun with:\n\t\torthofinderMethod = 'default'",
+              "\n\t############################################################\n")
+        com <- fast_ofDb(gsParam)
+      }else{
+        if(gsParam$params$verbose)
+          cat("\tRunning 'defualt' genespace orthofinder method",
+              "\n\t############################################################\n")
+        com <- default_ofDb(gsParam)
+      }
+    }
+    gsParam$params$orthofinderCall <- com
+  }
+  return(gsParam)
+}
 
-  gn1 <- gn2 <- nGenes2 <- nGenes1 <- u <- genome2 <- genome1 <- NULL
-  fa1 <- fa2 <- db2 <- db1 <- mirrorBlast <- runBlast <- target <- query <- NULL
-  tiebreak <- invertFile <- blFile <- NULL
+#' @title drop_unusedPeptides
+#' @description
+#' \code{drop_unusedPeptides} drop_unusedPeptides
+#' @rdname run_orthofinder
+#' @import data.table
+#' @export
+drop_unusedPeptides <- function(gsParam){
+  f <- list.files(path = dirname(gsParam$paths$peptide[1]), full.names = F)
+  fi <- basename(gsParam$paths$peptide)
+  if(any(!f %in% fi)){
+    fo <- f[!f %in% fi]
+    for(i in fo)
+      file.remove(file.path(dirname(gsParam$paths$peptide[1]), i))
+  }
+}
 
-  pepFiles <- gsAnnot$peptide
-  gffFiles <- gsAnnot$gff
-  nCores <- gsParam$nCores
-  path2diamond <- gsParam$path2diamond
-  path2orthofinder <- gsParam$path2orthofinder
-  verbose <- gsParam$verbose
-  blastDir <- gsParam$blast
+#' @title prep_ofDbFromPeptide
+#' @description
+#' \code{prep_ofDbFromPeptide} prep_ofDbFromPeptide
+#' @rdname run_orthofinder
+#' @import data.table
+#' @export
+prep_ofDbFromPeptide <- function(gsParam){
 
+  # clean up leftover peptides if necessary
+  drop_unusedPeptides(gsParam)
+
+  # check for and remove orthofinder directory if needed
+  if(dir.exists(gsParam$paths$orthofinder)){
+    unlink(gsParam$paths$orthofinder, recursive = T)
+  }
+
+  # convert to orthofinder
+  com <- sprintf(
+    "%s -f %s -t %s -op -o %s 1>/dev/null 2>&1",
+    gsParam$paths$orthofinderCall,
+    dirname(gsParam$paths$peptide[1]),
+    gsParam$params$nCores,
+    gsParam$paths$orthofinder)
+  system(com)
+  return(com)
+}
+
+#' @title fast_ofDb
+#' @description
+#' \code{fast_ofDb} fast_ofDb
+#' @rdname run_orthofinder
+#' @import data.table
+#' @export
+fast_ofDb <- function(gsParam){
+  runBlast <- genome1 <- genome2 <- db2 <- fa1 <- blFile <- NULL
   ##############################################################################
-  # -- make directories
-  if (verbose)
-    cat("\tSetting up orthofinder environment ... ")
-  if (dir.exists(blastDir))
-    unlink(blastDir, recursive = T)
-  dir.create(blastDir)
-
-  genomeIDs <- names(pepFiles)
+  # Ad hoc internal functions
   ##############################################################################
-  # -- decompress peps to a tempdir, format for orthofinder, copy to blastdir
+  # a. invert blast file
+  invert_blast <- function(fileIn, fileOut){
+    tmp <- fread(fileIn, verbose = F, showProgress = F)
+    tmp <- tmp[,c(2,1,3:6,8,7,10,9,11,12)]
+    fwrite(tmp, sep = "\t",
+           quote = FALSE,
+           col.names = FALSE,
+           row.names = FALSE,
+           file = fileOut,
+           showProgress = FALSE,
+           verbose = FALSE)
+  }
+  ##############################################################################
+  # b. move and reorganize orthofinder input files
+  reorg_ofInput <- function(ofDir){
+    origF <- list.files(ofDir, full.names = TRUE)
 
-  if(gsParam$orthofinderMethod == "fast"){
-    tmpDir <- file.path(
-      getwd(),
-      paste0("tmp_", gsub("[^A-Za-z0-9]", "", Sys.time())))
-    if (dir.exists(tmpDir))
-      unlink(tmpDir, recursive = T)
-    dir.create(tmpDir)
-    on.exit(expr = unlink(tmpDir, recursive = T))
-
-    for(i in pepFiles)
-      gunzip(
-        filename = i,
-        destname = file.path(tmpDir, gsub(".gz$","",basename(i))),
-        remove = F)
-
-    com <- paste(path2orthofinder,
-                 "-f", tmpDir,
-                 "-t", nCores,
-                 "-S diamond -op 1>/dev/null 2>&1")
-    system(com)
-
-    ofInputLoc <- dirname(list.files(
-      path = tmpDir,
-      pattern = "SequenceIDs.txt",
+    ofTmp <- dirname(list.files(
+      path = ofDir,
+      pattern = "diamondDBSpecies0.dmnd",
       recursive = T,
       full.names = T))
-    ofInputFiles = list.files(path = ofInputLoc, full.names = T)
-    nu <- file.copy(ofInputFiles, blastDir)
-
-    ##############################################################################
-    # -- choose the files to blast
-    # -- the query genome should be the larger of the two.
-    cmb <- data.table(genome1 = genomeIDs, genome2 = genomeIDs)
-    cmb <- cmb[,CJ(genome1, genome2)]
-    nGenes <- sapply(pepFiles, function(x) length(readAAStringSet(x)))
-    cmb[,u := paste(
-      genomeIDs[genomeIDs %in% c(genome1, genome2)], collapse =" vs. "),
-      by = c("genome1","genome2")]
-    cmb[,nGenes1 := nGenes[genome1]]
-    cmb[,nGenes2 := nGenes[genome2]]
-    cmb[,tiebreak :=
-          as.numeric(factor(genome1, levels = genomeIDs)) -
-          as.numeric(factor(genome2, levels = genomeIDs))]
-    cmb[,query := ifelse(nGenes1 > nGenes2,
-                         genome1,
-                         ifelse(nGenes1 == nGenes2 & tiebreak > 0,
-                                genome1,
-                                genome2)),
-        by = "u"]
-    cmb[,target := ifelse(nGenes1 > nGenes2,
-                          genome2,
-                          ifelse(nGenes1 == nGenes2 & tiebreak > 0,
-                                 genome2,
-                                 genome1)),
-        by = "u"]
-    cmb[,runBlast := genome1 == query]
-    cmb[,mirrorBlast := genome1 == target & genome1 != query]
-
-    si <- read_orthofinderSpeciesIDs(blastDir)
-    cmb[,gn1 := si[genome1]]
-    cmb[,gn2 := si[genome2]]
-    cmb[,db1 := file.path(blastDir, paste0("diamondDBSpecies",gn1,".dmnd"))]
-    cmb[,db2 := file.path(blastDir, paste0("diamondDBSpecies",gn2,".dmnd"))]
-    cmb[,fa1 := file.path(blastDir, paste0("Species",gn1,".fa"))]
-    cmb[,fa2 := file.path(blastDir, paste0("Species",gn2,".fa"))]
-    cmb[,blFile := file.path(blastDir, paste0("Blast",gn1,"_",gn2,".txt.gz"))]
-    cmb[,invertFile := file.path(blastDir, paste0("Blast",gn2,"_",gn1,".txt.gz"))]
-
-    ##############################################################################
-    # -- run blasts for each of the primary runs
-    # -- mirror blasts over where necessary
-    if (verbose)
-      cat("Done!\n\tDiamond blastp searches ...\n")
-    cmb$invertFile[with(cmb, genome1 == genome2)] <- NA
-    cmbbl <- subset(cmb, runBlast)
-
-    for (i in 1:nrow(cmbbl)) {
-      if (verbose)
-        cat("\t\tRunning", i,"/", nrow(cmbbl), "... ")
-      x <- cmbbl[i,]
-      com <-  with(x, sprintf(
-        "%s blastp --quiet -e %s -p %s --compress 1 -d %s -q %s -o %s",
-        path2diamond, .1, nCores, db2, fa1, blFile))
-      system(com)
-
-      if (!is.na(x$invertFile)) {
-        tmp <- fread(x$blFile, verbose = F, showProgress = F)
-        tmp <- tmp[,c(2,1,3:6,8,7,10,9,11,12)]
-        fwrite(tmp, sep = "\t",
-               quote = FALSE,
-               col.names = FALSE,
-               row.names = FALSE,
-               file = x$invertFile,
-               showProgress = FALSE,
-               verbose = FALSE)
-      }
-      if (verbose)
-        cat("Done!\n")
-    }
-
-    ##############################################################################
-    # -- run orthofinder
-    if (verbose)
-      cat("\tRunning orthofinder ... ")
-    com <- paste(path2orthofinder,
-                 "-b", blastDir,
-                 "-a", nCores,
-                 "-t", nCores,
-                 "-og")
-    if (!verbose)
-      com <- paste(com, "1>/dev/null 2>&1")
-    system(com)
-
-    if(verbose)
-      cat("\nCleaning up results ... ")
-    tsvFile <- order_filesByMtime(
-      path = blastDir,
-      pattern = "Orthogroups.tsv",
-      recursive = T)
-    if(length(tsvFile) > 0){
-      tsvFile <- tsvFile[1]
-    }
-    file.copy(tsvFile, blastDir)
-    unlink(file.path(blastDir, "Orthofinder"), recursive = T)
-  }else{
-    for(i in pepFiles)
-      gunzip(
-        filename = i,
-        destname = file.path(blastDir, gsub(".gz$","",basename(i))),
-        remove = F)
-
-    com <- paste(path2orthofinder,
-                 "-f", blastDir,
-                 "-a", nCores,
-                 "-t", nCores,
-                 "-og")
-    if (!verbose)
-      com <- paste(com, "1>/dev/null 2>&1")
-    system(com)
-
-    if(verbose)
-      cat("\nCleaning up results ... ")
-    tsvFile <- order_filesByMtime(
-      path = blastDir,
-      pattern = "Orthogroups.tsv",
-      recursive = T)[1]
-    blFiles <- order_filesByMtime(
-      path = blastDir,
-      pattern = "Blast",
-      recursive = T)
-    blFiles <- blFiles[!duplicated(basename(tsvFile))]
-    dmndFiles <- order_filesByMtime(
-      path = blastDir,
-      pattern = "diamondDBSpecies",
-      recursive = T)
-    dmndFiles <- dmndFiles[!duplicated(basename(dmndFiles))]
-    seqIDFile <- file.path(dirname(blFiles[1]),"SequenceIDs.txt")
-    speIDFile <- file.path(dirname(blFiles[1]),"SpeciesIDs.txt")
-    faFiles <- file.path(dirname(blFiles[1]),
-                         sprintf("Species%s.fa", 0:(length(gsParam$genomeIDs)-1)))
-    nu <- sapply(c(tsvFile, blFiles, seqIDFile, speIDFile, faFiles, dmndFiles), function(x)
-      file.copy(x, blastDir))
-    for(i in gsParam$genomeIDs)
-      unlink(file.path(blastDir, sprintf("%s.fa", i)))
-    unlink(file.path(blastDir, "Orthofinder"), recursive = T)
+    ofFiles <- list.files(path = ofTmp, full.names = TRUE)
+    for(i in ofFiles)
+      file.copy(from = i, to = ofDir, overwrite = T)
+    unlink(origF, recursive = T, force = T)
   }
-  if(verbose)
-    cat("Done!\n")
+  ##############################################################################
+  # c. add blast metadata / calls
+  add_blastInfo2syn <- function(gsParam, ofSpeciesIDs){
+    p <- data.table(gsParam$params$synteny)
+    ofd <- gsParam$paths$orthofinder
+    p[,`:=`(db1 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd",si[genome1])),
+            db2 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd",si[genome2])),
+            fa1 = file.path(ofd, sprintf("Species%s.fa",si[genome1])),
+            fa2 = file.path(ofd, sprintf("Species%s.fa",si[genome2])),
+            blFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome1], si[genome2])),
+            invertFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome2], si[genome1])))]
+    p[,com := sprintf(
+      "%s blastp --quiet -e %s -p %s --compress 1 -d %s -q %s -o %s",
+      "diamond", .1, gsParam$params$nCores, db2, fa1, blFile)]
+    return(p)
+  }
+
+  ##############################################################################
+  # 1. Remove existing orthofinder directory if it exists
+  if(dir.exists(gsParam$paths$orthofinder)){
+    unlink(gsParam$paths$orthofinder, recursive = T)
+  }
+
+  ##############################################################################
+  # 2. convert to orthofinder
+  com <- sprintf(
+    "%s -f %s -t %s -a 1 -op -o %s 1>/dev/null 2>&1",
+    gsParam$paths$orthofinderCall,
+    dirname(gsParam$paths$peptide[1]),
+    gsParam$params$nCores,
+    gsParam$paths$orthofinder)
+  system(com)
+
+  ##############################################################################
+  # 3. place orthofinder input files in paths$orthofinder
+  reorg_ofInput(gsParam$paths$orthofinder)
+  si <- read_orthofinderSpeciesIDs(gsParam$paths$orthofinder)
+
+  ##############################################################################
+  # 4. get blast parameters
+  p <- add_blastInfo2syn(gsParam = gsParam, ofSpeciesIDs = si)
+
+  ##############################################################################
+  # 5. Run blasts
+  pwp <- subset(p, runBlast)
+  for(i in 1:nrow(pwp)){
+    if(gsParam$params$verbose)
+      with(pwp[i,], cat(sprintf("\t\tRunning %s/%s (%s vs. %s)\n",
+                                i, nrow(pwp), genome1, genome2)))
+    system(pwp$com[i])
+  }
+
+  ##############################################################################
+  # 6. Invert blasts if necessary
+  if(gsParam$params$verbose)
+    cat("\t\tDone!\n\tInverting intergenomic files ... ")
+  ip <- subset(p, !runBlast & genome1 != genome2)
+  for(i in 1:nrow(ip)){
+    invert_blast(fileIn = ip$invertFile[i], fileOut = ip$blFile[i])
+  }
+
+  ##############################################################################
+  # 7. Run orthofinder
+  if(gsParam$params$verbose)
+    cat("Done!\n\tRunning full orthofinder on pre-computed blast:\n")
+  com <- with(gsParam, sprintf(
+    "%s -b %s -t %s -a 1 -X",
+    paths$orthofinderCall, paths$orthofinder, params$nCores, params$nCores))
+
+  system(com)
   return(com)
+}
+
+#' @title prep_ofDbFromPeptide
+#' @description
+#' \code{prep_ofDbFromPeptide} prep_ofDbFromPeptide
+#' @rdname run_orthofinder
+#' @import data.table
+#' @importFrom R.utils gunzip
+#' @export
+default_ofDb <- function(gsParam){
+  if(all(is.na(gsParam$params$synteny)))
+    stop("must run set_syntenyParams first\n")
+
+  if(gsParam$params$verbose)
+    cat("\tCleaning out orthofinder directory and prepping run\n")
+  ##############################################################################
+  # 1. clean out peptide directory of unused fastas, if necessary
+  drop_unusedPeptides(gsParam)
+
+  ##############################################################################
+  # 2. Remove existing orthofinder directory if it exists
+  if(dir.exists(gsParam$paths$orthofinder)){
+    unlink(gsParam$paths$orthofinder, recursive = T)
+  }
+
+  ##############################################################################
+  # 3. get command
+  if(is.na(gsParam$paths$orthofinderCall)){
+    dontRun <- TRUE
+    p2of <- "orthofinder"
+  }else{
+    dontRun <- FALSE
+    p2of <- gsParam$paths$orthofinderCall
+  }
+
+  if(gsParam$params$verbose & !dontRun)
+    cat("\tRunning full orthofinder on pre-computed blast",
+        "\n\t##################################################",
+        "\n\t##################################################\n")
+  com <- sprintf(
+    "%s -f %s -t %s -a 1 -X -o %s",
+    p2of,
+    dirname(gsParam$paths$peptide[1]),
+    gsParam$params$nCores,
+    gsParam$paths$orthofinder)
+
+  ##############################################################################
+  # 4. run it
+  if(dontRun){
+    cat("\tCould not find valid orthofinder executable in the path\n",
+        "\tRun the following command outside of R (assuming orthofinder is in the path):",
+        "\n################\n",com,"\n################\n", sep = "")
+  }else{
+    system(com)
+  }
+
+  return(com)
+}
+
+#' @title find_orthofinderResults
+#' @description
+#' \code{find_orthofinderResults} find_orthofinderResults
+#' @rdname run_orthofinder
+#' @import data.table
+#' @importFrom R.utils gunzip
+#' @export
+find_orthofinderResults <- function(gsParam, onlyCheckRun = F){
+  ogsFile <- order_filesByMtime(
+    path = gsParam$paths$orthofinder,
+    pattern = "Orthogroups.tsv",
+    recursive = T)
+  if(onlyCheckRun){
+    return(length(ogsFile) > 0)
+  }else{
+    if(length(ogsFile) > 1)
+      warning("Found multiple orthofinder runs, only using the most recent\n")
+    if(length(ogsFile) == 0)
+      stop("Can't find the 'orthogroups.tsv' file\n\tHave you run orthofinder yet?\n")
+
+    ofResDir <- dirname(dirname(ogsFile[1]))
+
+    pfile <- file.path(ofResDir, "Gene_Duplication_Events")
+    if(!dir.exists(pfile)){
+      paralogsDir <- NA
+    }else{
+      paralogsDir <- pfile
+    }
+
+    orthfile <- file.path(ofResDir, "Orthologues")
+    if(!dir.exists(orthfile)){
+      orthologuesDir <- NA
+    }else{
+      orthologuesDir <- orthfile
+    }
+
+    blsFile <- order_filesByMtime(
+      path = gsParam$paths$orthofinder,
+      pattern = "diamondDBSpecies0.dmnd",
+      recursive = T)
+
+    blastDir <- dirname(blsFile[1])
+
+    gsParam$paths$blastDir <- blastDir
+    gsParam$paths$orthogroupsDir <- dirname(ogsFile[1])
+    gsParam$paths$paralogsDir <- paralogsDir
+    gsParam$paths$orthologuesDir <- orthologuesDir
+
+    return(gsParam)
+  }
 }
