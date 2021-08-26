@@ -72,7 +72,7 @@ The primary engine of GENESPACE is `synteny`, which parses an orthofinder run in
 blks <- synteny(gsParam = gpar)
 ```
 
-The synteny-constrained hits and corresponding dotplots are stored by default in the /results directory. However, this can be changed by alterning the path to results in the gsParams. For example `gpar$paths$results <- "/results2"`. For convenience, the syntenic block coordinates are returned, but not needed for downstream analyses. 
+The synteny-constrained hits and corresponding dotplots are stored by default in the /results directory. However, this can be changed by alterning the path to results in the gsParams. For example `gpar$paths$results <- "/results2"; dir.create(gpar$paths$results)`. For convenience, the syntenic block coordinates are returned, but not needed for downstream analyses. 
 
 ## 2.6 build a pan-genome annotation
 

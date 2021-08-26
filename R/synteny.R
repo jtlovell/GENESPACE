@@ -285,7 +285,6 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
     gid1 <- nonSelfSyn$genome1[i]
     gid2 <- nonSelfSyn$genome2[i]
     syn <- nonSelfSyn[i,]
-
     if(verbose)
       cat(sprintf(
         "\t%s-%s (primary): ", pull_strWidth(gid1, 7), pull_strWidth(gid2, 7)))
@@ -303,8 +302,8 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
         gsParam = gsParam,
         gff = gff,
         maskHits = NULL,
-        genome1 = genome1,
-        genome2 = genome2,
+        genome1 = gid1,
+        genome2 = gid2,
         nhits1 = nhits1,
         nhits2 = nhits2,
         blkSize = blkSize,
@@ -883,7 +882,7 @@ pull_synReg <- function(hits,
     return(outrb)
   }
 
-  og <- ofID1 <- score <- ofID2 <- nhits1 <- nhits2 <- ord1 <- ord2 <- NULL
+  og <- ofID1 <- score <- ofID2 <- ord1 <- ord2 <- NULL
   scrRank1 <- scrRank2 <- isAnchor <- NULL
   hits <- data.table(hits)
 
@@ -898,7 +897,6 @@ pull_synReg <- function(hits,
   # 1. Initial region building on culled topscore hits
   ##############################################################################
   # -- calculate score rank, subset to topn and re-order genes
-
   setorder(anch, ofID1, -score)
   anch[,scrRank1 := 1:.N, by = "ofID1"]
   setorder(anch, ofID2, -score)
