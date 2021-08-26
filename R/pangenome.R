@@ -244,7 +244,6 @@ pangenome <- function(gsParam,
   #############################################################################
   if(verbose)
     cat("Annotating pangenome\n\tFlagging syntenic orthologs ... ")
-  print(gsParam)
   if(is.na(gsParam$paths$orthologuesDir)){
     cat("Cannot find orthologs. Perhaps orthofinder -og was run?\n\tNot adding non-syntenic orthologs\n\t")
     pgo <- data.table(pgmer)
@@ -793,7 +792,7 @@ fill_missingGenePos <- function(hits,
   inreg <- subset(infGenePos, !is.na(refOrd))
   gmiss <- subset(gffr, !ofID %in% inreg$ofID & !is.na(genome) & !is.na(chr))
   if(verbose)
-    cat(sprintf("\tfound %s genes with no inferred position\n", nrow(gmiss)))
+    cat(sprintf("\n\tfound %s genes with no inferred position\n", nrow(gmiss)))
   splg <- split(gmiss, by = c("genome","chr"))
   splr <- split(inreg, by = c("genome", "chr"))[names(splg)]
   gfill <- rbindlist(lapply(names(splg), function(i){
@@ -838,14 +837,16 @@ fill_missingGenePos <- function(hits,
   setkey(ocnt, genome, grp)
   if(verbose)
     cat("\tFinal counts (genome: missing / 1x / 2x / >2x placements)\n")
-  for(i in genomeIDs)
-    cat(sprintf("\t\t%s: %s / %s / %s / %s \n",
-                i,
-                ocnt$cnt[ocnt$genome == i & ocnt$grp == "0"],
-                ocnt$cnt[ocnt$genome == i & ocnt$grp == "1"],
-                ocnt$cnt[ocnt$genome == i & ocnt$grp == "2"],
-                ocnt$cnt[ocnt$genome == i & ocnt$grp == "2+"]))
-
+  if(verbose){
+    for(i in genomeIDs){
+      cat(sprintf("\t\t%s: %s / %s / %s / %s \n",
+                  i,
+                  ocnt$cnt[ocnt$genome == i & ocnt$grp == "0"],
+                  ocnt$cnt[ocnt$genome == i & ocnt$grp == "1"],
+                  ocnt$cnt[ocnt$genome == i & ocnt$grp == "2"],
+                  ocnt$cnt[ocnt$genome == i & ocnt$grp == "2+"]))
+    }
+  }
   return(infPos)
 }
 
