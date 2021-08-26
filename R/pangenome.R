@@ -831,20 +831,14 @@ fill_missingGenePos <- function(hits,
                                          by = c("genome","ofID")]
   ocnt <- rbind(icnt, with(subset(gffHit, !ofID %in% icnt$ofID), data.table(
     genome = genome, ofID = ofID, n = 0)))
-  ocnt[,grp := ifelse(n > 2, "2+", as.character(n))]
-  ocnt <- ocnt[,list(cnt = .N), by = c("genome","grp")]
-  ocnt[,genome := factor(genome, levels = genomeIDs)]
-  setkey(ocnt, genome, grp)
+  ocnt[,grp := factor(ifelse(n > 2, "2+", as.character(n)), levels = c("0", "1", "2", "2+"))]
+  tab <- as.matrix(with(ocnt, table(genome, grp)))
   if(verbose)
     cat("\tFinal counts (genome: missing / 1x / 2x / >2x placements)\n")
   if(verbose){
     for(i in genomeIDs){
       cat(sprintf("\t\t%s: %s / %s / %s / %s \n",
-                  i,
-                  ocnt$cnt[ocnt$genome == i & ocnt$grp == "0"],
-                  ocnt$cnt[ocnt$genome == i & ocnt$grp == "1"],
-                  ocnt$cnt[ocnt$genome == i & ocnt$grp == "2"],
-                  ocnt$cnt[ocnt$genome == i & ocnt$grp == "2+"]))
+                  i, tab[i,"0"], tab[i,"1"], tab[i,"2"], tab[i,"2+"]))
     }
   }
   return(infPos)
