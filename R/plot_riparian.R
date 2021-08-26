@@ -337,7 +337,7 @@ plot_riparian <- function(gsParam,
       lwd = .5)
     if(with(chrPos[i,], end - start) > labelChrBiggerThan){
       with(chrPos[i,],
-           text((start + end)/2, y, labels = chrNameFun(chr), cex = chrLabCex))
+           text((start + end)/2, y, labels = chrLabFun(chr), cex = chrLabCex))
     }
   }
 
