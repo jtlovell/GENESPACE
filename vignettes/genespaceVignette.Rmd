@@ -1,0 +1,117 @@
+---
+title: "An introduction to GENESPACE"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{my-vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(GENESPACE)
+```
+
+# 1. Setup
+
+### 1.1 Download raw annotation files
+
+Here we are going to building a synteny-constrained pan-genome annotation with a human, mouse and dog genome. Download these from NCBI as follows:
+
+- Human [peptide fasta](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.39_GRCh38.p13/GCF_000001405.39_GRCh38.p13_translated_cds.faa.gz), [gene gff3](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.39_GRCh38.p13/GCF_000001405.39_GRCh38.p13_genomic.gff.gz)
+- Mouse [peptide fasta](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/635/GCA_000001635.9_GRCm39/GCA_000001635.9_GRCm39_translated_cds.faa.gz), [gene gff3](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/635/GCA_000001635.9_GRCm39/GCA_000001635.9_GRCm39_genomic.gff.gz)
+- Dog [peptide fasta](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/002/285/GCF_000002285.5_Dog10K_Boxer_Tasha/GCF_000002285.5_Dog10K_Boxer_Tasha_translated_cds.faa.gz), [gene gff3](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/002/285/GCF_000002285.5_Dog10K_Boxer_Tasha/GCF_000002285.5_Dog10K_Boxer_Tasha_genomic.gff.gz)
+
+### 1.2 Setup directories
+
+The raw annotation files should be stored somewhere with read/write access that is not purged. For example `~/Desktop/rawAnnotationRepo`. 
+
+The files for each species and genome version need to be moved into their own (sub)directory. So, for the above genomes, make the following directories and move the two annotation files into these. Ensure that the files remain gzip compressed.
+
+Human: `~/Desktop/mammalGenespace/rawRepo/Homo_sapiens/GRCh38.p13/annotation`
+
+Mouse: `~/Desktop/mammalGenespace/rawRepo/Mus_musculus/GRCm39/annotation`
+
+Dog: `~/Desktop/mammalGenespace/rawRepo/Canis_lupus_familiaris/Dog10K_Boxer_Tasha/annotation`
+
+### 1.3 Dependency installation
+
+See the readme for details about dependencies and how to install them. Be sure that you have installed and know the path to MCScanX. Also, in a separate terminal, open an environment that has orthofinder in the path. This is easiest to do as a conda environment, but many other options also work. 
+
+
+
+# 2. Initializing a genespace run
+
+## 2.1 Parameterizing the run
+
+After installing, the first step of GENESPACE is to initialize a run. The command `init_genespace` accomplishes this by generating a `gsParam` list that contains all necessary parameters for the genespace run. There are three major sets of arguments for `init_genespace`:
+
+###  Paths to files, programs and directories:
+
+- `wd`: the working directory, where all output will be stored. If this directory does not exist, GENESPACE will make a new directory, assuming the path is valid. 
+- `rawGenomeDir`: see above, the location where all raw annotataion files are stored. In this case `~/Desktop/mammalGenespace/rawRepo/`. 
+- `path2mcscanx`: the path to the MCScanX executable. This must be valid. If the install is not in the specified path, `init_genespace` returns an error. 
+- `path2orthofinder`: the path to the `orthofinder` executable. This is not required to be a valid path. If `init_genespace` cannot find a valid install, it will notify you that orthofinder must be run outside or R. We recommend this anyways. 
+- `gffString`: a regular expression or word that identifies the gff file in its directory. If only the two files from above are in the annotation directory, then setting to "gff" will be just fine. If other files are in the directory (e.g. repeat annotations, etc.) you may need more specificity. 
+- `pepString`: like `gffString` but for the peptide fasta annotation file. 
+
+### Genome ID specifications
+
+All of these parameters must have the same length (i.e. three genomes, must each have their own genomeID, speciesID, versionID and ploidy)
+
+- `genomeIDs`: unique identifier for each genome. Can be anything you'd like as only as each genomeID is unique, there are no special characters (e.g. *|, etc.) and the first character is a letter. This is used as the identifier in all plots and output, in lieu of the genome version and species ID. 
+- `speciesIDs`: this is the directory within `rawGenomeDir` that contains the annotations for each genomeID. This does not necessarily need to be unique (i.e. you want to compare two assemblies from one species).
+- `versionIDs`: this is the directory within`rawGenomeDir/speciesID` that contains the annotation subdirectory, which contains the annotation files. 
+- `ploidy`: the ploidy of the genome assembly, not necessarily the organism. In this case, all three species are diploid, but their genome assemblies are haploid. 
+
+### Other global parameters
+
+- `nCores`: the number of parallel processes to run. If left out, GENESPACE will choose half of the available cores. Ensure that you are working with the right number of cores when on a cluster, as, often the number of detected cores does not match the number available to the user.
+- `minPepLen`: the minimum peptide length to be kept in the annotation files. Defaults to 20. 
+
+```{r}
+gpar <- init_genespace(
+  genomeIDs = c("human", "mouse", "dog"),
+  speciesIDs = c("Homo_sapiens", "Mus_musculus", "Canis_lupus_familiaris"),
+  versionIDs = c("GRCh38.p13", "GRCm39", "Dog10K_Boxer_Tasha"),
+  ploidy = c(1, 1, 1),
+  wd = "~/Desktop/exampleGenespace",
+  nCores = 4, 
+  gffString = "gff", 
+  pepString = "translated_cds",
+  path2orthofinder = "NULL",
+  path2mcscanx = "~/Documents/comparative_genomics/programs/MCScanX",
+  rawGenomeDir = "~/Desktop/mammalGenespace/rawRepo")
+
+```
+
+
+## 2.2 Formatting annotations
+
+GENESPACE acts on parsed gff3-like text files and peptide fasta annotations that have headers that exactly match the `id` column in the gff3-like text file. While it is possible to make these manually, we offer a set of convenience functions. There are two pre-optimized methods: `parse_ncbi` and `parse_phytozome` which format NCBI and phytozome annotations with no user-specified parameters. However, it may be that the annotations of interest come from a different source. As long as the annotations are peptide fastas and gff3-formatted text files, it should be possible to parse each using rules in `parse_annotations`. 
+
+In the case where some of your genomes are formatted in different ways, each parsing function has a `genomeIDs` parameter that allow you to apply that parsing method only for those genomes. 
+
+#### Annotation parsing parameters:
+
+`parse_annotations` processes the gff3 `attributes` column and the fasta header string so that they match. 
+
+- `gffEntryType`: the value in the `type` (3rd) gff column to subset to. Usually "gene" or "mRNA". 
+- `gffIdColum`: the ";" separated field in the attribute column to use as the ID
+- `headerSep`: the delimiter in the fasta header to split different attributes
+- `headerEntryIndex`: which value in the separated header to use
+- `headerStripText`: any text that needs to be removed from the parsed sequence so that it will match with the gff. 
+
+It can sometimes be hard to decide what rules work for your annotation of interest. Setting `troubleshoot = TRUE` will print parsed and un-parsed annotations too let the user see if it is working. 
+
+```{r}
+parse_ncbi(gsParam = gpar)
+```
+
+

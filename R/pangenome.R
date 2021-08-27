@@ -490,11 +490,16 @@ build_repPangenome <- function(gsParam, gff, gffRaw, infPos, refGenome){
   posRef <- subset(posRef, chr != refChr | abs(refOrd - ord) > d2h)
 
   # -- combine annotation and inferred positions
-  g1 <- rbind(
-    pgRef,
-    with(posRef, data.table(
-      chr = refChr, ord = refOrd, ofID = ofID,
-      synOg = sogv[ofID], posType = "inferred")))
+  if(nrow(posRef) > 0){
+    g1 <- rbind(
+      pgRef,
+      with(posRef, data.table(
+        chr = refChr, ord = refOrd, ofID = ofID,
+        synOg = sogv[ofID], posType = "inferred")))
+  }else{
+    g1 <- data.table(pgRef)
+  }
+
   g1[,clus := 1]
   g1[,n := uniqueN(paste(ord, chr)), by = c("chr","synOg")]
 
@@ -519,7 +524,8 @@ build_repPangenome <- function(gsParam, gff, gffRaw, infPos, refGenome){
   # -- if any of the hits are there because of annotation position, override pos
   g2[,anyAnnot := any(posType == "annotation"), by = c("chr", "synOg", "clus")]
   g2a <- subset(g2, anyAnnot)
-  g2a[,ord := median(ord[posType == "annotation"]), by = c("chr", "synOg", "clus")]
+  g2a[,ord := as.numeric(ord)]
+  g2a[,ord := as.numeric(median(ord[posType == "annotation"])), by = c("chr", "synOg", "clus")]
   g2a[,`:=`(maxJump = NULL, anyAnnot = NULL, n = NULL)]
 
   # -- for those without annot positions, add weights and choose the best one

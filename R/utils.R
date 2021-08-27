@@ -437,7 +437,7 @@ choose_mostRecentOF <- function(path){
 #' @export
 parse_ogs <- function(gsParam){
   id <- genome <- Orthogroup <- NULL
-  ogtsv <- file.path(gsParam$paths$orthogroupsDir,"orthogroups.tsv")
+  ogtsv <- file.path(gsParam$paths$orthogroupsDir, "Orthogroups.tsv")
   og <- fread(ogtsv, showProgress = F, verbose = F)
   og <- melt(
     og, id.vars = "Orthogroup", variable.name = "genome", value.name = "id")
