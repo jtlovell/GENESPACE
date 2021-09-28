@@ -75,7 +75,7 @@ All of these parameters must have the same length (i.e. three genomes, must each
 - `nCores`: the number of parallel processes to run. If left out, GENESPACE will choose half of the available cores. Ensure that you are working with the right number of cores when on a cluster, as, often the number of detected cores does not match the number available to the user.
 - `minPepLen`: the minimum peptide length to be kept in the annotation files. Defaults to 20. 
 
-```{r}
+```
 gpar <- init_genespace(
   genomeIDs = c("human", "mouse", "dog"),
   speciesIDs = c("Homo_sapiens", "Mus_musculus", "Canis_lupus_familiaris"),
@@ -89,6 +89,27 @@ gpar <- init_genespace(
   path2mcscanx = "~/Documents/comparative_genomics/programs/MCScanX",
   rawGenomeDir = "~/Desktop/mammalGenespace/rawRepo")
 
+# set working directory to ~/Desktop/exampleGenespace 
+# 
+# found raw gff files:
+#   ~/Desktop/mammalGenespace/rawRepo/Homo_sapiens/GRCh38.p13/annotation/GCF_000001405.39_GRCh38.p13_genomic.gff.gz
+# ~/Desktop/mammalGenespace/rawRepo/Mus_musculus/GRCm39/annotation/GCF_000001635.27_GRCm39_genomic.gff.gz
+# ~/Desktop/mammalGenespace/rawRepo/Canis_lupus_familiaris/Dog10K_Boxer_Tasha/annotation/GCF_000002285.5_Dog10K_Boxer_Tasha_genomic.gff.gz
+# 
+# found raw peptide files:
+#   ~/Desktop/mammalGenespace/rawRepo/Homo_sapiens/GRCh38.p13/annotation/GCF_000001405.39_GRCh38.p13_translated_cds.faa.gz
+# ~/Desktop/mammalGenespace/rawRepo/Mus_musculus/GRCm39/annotation/GCF_000001635.27_GRCm39_translated_cds.faa.gz
+# ~/Desktop/mammalGenespace/rawRepo/Canis_lupus_familiaris/Dog10K_Boxer_Tasha/annotation/GCF_000002285.5_Dog10K_Boxer_Tasha_translated_cds.faa.gz 
+# 
+# GENESPACE run initialized
+# 
+# ######***NOTE***########
+# You will need to conduct an orthofinder run prior to using genespace
+# Follow instructions printed from run_orthofinder
+# Warning message:
+#   In check_orthofinderInstall(path2orthofinder) :
+#   Cannot call orthofinder from path specified to GENESPACE
+# Run orthofinder outside of R with commands supplied
 ```
 
 
@@ -110,8 +131,119 @@ In the case where some of your genomes are formatted in different ways, each par
 
 It can sometimes be hard to decide what rules work for your annotation of interest. Setting `troubleshoot = TRUE` will print parsed and un-parsed annotations too let the user see if it is working. 
 
-```{r}
-parse_ncbi(gsParam = gpar)
 ```
+parse_ncbi(gsParam = gpar, overwrite = T)
+
+# Parsing annotations: human
+# Reading gff ... found 19532 protein coding genes
+# Reading peptide fasta ... found 124038 / 19532 total and unique entries
+# Merging fa and gff found 19532 matching entires
+
+# Parsing annotations: mouse
+# Reading gff ... found 22186 protein coding genes
+# Reading peptide fasta ... found 93165 / 22186 total and unique entries
+# Merging fa and gff found 22186 matching entires
+
+# Parsing annotations: dog
+# Reading gff ... found 20087 protein coding genes
+# Reading peptide fasta ... found 62437 / 20087 total and unique entries
+# Merging fa and gff found 20087 matching entires
+```
+
+
+### 2.3 Set the synteny parameters
+
+GENESPACE is predicated on synteny constrained blast(like) hits, which are found using `synteny`. In most cases, the default synteny parameters will do just fine and can be added to the parameter list with `gpar <- set_syntenyParams(gsParam = gpar)`. However, some genomes need special care. Some considerations:
+
+- Massive tandem arrays: One step of synteny constraining is masking regions around self blast hits so that tandem arrays do not appear as their own syntenic regions (MCScanX is likely to find many small syntenic blocks within large arrays). GENESPACE controls for this with the `selfRegionMask` parameter, which defines how far, in gene rank order position, away from self hits a new syntenic region can be formed.
+- Loose synteny (e.g. tiny blocks some distance away from the main syntenic hits): except in very simple systems, synteny is never just a one-to-one blast hit 'diagonal'. Often, tandem arrays, small translocations or inversion disrupt synteny. GENESPACE controls for this by pulling blast hits with a 'buffer' of the primary collinear anchors derived from MCScanX, which is specified as the `synBuff`. 
+- Lots of very small blocks. GENESPACE pases the `blkSize` (n. genes in a block) and `nGaps` (number of non-adjacencies permitted within a block) to MCScanX. Higher values of `blkSize` and lower vaalaues of `nGaps` increases block calling stringency. The opposite allows inclusion of smaller more discontiguous blocks.
+
+For more detail, see the description of the synteny pruning below or `?set_syntenyParams`.
+
+```
+gpar <- set_syntenyParams(gpar)
+print(gpar$params$synteny)
+
+# genome1 genome2           u ploidy1 ploidy2 ofID1 ofID2 nGenes1 nGenes2
+# 1:   mouse   mouse mouse mouse       1       1     2     2   22186   22186
+# 2:     dog   mouse   dog mouse       1       1     0     2   20087   22186
+# 3:   mouse     dog   mouse dog       1       1     2     0   22186   20087
+# 4:   human   mouse human mouse       1       1     1     2   19532   22186
+# 5:   mouse   human mouse human       1       1     2     1   22186   19532
+# 6:     dog     dog     dog dog       1       1     0     0   20087   20087
+# 7:     dog   human   dog human       1       1     0     1   20087   19532
+# 8:   human     dog   human dog       1       1     1     0   19532   20087
+# 9:   human   human human human       1       1     1     1   19532   19532
+# 
+# nhits1 nhits2 query target runBlast mirrorBlast nSecondHits1 nSecondHits2
+# 1:      1      1 mouse  mouse     TRUE       FALSE            0            0
+# 2:      1      1 mouse    dog    FALSE        TRUE            0            0
+# 3:      1      1 mouse    dog     TRUE       FALSE            0            0
+# 4:      1      1 mouse  human    FALSE        TRUE            0            0
+# 5:      1      1 mouse  human     TRUE       FALSE            0            0
+# 6:      1      1   dog    dog     TRUE       FALSE            0            0
+# 7:      1      1   dog  human     TRUE       FALSE            0            0
+# 8:      1      1   dog  human    FALSE        TRUE            0            0
+# 9:      1      1 human  human     TRUE       FALSE            0            0
+# 
+# onlyOgAnchors onlyOgAnchorsSecond blkSize blkSizeSecond nGaps nGapsSecond
+# 1:          TRUE                TRUE       5             5     5           5
+# 2:          TRUE                TRUE       5             5     5           5
+# 3:          TRUE                TRUE       5             5     5           5
+# 4:          TRUE                TRUE       5             5     5           5
+# 5:          TRUE                TRUE       5             5     5           5
+# 6:          TRUE                TRUE       5             5     5           5
+# 7:          TRUE                TRUE       5             5     5           5
+# 8:          TRUE                TRUE       5             5     5           5
+# 9:          TRUE                TRUE       5             5     5           5
+# 
+# synBuff synBuffSecond selfRegionMask nSecondHits
+# 1:     100           100            200           0
+# 2:     100           100            200           0
+# 3:     100           100            200           0
+# 4:     100           100            200           0
+# 5:     100           100            200           0
+# 6:     100           100            200           0
+# 7:     100           100            200           0
+# 8:     100           100            200           0
+# 9:     100           100            200           0
+# 
+# dropInterleavesSmallerThan minRbhScore
+# 1:                          2          50
+# 2:                          2          50
+# 3:                          2          50
+# 4:                          2          50
+# 5:                          2          50
+# 6:                          2          50
+# 7:                          2          50
+# 8:                          2          50
+# 9:                          2          50
+```
+
+### 2.4 Run orthofinder
+
+If orthofinder is in the path available to R, the command `run_orthofinder` will actually call orthofinder from R. However, we do not suggest this, since dependencies are often in conflict between R and orthofinder. Here, we are assuming that R is run from an environment without orthofinder in the path; therefore, GENESPACE will output the command that needs to be run, then the user should open a terminal with orthofinder in the path (see README for details on install instructions) and run the following command:
+
+```
+gpar <- run_orthofinder(gsParam = gpar, overwrite = F)
+
+# Cleaning out orthofinder directory and prepping run
+# Could not find valid orthofinder executable in the path
+# Run the following command outside of R (assuming orthofinder is in the path):
+# ################
+# orthofinder -f /Users/jlovell/Desktop/exampleGenespace/peptide -t 4 -a 1 -X -o ~/Desktop/exampleGenespace/orthofinder
+# ################
+```
+
+In this case, you would open your orthofinder conda env `source activate orthofinder`, the run `orthofinder -f /Users/jlovell/Desktop/exampleGenespace/peptide -t 4 -a 1 -X -o ~/Desktop/exampleGenespace/orthofinder` in that environment. This produces the raw orthofinder output and blast results on which GENESPACE depends. 
+
+
+
+The synteny search runs a three step procedure:
+
+First, 'primary' and (optionally) 'secondary' region anchors are formed. The primary regions are the self hits in intragenomic searches, and the ploidy-informed top N constrained intergenomic hits. For example, when comparing a diploid genome (gen1) to a haploid genome (gen2), the primary search would only see the 
+
+
 
 

@@ -7,8 +7,7 @@
 \alias{parse_blast4synteny}
 \alias{find_hitsInBuff}
 \alias{clus_dbscan}
-\alias{split_ovlpBlks}
-\alias{pull_synReg}
+\alias{find_globalAnchors}
 \alias{pipe_synteny}
 \alias{pull_nonSelfReg}
 \alias{pull_selfRegion}
@@ -25,13 +24,11 @@ calc_blkCoords(hits)
 
 finalize_blocks(
   hits,
-  dropInterleavesSmallerThan,
-  blkSize,
-  nGaps,
-  synBuff,
-  path2mcscanx,
-  nCores,
-  minRbhScore
+  synParam,
+  gsParam,
+  type = "primary",
+  verbose = FALSE,
+  minRbhScore = 50
 )
 
 parse_blast4synteny(gsParam, genome1, genome2, gff, selfOnly)
@@ -40,37 +37,9 @@ find_hitsInBuff(hits, nCores, synBuff)
 
 clus_dbscan(hits, radius, blkSize, nCores)
 
-split_ovlpBlks(hits, dropInterleavesSmallerThan, verbose)
+find_globalAnchors(hits, gsParam, synParam, type = "primary")
 
-pull_synReg(
-  hits,
-  onlyOgAnchors,
-  nhits1,
-  nhits2,
-  blkSize,
-  nGaps,
-  path2mcscanx,
-  dropInterleavesSmallerThan,
-  nCores,
-  synBuff
-)
-
-pipe_synteny(
-  gsParam,
-  genome1,
-  genome2,
-  gff,
-  nhits1,
-  nhits2,
-  blkSize,
-  nGaps,
-  synBuff,
-  maskHits,
-  synParam,
-  onlyOgAnchors,
-  dropInterleavesSmallerThan,
-  verbose
-)
+pipe_synteny(gsParam, gff, maskHits, synParam, type = "primary")
 
 pull_nonSelfReg(hits, selfRegionMask, nhits)
 
@@ -97,22 +66,9 @@ specified (default) taken from gsParam$genomeIDs$genomeIDs}
 
 \item{hits}{data.table containing annotated blast-format pairwise hits}
 
-\item{dropInterleavesSmallerThan}{integer of length 1, see set_syntenyParams}
+\item{synParam}{data.table with synteny parameters. See set_syntenyParams.}
 
-\item{blkSize}{integer of length 1 specifying the minimum size for a syntenic
-block and the -s 'size' MCScanX parameter}
-
-\item{nGaps}{integer of length 1 specifying the -m 'gaps' MCScanX paramerter}
-
-\item{synBuff}{integer of length 1 specifying the maximum euclidean distance
-from an 'anchor' so that it can be considered syntenic}
-
-\item{path2mcscanx}{character string file.path pointing to the install
-directory for the MCScanX program. In particular, there must be an
-executable in this directory for MCScanX_h.}
-
-\item{nCores}{integer of length 1 specifying the number of parallel processes
-to run}
+\item{verbose}{logical, should updates be printed to the console?}
 
 \item{minRbhScore}{integer of length 1, see set_syntenyParams}
 
@@ -124,23 +80,19 @@ to run}
 
 \item{selfOnly}{logical, should only self hits be considered}
 
+\item{nCores}{integer of length 1 specifying the number of parallel processes
+to run}
+
+\item{synBuff}{integer of length 1 specifying the maximum euclidean distance
+from an 'anchor' so that it can be considered syntenic}
+
 \item{radius}{numeric of length 1 specifying the eps dbscan parameter; the
 search radius within which to count clustered density-based xy points.}
 
-\item{verbose}{logical, should updates be printed to the console?}
-
-\item{onlyOgAnchors}{logical, should anchors be restricted to hits in the
-same orthogroup? See set_syntenyParams.}
-
-\item{nhits1}{Integer, how many hits should be kept for each gene in genome1.
-See set_syntenyParams.}
-
-\item{nhits2}{Integer, how many hits should be kept for each gene in genome2.
-See set_syntenyParams.}
+\item{blkSize}{integer of length 1 specifying the minimum size for a syntenic
+block and the -s 'size' MCScanX parameter}
 
 \item{maskHits}{data.table of hits that should be excluded}
-
-\item{synParam}{data.table with synteny parameters. See set_syntenyParams.}
 
 \item{selfRegionMask}{integer, the radius around self hits that should be
 masked}
@@ -150,6 +102,23 @@ masked}
 \item{blks}{data.table containing the block coordinates}
 
 \item{blastDir}{file.path to the location of the blast results.}
+
+\item{dropInterleavesSmallerThan}{integer of length 1, see set_syntenyParams}
+
+\item{nGaps}{integer of length 1 specifying the -m 'gaps' MCScanX paramerter}
+
+\item{path2mcscanx}{character string file.path pointing to the install
+directory for the MCScanX program. In particular, there must be an
+executable in this directory for MCScanX_h.}
+
+\item{onlyOgAnchors}{logical, should anchors be restricted to hits in the
+same orthogroup? See set_syntenyParams.}
+
+\item{nhits1}{Integer, how many hits should be kept for each gene in genome1.
+See set_syntenyParams.}
+
+\item{nhits2}{Integer, how many hits should be kept for each gene in genome2.
+See set_syntenyParams.}
 }
 \value{
 a 'hits' data.table for a pairwise combination of genomes.
@@ -170,9 +139,7 @@ hits to synteny.
 
 \code{clus_dbscan} clus_dbscan
 
-\code{split_ovlpBlks} split_ovlpBlks
-
-\code{pull_synReg} pull_synReg
+\code{find_globalAnchors} find_globalAnchors
 
 \code{pipe_synteny} pipe_synteny
 

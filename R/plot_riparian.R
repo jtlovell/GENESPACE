@@ -75,6 +75,9 @@ plot_riparian <- function(gsParam,
                           refGenome = NULL,
                           genomeIDs = NULL,
                           onlyTheseChrs = NULL,
+                          onlyTheseRegions = NULL,
+                          excludeChrOutOfRegion = FALSE,
+                          findRegHitsRecursive = FALSE,
                           minGenes2plot = 50,
                           braidAlpha = .8,
                           braidBorderLwd = NULL,
@@ -83,6 +86,7 @@ plot_riparian <- function(gsParam,
                           gapProp = .005,
                           useOrder = TRUE,
                           chrLabCex = .5,
+                          nGenomeLabChar = 20,
                           genomeLabCex = .75,
                           chrBorder = "black",
                           chrFill = "white",
@@ -92,7 +96,7 @@ plot_riparian <- function(gsParam,
                           chrLabFun = function(x)
                             gsub("^0","",gsub("^chr|^scaffold|^lg|_","",tolower(x)))){
 
-  genome   <- ofID1   <- ofID2   <- chr1   <- chr   <- gen1   <- ord1 <- NULL
+  genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1   <- ord1 <- NULL
   rl   <- refChr   <- blkID   <- gen2   <- startOrd1   <- endOrd1 <- NULL
   startOrd2   <- endOrd2   <- startBp1   <- endBp1   <- startBp2 <- NULL
   endBp2   <- firstGene1   <- x   <- linBp   <- linOrd   <- y <- start <- NULL
@@ -108,24 +112,17 @@ plot_riparian <- function(gsParam,
     tmp <- tmp[!tmp %in% gsParam$genomes$outgroup]
     genomeIDs <- genomeIDs[genomeIDs %in% tmp]
   }
+  nGenomeLabChar <- min(max(nchar(genomeIDs)), nGenomeLabChar)
 
   # -- specify the ref genome
   if(is.null(refGenome) || !refGenome %in% genomeIDs || length(refGenome) > 1)
     refGenome <- genomeIDs[1]
 
   # -- read the gff
-  gff <- fread(file.path(gsParam$paths$results, "gffWithOgs.txt.gz"))
+  gff <- fread(file.path(gsParam$paths$results, "gffWithOgs.txt.gz"),
+               showProgress = F)
   gv <- gff$genome; cv <- gff$chr
   names(gv) <- names(cv) <- gff$ofID
-
-  # -- get the colors
-  rg <- reorder_gff(
-    gff = subset(gff, genome == refGenome),
-    minGenesOnChr = minGenes2plot,
-    genomeIDs = genomeIDs,
-    refGenome = refGenome)
-  cols <- colorRampPalette(colByChrs)(uniqueN(rg$chr))
-  names(cols) <- unique(rg$chr)
 
   #-- read ref hits
   refh <- load_refHits(
@@ -135,6 +132,8 @@ plot_riparian <- function(gsParam,
     refGenome = refGenome)
   refh[,`:=`(gen1 = gv[ofID1], gen2 = gv[ofID2],
              chr1 = cv[ofID1], chr2 = cv[ofID2])]
+  refh[,n := .N, by = c("gen1","gen2","chr1","chr2")]
+  refh <- subset(refh, n >= minGenes2plot)
 
   if(!is.null(onlyTheseChrs)){
     if(all(onlyTheseChrs %in% refh$chr1)){
@@ -143,6 +142,37 @@ plot_riparian <- function(gsParam,
       gff <- subset(gff, paste(genome, chr) %in% gcu)
     }
   }
+
+  if(!is.null(onlyTheseRegions)){
+    setkey(gff, genome, chr, start, end)
+    setkey(onlyTheseRegions, genome, chr, start, end)
+    fo <- foverlaps(gff, onlyTheseRegions)
+    fo <- subset(fo, complete.cases(fo))
+    genesInReg <- gff$ofID[gff$synOg %in% unique(fo$synOg)]
+
+    if(excludeChrOutOfRegion){
+      gff <- subset(gff, ofID %in% genesInReg)
+    }else{
+      gcu <- with(refh, unique(c(paste(gen1, chr1), paste(gen2, chr2))))
+      gff <- subset(gff, paste(genome, chr) %in% gcu)
+    }
+  }else{
+    genesInReg <- unique(gff$ofID)
+  }
+
+  # -- get the colors
+  rg <- reorder_gff(
+    gff = subset(gff, genome == refGenome),
+    minGenesOnChr = minGenes2plot,
+    genomeIDs = genomeIDs,
+    refGenome = refGenome)
+  if(length(colByChrs) != uniqueN(rg$chr)){
+    cols <- colorRampPalette(colByChrs)(uniqueN(rg$chr))
+  }else{
+    cols <- colByChrs
+  }
+
+  names(cols) <- unique(rg$chr)
 
   # -- load the gff
   gff <- reorder_gff(
@@ -187,7 +217,7 @@ plot_riparian <- function(gsParam,
     gsParam = gsParam,
     genomeIDs = genomeIDs,
     useBlks = !plotRegions)
-  riph <- subset(riph, ofID1 %in% gff$ofID & ofID2 %in% gff$ofID)
+  riph <- subset(riph, ofID1 %in% genesInReg & ofID2 %in% genesInReg)
 
   # -- add the reference chr and make new blocks therein
   riph[,`:=`(
@@ -227,8 +257,7 @@ plot_riparian <- function(gsParam,
   gff <- subset(gff, complete.cases(gff))
   chrPos <- gff[,list(start = min(x, na.rm = T), end = max(x, na.rm = T)),
                 by = c("genome", "chr", "y")]
-  bc <<- data.table(bc)
-  riph <<- data.table(riph)
+
   ##############################################################################
   # 3. make the plot
   ##############################################################################
@@ -236,7 +265,7 @@ plot_riparian <- function(gsParam,
   pmar <- par()["mar"]
   par(mar = c(1, 1, 1, 1))
 
-  sevenChrWidth <- 0.7781576
+  sevenChrWidth <- 0.1111654*nGenomeLabChar
   XinHt <- 0.1193034
   genomeLabs <- substr(genomeIDs, 1, 7)
   pwid <- par("din")[1]
@@ -345,10 +374,23 @@ plot_riparian <- function(gsParam,
   cp <- chrPos[,list(x = min(start)), by = c("genome","y")]
   with(cp, text(
     x = x - (max(chrPos$end) / 20), y = y,
-    label = substr(genome, 1, 7), adj = c(1.2, .5), cex = genomeLabCex))
+    label = substr(genome, 1, nGenomeLabChar), adj = c(1.2, .5), cex = genomeLabCex))
   par(mar = pmar)
   return(list(
-    chrPos = chrPos, blockCoord = bc, polygonList = polygonList))
+    chrPos = chrPos,
+    blockCoord = bc,
+    polygonList = polygonList,
+    useOrder = useOrder,
+    genomeIDs = genomeIDs,
+    ripHits = riph,
+    gff = gff,
+    chrFill = chrFill,
+    chrBorder = chrBorder,
+    labelChrBiggerThan = labelChrBiggerThan,
+    genomeLabCex = genomeLabCex,
+    chrLabFun = chrLabFun,
+    chrLabCex = chrLabCex,
+    chrRectBuffer = chrRectBuffer))
 }
 
 #' @title split_blksByRef
@@ -510,8 +552,8 @@ add_synChr2gff <- function(gff, refHits, genomeIDs, gapProp, refGenome){
   gps <- with(gff, tapply(ord, genome, max))
   gps <- max(gps) * ((max(gps) * gapProp)/gps)
   gff[,linOrd := ord + (gps[genome] * (chrOrd - 1))]
-  gff[,`:=`(linBp = linBp - median(linBp, na.rm = T),
-            linOrd = linOrd - median(linOrd, na.rm = T)),
+  gff[,`:=`(linBp = linBp - mean(range(linBp, na.rm = T)),
+            linOrd = linOrd - mean(range(linOrd, na.rm = T))),
       by = "genome"]
   return(gff)
 }

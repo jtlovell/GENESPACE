@@ -9,6 +9,7 @@
 \alias{read_ripHits}
 \alias{calc_refChrByGene}
 \alias{add_synOg2gff}
+\alias{split_overlaps}
 \title{Genespace plotting routines}
 \usage{
 plot_riparian(
@@ -17,6 +18,9 @@ plot_riparian(
   refGenome = NULL,
   genomeIDs = NULL,
   onlyTheseChrs = NULL,
+  onlyTheseRegions = NULL,
+  excludeChrOutOfRegion = FALSE,
+  findRegHitsRecursive = FALSE,
   minGenes2plot = 50,
   braidAlpha = 0.8,
   braidBorderLwd = NULL,
@@ -25,6 +29,7 @@ plot_riparian(
   gapProp = 0.005,
   useOrder = TRUE,
   chrLabCex = 0.5,
+  nGenomeLabChar = 20,
   genomeLabCex = 0.75,
   chrBorder = "black",
   chrFill = "white",
@@ -58,6 +63,14 @@ read_ripHits(gsParam, genomeIDs, useBlks)
 calc_refChrByGene(gff, refGenome, blkSize, nCores)
 
 add_synOg2gff(gff, hits = NULL, gsParam, genomeIDs, allowRBHinOg, useBlks)
+
+split_overlaps(
+  hits,
+  dropInterleavesSmallerThan,
+  minPropDup = 0.05,
+  maxIter = 20,
+  verbose
+)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -165,6 +178,8 @@ syntenic orthologs?}
 \code{calc_refChrByGene} calc_refChrByGene
 
 \code{add_synOg2gff} add_synOg2gff
+
+\code{split_overlaps} split_overlaps
 }
 \details{
 ...
