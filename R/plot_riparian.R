@@ -8,7 +8,6 @@
 #' elements: blast (file.path to the original orthofinder run), synteny (
 #' file.path to the directory where syntenic results are stored), genomeIDs (
 #' character vector of genomeIDs).
-#' @param hits data.table of hits
 #' @param plotRegions logical, should regions be plot (and not blocks)?
 #' @param onlyTheseChrs character vector specifying the reference chrs that
 #' should be plot
@@ -19,9 +18,7 @@
 #' @param useBlks logical, should blocks be used instead of regions?
 #' @param blkSize integer specifying minimum block size
 #' @param nCores integer specifying the number of parallel processes to run
-#' @param allowRBHinOg logical, should RBHs be allowed when constructing
-#' syntenic orthologs?
-#' @param braidAlpha numeric (0-1) specifying the transparence of the braids
+#' @param braidAlpha numeric (0-1) specifying the transparency of the braids
 #' @param braidBorderLwd numeric specifying the weight of borders on the braids
 #' @param genomeIDs character vector at least partially matching the genomeIDs
 #' in gsParam
@@ -56,6 +53,12 @@
 #' @param minprp minimum proportion of hits to a refChr to get a block break
 #' @param minGenes2plot integer specifying the minimum number of genes on a
 #' chr to plot
+#' @param onlyTheseRegions data.table with genome, chr, start and end columns
+#' @param excludeChrOutOfRegion logical, should chromosome representations
+#' be constrained to just those in synteny with the rest of the graph?
+#' @param findRegHitsRecursive logical, should regional hit discovery be
+#' recursive?
+#' @param nGenomeLabChar number of characters for genome labes
 #' @details ...
 #'
 #' @note \code{plot_riparian} is a generic name for the functions documented.
@@ -96,10 +99,10 @@ plot_riparian <- function(gsParam,
                           chrLabFun = function(x)
                             gsub("^0","",gsub("^chr|^scaffold|^lg|_","",tolower(x)))){
 
-  genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1   <- ord1 <- NULL
-  rl   <- refChr   <- blkID   <- gen2   <- startOrd1   <- endOrd1 <- NULL
-  startOrd2   <- endOrd2   <- startBp1   <- endBp1   <- startBp2 <- NULL
-  endBp2   <- firstGene1   <- x   <- linBp   <- linOrd   <- y <- start <- NULL
+  genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1 <- ord1 <- ofID <- NULL
+  rl <- refChr <- blkID <- gen2 <- startOrd1 <- endOrd1 <- end <- n <- NULL
+  startOrd2 <- endOrd2 <- startBp1 <- endBp1 <- startBp2 <- NULL
+  endBp2 <- firstGene1 <- x <- linBp <- linOrd <- y <- start <- NULL
   ##############################################################################
   # 1. rename a few things, check parameters, read in hits/gff
   ##############################################################################

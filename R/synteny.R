@@ -16,11 +16,6 @@
 #' block and the -s 'size' MCScanX parameter
 #' @param nCores integer of length 1 specifying the number of parallel processes
 #' to run
-#' @param dropInterleavesSmallerThan integer of length 1, see set_syntenyParams
-#' @param nGaps integer of length 1 specifying the -m 'gaps' MCScanX paramerter
-#' @param path2mcscanx character string file.path pointing to the install
-#' directory for the MCScanX program. In particular, there must be an
-#' executable in this directory for MCScanX_h.
 #' @param minRbhScore integer of length 1, see set_syntenyParams
 #' @param genome1 character string specifying first of two genomeIDs
 #' @param genome2 character string specifying second of two genomeIDs
@@ -29,16 +24,21 @@
 #' from an 'anchor' so that it can be considered syntenic
 #' @param selfOnly logical, should only self hits be considered
 #' @param overwrite logical, should the results be overwrittem?
-#' @param onlyOgAnchors logical, should anchors be restricted to hits in the
-#' same orthogroup? See set_syntenyParams.
-#' @param nhits1 Integer, how many hits should be kept for each gene in genome1.
-#' See set_syntenyParams.
-#' @param nhits2 Integer, how many hits should be kept for each gene in genome2.
-#' See set_syntenyParams.
 #' @param maskHits data.table of hits that should be excluded
 #' @param synParam data.table with synteny parameters. See set_syntenyParams.
 #' @param selfRegionMask integer, the radius around self hits that should be
 #' masked
+#' @param type either 'primary' or 'secondary' depending on the scale of
+#' inference
+#' @param useBlks logical, should blocks be used instead of regions for synteny
+#' constraint?
+#' @param dropInterleavesSmallerThan integer, the minimum block size to retain
+#' after splitting overlapping blocks
+#' @param minPropDup numeric (0-1) specifying the minimum proportion of
+#' duplicated hits to allow two overlapping blocks to not be split
+#' @param maxIter integer, the maximum number of block splitting interations
+#' @param allowRBHinOg logical, should RBHs be allowed when constructing
+#' syntenic orthologs?
 #' @param nhits integer, the number of hits to retain
 #' @param blks data.table containing the block coordinates
 #' @param blastDir file.path to the location of the blast results.
@@ -97,7 +97,7 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   ##############################################################################
   genome1 <- genome2 <- gnum1 <- gnum2 <- synOg <- genome <- og <- nChr1 <- NULL
   nChr2 <- blkID <- ofID1 <- ofID2 <- score <- scrRank1 <- scrRank2 <- NULL
-  isAnchor <- gen1 <- gen2 <- chr1 <- chr2 <-  NULL
+  isAnchor <- gen1 <- gen2 <- chr1 <- chr2 <- regBuffer <- NULL
 
   if(is.null(genomeIDs)){
     genomeIDs <- gsParam$genomes$genomeIDs
@@ -474,7 +474,8 @@ finalize_blocks <- function(hits,
   isOg <- maxScr1 <- maxScr2 <- score <- og <- ofID1 <- ofID2 <- ord1 <- ord2 <- NULL
   isCollin <- blkID <- bord1 <- bord2 <- gen1 <- gen2 <- nblk <- regID <- NULL
   regAnchor <- blkIDn <- chr1 <- chr2 <- isAnchor <- NULL
-
+  nhits1 <- nSecondHits1 <- nhits2 <- nSecondHits2 <- blkSizeSecond <- NULL
+  synBuffSecond <- nGapsSecond <- NULL
   ##############################################################################
   # 1. Pull anchor hits and re-rank
   ##############################################################################
@@ -729,6 +730,7 @@ find_globalAnchors <- function(hits,
                                type = "primary"){
 
   add_rbh2og <- function(hits, minRbhScore = 50){
+    ofID1 <- ofID2 <- NULL
     maxScr1 <- maxScr2 <- score <- og <- NULL
     hits[,maxScr1 := max(score), by = c("blkID", "ofID1")]
     hits[,maxScr2 := max(score), by = c("blkID", "ofID2")]
@@ -744,6 +746,10 @@ find_globalAnchors <- function(hits,
     return(outrb)
   }
 
+  nhits1 <- nSecondHits1 <- nhits2 <- nSecondHits2 <- blkSizeSecond <- NULL
+  nGapsSecond <- synBuffSecond <- isMasked <- ord1 <- ord2 <- isArrayRep <- NULL
+  og <- ofID1 <- score <- scrRank1 <- ofID2 <- scrRank2 <- blkID <- NULL
+  isAnchor <- inBuffer <- NULL
   # -- get synteny parameters in line
   sp <- data.table(synParam[1,])
   if(type == "Second")
@@ -867,6 +873,10 @@ pipe_synteny <- function(gsParam,
                          maskHits,
                          synParam,
                          type = "primary"){
+
+  gen1 <- gen2 <- isArrayRep <- ofID1 <- ofID2 <- isMasked <- NULL
+  blkIDn <- blkID <- chr1 <- chr2 <- inBuffer <- isAnchor <- NULL
+
   verbose <- gsParam$params$verbose
   # -- read in the blasts
   bl <- with(synParam, parse_blast4synteny(
@@ -1141,7 +1151,7 @@ annotate_gff <- function(gsParam, genomeIDs){
 #' @title add_synOg2gff
 #' @description
 #' \code{add_synOg2gff} add_synOg2gff
-#' @rdname plot_riparian
+#' @rdname synteny
 #' @export
 add_synOg2gff <- function(gff,
                           hits = NULL,
@@ -1206,7 +1216,7 @@ add_synOg2gff <- function(gff,
 #' @title split_overlaps
 #' @description
 #' \code{split_overlaps} split_overlaps
-#' @rdname plot_riparian
+#' @rdname synteny
 #' @export
 split_overlaps <- function(hits,
                            dropInterleavesSmallerThan,
@@ -1219,6 +1229,7 @@ split_overlaps <- function(hits,
   ############################################################################
   # -- function to split blocks by RLEs
   split_ovlBlks <- function(blk1, blk2, hits, dropInterleavesSmallerThan){
+    blkID <- ofID1 <- ofID2 <- ord1 <- rl1 <- ord2 <- rl2 <- n <- NULL
     y <- subset(hits, blkID %in% c(blk1, blk2))
     y <- subset(y, !duplicated(ofID1))
     y <- subset(y, !duplicated(ofID2))
@@ -1235,6 +1246,7 @@ split_overlaps <- function(hits,
   ############################################################################
   # -- function to count and find overlapping blocks
   count_ovlHits <- function(hits, minPropDup){
+    blkID <- i.blkID <- blk1 <- blk2 <- r1 <- r2 <- propDup <- n <- hasPriority <- NULL
     # -- calculate block coordinates
     hitstmp <- data.table(hits)
     bc <- calc_blkCoords(hitstmp)
@@ -1297,6 +1309,7 @@ split_overlaps <- function(hits,
   ############################################################################
   ############################################################################
   # -- iterate through trying to split overlapping blocks
+  hasPriority <- blkID <- NULL
   anchs <- data.table(hits)
   nov <- 1
   iter <- 0

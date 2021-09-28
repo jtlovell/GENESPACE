@@ -16,6 +16,8 @@
 \alias{add_pepLen2gff}
 \alias{add_arrayRep2gff}
 \alias{annotate_gff}
+\alias{add_synOg2gff}
+\alias{split_overlaps}
 \title{Parsing of pairwise hits into synteny}
 \usage{
 synteny(gsParam, genomeIDs = NULL, overwrite = F)
@@ -54,6 +56,16 @@ add_pepLen2gff(gff, gsParam)
 add_arrayRep2gff(gff, gsParam)
 
 annotate_gff(gsParam, genomeIDs)
+
+add_synOg2gff(gff, hits = NULL, gsParam, genomeIDs, allowRBHinOg, useBlks)
+
+split_overlaps(
+  hits,
+  dropInterleavesSmallerThan,
+  minPropDup = 0.05,
+  maxIter = 20,
+  verbose
+)
 }
 \arguments{
 \item{gsParam}{a list containing all parameters for a GENESPACE run. See
@@ -67,6 +79,9 @@ specified (default) taken from gsParam$genomeIDs$genomeIDs}
 \item{hits}{data.table containing annotated blast-format pairwise hits}
 
 \item{synParam}{data.table with synteny parameters. See set_syntenyParams.}
+
+\item{type}{either 'primary' or 'secondary' depending on the scale of
+inference}
 
 \item{verbose}{logical, should updates be printed to the console?}
 
@@ -103,22 +118,19 @@ masked}
 
 \item{blastDir}{file.path to the location of the blast results.}
 
-\item{dropInterleavesSmallerThan}{integer of length 1, see set_syntenyParams}
+\item{allowRBHinOg}{logical, should RBHs be allowed when constructing
+syntenic orthologs?}
 
-\item{nGaps}{integer of length 1 specifying the -m 'gaps' MCScanX paramerter}
+\item{useBlks}{logical, should blocks be used instead of regions for synteny
+constraint?}
 
-\item{path2mcscanx}{character string file.path pointing to the install
-directory for the MCScanX program. In particular, there must be an
-executable in this directory for MCScanX_h.}
+\item{dropInterleavesSmallerThan}{integer, the minimum block size to retain
+after splitting overlapping blocks}
 
-\item{onlyOgAnchors}{logical, should anchors be restricted to hits in the
-same orthogroup? See set_syntenyParams.}
+\item{minPropDup}{numeric (0-1) specifying the minimum proportion of
+duplicated hits to allow two overlapping blocks to not be split}
 
-\item{nhits1}{Integer, how many hits should be kept for each gene in genome1.
-See set_syntenyParams.}
-
-\item{nhits2}{Integer, how many hits should be kept for each gene in genome2.
-See set_syntenyParams.}
+\item{maxIter}{integer, the maximum number of block splitting interations}
 }
 \value{
 a 'hits' data.table for a pairwise combination of genomes.
@@ -157,6 +169,10 @@ these with the gff-like data.table
 \code{add_arrayRep2gff} choose most central gene by orthogroup
 
 \code{annotate_gff} add number of anchors to gff
+
+\code{add_synOg2gff} add_synOg2gff
+
+\code{split_overlaps} split_overlaps
 }
 \details{
 The main engine for GENESPACE synteny searching. This
