@@ -10,6 +10,7 @@
 \alias{run_ofInReg}
 \alias{count_ogtypes}
 \alias{count_expectn}
+\alias{run_ofFromObj}
 \title{syntenicOGs}
 \usage{
 pull_synOGs(gsParam, genomeIDs = NULL)
@@ -33,6 +34,8 @@ run_ofInReg(gsParam, genome1, genome2, blks, gff, pepspl)
 count_ogtypes(gff, hits)
 
 count_expectn(hits, gff)
+
+run_ofFromObj(blast00, blast01, blast10, blast11, pep0, pep1, writeDir)
 }
 \arguments{
 \item{gsParam}{a list containing all parameters for a GENESPACE run. See
@@ -112,6 +115,8 @@ a 'hits' data.table for a pairwise combination of genomes.
 \code{count_ogtypes} count_ogtypes
 
 \code{count_expectn} count_expectn
+
+\code{run_ofFromObj} run_ofFromObj
 }
 \details{
 The main engine for GENESPACE synteny searching. This

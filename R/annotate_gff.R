@@ -532,8 +532,13 @@ pull_ogsByChr <- function(gsParam,
       if(dir.exists(tmpDir))
         unlink(tmpDir, recursive = T)
       tmp <- run_ofFromObj(
-        blast00 = x, blast01 = x, blast10 = x, blast11 = x,
-        pep0 = pepspl[[i]], pep1 = pepspl[[i]], writeDir = tmpDir)
+        blast00 = x,
+        blast01 = x,
+        blast10 = x,
+        blast11 = x,
+        pep0 = pepspl[[i]],
+        pep1 = pepspl[[i]],
+        writeDir = tmpDir)
       unlink(tmpDir, recursive = T)
       tmp[,`:=`(genome = i, chr = j)]
       return(subset(tmp, !duplicated(tmp)))
