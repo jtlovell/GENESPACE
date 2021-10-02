@@ -15,6 +15,10 @@
 #' would like to study.
 #' @param orthofinderMethod character string either 'fast' or 'default'. See
 #' build_OFdb for details.
+#' @param orthofinderInBlk logical, should orthofinder be re-run within
+#' syntenic regions? Highly recommended for polyploids
+#' @param recallArrays logical, should a self-orthofinder be run within
+#' chromosomes? Highly recommended for polyploids or runs with lots of genomes.
 #' @param speciesIDs file path character vector. This is the subdirectory in
 #' rawGenomeDir containing the files for each genomeID.
 #' @param versionIDs file path character vector. This is the subdirectory in
@@ -41,10 +45,6 @@
 #' to run
 #' @param wd file.path where the analysis will be run
 #' @param minPepLen integer, the shortest peptide to be analyzed
-#' @param dropInterleavesSmallerThan integer, when determining block overlapping
-#' breakpoints, smaller blocks than this are tossed entirely.
-#' @param maxDistBtwPgHits integer, the maximum gene-rank order distance between
-#' syntenic genes to be considered members of the same entry in the pangenome.
 #' @param overwrite logical, should existing directories be overwritten?
 #' @details Simple directory parser to find and check the paths to all
 #' annotation and assembly files.
@@ -61,16 +61,16 @@
 #' @export
 init_genespace <- function(genomeIDs,
                            wd,
-                           orthofinderMethod = "default",
                            outgroup = NULL,
                            speciesIDs,
                            versionIDs,
                            rawGenomeDir,
                            ploidy,
+                           orthofinderMethod = ifelse(any(ploidy > 1), "fast", "default"),
+                           orthofinderInBlk = any(ploidy > 1),
+                           recallArrays = any(ploidy > 1),
                            nCores = detectCores()/2,
                            minPepLen = 20,
-                           dropInterleavesSmallerThan = 2,
-                           maxDistBtwPgHits = 500,
                            overwrite = FALSE,
                            path2orthofinder = "orthofinder",
                            path2mcscanx = "MCScanX",
@@ -254,7 +254,7 @@ init_genespace <- function(genomeIDs,
   }
 
   ##############################################################################
-  check_orthofinderInstall <- function(path){
+  check_orthofinderInstall <- function(path, verbose = FALSE){
     if(is.na(path))
       path <- "NA"
     wh <- Sys.which(as.character(path))
@@ -269,16 +269,18 @@ init_genespace <- function(genomeIDs,
         if(vern >= 2.52){
           chk <- TRUE
         }else{
-          warning(sprintf("Orthofinder >= 2.5.2 must be installed (path is to %s)\n\tAssuming orthofinder will be run outside of R with v2.5.2 or later\n", ver))
+          if(verbose)
+            warning(sprintf("Orthofinder >= 2.5.2 must be installed (path is to %s)\n\tAssuming orthofinder will be run outside of R with v2.5.2 or later\n", ver))
           path <- NA
         }
       }
     }
     if(!chk){
       path <- NA
-      warning("Cannot call orthofinder from path specified to GENESPACE\n\tRun orthofinder outside of R with commands supplied")
+      if(verbose)
+        warning("Cannot call orthofinder from path specified to GENESPACE\n\tRun orthofinder outside of R with commands supplied")
     }
-    return(path)
+    return(!is.na(path))
   }
 
   ##############################################################################
@@ -297,15 +299,31 @@ init_genespace <- function(genomeIDs,
     return(nCores)
   }
 
-  check_maxDistBtwPgHits <- function(x){
-    x <- as.integer(x)[1]
-    if(is.na(x) || is.null(x))
-      stop("maxDistBtwPgHits must be an integer\n")
-    if(x < 5)
-      x <- 5
-    return(x)
+  ##############################################################################
+  choose_arrayMethod <- function(path2orthofinder, recallArrays = TRUE){
+    recallArrays <- check_logicalArg(recallArrays)
+    return(recallArrays && check_orthofinderInstall(path2orthofinder))
   }
 
+  ##############################################################################
+  choose_ofMethod <- function(path2orthofinder, orthofinderMethod = "default"){
+    ofm <- match.arg(orthofinderMethod, choices = c("fast", "default"))
+    isInstall <- check_orthofinderInstall(path2orthofinder)
+    if(ofm == "fast" && isInstall){
+      return("fast")
+    }else{
+      if(isInstall){
+        return("default inside R")
+      }else{
+        return("default")
+      }
+    }
+  }
+  ##############################################################################
+  choose_ofInBlkMethod <- function(path2orthofinder, orthofinderInBlk = FALSE){
+    orthofinderInBlk <- check_logicalArg(orthofinderInBlk)
+    return(orthofinderInBlk && check_orthofinderInstall(path2orthofinder))
+  }
   ##############################################################################
   # 1. make the skeleton and do basic checks
   ##############################################################################
@@ -322,20 +340,50 @@ init_genespace <- function(genomeIDs,
   cat("set working directory to", setwd(p$params$wd),"\n")
 
   # -- orthofinder method checks
-  p$params$orthofinderMethod <- match.arg(orthofinderMethod, choices = c("fast", "default"))
+  p$params$orthofinderMethod <- choose_ofMethod(
+    orthofinderMethod = orthofinderMethod,
+    path2orthofinder = path2orthofinder)
+  if(p$params$orthofinderMethod == "default" & orthofinderMethod == "fast")
+    cat(
+      "\n#####################################\n",
+      "Could not find orthofinder in system path, but fast method specified\n",
+      "For this run, setting orthofinder method = default (slower but more accurate)\n",
+      "If this isn't right, open R from a terminal with orthofinder in the path\n")
+
+  # -- array method checks
+  p$params$recallArrays <- choose_arrayMethod(
+    recallArrays = recallArrays,
+    path2orthofinder = path2orthofinder)
+  if(!p$params$recallArrays & recallArrays)
+    cat(
+      "\n#####################################\n",
+      "Could not find orthofinder in system path, but recallArrays specified\n",
+      "For this run, setting recallArrays to FALSE (faster but potentially less accurate)\n",
+      "If this isn't right, open R from a terminal with orthofinder in the path\n")
+
+  # -- orthofinder in block method checks
+  p$params$orthofinderInBlk <- choose_ofInBlkMethod(
+    path2orthofinder = path2orthofinder,
+    orthofinderInBlk = orthofinderInBlk)
+  if(!p$params$orthofinderInBlk & orthofinderInBlk)
+    cat(
+      "\n#####################################\n",
+      "Could not find orthofinder in system path, but orthofinderInBlk specified\n",
+      "For this run, setting orthofinderInBlk to FALSE (may not be appropriate for polyploids)\n",
+      "If this isn't right, open R from a terminal with orthofinder in the path\n")
 
   # -- basic genespace parameters
   p$params$nCores <- check_nCores(nCores)
   p$params$verbose <- check_logicalArg(verbose)
   p$params$minPepLen <- check_minPepLen(minPepLen)
-  p$params$maxDistBtwPgHits <- check_maxDistBtwPgHits(maxDistBtwPgHits)
 
   ##############################################################################
   # 2. check dependencies
   ##############################################################################
   # -- orthofinder
-  p$paths$orthofinderCall <- check_orthofinderInstall(path2orthofinder)
-
+  p$paths$orthofinderCall <- check_orthofinderInstall(path2orthofinder, verbose = T)
+  if(p$paths$orthofinderCall)
+    p$paths$orthofinderCall <- path2orthofinder
   # -- mcscanx
   p$paths$mcscanxCall <- check_MCScanXhInstall(path2mcscanx)
 
@@ -379,7 +427,19 @@ init_genespace <- function(genomeIDs,
     cat("\n\nCan't find all parsed annotation files ... need to run parse_annotations, parse_ncbi or parse_phytozome\n")
 
   if(verbose)
-    cat("\nGENESPACE run initialized\n")
+    cat("\nGENESPACE run initialized:\n")
+  if(verbose)
+    cat(sprintf(
+      "\tInitial orthofinder database generation method: %s\n",
+      p$params$orthofinderMethod))
+  if(verbose)
+    cat(sprintf(
+      "\tCollinear array detection method: %s\n",
+      ifelse(p$params$recallArrays, "inBlock", "global")))
+  if(verbose)
+    cat(sprintf(
+      "\tOrthology graph method: %s\n",
+      ifelse(p$params$orthofinderInBlk, "inBlock", "global")))
 
   # 3rd party calls
   if(is.na(p$paths$orthofinderCall))

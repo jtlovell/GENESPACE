@@ -7,16 +7,16 @@
 init_genespace(
   genomeIDs,
   wd,
-  orthofinderMethod = "default",
   outgroup = NULL,
   speciesIDs,
   versionIDs,
   rawGenomeDir,
   ploidy,
+  orthofinderMethod = ifelse(any(ploidy > 1), "fast", "default"),
+  orthofinderInBlk = any(ploidy > 1),
+  recallArrays = any(ploidy > 1),
   nCores = detectCores()/2,
   minPepLen = 20,
-  dropInterleavesSmallerThan = 2,
-  maxDistBtwPgHits = 500,
   overwrite = FALSE,
   path2orthofinder = "orthofinder",
   path2mcscanx = "MCScanX",
@@ -33,9 +33,6 @@ that begins with a letter (a-z, A-Z). An X will be appended to
 IDs starting with special characters or numbers.}
 
 \item{wd}{file.path where the analysis will be run}
-
-\item{orthofinderMethod}{character string either 'fast' or 'default'. See
-build_OFdb for details.}
 
 \item{outgroup}{character string matching one of the genomeIDs that will
 be used in the orthofinder -og run but not in the synteny search. Suggested
@@ -56,16 +53,19 @@ contains all the genome annotation raw files.}
 usually half of the actual ploidy, that is an inbred diploid usually is
 represented by a haploid genome assembly.}
 
+\item{orthofinderMethod}{character string either 'fast' or 'default'. See
+build_OFdb for details.}
+
+\item{orthofinderInBlk}{logical, should orthofinder be re-run within
+syntenic regions? Highly recommended for polyploids}
+
+\item{recallArrays}{logical, should a self-orthofinder be run within
+chromosomes? Highly recommended for polyploids or runs with lots of genomes.}
+
 \item{nCores}{integer of length 1 specifying the number of parallel processes
 to run}
 
 \item{minPepLen}{integer, the shortest peptide to be analyzed}
-
-\item{dropInterleavesSmallerThan}{integer, when determining block overlapping
-breakpoints, smaller blocks than this are tossed entirely.}
-
-\item{maxDistBtwPgHits}{integer, the maximum gene-rank order distance between
-syntenic genes to be considered members of the same entry in the pangenome.}
 
 \item{overwrite}{logical, should existing directories be overwritten?}
 

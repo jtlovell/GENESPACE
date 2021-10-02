@@ -6,16 +6,16 @@ Author: John T. Lovell
 Maintainer: John T. Lovell <jlovell@hudsonalpha.org>
 Description: Construct pan-genome annotations and orther comparative genomics
   analyses from  synteny- and orthogroup-constrained blast hits.
+Depends: data.table
 Imports: data.table,
   dbscan,
   Biostrings,
   rtracklayer,
   igraph,
   R.utils
-Suggests:
-    knitr,
-    TSP,
-    rmarkdown
+Suggests: knitr,
+  TSP,
+  rmarkdown
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true

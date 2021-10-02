@@ -51,17 +51,25 @@ run_orthofinder <- function(gsParam, overwrite = FALSE){
     warning("orthofinder run exists & !overwrite, so not running")
     gsParam <- find_orthofinderResults(gsParam, onlyCheckRun = F)
   }else{
-    if(is.na(gsParam$paths$orthofinderCall)){
+    if(is.na(gsParam$paths$orthofinderCall) || !gsParam$paths$orthofinderCall){
       com <- default_ofDb(gsParam)
     }else{
       if(gsParam$params$orthofinderMethod == "fast"){
-        if(gsParam$params$verbose)
-          cat("\tRunning 'draft' a.k.a 'fast' genespace orthofinder method",
+        if(gsParam$params$verbose & gsParam$params$diamondMode == "fast")
+          cat("\tRunning 'draft' a.k.a 'fast' genespace orthofinder method with 'fast' diamond mode",
               "\n\t############################################################",
               "\n\t***NOTE***\n\tThis method should only be used for:",
               "\n\t\t(1) closely related diploid species or",
               "\n\t\t(2) visualization/genome QC purposes",
-              "\n\tIf you are building a multi-species or polyploid pangenome, cancel this and rerun with:\n\t\torthofinderMethod = 'default'",
+              "\n\tIf you are building a multi-species or polyploid pangenome from global orthogroups ... \n\t\tcancel this and rerun with:\n\t\torthofinderMethod = 'default' or \n\t\tdiamondMode != 'fast'",
+              "\n\t############################################################\n")
+        if(gsParam$params$verbose & gsParam$params$diamondMode != "fast")
+          cat("\tRunning 'draft' a.k.a 'fast' genespace orthofinder method",
+              "\n\t############################################################",
+              "\n\t***NOTE***\n\tThis method should only be used for:",
+              "\n\t\t(1) closely related diploid species,",
+              "\n\t\t(2) visualization/genome QC purposes, or",
+              "\n\t\t(3) inferring orthogroups WITHIN syntenic regions",
               "\n\t############################################################\n")
         com <- fast_ofDb(gsParam)
       }else{
@@ -262,7 +270,6 @@ default_ofDb <- function(gsParam){
     dontRun <- FALSE
     p2of <- gsParam$paths$orthofinderCall
   }
-
   if(gsParam$params$verbose & !dontRun)
     cat("\tRunning full orthofinder on pre-computed blast",
         "\n\t##################################################",

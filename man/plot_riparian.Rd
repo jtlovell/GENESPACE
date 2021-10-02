@@ -88,7 +88,7 @@ recursive?}
 \item{minGenes2plot}{integer specifying the minimum number of genes on a
 chr to plot}
 
-\item{braidAlpha}{numeric (0-1) specifying the transparence of the braids}
+\item{braidAlpha}{numeric (0-1) specifying the transparency of the braids}
 
 \item{braidBorderLwd}{numeric specifying the weight of borders on the braids}
 

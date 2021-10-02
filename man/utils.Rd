@@ -3,6 +3,7 @@
 \name{utils}
 \alias{utils}
 \alias{order_filesByMtime}
+\alias{check_orthofinderInstall}
 \alias{check_logicalArg}
 \alias{add_rle}
 \alias{clus_igraph}
@@ -32,6 +33,8 @@
 \title{Generic internal functions used by genespace}
 \usage{
 order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
+
+check_orthofinderInstall(path)
 
 check_logicalArg(x)
 
@@ -196,6 +199,8 @@ directly by the user. Little documentation support provided, use at your own
 risk.
 
 \code{order_filesByMtime} Order files by date of last modification
+
+\code{check_orthofinderInstall} Check if orthofinder is installed
 
 \code{check_logicalArg} Ensure a logical (length 1) argument is coerced
 correctly. If cannot be coerced, return error.
