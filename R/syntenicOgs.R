@@ -98,7 +98,7 @@ pull_synOGs <- function(gsParam, genomeIDs = NULL){
     cat(sprintf(
       "Checking synteny-constrained global orthogroups for synOGs\n\tn. global OGs = %s\n",
       uniqueN(gff$globOG)))
-  synGff2 <- add_synOg2gff(
+  synGff <- add_synOg2gff(
     gff = subset(gff, isArrayRep),
     useBlks = F,
     gsParam = gsParam,
@@ -113,19 +113,20 @@ pull_synOGs <- function(gsParam, genomeIDs = NULL){
       cat("Adding syntenic orthogroups from pairwise w/in-region hits\n")
     ofh <- blkwise_orthofinder(
       gsParam = gsParam,
-      gff = synGff2)
+      gff = synGff)
     ofh[, ogInblk := clus_igraph(ofID1, ofID2)]
     ofv <- ofh$ogInblk; names(ofv) <- ofh$ofID1
     synGff2[,inblkOG := ofv[ofID]]
-    mol <- max(synGff2$inblkOG, na.rm = T)
+    mol <- max(synGff$inblkOG, na.rm = T)
     nmis <- sum(is.na(synGff2$inblkOG))
-    synGff2$inblkOG[is.na(synGff2$inblkOG)] <- (mol + 1):(mol + nmis)
-    synGff2[,inblkOG := as.integer(factor(inblkOG, levels = unique(inblkOG)))]
+    synGff$inblkOG[is.na(synGff$inblkOG)] <- (mol + 1):(mol + nmis)
+    synGff[,inblkOG := as.integer(factor(inblkOG, levels = unique(inblkOG)))]
   }else{
-    synGff2[,inblkOG := NA]
+    synGff[,inblkOG := NA]
   }
   out <- synGff2[,c("genome", "chr", "start", "end", "ord", "id", "ofID", "globOG", "synOG", "inblkOG")]
   fwrite(out, file = file.path(gsParam$paths$results, "gffWithSynOgs.txt.gz"))
+  return(out)
 }
 
 #' @title add_synOg2gff
@@ -245,15 +246,13 @@ blkwise_orthofinder <- function(gsParam,
     paste(c(x, rep(" ", max(0, 7 - nchar(x)))), collapse = "")
   if(verbose)
     cat(sprintf(
-      "Running orthofinder by region ...\n\tGenome1-Genome2|Copy Number: %s%s%s%s\n",
+      "\tRunning orthofinder by region ...\n\tGenome1-Genome2|Copy Number: %s%s%s%s\n",
       p5("absent"),p5("1x"),p5("2x"),p5("2+x")))
-
-
 
   blnk <- paste(rep(" ", 16), collapse = "")
   synOgInBlkHits <- rbindlist(lapply(1:nrow(synp), function(i){
-    geno1 <- syn$genome1[i]
-    geno2 <- syn$genome2[i]
+    geno1 <- synp$genome1[i]
+    geno2 <- synp$genome2[i]
     if(verbose)
       cat(sprintf("\t%s-%s|", pull_strWidth(geno1, 7),pull_strWidth(geno2, 7)))
 
