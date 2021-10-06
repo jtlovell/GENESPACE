@@ -2,33 +2,18 @@
 % Please edit documentation in R/pangenome.R
 \name{pangenome}
 \alias{pangenome}
-\alias{infer_genePos}
-\alias{build_repPangenome}
-\alias{read_refSynOgHits}
-\alias{add_nAnchor2gff}
-\alias{lift_genePos}
-\alias{fill_missingGenePos}
+\alias{combine_inblkSynOG}
+\alias{pull_nonSynOrthologs}
+\alias{pull_blkAnchors}
 \title{Build genespace pangenome}
 \usage{
-pangenome(
-  gsParam,
-  refGenome = NULL,
-  genomeIDs = NULL,
-  verbose = NULL,
-  allowRBHinOg = NULL
-)
+pangenome(gsParam, genomeIDs, refGenome)
 
-infer_genePos(hitsRef, blks, gff, gsParam, genomeIDs, refGenome)
+combine_inblkSynOG(refGenome, genomeIDs, gsParam)
 
-build_repPangenome(gsParam, gff, gffRaw, infPos, refGenome)
+pull_nonSynOrthologs(gsParam, gff)
 
-read_refSynOgHits(gsParam, refGenome, genomeIDs, allowRBHinOg)
-
-add_nAnchor2gff(gsParam, gff, hits)
-
-lift_genePos(gff, hits, blks, maxGap, verbose, nCores, refGenome, genomeIDs)
-
-fill_missingGenePos(hits, infGenePos, genomeIDs, gff, maxGap, verbose)
+pull_blkAnchors(gsParam, gff, refGenome, genomeIDs)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -37,33 +22,33 @@ elements: blast (file.path to the original orthofinder run), synteny (
 file.path to the directory where syntenic results are stored), genomeIDs (
 character vector of genomeIDs).}
 
-\item{refGenome}{character string matching one of the genomeIDs in gsParam}
-
 \item{genomeIDs}{character vector, specifying which genomes to use. Defaults
 to all genomeIDs specification in gsParam.}
 
-\item{verbose}{logical, specifying whether to print updates to the console.
-Defaults to verbose specification in gsParam, unless specified here}
+\item{refGenome}{character string matching one of the genomeIDs in gsParam}
 
-\item{allowRBHinOg}{logical, should synOGs be constructed aware of RBHs?}
+\item{gff}{gff with additional annotations columns (see synteny)}
 
 \item{hitsRef}{hits data.table against the reference genome}
 
 \item{blks}{data.table of block coordinates}
 
-\item{gff}{gff with additional annotations columns (see synteny)}
-
 \item{gffRaw}{raw gff from read_gff}
 
 \item{infPos}{data.table with inferred gene positions}
+
+\item{allowRBHinOg}{logical, should synOGs be constructed aware of RBHs?}
 
 \item{hits}{data.table of hits}
 
 \item{maxGap}{integer specifying the maxiumum allowable gap between synOgs}
 
+\item{infGenePos}{data.table with inferred gene positions}
+
 \item{nCores}{integer specifying the number of parallel processes to run}
 
-\item{infGenePos}{data.table with inferred gene positions}
+\item{verbose}{logical, specifying whether to print updates to the console.
+Defaults to verbose specification in gsParam, unless specified here}
 }
 \value{
 ...
@@ -76,17 +61,11 @@ node in the reference.
 \code{pangenome} Predict locations in reference genome for all
 genes and collapse into pangenome database
 
-\code{infer_genePos} infer_genePos
+\code{combine_inblkSynOG} combine_inblkSynOG
 
-\code{build_repPangenome} build_repPangenome
+\code{pull_nonSynOrthologs} pull_nonSynOrthologs
 
-\code{read_refSynOgHits} read_refSynOgHits
-
-\code{add_nAnchor2gff} add_nAnchor2gff
-
-\code{lift_genePos} lift_genePos
-
-\code{fill_missingGenePos} fill_missingGenePos
+\code{pull_blkAnchors} pull_blkAnchors
 }
 \details{
 ...

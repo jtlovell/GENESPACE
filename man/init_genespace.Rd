@@ -14,7 +14,7 @@ init_genespace(
   ploidy,
   orthofinderMethod = ifelse(any(ploidy > 1), "fast", "default"),
   orthofinderInBlk = any(ploidy > 1),
-  recallArrays = any(ploidy > 1),
+  recallArrays = any(ploidy > 1 | length(genomeIDs) > 6),
   nCores = detectCores()/2,
   minPepLen = 20,
   overwrite = FALSE,

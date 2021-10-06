@@ -30,6 +30,7 @@
 \alias{cosine_points}
 \alias{calc_curvePolygon}
 \alias{round_rect}
+\alias{interp_linear}
 \title{Generic internal functions used by genespace}
 \usage{
 order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
@@ -101,6 +102,8 @@ cosine_points()
 calc_curvePolygon(start1, end1 = NULL, start2, end2 = NULL, y1, y2)
 
 round_rect(xleft, ybottom, xright, ytop)
+
+interp_linear(x, y, interpTails = TRUE)
 }
 \arguments{
 \item{path}{file path character string}
@@ -259,6 +262,8 @@ file
 \code{cosine_points} vector of points for polygons based on cosine curves
 
 \code{calc_curvePolygon} from 2d coordinates, make a curve
+
+\code{round_rect} from x-y coordinates, make a rounded rectangle
 
 \code{round_rect} from x-y coordinates, make a rounded rectangle
 }

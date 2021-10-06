@@ -116,15 +116,15 @@ pull_synOGs <- function(gsParam, genomeIDs = NULL){
       gff = synGff)
     ofh[, ogInblk := clus_igraph(ofID1, ofID2)]
     ofv <- ofh$ogInblk; names(ofv) <- ofh$ofID1
-    synGff2[,inblkOG := ofv[ofID]]
+    synGff[,inblkOG := ofv[ofID]]
     mol <- max(synGff$inblkOG, na.rm = T)
-    nmis <- sum(is.na(synGff2$inblkOG))
+    nmis <- sum(is.na(synGff$inblkOG))
     synGff$inblkOG[is.na(synGff$inblkOG)] <- (mol + 1):(mol + nmis)
     synGff[,inblkOG := as.integer(factor(inblkOG, levels = unique(inblkOG)))]
   }else{
     synGff[,inblkOG := NA]
   }
-  out <- synGff2[,c("genome", "chr", "start", "end", "ord", "id", "ofID", "globOG", "synOG", "inblkOG")]
+  out <- synGff[,c("genome", "chr", "start", "end", "ord", "id", "ofID", "globOG", "synOG", "inblkOG")]
   fwrite(out, file = file.path(gsParam$paths$results, "gffWithSynOgs.txt.gz"))
   return(out)
 }
@@ -163,13 +163,14 @@ add_synOg2gff <- function(gff,
       }
       x <- subset(x, blkBuffer)
       x[,isSelf := any(ofID1 == ofID2), by = "blkID"]
-      x <- subset(x, !isSelf)
+      x <- subset(x, !isSelf & !is.na(og))
       if(!allowRBHinOg)
         x <- subset(x, !grepl("RBH", og))
       return(x[,c("ofID1", "ofID2", "blkAnchor", "blkID")])
     }))
   }else{
     hts <- data.table(hits)
+    hts <- subset(hts, !is.na(og))
     if(!allowRBHinOg)
       hts <- subset(hts, !grepl("RBH", og))
     if(useBlks){
@@ -190,7 +191,7 @@ add_synOg2gff <- function(gff,
   nmis <- sum(is.na(gff$synOG))
   mol <- max(gff$synOG, na.rm = T)
   gff$synOG[is.na(gff$synOG)] <- (mol + 1):(mol + nmis)
-  gff[,synOG := as.integer(factor(paste(og, synOG), levels = unique(paste(og, synOG))))]
+  gff[,synOG := as.integer(factor(synOG, levels = unique(synOG)))]
   return(gff)
 }
 
@@ -547,7 +548,7 @@ count_expectn <- function(hits, gff){
   if(hits$gen1[1] != hits$gen2[1] ){
     b2 <- hits[,list(start = min(ord2), end = max(ord2)),
                by = c("gen2","chr2","regID")]
-    setnames(b2, colnames(b1))
+    setnames(b2, colnames(b))
     b <- rbind(b, b2)
   }
   b <- with(b, data.table(
