@@ -114,7 +114,7 @@ pangenome <- function(gsParam,
   build_pga <- function(gffRef, ogPos, gsParam, gff){
     verbose <- gsParam$params$verbose
     gr <- with(gffRef, data.table(
-      genome = genome, chr = chr, ofID = ofID, combOG = combOG, refOrd =interpRefOrd))
+      genome = genome, chr = chr, ofID = ofID, combOG = combOG, refOrd = interpRefOrd, infRefChr = refChr))
     or <- with(ogPos, data.table(
       combOG = combOG, refChr = refChr, refClus = clus, medianRefOrd = ord))
 
@@ -124,7 +124,7 @@ pangenome <- function(gsParam,
       gr, genome == refGenome),
       or,
       by = "combOG", allow.cartesian = T),
-      refChr == chr & abs(refOrd - medianRefOrd) < synBuff)
+      refChr == infRefChr & abs(refOrd - medianRefOrd) < synBuff)
     pgRef[,ordDiff := abs(refOrd - medianRefOrd)]
     setkey(pgRef, combOG, refChr, refClus, ordDiff)
     pg <- subset(pgRef, !duplicated(paste(combOG, refChr, refClus)))
@@ -142,7 +142,7 @@ pangenome <- function(gsParam,
       grs,
       ors,
       by = "combOG", allow.cartesian = T),
-      refChr == chr & abs(refOrd - medianRefOrd) < synBuff)
+      refChr == infRefChr & abs(refOrd - medianRefOrd) < synBuff)
     pgAlt[,ordDiff := abs(refOrd - medianRefOrd)]
     setkey(pgAlt, combOG, refChr, refClus, ordDiff)
     pga <- subset(pgAlt, !duplicated(paste(combOG, refChr, refClus)))

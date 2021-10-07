@@ -302,7 +302,6 @@ blkwise_orthofinder <- function(gsParam,
 
     # -- run of in each block
     synOgHits <- rbindlist(mclapply(hc$blkID, mc.cores = nCores, function(j){
-      print(j)
       hj <- splh[[j]]
       rj <- subset(hits, lgRegionID == j)
       tmpDir <- file.path(gsParam$params$wd, sprintf("%s_og4inBlkTMPdir", j))

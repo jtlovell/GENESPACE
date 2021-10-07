@@ -66,6 +66,7 @@ init_genespace <- function(genomeIDs,
                            versionIDs,
                            rawGenomeDir,
                            ploidy,
+                           diamondMode = "more-sensitive",
                            orthofinderMethod = ifelse(any(ploidy > 1), "fast", "default"),
                            orthofinderInBlk = any(ploidy > 1),
                            recallArrays = any(ploidy > 1 | length(genomeIDs) > 6),
@@ -74,6 +75,7 @@ init_genespace <- function(genomeIDs,
                            overwrite = FALSE,
                            path2orthofinder = "orthofinder",
                            path2mcscanx = "MCScanX",
+                           path2diamond = "diamond",
                            gffString = "gene.gff",
                            pepString = "pep|prot",
                            verbose = TRUE){
@@ -324,6 +326,16 @@ init_genespace <- function(genomeIDs,
     orthofinderInBlk <- check_logicalArg(orthofinderInBlk)
     return(orthofinderInBlk && check_orthofinderInstall(path2orthofinder))
   }
+
+  ##############################################################################
+  choose_diamondMode <- function(path2diamond, diamondMode){
+    path2diamond <- check_diamondInstall(path2diamond)
+    arg <- match.arg(diamondMode, choices = c(
+      "fast", "mid-sensitive", "sensitive", "more-sensitive",
+      "very-sensitive", "ultra-sensitive"))
+
+    return(sprintf("--%s", arg))
+  }
   ##############################################################################
   # 1. make the skeleton and do basic checks
   ##############################################################################
@@ -372,6 +384,11 @@ init_genespace <- function(genomeIDs,
       "For this run, setting orthofinderInBlk to FALSE (may not be appropriate for polyploids)\n",
       "If this isn't right, open R from a terminal with orthofinder in the path\n")
 
+  p$params$diamondMode <- choose_diamondMode(
+    path2diamond = path2diamond,
+    diamondMode = diamondMode)
+
+
   # -- basic genespace parameters
   p$params$nCores <- check_nCores(nCores)
   p$params$verbose <- check_logicalArg(verbose)
@@ -386,6 +403,8 @@ init_genespace <- function(genomeIDs,
     p$paths$orthofinderCall <- path2orthofinder
   # -- mcscanx
   p$paths$mcscanxCall <- check_MCScanXhInstall(path2mcscanx)
+  # -- diamond
+  p$params$path2diamond <- check_diamondInstall(path2diamond)
 
   ##############################################################################
   # 3. make/check raw and parsed file paths

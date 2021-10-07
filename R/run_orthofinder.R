@@ -169,6 +169,7 @@ fast_ofDb <- function(gsParam){
   # c. add blast metadata / calls
   add_blastInfo2syn <- function(gsParam, ofSpeciesIDs){
     p <- data.table(gsParam$params$synteny)
+    diamondMode <- gsParam$params$diamondMode
     ofd <- gsParam$paths$orthofinder
     p[,`:=`(db1 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd",si[genome1])),
             db2 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd",si[genome2])),
@@ -177,7 +178,7 @@ fast_ofDb <- function(gsParam){
             blFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome1], si[genome2])),
             invertFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome2], si[genome1])))]
     p[,com := sprintf(
-      "%s blastp --quiet -e %s -p %s --compress 1 -d %s -q %s -o %s",
+      "%s blastp %s --quiet -e %s -p %s --compress 1 -d %s -q %s -o %s",
       "diamond", .1, gsParam$params$nCores, db2, fa1, blFile)]
     return(p)
   }
