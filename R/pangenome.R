@@ -179,7 +179,7 @@ pangenome <- function(gsParam,
   pg[,`:=`(pgID = as.numeric(factor(u,levels= unique(u))),u=NULL)]
   if(verbose)
     with(pg, cat(sprintf(
-      "Initializing with %s genes, %s OGs and %s placements and %s unplaced OGs",
+      "\tInitial build with ... \n\t\t%s genes, %s OGs and %s placements and %s unplaced OGs",
       uniqueN(ofID), uniqueN(og), uniqueN(pgID), uniqueN(og[is.na(ord)]))))
 
   # -- adding array members
@@ -198,7 +198,7 @@ pangenome <- function(gsParam,
     by  = "ofID", allow.cartesian = T)
   pga[,`:=`(ofID = mem, mem = NULL)]
   with(pga, cat(sprintf(
-    "\t\tFound %s genes, %s OGs and %s/%s placed/ unplaced OGs",
+    "\t\tFound %s genes, %s OGs and %s/%s placed/unplaced OGs",
     uniqueN(ofID), uniqueN(og), uniqueN(pgID), uniqueN(og[is.na(ord)]))))
   pg <- rbind(pg, pga)
 
@@ -218,7 +218,9 @@ pangenome <- function(gsParam,
     "\t\tFound %s genes, %s OGs and new %s entries\n",
     uniqueN(ofID), uniqueN(og), uniqueN(pgID), uniqueN(og[is.na(ord)]))))
   pg <- rbind(pg, pgs)
-
+  setorder(pg, ord, na.last = T)
+  pg[,`:=`(pgID = as.numeric(factor(pgID, levels = unique(pgID))),
+           og = as.numeric(factor(og, levels = unique(og))))]
   if(verbose)
     cat("\tFormating and writing the pangenome ... ")
   # -- add non-syn orthos
@@ -235,7 +237,7 @@ pangenome <- function(gsParam,
     sprintf("%s_pangenomeDB.txt.gz", refGenome))
   fwrite(pg, file = pgf, sep = "\t")
   if(verbose)
-    cat(sprintf("\nPangenome written to %s", pgf))
+    cat(sprintf("\nPangenome written to results/%s_pangenomeDB.txt.gz", refGenome))
   return(pgout)
 }
 
