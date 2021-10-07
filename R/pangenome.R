@@ -111,103 +111,6 @@ pangenome <- function(gsParam,
                     by = c("combOG", "refChr", "clus")]
     return(ogPos)
   }
-  build_pga <- function(gffRef, ogPos, gsParam, gff){
-    verbose <- gsParam$params$verbose
-    gr <- with(gffRef, data.table(
-      genome = genome, chr = chr, ofID = ofID, combOG = combOG, refOrd = interpRefOrd, infRefChr = refChr))
-    or <- with(ogPos, data.table(
-      combOG = combOG, refChr = refChr, refClus = clus, medianRefOrd = ord))
-
-    if(verbose)
-      cat(sprintf("\n\tScaffolding %s OGs ...", refGenome))
-    pgRef <- subset(merge(subset(
-      gr, genome == refGenome),
-      or,
-      by = "combOG", allow.cartesian = T),
-      refChr == infRefChr & abs(refOrd - medianRefOrd) < synBuff)
-    pgRef[,ordDiff := abs(refOrd - medianRefOrd)]
-    setkey(pgRef, combOG, refChr, refClus, ordDiff)
-    pg <- subset(pgRef, !duplicated(paste(combOG, refChr, refClus)))
-    pg <- pg[,c("refChr", "refOrd", "refClus", "combOG", "genome", "ofID")]
-    if(verbose)
-      cat(sprintf("found %s genes, %s OGs and %s unique placements",
-                  uniqueN(pg$ofID), uniqueN(pg$combOG), nrow(pg)))
-
-    if(verbose)
-      cat("\n\tAdding non-reference orthogroups ...")
-    u <- with(pg, paste(combOG, refChr, refClus))
-    ors <- subset(or, !paste(combOG, refChr, refClus) %in% u)
-    grs <- subset(gr, genome != refGenome)
-    pgAlt <- subset(merge(
-      grs,
-      ors,
-      by = "combOG", allow.cartesian = T),
-      refChr == infRefChr & abs(refOrd - medianRefOrd) < synBuff)
-    pgAlt[,ordDiff := abs(refOrd - medianRefOrd)]
-    setkey(pgAlt, combOG, refChr, refClus, ordDiff)
-    pga <- subset(pgAlt, !duplicated(paste(combOG, refChr, refClus)))
-    pga <- pga[,c("refChr", "refOrd", "refClus", "combOG", "genome", "ofID")]
-    if(verbose)
-      cat(sprintf("found %s genes, %s OGs and %s unique placements",
-                  uniqueN(pga$ofID), uniqueN(pga$combOG), nrow(pga)))
-    pg <- rbind(pg, pga)
-    pgMiss <- with(subset(gff, !combOG %in% pg$combOG), data.table(
-      genome = genome, chr = chr, ofID = ofID, combOG = combOG, refOrd = NA))
-    pgMiss[,ordDiff := abs(refOrd - median(refOrd)), by = "combOG"]
-    setkey(pgMiss, combOG, ordDiff, genome, refOrd)
-    pgMiss <- with(subset(pgMiss, !duplicated(combOG)), data.table(
-      refChr = NA, refOrd = NA, refClus = NA,
-      combOG = combOG, genome = genome, ofID = ofID))
-    if(verbose)
-      cat(sprintf("\n\tAdding %s OGs without placements against %s",
-                  uniqueN(pgMiss$combOG), refGenome))
-    pg <- rbind(pg, pgMiss)
-    pg[,isRep := TRUE]
-
-    if(verbose)
-      cat("\n\tPopulating scaffold ... ")
-    pgo <- merge(
-      pg,
-      data.table(combOG = gff$combOG, mem = gff$ofID),
-      by = "combOG", allow.cartesian = T, all.x = T)
-    pgo[,isOnlyRep := all(mem == ofID), by = c("combOG", "refChr", "refClus")]
-    pgo$mem[pgo$isOnlyRep] <- NA
-    pgo <- subset(pgo, ofID != mem | is.na(mem))
-    pgo[,isOnlyRep := NULL]
-    setorder(pgo, refOrd, na.last = T)
-
-    gffFilea <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
-    gffa <- fread(gffFilea, na.strings = c("", "-", "NA"), showProgress = F)
-    gffa[,n := .N, by = "arrayID"]
-    arrRep <- subset(gffa, n > 1)[,list(
-      mem = ofID[!isArrayRep], rep = ofID[isArrayRep]),
-      by = c("arrayID", "genome", "chr")]
-    arrRep[,`:=`(inPg = rep %in% pg$ofID, ofID = rep)]
-    pga <- melt(subset(pgo, ofID %in% arrRep$rep | mem %in% arrRep$rep),
-                measure.vars = c("ofID", "mem"), value.name = "ofID")
-    pga <- subset(pga, !is.na(ofID))
-    pga <- subset(pga, !duplicated(ofID))
-    pga <- merge(
-      pga[,c("combOG", "refChr", "refOrd", "refClus", "ofID")],
-      arrRep[,c("ofID", "mem", "genome")], by = "ofID", allow.cartesian = T)
-    pga[,isRep := FALSE]
-    pg <- rbind(pgo, pga)
-    setorder(pg, refOrd, na.last = T)
-    u <- with(pg, unique(paste(combOG, refChr, refClus)))
-    pg[,pgID := as.numeric(factor(paste(combOG, refChr, refClus), levels = u))]
-    pgMd <- pg[,list(ofID = unique(c(ofID, mem))),
-               by = c("pgID", "combOG","refOrd", "refChr", "refClus")]
-    pgMd <- subset(pgMd, !is.na(ofID))
-    u <- with(subset(pg, isRep), unique(paste(combOG, refChr, refOrd, refClus, ofID)))
-    pgMd[,isRep := paste(combOG, refChr, refOrd, refClus, ofID) %in% u]
-
-    gv <- gffa$genome; iv <- gffa$id; names(iv) <- names(gv) <- gffa$ofID
-    pgMd[,`:=`(id = iv[ofID], genome = gv[ofID])]
-    pgMd[,rep := ofID[isRep], by = "pgID"]
-    if(verbose)
-      cat(sprintf("returning a pangenome with %s entries\n", uniqueN(pgMd$pgID)))
-    return(pgMd)
-  }
 
   if(is.null(genomeIDs))
     genomeIDs <- gsParam$genomes$genomeIDs
@@ -265,21 +168,72 @@ pangenome <- function(gsParam,
         sum(ogn$n == 1), sum(ogn$n == 2), sum(ogn$n == 3),
         sum(ogn$n == 4), sum(ogn$n > 4)))
 
+  # -- build pg for ogs with placements on reference
+  if(verbose)
+    cat("\nBuilding the pan-genome annotation ...\n")
+  pg <- merge(
+    with(gff, data.table(genome = genome, ofID = ofID, og = combOG)),
+    with(ogPos, data.table(og = combOG, chr = refChr, clus = clus, ord = ord)),
+    by = "og", all= T, allow.cartesian = T)
+  pg[,u:=paste(chr,clus,ord,og)]
+  pg[,`:=`(pgID = as.numeric(factor(u,levels= unique(u))),u=NULL)]
+  if(verbose)
+    with(pg, cat(sprintf(
+      "Initializing with %s genes, %s OGs and %s placements and %s unplaced OGs",
+      uniqueN(ofID), uniqueN(og), uniqueN(pgID), uniqueN(og[is.na(ord)]))))
+
+  # -- adding array members
+  if(verbose)
+    cat("\n\tAdding in array members ... \n")
+  gffFilea <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
+  gffa <- fread(gffFilea, na.strings = c("", "-", "NA"), showProgress = F)
+  gffa[,n := .N, by = "arrayID"]
+  arrRep <- subset(gffa, n > 1)[,list(
+    mem = ofID[!isArrayRep], rep = ofID[isArrayRep]),
+    by = c("arrayID", "genome", "chr")]
+  arrRep[,`:=`(inPg = rep %in% pg$ofID, ofID = rep)]
+  pga <- merge(
+    subset(pg, ofID %in% arrRep$rep),
+    with(arrRep, data.table(ofID = rep, mem = mem)),
+    by  = "ofID", allow.cartesian = T)
+  pga[,`:=`(ofID = mem, mem = NULL)]
+  with(pga, cat(sprintf(
+    "\t\tFound %s genes, %s OGs and %s/%s placed/ unplaced OGs",
+    uniqueN(ofID), uniqueN(og), uniqueN(pgID), uniqueN(og[is.na(ord)]))))
+  pg <- rbind(pg, pga)
+
   # -- integrate orthologs
   if(verbose)
-    cat("\nBuilding the pan-genome annotation ...")
-  pgMd <- build_pga(
-    gffRef = gffRef,
-    ogPos = ogPos,
-    gsParam = gsParam,
-    gff = gff)
+    cat("\n\tAdding in non-syntenic orthologs ... \n")
+  gv <- gffa$genome; names(gv) <- gffa$ofID
+  pgs <- merge(
+    subset(pg, ofID %in% nsOrtho$ofID),
+    with(nsOrtho, data.table(ofID = ofID, mem = orthIDs)),
+    by  = "ofID", allow.cartesian = T)
+  pgs[,`:=`(ofID = mem, mem = NULL, nonSynOrtho = TRUE)]
+  pgs[,genome := gv[ofID]]
+  pgs <- subset(pgs, !duplicated(pgs))
+  pg[,nonSynOrtho := FALSE]
+  with(pgs, cat(sprintf(
+    "\t\tFound %s genes, %s OGs and new %s entries\n",
+    uniqueN(ofID), uniqueN(og), uniqueN(pgID), uniqueN(og[is.na(ord)]))))
+  pg <- rbind(pg, pgs)
 
   if(verbose)
     cat("\tFormating and writing the pangenome ... ")
-  pgout <- dcast(pgMd, pgID + combOG + refChr + refOrd + rep ~ genome,
+  # -- add non-syn orthos
+  pg[,tmp := gv[ofID]]
+  pgout <- data.table(pg)
+  iv  <- gffa$id; names(iv) <- gffa$ofID
+  pgout[,id := iv[ofID]]
+  pgout$id[pgout$nonSynOrtho] <- paste0(pgout$id[pgout$nonSynOrtho], "*")
+  pgout <- dcast(pgout, pgID + og + chr + ord ~ genome,
                  value.var = "id", fun.aggregate = function(x) list(x))
-  pgf <- file.path(gsParam$paths$results, "pangenomeDB.txt.gz")
-  fwrite(pgMd, file = pgf, sep = "\t")
+  setorder(pgout, ord, na.last = T)
+  pgf <- file.path(
+    gsParam$paths$results,
+    sprintf("%s_pangenomeDB.txt.gz", refGenome))
+  fwrite(pg, file = pgf, sep = "\t")
   if(verbose)
     cat(sprintf("\nPangenome written to %s", pgf))
   return(pgout)

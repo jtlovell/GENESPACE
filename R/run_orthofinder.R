@@ -51,7 +51,7 @@ run_orthofinder <- function(gsParam, overwrite = FALSE){
     warning("orthofinder run exists & !overwrite, so not running")
     gsParam <- find_orthofinderResults(gsParam, onlyCheckRun = F)
   }else{
-    if(is.na(gsParam$paths$orthofinderCall) || !gsParam$paths$orthofinderCall){
+    if(is.na(gsParam$paths$orthofinderCall)){
       com <- default_ofDb(gsParam)
     }else{
       if(gsParam$params$orthofinderMethod == "fast"){
@@ -177,9 +177,10 @@ fast_ofDb <- function(gsParam){
             fa2 = file.path(ofd, sprintf("Species%s.fa",si[genome2])),
             blFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome1], si[genome2])),
             invertFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome2], si[genome1])))]
+    dm <- ifelse(gsParam$params$diamondMode == "--fast", "", gsParam$params$diamondMode)
     p[,com := sprintf(
       "%s blastp %s --quiet -e %s -p %s --compress 1 -d %s -q %s -o %s",
-      "diamond", .1, gsParam$params$nCores, db2, fa1, blFile)]
+      "diamond", dm, .1, gsParam$params$nCores, db2, fa1, blFile)]
     return(p)
   }
 
