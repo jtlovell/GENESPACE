@@ -50,6 +50,7 @@
 #' @param ofID1 orthofinder ID of the first gene
 #' @param ofID2 orthofinder ID of the second gene
 #' @param onlyIDScore logical, should only the geneIDs and score be returned?
+#' @param interpTails logical, should unbounded tails be interpolated?
 #' \cr
 #' If called, \code{utils} returns its own arguments.
 #'

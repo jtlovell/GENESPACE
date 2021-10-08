@@ -17,9 +17,6 @@
 #' to all genomeIDs specification in gsParam.
 #' @param gff gff with additional annotations columns (see synteny)
 #'
-#' @param verbose logical, specifying whether to print updates to the console.
-#' Defaults to verbose specification in gsParam, unless specified here
-#'
 #' @details The pangenome annotation is a projection of syntenic orthogroups
 #' on the physical coordinate system of a reference genome. The pangenome
 #' function runs the following pipeline.

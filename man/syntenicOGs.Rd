@@ -48,6 +48,13 @@ specified (default) taken from gsParam$genomeIDs$genomeIDs}
 
 \item{hits}{data.table containing annotated blast-format pairwise hits}
 
+\item{allowRBHinOg}{logical, should RBHs be permitted in the synOgs?}
+
+\item{useBlks}{logical, should blocks be used instead of regions?}
+
+\item{minGenes4of}{integer specifying the minimum number of genes allowed
+for an orthofinder run}
+
 \item{verbose}{logical, should updates be printed to the console?}
 
 \item{genome1}{character string specifying first of two genomeIDs}
@@ -56,46 +63,22 @@ specified (default) taken from gsParam$genomeIDs$genomeIDs}
 
 \item{blks}{data.table containing the block coordinates}
 
-\item{radius}{numeric of length 1 specifying the eps dbscan parameter; the
-search radius within which to count clustered density-based xy points.}
+\item{pepspl}{list of peptide stringsets, split by genome}
 
-\item{blkSize}{integer of length 1 specifying the minimum size for a syntenic
-block and the -s 'size' MCScanX parameter}
+\item{blast00}{data.table with blast hits between genome0 and genome0}
 
-\item{nCores}{integer of length 1 specifying the number of parallel processes
-to run}
+\item{blast01}{data.table with blast hits between genome1 and genome0}
 
-\item{minRbhScore}{integer of length 1, see set_syntenyParams}
+\item{blast10}{data.table with blast hits between genome0 and genome1}
 
-\item{synBuff}{integer of length 1 specifying the maximum euclidean distance
-from an 'anchor' so that it can be considered syntenic}
+\item{blast11}{data.table with blast hits between genome1 and genome1}
 
-\item{selfOnly}{logical, should only self hits be considered}
+\item{pep0}{AAStringset with petides from genome0}
 
-\item{overwrite}{logical, should the results be overwrittem?}
-
-\item{maskHits}{data.table of hits that should be excluded}
-
-\item{synParam}{data.table with synteny parameters. See set_syntenyParams.}
-
-\item{selfRegionMask}{integer, the radius around self hits that should be
-masked}
-
-\item{type}{either 'primary' or 'secondary' depending on the scale of
-inference}
-
-\item{dropInterleavesSmallerThan}{integer, the minimum block size to retain
-after splitting overlapping blocks}
-
-\item{minPropDup}{numeric (0-1) specifying the minimum proportion of
-duplicated hits to allow two overlapping blocks to not be split}
-
-\item{maxIter}{integer, the maximum number of block splitting interations}
-
-\item{nhits}{integer, the number of hits to retain}
+\item{pep1}{AAStringset with petides from genome1}
 }
 \value{
-a 'hits' data.table for a pairwise combination of genomes.
+...
 }
 \description{
 \code{syntenicOGs} syntenicOGs
@@ -119,39 +102,7 @@ a 'hits' data.table for a pairwise combination of genomes.
 \code{run_ofFromObj} run_ofFromObj
 }
 \details{
-The main engine for GENESPACE synteny searching. This
-finds syntenic 'anchors' that are high-confidence synteny- and homology-
-constrained hits, then pulls nearby hits within a specified buffer around
-'anchor' hits between two genomes. Combined, this provides a framework to
-both analyze syntenic duplicates (e.g. tandem arrays) and have high
-confidence that only the desired types of hits (orthologs, homoeologs, etc.)
-are considered.
-
-The basic premise is that we can find synteny in haploid genome comparisons (most
-diploid species have haploid genome representations) best by first
-constraining the initial search to the single best scoring pairwise hits for
-each gene. Then, if desired further subsetting this set to only gene pairs
-that fall into the same orthogroups. This approach effectively removes
-relic syntenic regions from ancient whole genome duplications and produces
-a set of high-confidence synteny "anchors" which serve as known positions of
-syntenic (ortho/para/homeolo)gous regions. We then search in a fixed-radius
-for nearest neighbors within a gene-rank order buffer around the anchors. For
-intra-genomic hits, the self hits are the anchors and a buffer is calculated
-via euclidean distance. For intra-genomic hits in polyploids, the self-hit
-regions are masked and the synteny search is re-run to more effectively find
-homeologs.
-
-It is important to note that this does NOT produce finalized block
-coordinates, but only large-scale regions that are syntenic. These results
-are usually passed to an additional orthofinder run, either globally, or for
-polyploids or searches with paralogs, within-block pairwise runs. See
-rerun_orthofinder.
-
-Parameterization of this function is complex and varies by the type of
-contrast desired. To simplify parameterization, we have build a convenience
-function that infers various parameters based on basic
-genespace parameters and ploidy. Set set_syntenyParams for more information
-about the input synParam data.table.
+...
 }
 \examples{
 \dontrun{

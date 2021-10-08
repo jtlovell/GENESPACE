@@ -55,6 +55,8 @@ contains all the genome annotation raw files.}
 usually half of the actual ploidy, that is an inbred diploid usually is
 represented by a haploid genome assembly.}
 
+\item{diamondMode}{character string to match one of the diamond search modes}
+
 \item{orthofinderMethod}{character string either 'fast' or 'default'. See
 build_OFdb for details.}
 
@@ -77,6 +79,10 @@ to the orthofinder executable. If orthofinder is in the path, specify with
 
 \item{path2mcscanx}{see path2orthofinder, except to the mcscanx directory.
 This must contain the MCScanX_h folder.}
+
+\item{path2diamond}{character string coercible to a file path that points
+to the diamond executable. If diamond is in the path, specify with
+"diamond"}
 
 \item{gffString}{character string of length 1, coercable to a
 regular expression. File names in the 'annotation' subdirectories are

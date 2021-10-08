@@ -31,29 +31,24 @@ pull_ogsByChr(gsParam, gff, synBuff, minGenes4of, nCores)
 \item{gsParam}{a list containing all parameters for a GENESPACE run. See
 init_genespace}
 
+\item{minGenes4of}{integer specifying the minimum number of genes allowed
+for an orthofinder run}
+
 \item{genomeIDs}{an optional vector of genomeIDs to consider. If not
 specified (default) taken from gsParam$genomeIDs$genomeIDs}
+
+\item{overwrite}{logical, should existing results be overwritten?}
 
 \item{gff}{annotated gff with orthogroups included, see read_gff}
 
 \item{blastDir}{file.path to the location of the blast results.}
 
+\item{synBuff}{synteny buffer, see set_synParam}
+
+\item{genomeID}{single value fromo genomeIDs}
+
 \item{nCores}{integer of length 1 specifying the number of parallel processes
 to run}
-
-\item{hits}{data.table containing annotated blast-format pairwise hits}
-
-\item{radius}{numeric of length 1 specifying the eps dbscan parameter; the
-search radius within which to count clustered density-based xy points.}
-
-\item{blkSize}{integer of length 1 specifying the minimum size for a syntenic
-block and the -s 'size' MCScanX parameter}
-
-\item{useBlks}{logical, should blocks be used instead of regions for synteny
-constraint?}
-
-\item{allowRBHinOg}{logical, should RBHs be allowed when constructing
-syntenic orthologs?}
 }
 \value{
 ...

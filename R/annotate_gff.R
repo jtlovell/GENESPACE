@@ -8,18 +8,14 @@
 #' init_genespace
 #' @param genomeIDs an optional vector of genomeIDs to consider. If not
 #' specified (default) taken from gsParam$genomeIDs$genomeIDs
-#' @param hits data.table containing annotated blast-format pairwise hits
-#' @param radius numeric of length 1 specifying the eps dbscan parameter; the
-#' search radius within which to count clustered density-based xy points.
-#' @param blkSize integer of length 1 specifying the minimum size for a syntenic
-#' block and the -s 'size' MCScanX parameter
+#' @param genomeID single value fromo genomeIDs
+#' @param synBuff synteny buffer, see set_synParam
+#' @param overwrite logical, should existing results be overwritten?
+#' @param minGenes4of integer specifying the minimum number of genes allowed
+#' for an orthofinder run
 #' @param nCores integer of length 1 specifying the number of parallel processes
 #' to run
 #' @param gff annotated gff with orthogroups included, see read_gff
-#' @param useBlks logical, should blocks be used instead of regions for synteny
-#' constraint?
-#' @param allowRBHinOg logical, should RBHs be allowed when constructing
-#' syntenic orthologs?
 #' @param blastDir file.path to the location of the blast results.
 
 #' @details ...

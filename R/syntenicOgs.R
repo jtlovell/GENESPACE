@@ -9,70 +9,26 @@
 #' @param genomeIDs an optional vector of genomeIDs to consider. If not
 #' specified (default) taken from gsParam$genomeIDs$genomeIDs
 #' @param hits data.table containing annotated blast-format pairwise hits
-#' @param radius numeric of length 1 specifying the eps dbscan parameter; the
-#' search radius within which to count clustered density-based xy points.
-#' @param blkSize integer of length 1 specifying the minimum size for a syntenic
-#' block and the -s 'size' MCScanX parameter
-#' @param nCores integer of length 1 specifying the number of parallel processes
-#' to run
-#' @param minRbhScore integer of length 1, see set_syntenyParams
 #' @param genome1 character string specifying first of two genomeIDs
 #' @param genome2 character string specifying second of two genomeIDs
 #' @param gff annotated gff with orthogroups included, see read_gff
-#' @param synBuff integer of length 1 specifying the maximum euclidean distance
-#' from an 'anchor' so that it can be considered syntenic
-#' @param selfOnly logical, should only self hits be considered
-#' @param overwrite logical, should the results be overwrittem?
-#' @param maskHits data.table of hits that should be excluded
-#' @param synParam data.table with synteny parameters. See set_syntenyParams.
-#' @param selfRegionMask integer, the radius around self hits that should be
-#' masked
-#' @param type either 'primary' or 'secondary' depending on the scale of
-#' inference
-#' @param dropInterleavesSmallerThan integer, the minimum block size to retain
-#' after splitting overlapping blocks
-#' @param minPropDup numeric (0-1) specifying the minimum proportion of
-#' duplicated hits to allow two overlapping blocks to not be split
-#' @param maxIter integer, the maximum number of block splitting interations
-#' @param nhits integer, the number of hits to retain
 #' @param blks data.table containing the block coordinates
+#' @param allowRBHinOg logical, should RBHs be permitted in the synOgs?
+#' @param useBlks logical, should blocks be used instead of regions?
+#' @param minGenes4of integer specifying the minimum number of genes allowed
+#' for an orthofinder run
+#' @param pepspl list of peptide stringsets, split by genome
+#' @param pep0 AAStringset with petides from genome0
+#' @param pep1 AAStringset with petides from genome1
+#' @param blast00 data.table with blast hits between genome0 and genome0
+#' @param blast01 data.table with blast hits between genome1 and genome0
+#' @param blast10 data.table with blast hits between genome0 and genome1
+#' @param blast11 data.table with blast hits between genome1 and genome1
 #' @param verbose logical, should updates be printed to the console?
 
-#' @details The main engine for GENESPACE synteny searching. This
-#' finds syntenic 'anchors' that are high-confidence synteny- and homology-
-#' constrained hits, then pulls nearby hits within a specified buffer around
-#' 'anchor' hits between two genomes. Combined, this provides a framework to
-#' both analyze syntenic duplicates (e.g. tandem arrays) and have high
-#' confidence that only the desired types of hits (orthologs, homoeologs, etc.)
-#' are considered.
+#' @details ...
 #'
-#' The basic premise is that we can find synteny in haploid genome comparisons (most
-#' diploid species have haploid genome representations) best by first
-#' constraining the initial search to the single best scoring pairwise hits for
-#' each gene. Then, if desired further subsetting this set to only gene pairs
-#' that fall into the same orthogroups. This approach effectively removes
-#' relic syntenic regions from ancient whole genome duplications and produces
-#' a set of high-confidence synteny "anchors" which serve as known positions of
-#' syntenic (ortho/para/homeolo)gous regions. We then search in a fixed-radius
-#' for nearest neighbors within a gene-rank order buffer around the anchors. For
-#' intra-genomic hits, the self hits are the anchors and a buffer is calculated
-#' via euclidean distance. For intra-genomic hits in polyploids, the self-hit
-#' regions are masked and the synteny search is re-run to more effectively find
-#' homeologs.
-#'
-#' It is important to note that this does NOT produce finalized block
-#' coordinates, but only large-scale regions that are syntenic. These results
-#' are usually passed to an additional orthofinder run, either globally, or for
-#' polyploids or searches with paralogs, within-block pairwise runs. See
-#' rerun_orthofinder.
-#'
-#' Parameterization of this function is complex and varies by the type of
-#' contrast desired. To simplify parameterization, we have build a convenience
-#' function that infers various parameters based on basic
-#' genespace parameters and ploidy. Set set_syntenyParams for more information
-#' about the input synParam data.table.
-#'
-#' @return a 'hits' data.table for a pairwise combination of genomes.
+#' @return ...
 #' @examples
 #' \dontrun{
 #' # coming soon

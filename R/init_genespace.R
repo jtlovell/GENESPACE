@@ -46,6 +46,10 @@
 #' @param wd file.path where the analysis will be run
 #' @param minPepLen integer, the shortest peptide to be analyzed
 #' @param overwrite logical, should existing directories be overwritten?
+#' @param diamondMode character string to match one of the diamond search modes
+#' @param path2diamond character string coercible to a file path that points
+#' to the diamond executable. If diamond is in the path, specify with
+#' "diamond"
 #' @details Simple directory parser to find and check the paths to all
 #' annotation and assembly files.
 #'

@@ -28,9 +28,6 @@ to all genomeIDs specification in gsParam.}
 \item{refGenome}{character string matching one of the genomeIDs in gsParam}
 
 \item{gff}{gff with additional annotations columns (see synteny)}
-
-\item{verbose}{logical, specifying whether to print updates to the console.
-Defaults to verbose specification in gsParam, unless specified here}
 }
 \value{
 a data.table with lists of gene ids for each genome. Each row
