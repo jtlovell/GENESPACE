@@ -15,7 +15,7 @@ Imports: dbscan,
 Suggests: knitr,
   TSP,
   rmarkdown
-License: GPL (>= 2)
+License: file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1

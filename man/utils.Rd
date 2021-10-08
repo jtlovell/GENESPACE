@@ -160,9 +160,7 @@ interp_linear(x, y, interpTails = TRUE)
 
 \item{ofID2}{orthofinder ID of the second gene}
 
-\item{onlyIDScore}{logical, should only the geneIDs and score be returned?
-\cr
-If called, \code{utils} returns its own arguments.}
+\item{onlyIDScore}{logical, should only the geneIDs and score be returned?}
 
 \item{y}{y position of the scale bar}
 
@@ -195,6 +193,10 @@ If called, \code{utils} returns its own arguments.}
 \item{xright}{numeric, specifying the coordinate of right x position}
 
 \item{ytop}{numeric, specifying the coordinate of upper y position}
+
+\item{interpTails}{logical, should unbounded tails be interpolated?
+\cr
+If called, \code{utils} returns its own arguments.}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called

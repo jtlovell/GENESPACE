@@ -24,6 +24,7 @@
 #' @param blast01 data.table with blast hits between genome1 and genome0
 #' @param blast10 data.table with blast hits between genome0 and genome1
 #' @param blast11 data.table with blast hits between genome1 and genome1
+#' @param writeDir file path to write orthofinder files and run
 #' @param verbose logical, should updates be printed to the console?
 
 #' @details ...

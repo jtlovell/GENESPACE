@@ -76,6 +76,8 @@ for an orthofinder run}
 \item{pep0}{AAStringset with petides from genome0}
 
 \item{pep1}{AAStringset with petides from genome1}
+
+\item{writeDir}{file path to write orthofinder files and run}
 }
 \value{
 ...
