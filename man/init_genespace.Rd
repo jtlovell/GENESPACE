@@ -12,6 +12,7 @@ init_genespace(
   versionIDs,
   rawGenomeDir,
   ploidy,
+  diamondMode = "more-sensitive",
   orthofinderMethod = ifelse(any(ploidy > 1), "fast", "default"),
   orthofinderInBlk = any(ploidy > 1),
   recallArrays = any(ploidy > 1 | length(genomeIDs) > 6),
@@ -20,6 +21,7 @@ init_genespace(
   overwrite = FALSE,
   path2orthofinder = "orthofinder",
   path2mcscanx = "MCScanX",
+  path2diamond = "diamond",
   gffString = "gene.gff",
   pepString = "pep|prot",
   verbose = TRUE

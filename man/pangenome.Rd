@@ -7,7 +7,7 @@
 \alias{pull_blkAnchors}
 \title{Build genespace pangenome}
 \usage{
-pangenome(gsParam, genomeIDs, refGenome)
+pangenome(gsParam, genomeIDs = NULL, refGenome = NULL)
 
 combine_inblkSynOG(refGenome, genomeIDs, gsParam)
 
@@ -29,29 +29,14 @@ to all genomeIDs specification in gsParam.}
 
 \item{gff}{gff with additional annotations columns (see synteny)}
 
-\item{hitsRef}{hits data.table against the reference genome}
-
-\item{blks}{data.table of block coordinates}
-
-\item{gffRaw}{raw gff from read_gff}
-
-\item{infPos}{data.table with inferred gene positions}
-
-\item{allowRBHinOg}{logical, should synOGs be constructed aware of RBHs?}
-
-\item{hits}{data.table of hits}
-
-\item{maxGap}{integer specifying the maxiumum allowable gap between synOgs}
-
-\item{infGenePos}{data.table with inferred gene positions}
-
-\item{nCores}{integer specifying the number of parallel processes to run}
-
 \item{verbose}{logical, specifying whether to print updates to the console.
 Defaults to verbose specification in gsParam, unless specified here}
 }
 \value{
-...
+a data.table with lists of gene ids for each genome. Each row
+corresponds to a unique combination of orthogroup and physical position
+on the reference. Where multiple positions are inferred on a single
+chromosome, the positions are broken out by the column 'clus'.
 }
 \description{
 \code{pangenome} Convert orthogroup and synteny information into a
@@ -68,14 +53,20 @@ genes and collapse into pangenome database
 \code{pull_blkAnchors} pull_blkAnchors
 }
 \details{
-...
+The pangenome annotation is a projection of syntenic orthogroups
+on the physical coordinate system of a reference genome. The pangenome
+function runs the following pipeline.
 \enumerate{
-\item genome1/2: the genome IDs for each pairwise run
-\item uGenes1/2: the number of unique genes for each genome
-\item query/target: the identity of query/target genomes in each blast run
-\item run/mirrorBlast: logical whether the blast was run or mirrored
-\item gn1/2: orthofinder genomeID numbers for each genome
-\item db/fa/1/2/blFile: diamond database, fasta files and blast files.
+\item within-block orthogroups and synteny-constrained global orthogroups
+are merged.
+\item the reference position is projected for all genes within syntenic
+block bounds.
+\item physical projected positions for each syntenic orthgroup is clustered,
+permitting multiple reference locations (e.g. in a polyploid)
+\item orthogroups with placements on the reference are populated and un-
+placed orthgroups are added within reference position information
+\item array members are added to the orthogroups
+\item non-syntenic orthologs are added and flagged
 }
 }
 \note{

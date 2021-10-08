@@ -92,7 +92,7 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   ##############################################################################
   genome1 <- genome2 <- gnum1 <- gnum2 <- synOg <- genome <- og <- nChr1 <- NULL
   nChr2 <- blkID <- ofID1 <- ofID2 <- score <- scrRank1 <- scrRank2 <- NULL
-  isAnchor <- gen1 <- gen2 <- chr1 <- chr2 <- regBuffer <- NULL
+  isAnchor <- gen1 <- gen2 <- chr1 <- chr2 <- regBuffer <- globOG <- NULL
 
   if(is.null(genomeIDs)){
     genomeIDs <- gsParam$genomes$genomeIDs
@@ -846,8 +846,8 @@ pipe_synteny <- function(gsParam,
                          synParam,
                          type = "primary"){
 
-  gen1 <- gen2 <- isArrayRep <- ofID1 <- ofID2 <- isMasked <- NULL
-  blkIDn <- blkID <- chr1 <- chr2 <- inBuffer <- isAnchor <- NULL
+  gen1 <- gen2 <- isArrayRep <- ofID1 <- ofID2 <- isMasked <- regBuffer <- NULL
+  blkIDn <- blkID <- chr1 <- chr2 <- inBuffer <- isAnchor <- lgRegionID <- NULL
 
   verbose <- gsParam$params$verbose
   # -- read in the blasts

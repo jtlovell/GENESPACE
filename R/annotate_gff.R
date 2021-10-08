@@ -41,6 +41,8 @@ annotate_gff <- function(gsParam,
                          genomeIDs = NULL,
                          overwrite = FALSE){
 
+  genome <- ord  <- arrayID <- isArrayRep <- med <- pepLen <- rnk <- ofID <- NULL
+  medbp <- start <- dist2med <- dist2bp <- NULL
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
   if(file.exists(gffFile) & !overwrite){
     tmp <- fread(gffFile, na.strings = c("-", "NA", ""), showProgress = F)
@@ -248,6 +250,7 @@ add_ofID2gff <- function(gff,
 #' @import data.table
 #' @export
 recall_arrays <- function(gsParam, minGenes4of = 50){
+  genome1 <- genome2 <- genome <- synArray <- recallArray <- ofID <- NULL
   if(!check_orthofinderInstall("orthofinder"))
     stop("orthofinder not found. Open R from an environment with orthofinder in the path\n")
   if(gsParam$params$verbose)
@@ -330,6 +333,8 @@ clus_arrays <- function(gff,
                         minGenes4of = 40,
                         genomeID){
 
+  ofID1 <- ofID2 <- chr1 <- chr2 <- n <- ord1 <- ord2 <- ofID <- maxJump <- NULL
+  ord <- clus <- chr <- og <- NULL
   # -- read the gff and get vectors of chrs and orders
   chrv <- gff$chr; ordv <- gff$ord; names(chrv) <- names(ordv) <- gff$ofID
 
@@ -402,6 +407,7 @@ add_arrays2gff <- function(gsParam,
                            gff,
                            minGenes4of = 40){
 
+  arrayID <-  genome <-  chr <-  globOG <-  n <-  rng <- ord  <- clus  <- og  <-  collinearOG <-
   nCores <- gsParam$params$nCores
   verbose <- gsParam$params$verbose
   synBuff <- max(gsParam$params$synteny$synBuff)
@@ -491,6 +497,8 @@ pull_ogsByChr <- function(gsParam,
                           synBuff,
                           minGenes4of,
                           nCores){
+
+  V1 <- V2 <- u1 <- u2 <- o1 <- o2 <- nGenes <- NULL
   verbose <- gsParam$params$verbose
   ofsp <- read_orthofinderSpeciesIDs(gsParam$paths$blastDir)
   cv <- with(gff, paste(genome, chr)); ov <- gff$ord

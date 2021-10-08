@@ -688,6 +688,7 @@ round_rect <- function(xleft, ybottom, xright, ytop){
 interp_linear <- function(x,
                           y,
                           interpTails = TRUE){
+  rl <- ip <- NULL
   if(length(x) != length(y) || !is.numeric(x) || !is.numeric(y)){
     warning("x and y must be numeric/integer vectors of equal length\n")
   }else{

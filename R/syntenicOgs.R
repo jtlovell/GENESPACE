@@ -86,6 +86,8 @@
 #' @importFrom grDevices pdf dev.off
 #' @export
 pull_synOGs <- function(gsParam, genomeIDs = NULL){
+
+  isArrayRep <- ogInblk <- ofID1 <- ofID2 <- inblkOG <- ofID <- NULL
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
   gff <- fread(gffFile, na.strings = c("", "-", "NA"), showProgress = F)
   verbose <- gsParam$params$verbose
@@ -140,7 +142,7 @@ add_synOg2gff <- function(gff,
                           genomeIDs,
                           allowRBHinOg,
                           useBlks){
-  blkBuffer <- isSelf <- ofID1 <- ofID2 <- og <- ofID <- synOg <- blkID <- NULL
+  blkBuffer <- isSelf <- ofID1 <- ofID2 <- og <- ofID <- synOG <- blkID <- NULL
   # -- find hits files
   if(is.null(hits)){
     eg <- CJ(genomeIDs, genomeIDs)
@@ -210,6 +212,9 @@ blkwise_orthofinder <- function(gsParam,
                                 minGenes4of = 40,
                                 verbose = NULL){
 
+  genome1 <- genome2 <- gnum1 <- gnum2 <- lgRegionID <- regBuffer <- n2 <- NULL
+  n1 <- V2 <- V1 <- blkID <- hasOgGlob <- og <- regID <- ofID <- regAnchor <- NULL
+  ofID1 <- ofID2 <- synOg1 <- synOg2 <- hasOgPw <- NULL
   #############################################################################
   # 1.Checking
   #############################################################################
@@ -345,6 +350,8 @@ blkwise_orthofinder <- function(gsParam,
 #' @import data.table
 #' @export
 count_nBlks <- function(gsParam, genomeIDs, minGenes4of){
+  genome1 <- genome2 <- gnum1 <- gnum2 <- regBuffer <- lgRegionID <- NULL
+  regAnchor <- nHits <- nHits2 <- nHits1 <- NULL
   synp <- data.table(gsParam$params$synteny)
   synp[,`:=`(gnum1 = match(genome1, genomeIDs),
              gnum2 = match(genome2, genomeIDs))]
@@ -383,7 +390,9 @@ count_nBlks <- function(gsParam, genomeIDs, minGenes4of){
 #' @import data.table
 #' @export
 read_hits4of <- function(gsParam, genome1, genome2){
+
   read_invertBlast <- function(gsParam, genome1, genome2, ofSpId, invert = T){
+    V1 <- V2 <- V12 <- NULL
     h <- read_blast(
       path = gsParam$paths$blastDir, onlyIDScore = F,
       ofID1 = ofSpId[genome1],
@@ -397,6 +406,7 @@ read_hits4of <- function(gsParam, genome1, genome2){
     }
     return(h)
   }
+
   ofSpId <- read_orthofinderSpeciesIDs(gsParam$paths$blastDir)
   if(genome1 == genome2){
     h <- read_invertBlast(
@@ -427,6 +437,8 @@ read_hits4of <- function(gsParam, genome1, genome2){
 #' @export
 run_ofInReg <- function(gsParam, genome1, genome2, blks, gff, pepspl){
 
+  V1 <- V2 <- ord <- ofID1 <- ofID2 <- synOg1 <- synOg2 <- og <- regID <- NULL
+  cls <- og <- gen1 <- gen2 <- nHits1 <- genome <- lgRegionID <- NULL
   nCores <- gsParam$params$nCores
   geno1 <- genome1[1]
   geno2 <- genome2[1]
@@ -497,6 +509,7 @@ run_ofInReg <- function(gsParam, genome1, genome2, blks, gff, pepspl){
 #' @import data.table
 #' @export
 count_ogtypes <- function(gff, hits){
+  genome <- synOg1 <- synOg2 <- regID <- synOg <- ofID1 <- ofID2 <- og <- NULL
   allGenes <- subset(gff, genome %in% c(hits$gen1[1], hits$gen2[1]))
   sogr <- subset(hits, synOg1 == synOg2 & !is.na(regID))
   sogr[,synOg := clus_igraph(ofID1, ofID2)]
@@ -542,6 +555,7 @@ count_ogtypes <- function(gff, hits){
 #' @import data.table
 #' @export
 count_expectn <- function(hits, gff){
+  ord1 <- ord2 <- genome <- chr <- start <- end <- ofID <- nReg <- regID <- NULL
   b <- hits[,list(start = min(ord1), end = max(ord1)),
             by = c("gen1","chr1","regID")]
   if(hits$gen1[1] != hits$gen2[1] ){
@@ -576,6 +590,7 @@ run_ofFromObj <- function(blast00,
                           pep1,
                           writeDir){
 
+  ofID <- ofID1 <- ofID2 <- id <- ofID <- og <- Orthogroup <- NULL
   if(dir.exists(writeDir))
     stop(sprintf("%s exists. Specify non-existing directory\n",
                  writeDir))
