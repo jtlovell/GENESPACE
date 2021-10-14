@@ -2,15 +2,18 @@
 % Please edit documentation in R/pangenome.R
 \name{pangenome}
 \alias{pangenome}
+\alias{combine_inblkSynOG}
 \alias{pull_nonSynOrthologs}
 \alias{pull_blkAnchors}
 \title{Build genespace pangenome}
 \usage{
 pangenome(gsParam, genomeIDs = NULL, refGenome = NULL)
 
+combine_inblkSynOG(refGenome, genomeIDs, gff, gsParam)
+
 pull_nonSynOrthologs(gsParam, gff)
 
-pull_blkAnchors(gsParam, gff, refGenome, genomeIDs)
+pull_blkAnchors(gsParam, gff, refGenome)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -39,6 +42,8 @@ node in the reference.
 
 \code{pangenome} Predict locations in reference genome for all
 genes and collapse into pangenome database
+
+\code{combine_inblkSynOG} combine_inblkSynOG
 
 \code{pull_nonSynOrthologs} pull_nonSynOrthologs
 

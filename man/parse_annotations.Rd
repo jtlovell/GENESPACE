@@ -65,6 +65,8 @@ attributes column.Can be a vector of length 1, if all files should be parsed
 identically, or a vector with the same length as file paths and genomeIDs,
 specifying different parsing parameters for each genome.}
 
+\item{gffStripText}{like headerStripText but for the gff geneID entry}
+
 \item{headerEntryIndex}{integer specifying the field index in the fasta
 header which contains the gene ID information to match with the gff. Can be a
 vector of length 1, if all files should be parsed identically, or a vector

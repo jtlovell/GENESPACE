@@ -118,7 +118,7 @@ pangenome <- function(gsParam,
   ##############################################################################
   # -- check the basic parameters
   u <- id <- pgID <- nonSynOrtho <- genome <- mem <- isArrayRep <- ofID <- NULL
-  n <- og <- ord <- clus <- chr <- NULL
+  n <- og <- ord <- clus <- chr <- gen1 <- arrayID <- NULL
   # -- genomeIDs
   if(is.null(genomeIDs))
     genomeIDs <- gsParam$genomes$genomeIDs
@@ -314,7 +314,7 @@ combine_inblkSynOG <- function(refGenome,
                                gff,
                                gsParam){
 
-  ofID <- ofID1 <- ofID2 <- clus <- combOG <- NULL
+  ofID <- ofID1 <- ofID2 <- clus <- combOG <- inBlkOG <- synOG <- NULL
   if(gsParam$params$verbose)
     cat("Combining synteny-constrained and inblock orthogroups ...\n")
 
@@ -379,7 +379,7 @@ pull_nonSynOrthologs <- function(gsParam,
 pull_blkAnchors <- function(gsParam,
                             gff,
                             refGenome){
-  isSelf <- blkAnchor <- ofID2 <- ofID1 <- ord1 <- ord2 <- NULL
+  isSelf <- blkAnchor <- ofID2 <- ofID1 <- ord1 <- ord2 <- g1 <- g2 <- NULL
   genomeIDs <- unique(gff$genome)
 
   # -- get the hit files

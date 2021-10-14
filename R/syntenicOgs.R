@@ -45,6 +45,7 @@
 pull_synOGs <- function(gsParam, genomeIDs = NULL){
 
   isArrayRep <- ogInblk <- ofID1 <- ofID2 <- inBlkOG <- ofID <- NULL
+  og <- synOG <- globOG <- u <- arrayID <- NULL
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
   gff <- fread(gffFile, na.strings = c("", "NA"), showProgress = F)
   verbose <- gsParam$params$verbose

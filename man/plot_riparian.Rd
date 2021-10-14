@@ -12,7 +12,7 @@
 \usage{
 plot_riparian(
   gsParam,
-  plotRegions = FALSE,
+  plotRegions = TRUE,
   refGenome = NULL,
   genomeIDs = NULL,
   onlyTheseChrs = NULL,
@@ -32,10 +32,10 @@ plot_riparian(
   chrBorder = "black",
   chrFill = "white",
   chrRectBuffer = 1.5,
-  colByChrs = c("#8B1D00", "#D05100", "#ED9004", "#F9C70E", "#EAE075", "#BAE0DB",
-    "#8BEDF9", "#74B8FC", "#4871F9", "#040DC9", "#0E004C", "#5E09A3", "#C054F9",
-    "#E6BDFC"),
+  colByChrs = NULL,
   labelChrBiggerThan = NULL,
+  labelTheseGenomes = NULL,
+  blackBg = TRUE,
   chrLabFun = function(x) gsub("^0", "", gsub("^chr|^scaffold|^lg|_", "", tolower(x)))
 )
 
@@ -124,6 +124,10 @@ no coloring by chr, specify NULL.}
 
 \item{labelChrBiggerThan}{integer specifying the minimum number of genes or
 bp to label a chromosome}
+
+\item{labelTheseGenomes}{character string of genomes that have labeled chrs}
+
+\item{blackBg}{logical, should the background be dark?}
 
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
 

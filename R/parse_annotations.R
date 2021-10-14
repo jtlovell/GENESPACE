@@ -35,6 +35,7 @@
 #' Can be a vector of length 1, if all files should be parsed identically,
 #' or a vector with the same length as file paths and genomeIDs, specifying
 #' different parsing parameters for each genome.
+#' @param gffStripText like headerStripText but for the gff geneID entry
 #' @param troubleshoot logical, should the raw and parsed files be printed?
 #' @param path2rawFasta character string coercible to a file path, pointing to
 #' the location of the unparsed fasta file.

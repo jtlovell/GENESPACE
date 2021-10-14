@@ -38,7 +38,7 @@ annotate_gff <- function(gsParam,
                          overwrite = FALSE){
 
   genome <- ord  <- arrayID <- isArrayRep <- med <- pepLen <- rnk <- ofID <- NULL
-  medbp <- start <- dist2med <- dist2bp <- NULL
+  medbp <- start <- dist2med <- dist2bp <- og <- n <- chr <- globOG <- NULL
 
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
   if(file.exists(gffFile) & !overwrite){

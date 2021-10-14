@@ -11,6 +11,7 @@
 #' @param plotRegions logical, should regions be plot (and not blocks)?
 #' @param onlyTheseChrs character vector specifying the reference chrs that
 #' should be plot
+#' @param labelTheseGenomes character string of genomes that have labeled chrs
 #' @param genomeLabCex chracter expansion of the genome labels
 #' @param minGenesOnChr integer, specifying the min number of genes a chromosome
 #' that is plotted cna contain
@@ -22,6 +23,7 @@
 #' @param braidBorderLwd numeric specifying the weight of borders on the braids
 #' @param genomeIDs character vector at least partially matching the genomeIDs
 #' in gsParam
+#' @param blackBg logical, should the background be dark?
 #' @param refGenome single character string specifying which genome is the ref
 #' @param reorderChrs logical, should chromosomes be re-ordered by synteny?
 #' @param minGenes integer specifying the minimum number of genes on a chr to
@@ -101,6 +103,7 @@ plot_riparian <- function(gsParam,
                           chrLabFun = function(x)
                             gsub("^0","",gsub("^chr|^scaffold|^lg|_","",tolower(x)))){
 
+  arrayID <- og <- synOG <- globOG <- inBlkOG <- synOg <- NULL
   genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1 <- ord1 <- ofID <- NULL
   rl <- refChr <- blkID <- gen2 <- startOrd1 <- endOrd1 <- end <- n <- NULL
   startOrd2 <- endOrd2 <- startBp1 <- endBp1 <- startBp2 <- NULL
