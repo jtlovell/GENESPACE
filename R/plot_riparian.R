@@ -320,13 +320,6 @@ plot_riparian <- function(gsParam,
          ylab = "",
          xlab = "",
          main = ""))
-  if(blackBg)
-    with(chrPos, rect(xleft = min(start) - xBuff,
-         xright = max(end),
-         ybottom = min(y)-yBuff,
-         ytop = max(y) + yBuff,
-         border = NULL,
-         col = "grey15"))
 
   # -- make the labels
   chrRectWidth <- strheight("chr", cex = chrLabCex) * chrRectBuffer
@@ -336,6 +329,12 @@ plot_riparian <- function(gsParam,
   text(
     x = 0, y = 1 - (chrRectWidth*2),
     label = subchrText, adj = c(.5,.5), cex = genomeLabCex)
+
+  if(blackBg)
+    with(chrPos, rect(
+      xleft = min(start) - xBuff, xright = max(end),
+      ybottom = min(y)-(chrRectWidth/2),  ytop = max(y)+(chrRectWidth/2),
+      border = NULL, col = "grey15"))
 
   # -- make the scale bar
   mo <- with(subset(gff, genome == refGenome), max(ord))
@@ -413,8 +412,9 @@ plot_riparian <- function(gsParam,
   # label the genomes
   cp <- chrPos[,list(x = min(start)), by = c("genome","y")]
   with(cp, text(
-    x = x - (max(chrPos$end) / 20), y = y,
+    x = x - (max(chrPos$end) / 20), y = y, col = "white",
     label = substr(genome, 1, nGenomeLabChar), adj = c(1.2, .5), cex = genomeLabCex))
+
   par(mar = pmar)
   if(verbose)
     cat("Done!")
