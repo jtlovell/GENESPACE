@@ -96,6 +96,7 @@ plot_riparian <- function(gsParam,
                           chrRectBuffer = 1.5,
                           colByChrs = NULL,
                           labelChrBiggerThan = NULL,
+                          labelTheseGenomes = NULL,
                           blackBg = TRUE,
                           chrLabFun = function(x)
                             gsub("^0","",gsub("^chr|^scaffold|^lg|_","",tolower(x)))){
@@ -137,6 +138,12 @@ plot_riparian <- function(gsParam,
   if(is.null(refGenome) || !refGenome %in% genomeIDs || length(refGenome) > 1)
     refGenome <- genomeIDs[1]
 
+  if(is.null(labelTheseGenomes))
+    labelTheseGenomes <- genomeIDs
+  labelTheseGenomes <- labelTheseGenomes[!duplicated(labelTheseGenomes)]
+  labelTheseGenomes <- labelTheseGenomes[labelTheseGenomes %in% genomeIDs]
+  if(length(genomeIDs) < 1)
+    labelTheseGenomes <- genomeIDs
   # -- read the gff
   if(verbose)
     cat("\tLoading the gff ... ")
@@ -394,26 +401,37 @@ plot_riparian <- function(gsParam,
     }
     return(pg)
   })
+
   # -- draw and lable the chrs
   for (i in 1:nrow(chrPos)) {
+    wid <- ifelse(chrPos$genome[i] %in% labelTheseGenomes,
+                  chrRectWidth/2, chrRectWidth/4)
     polygon(with(chrPos[i,], round_rect(
       xleft = start, xright = end,
-      ybottom = y - chrRectWidth/2,
-      ytop = y + chrRectWidth/2)),
+      ybottom = y - wid,
+      ytop = y + wid)),
       border = chrBorder,
       col = chrFill,
       lwd = .5)
-    if(with(chrPos[i,], end - start) > labelChrBiggerThan){
-      with(chrPos[i,],
-           text((start + end)/2, y, labels = chrLabFun(chr), cex = chrLabCex))
-    }
+    if(chrPos$genome[i] %in% labelTheseGenomes)
+      if(with(chrPos[i,], end - start) > labelChrBiggerThan)
+        with(chrPos[i,], text(
+          (start + end)/2, y,
+          labels = chrLabFun(chr), cex = chrLabCex))
   }
 
   # label the genomes
   cp <- chrPos[,list(x = min(start)), by = c("genome","y")]
-  with(cp, text(
-    x = x - (max(chrPos$end) / 20), y = y, col = "white",
-    label = substr(genome, 1, nGenomeLabChar), adj = c(1.2, .5), cex = genomeLabCex))
+  if(blackBg){
+    with(cp, text(
+      x = x - (max(chrPos$end) / 20), y = y, col = "white",
+      label = substr(genome, 1, nGenomeLabChar), adj = c(1.2, .5), cex = genomeLabCex))
+
+  }else{
+    with(cp, text(
+      x = x - (max(chrPos$end) / 20), y = y, col = "black",
+      label = substr(genome, 1, nGenomeLabChar), adj = c(1.2, .5), cex = genomeLabCex))
+  }
 
   par(mar = pmar)
   if(verbose)
