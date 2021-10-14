@@ -122,8 +122,26 @@ plot_riparian <- function(gsParam,
     refGenome <- genomeIDs[1]
 
   # -- read the gff
-  gff <- fread(file.path(gsParam$paths$results, "gffWithOgs.txt.gz"),
-               showProgress = F)
+  gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
+  gff <- fread(gffFile, showProgress = F, na.strings = c("", "NA"))
+
+  if("refGenome" %in% colnames(gff))
+    gff[,refGenome:=NULL]
+
+  if(!any(is.na(gff$combOG))){
+    gff[,og := combOG]
+  }else{
+    if(!any(is.na(gff$inBlkOG))){
+      gff[,og := inBlkOG]
+    }else{
+      if(!any(is.na(gff$synOG))){
+        gff[,og := synOG]
+      }else{
+        gff[,og := globOG]
+      }
+    }
+  }
+  gff[,synOg := og]
   gv <- gff$genome; cv <- gff$chr
   names(gv) <- names(cv) <- gff$ofID
 
@@ -188,17 +206,6 @@ plot_riparian <- function(gsParam,
 
   refh[,`:=`(ord1 = ov[ofID1], ord2 = ov[ofID2])]
 
-  # add syntenic orthogroup info
-  if(any(is.na(gff$synOg)) || !"synOg" %in% colnames(gff)){
-    gff <- add_synOg2gff(
-      gff = gff,
-      useBlks = !plotRegions,
-      gsParam = gsParam,
-      genomeIDs = genomeIDs,
-      allowRBHinOg = T)
-  }
-
-  # -- get syntenic chrs and linear positions
   gff <- add_synChr2gff(
     gff = data.table(gff),
     refHits = refh,
@@ -482,6 +489,7 @@ reorder_gff <- function(gff, genomeIDs, minGenesOnChr, refGenome){
     gff[,synOg := NA]
   gff <- subset(gff, !is.na(chrNameOrd))[,c("genome","chr","chrNameOrd","ofID","ord","start","end","og","synOg")]
   setkey(gff, genome, chrNameOrd, ord)
+
   gff[,ord := 1:.N, by = "genome"]
   return(gff)
 }

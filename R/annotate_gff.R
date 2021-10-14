@@ -125,8 +125,7 @@ annotate_gff <- function(gsParam,
 
   if(verbose)
     cat(sprintf("Done!\nWriting gff to file: %s", gffFile))
-  gff[,`:=`(synOG = NA, inBlkOG = NA, combOG = NA, og = globOG,
-            refGenome = NA, refCoord = NA)]
+  gff[,`:=`(synOG = NA, inBlkOG = NA, combOG = NA, og = globOG, refCoord = NA)]
   fwrite(gff, file = gffFile, sep = "\t")
   return(gsParam)
 }
