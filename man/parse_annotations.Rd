@@ -2,13 +2,13 @@
 % Please edit documentation in R/parse_annotations.R
 \name{parse_annotations}
 \alias{parse_annotations}
-\alias{parse_phyotozome}
+\alias{parse_phytozome}
 \alias{parse_ncbi}
 \alias{parse_gff}
 \alias{parse_faHeader}
 \title{Functions to convert from raw to genespace annotation formats}
 \usage{
-parse_phyotozome(gsParam, overwrite = F, genomeIDs = NULL)
+parse_phytozome(gsParam, overwrite = F, genomeIDs = NULL)
 
 parse_ncbi(gsParam, overwrite = F, genomeIDs = NULL)
 
@@ -17,6 +17,7 @@ parse_annotations(
   gsParam,
   gffEntryType = "gene",
   gffIdColumn = "Name",
+  gffStripText = "",
   headerEntryIndex = 4,
   headerSep = " ",
   headerStripText = "locus=",
@@ -28,6 +29,7 @@ parse_gff(
   path2rawGff3,
   gffEntryType,
   gffIdColumn,
+  gffStripText,
   verbose = TRUE,
   troubleshoot = FALSE
 )
@@ -96,7 +98,7 @@ functions (parse_gff & parse_faHeader) take a single file and return a
 formatted R object. format_annotations is a wrapper for these two that reads
 and writes the full genespace-formatted files.
 
-\code{parse_phyotozome} parse phytozome-formatted annotations
+\code{parse_phytozome} parse phytozome-formatted annotations
 
 \code{parse_ncbi} parse NCBI-formatted annotations
 

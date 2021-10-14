@@ -44,9 +44,9 @@
 #' @export
 pull_synOGs <- function(gsParam, genomeIDs = NULL){
 
-  isArrayRep <- ogInblk <- ofID1 <- ofID2 <- inblkOG <- ofID <- NULL
+  isArrayRep <- ogInblk <- ofID1 <- ofID2 <- inBlkOG <- ofID <- NULL
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
-  gff <- fread(gffFile, na.strings = c("", "-", "NA"), showProgress = F)
+  gff <- fread(gffFile, na.strings = c("", "NA"), showProgress = F)
   verbose <- gsParam$params$verbose
 
   if(is.null(genomeIDs))
@@ -63,8 +63,15 @@ pull_synOGs <- function(gsParam, genomeIDs = NULL){
     gsParam = gsParam,
     genomeIDs = genomeIDs,
     allowRBHinOg = T)
+  synGff[,og := globOG]
+  # -- add the syntenic OGs to the original gff
+  gff[,u := ifelse(is.na(arrayID), ofID, arrayID)]
+  sog <- synGff$synOG
+  names(sog) <- with(synGff, ifelse(is.na(arrayID), ofID, arrayID))
+  gff[,`:=`(synOG = sog[u], u = NULL)]
+
   if(verbose)
-    cat(sprintf("\tn. syntenic OGs = %s\n", uniqueN(synGff$synOG)))
+    cat(sprintf("\tn. syntenic OGs = %s\n", uniqueN(gff$synOG)))
 
   # -- if desired, pull orthogroups within blocks
   if(gsParam$params$orthofinderInBlk){
@@ -75,17 +82,23 @@ pull_synOGs <- function(gsParam, genomeIDs = NULL){
       gff = synGff)
     ofh[, ogInblk := clus_igraph(ofID1, ofID2)]
     ofv <- ofh$ogInblk; names(ofv) <- ofh$ofID1
-    synGff[,inblkOG := ofv[ofID]]
-    mol <- max(synGff$inblkOG, na.rm = T)
-    nmis <- sum(is.na(synGff$inblkOG))
-    synGff$inblkOG[is.na(synGff$inblkOG)] <- (mol + 1):(mol + nmis)
-    synGff[,inblkOG := as.integer(factor(inblkOG, levels = unique(inblkOG)))]
+    synGff[,inBlkOG := ofv[ofID]]
+    mol <- max(synGff$inBlkOG, na.rm = T)
+    nmis <- sum(is.na(synGff$inBlkOG))
+    synGff$inBlkOG[is.na(synGff$inBlkOG)] <- (mol + 1):(mol + nmis)
+    synGff[,inBlkOG := as.integer(factor(inBlkOG, levels = unique(inBlkOG)))]
+
+    gff[,u := ifelse(is.na(arrayID), ofID, arrayID)]
+    bog <- synGff$inBlkOG
+    names(bog) <- with(synGff, ifelse(is.na(arrayID), ofID, arrayID))
+    gff[,`:=`(inBlkOG = bog[u], u = NULL)]
+    gff[,og := inBlkOG]
   }else{
-    synGff[,inblkOG := NA]
+    synGff[,inBlkOG := NA]
+    gff[,og := synOG]
   }
-  out <- synGff[,c("genome", "chr", "start", "end", "ord", "id", "ofID", "globOG", "synOG", "inblkOG")]
-  fwrite(out, file = file.path(gsParam$paths$results, "gffWithSynOgs.txt.gz"))
-  return(out)
+  fwrite(gff, file = gffFile)
+  return(gsParam)
 }
 
 #' @title add_synOg2gff
@@ -209,7 +222,7 @@ blkwise_orthofinder <- function(gsParam,
     paste(c(x, rep(" ", max(0, 7 - nchar(x)))), collapse = "")
   if(verbose)
     cat(sprintf(
-      "\tRunning orthofinder by region ...\n\tGenome1-Genome2|Copy Number: %s%s%s%s\n",
+      "\tRunning orthofinder by region ...\n\tGenome1-Genome2| Copy Number: %s%s%s%s\n",
       p5("absent"),p5("1x"),p5("2x"),p5("2+x")))
 
   blnk <- paste(rep(" ", 16), collapse = "")
@@ -234,19 +247,18 @@ blkwise_orthofinder <- function(gsParam,
     bv <- with(hits, c(blkID, blkID))
     names(bv) <- with(hits, c(paste(ofID1, ofID2), paste(ofID2, ofID1)))
     bv <- bv[!duplicated(names(bv))]
-
     expn <- count_expectn(hits = hits, gff = gff)
     tb <- subset(expn, !duplicated(paste(ofID, regID)))
     tb <- tb[,list(n = sum(!is.na(regID))), by = "ofID"]
     if(verbose)
-      cat(sprintf("expected CN: %s%s%s%s\n",
+      cat(sprintf(" expected CN: %s%s%s%s\n",
                   p5(sum(tb$n == 0)), p5(sum(tb$n == 1)), p5(sum(tb$n == 2)), p5(sum(tb$n > 2))))
     oggl <- with(subset(hits, !is.na(og)), unique(paste(
       c(regID, regID), c(ofID1, ofID2))))
     expn[,hasOgGlob := paste(regID, ofID) %in% oggl]
     tb <- expn[,list(n = sum(!is.na(regID) & hasOgGlob)), by = "ofID"]
     if(verbose)
-      cat(sprintf("\t%sglob. OG CN: %s%s%s%s\n",
+      cat(sprintf("\t%sglob. hit CN: %s%s%s%s\n",
                   blnk,  p5(sum(tb$n == 0)), p5(sum(tb$n == 1)), p5(sum(tb$n == 2)), p5(sum(tb$n > 2))))
 
     # -- read raw blast hits
@@ -290,7 +302,7 @@ blkwise_orthofinder <- function(gsParam,
     expn[,hasOgPw := paste(regID, ofID) %in% ogpw]
     tb <- expn[,list(n = sum(!is.na(regID) & hasOgPw)), by = "ofID"]
     if(verbose)
-      cat(sprintf("\t%sinblk OG CN: %s%s%s%s\n",
+      cat(sprintf("\t%sinblk hit CN: %s%s%s%s\n",
                   blnk,  p5(sum(tb$n == 0)), p5(sum(tb$n == 1)), p5(sum(tb$n == 2)), p5(sum(tb$n > 2))))
 
     return(with(subset(synOgHits, synOg1 == synOg2), data.table(

@@ -50,12 +50,12 @@
 
 #' @title parse phytozome-formatted annotations
 #' @description
-#' \code{parse_phyotozome} parse phytozome-formatted annotations
+#' \code{parse_phytozome} parse phytozome-formatted annotations
 #' @rdname parse_annotations
 #' @import data.table
 #' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet
 #' @export
-parse_phyotozome <- function(gsParam, overwrite = F, genomeIDs = NULL){
+parse_phytozome <- function(gsParam, overwrite = F, genomeIDs = NULL){
 
 
   pytz_fun <- function(gffIn, gffOut, pepIn, pepOut, verbose, minPepLen){
@@ -291,6 +291,7 @@ parse_annotations <- function(
   gsParam,
   gffEntryType = "gene",
   gffIdColumn = "Name",
+  gffStripText = "",
   headerEntryIndex = 4,
   headerSep = " ",
   headerStripText = "locus=",
@@ -334,6 +335,12 @@ parse_annotations <- function(
     stop("headerStripText must be a vector of length 1, or match length of genomeIDs\n")
   names(headerStripText) <- genomeIDs
 
+  if(length(gffStripText) == 1)
+    gffStripText <- rep(gffStripText, length(genomeIDs))
+  if(length(gffStripText) != length(genomeIDs))
+    stop("gffStripText must be a vector of length 1, or match length of genomeIDs\n")
+  names(gffStripText) <- genomeIDs
+
   if(length(gffEntryType) == 1)
     gffEntryType <- rep(gffEntryType, length(genomeIDs))
   if(length(gffEntryType) != length(genomeIDs))
@@ -362,6 +369,7 @@ parse_annotations <- function(
         path2rawGff3 = gsParam$paths$rawGff[i],
         gffEntryType = gffEntryType[i],
         gffIdColumn = gffIdColumn[i],
+        gffStripText = gffStripText[i],
         verbose = gsParam$params$verbose,
         troubleshoot = troubleshoot)
 
@@ -432,6 +440,7 @@ parse_gff <- function(
   path2rawGff3,
   gffEntryType,
   gffIdColumn,
+  gffStripText,
   verbose = TRUE,
   troubleshoot = FALSE){
 
@@ -451,6 +460,10 @@ parse_gff <- function(
   if(length(gffIdColumn) > 1){
     warning("can only parse one gff, taking the 1st gffIdColumn\n")
     gffIdColumn <- gffIdColumn[1]
+  }
+  if(length(gffStripText) > 1){
+    warning("can only parse one gff, taking the 1st gffStripText\n")
+    gffStripText <- gffStripText[1]
   }
   if(!file.exists(path2rawGff3))
     stop("cant find", path2rawGff3, "\n")
@@ -478,7 +491,7 @@ parse_gff <- function(
     chr = seqid,
     start = start,
     end = end,
-    id = get(gffIdColumn),
+    id = gsub(gffStripText, "", get(gffIdColumn)),
     strand = strand))
 
   # -- sort by chromosome number (strip text), then chr size, the position

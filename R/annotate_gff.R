@@ -39,6 +39,7 @@ annotate_gff <- function(gsParam,
 
   genome <- ord  <- arrayID <- isArrayRep <- med <- pepLen <- rnk <- ofID <- NULL
   medbp <- start <- dist2med <- dist2bp <- NULL
+
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
   if(file.exists(gffFile) & !overwrite){
     tmp <- fread(gffFile, na.strings = c("-", "NA", ""), showProgress = F)
@@ -70,7 +71,7 @@ annotate_gff <- function(gsParam,
   ##############################################################################
   # -- read in the gff
   if(verbose)
-    cat("\tReading the gffs ...")
+    cat("\tReading the gffs ... ")
   gff <- read_gff(gsParam$paths$gff)
   gff <- add_ofID2gff(gff, gsParam$paths$blastDir)
   gff <- subset(gff, genome %in% genomeIDs)
@@ -79,12 +80,12 @@ annotate_gff <- function(gsParam,
 
   # -- add peptide length
   if(verbose)
-    cat("Done!\n\tPulling gene lengths ...")
+    cat("Done!\n\tPulling gene lengths ... ")
   gff <- add_pepLen2gff(gff = gff, gsParam = gsParam)
 
   # -- add global orthogroupsto the gff
   if(verbose)
-    cat("Done!\n\tParsing global orthogroups ...")
+    cat("Done!\n\tParsing global orthogroups ... ")
   ogs <- parse_ogs(gsParam)
   gff <- merge(gff, ogs, by = c("genome","id"), all.x = T)
   gff$ogID[is.na(gff$ogID)] <- paste0("NOG",1:sum(is.na(gff$ogID)))
@@ -96,15 +97,21 @@ annotate_gff <- function(gsParam,
   # -- build arrays from method in gsParam
   if(verbose)
     cat("Done!\nDefining collinear orthogroup arrays ... \n")
-  sv <- gff$strand; names(sv) <- gff$ofID
   gff <- add_arrays2gff(gsParam = gsParam, gff = gff)
+  gff[,arrayID := paste(arrayID, og)]
+  gff[,n := .N, by = "arrayID"]
+  gff$arrayID[gff$n == 1] <- NA
+  gff[,`:=`(n = NULL, isArrayRep = TRUE, og = NULL)]
 
   # -- choose the array reps
   if(verbose)
-    cat("\tChoosing array representative genes ...")
+    cat("\tChoosing array representative genes ... ")
   gffa <- subset(gff, !is.na(arrayID))
+  setkey(gffa, genome, ord)
   gffn <- subset(gff, is.na(arrayID))
-  gffn[,isArrayRep := NA]
+  gffa[,arrayID := sprintf(
+    "%s_%s_%s",
+    genome, chr, as.numeric(factor(arrayID, levels = unique(arrayID))))]
   gffa[,med := as.numeric(median(ord)), by = "arrayID"]
   gffa[,medbp := as.numeric(median(start)), by = "arrayID"]
   gffa[,`:=`(dist2med = abs(med - ord),
@@ -115,9 +122,11 @@ annotate_gff <- function(gsParam,
              med = NULL, medbp = NULL)]
   gff <- rbind(gffa, gffn)
   setkey(gff, genome, ord)
+
   if(verbose)
     cat(sprintf("Done!\nWriting gff to file: %s", gffFile))
-  gff[,`:=`(synOG = NA, strand = sv[ofID])]
+  gff[,`:=`(synOG = NA, inBlkOG = NA, combOG = NA, og = globOG,
+            refGenome = NA, refCoord = NA)]
   fwrite(gff, file = gffFile, sep = "\t")
   return(gsParam)
 }

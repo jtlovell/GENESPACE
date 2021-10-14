@@ -131,7 +131,7 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   # -- annotate gff with arrays, syntenic orthogroups, etc.
   if(!file.exists(gffFile))
     stop("can't find the annotated gff-like text file\t\n ... have you run annotate_gff yet?\n")
-  gff <- fread(gffFile, na.strings = c("NA","-",""), showProgress = F)
+  gff <- fread(gffFile, na.strings = c("NA",""), showProgress = F)
   arrayReps <- gff$ofID[gff$isArrayRep]
 
   # -- flag syntenic arrays and choose optimal representative gene
@@ -139,10 +139,9 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   if(verbose)
     with(gff, cat(sprintf(
       "Found %s genes, %s orthogroups and %s arrays with %s genes\n",
-      nrow(gff), uniqueN(gff$globOG),
-      sum(!isArrayRep[!duplicated(arrayID)]),
-      sum(!isArrayRep[!duplicated(arrayID)]) + sum(duplicated(arrayID)))))
-  gff[,og := globOG]
+      nrow(gff), uniqueN(globOG),
+      uniqueN(arrayID, na.rm = T), sum(!is.na(arrayID)))))
+
   ##############################################################################
   # 2. self culling
   # -- run the following steps for each genome and only within genome hits
@@ -175,12 +174,17 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
         genome2 = genome1,
         gff = gff,
         selfOnly = FALSE)
+
+      # -- subset to the same chromosome
       phits <- subset(ahits, chr1 == chr2)
       cat(sprintf("%s / ", nrow(phits)))
+      shits <- subset(
+        phits,
+        nChr1 >= selfSyn$blkSize[i] & nChr2 >= selfSyn$blkSize[i])
 
       # -- self synteny
       sr <- pull_selfRegion(
-        hits = subset(phits, nChr1 >= selfSyn$blkSize[i] & nChr2 >= selfSyn$blkSize[i]),
+        hits = shits,
         synBuff = selfSyn$synBuff[i])
       blkv <- sr$blkID; names(blkv) <- with(sr, paste(ofID1, ofID2))
       phits[,`:=`(blkID = blkv[paste(ofID1, ofID2)],
@@ -233,7 +237,8 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
                     sprintf("%s_%s_dotplots.pdf", genome1, genome1)),
           height = 6, width = 6)
       par(mfrow = c(1,1))
-      pd <- plot_hits(
+
+      suppressWarnings(pd <- plot_hits(
         gsParam = gsParam,
         hits = subset(outHits, score > 100),
         alpha = .025,
@@ -243,17 +248,17 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
         bufferOnly = F,
         anchorOnly = F,
         round2 = 5,
-        plotTitle = "All diamond hits score > 100")
-      pd <- plot_hits(
+        plotTitle = "All diamond hits score > 100"))
+      suppressWarnings(pd <- plot_hits(
         gsParam = gsParam,
         hits = outHits, gff = gff, onlyOg = T, round2 = 10,
         bufferOnly = T, plotRegions = T,
-        plotTitle = "hits in syntenic regions")
-      pd <- plot_hits(
+        plotTitle = "hits in syntenic regions"))
+      suppressWarnings(pd <- plot_hits(
         gsParam = gsParam,
         hits = outHits, gff = gff, onlyOg = T, round2 = 10,
         bufferOnly = T, plotRegions = F, anchorOnly = T,
-        plotTitle = "anchor hits in blocks")
+        plotTitle = "anchor hits in blocks"))
       dev.off()
 
       par(mfrow = pm)
@@ -339,7 +344,7 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
       pmar <- par()["mar"]
       par(mar = c(3,2,2,2))
 
-      pd <- plot_hits(
+      suppressWarnings(pd <- plot_hits(
         gsParam = gsParam,
         hits = subset(outHits, score > 100),
         gff = gff,
@@ -349,17 +354,17 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
         bufferOnly = F,
         anchorOnly = F,
         round2 = 5,
-        plotTitle = "All diamond hits score > 100")
-      pd <- plot_hits(
+        plotTitle = "All diamond hits score > 100"))
+      suppressWarnings(pd <- plot_hits(
         gsParam = gsParam,
         hits = outHits, gff = gff, onlyOg = T, round2 = 10,
         bufferOnly = T, plotRegions = T,
-        plotTitle = "hits in syntenic regions")
-      pd <- plot_hits(
+        plotTitle = "hits in syntenic regions"))
+      suppressWarnings(pd <- plot_hits(
         gsParam = gsParam,
         hits = outHits, gff = gff, onlyOg = T, round2 = 10,
         bufferOnly = T, plotRegions = F, anchorOnly = T,
-        plotTitle = "anchor hits in blocks")
+        plotTitle = "anchor hits in blocks"))
       dev.off()
 
       par(mfrow = pm)
@@ -574,7 +579,7 @@ parse_blast4synteny <- function(gsParam,
   score <- ofID1 <- ofID2 <- isOg <- og1 <- scrRank1 <- scrRank2 <- NULL
   chr1 <- chr2 <- ord1 <- ord2 <- NULL
   # -- get vectors from the gff
-  gv <- gff$genome; cv <- gff$chr; ogv <- gff$og
+  gv <- gff$genome; cv <- gff$chr; ogv <- gff$globOG
   ov <- gff$ord; sv <- gff$start; ev <- gff$end
   names(gv) <- names(cv) <- names(ogv) <- gff$ofID
   names(ov) <- names(sv) <- names(ev) <- gff$ofID

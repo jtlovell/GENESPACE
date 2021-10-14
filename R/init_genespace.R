@@ -251,12 +251,17 @@ init_genespace <- function(genomeIDs,
 
   ##############################################################################
   check_diamondInstall <- function(path){
-    chk <- grepl("diamond",
-                 system(paste(path, "help"),
-                        intern = T,ignore.stderr = T)[1])
-    if(!chk)
-      stop("cannot call diamond by", path,"\n")
-    return(path)
+    chk <- tryCatch(
+      {
+        system(paste(path, "help"),
+               intern = T,ignore.stderr = T, ignore.stdout=TRUE)
+      },
+      error=function(err) {
+        warning("cannot call diamond from ", path)
+        return(NA)
+      }
+    )
+    return(chk)
   }
 
   ##############################################################################

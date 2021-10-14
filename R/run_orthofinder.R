@@ -44,6 +44,9 @@
 #' @import data.table
 #' @export
 run_orthofinder <- function(gsParam, overwrite = FALSE){
+  if(is.logical(gsParam$paths$orthofinderCall))
+    if(!gsParam$paths$orthofinderCall && !is.na(gsParam$paths$orthofinderCall))
+      gsParam$paths$orthofinderCall <- NA
   if(is.null(gsParam$params$synteny))
     stop("must run set_syntenyParams first\n")
   beenRun <- find_orthofinderResults(gsParam, onlyCheckRun = T)
@@ -79,7 +82,6 @@ run_orthofinder <- function(gsParam, overwrite = FALSE){
         com <- default_ofDb(gsParam)
       }
     }
-    gsParam$params$orthofinderCall <- com
   }
   return(gsParam)
 }
@@ -231,9 +233,9 @@ fast_ofDb <- function(gsParam){
   ##############################################################################
   # 7. Run orthofinder
   if(gsParam$params$verbose)
-    cat("Done!\n\tRunning full orthofinder on pre-computed blast:\n")
+    cat("Done!\n\tRunning orthofinder -og on pre-computed blast:\n")
   com <- with(gsParam, sprintf(
-    "%s -b %s -t %s -a 1 -X",
+    "%s -b %s -t %s -a 1 -X -og",
     paths$orthofinderCall, paths$orthofinder, params$nCores, params$nCores))
 
   system(com)

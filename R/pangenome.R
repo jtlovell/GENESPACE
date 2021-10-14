@@ -143,9 +143,13 @@ pangenome <- function(gsParam,
 
   ##############################################################################
   # -- load synteny-constrained orthogroups
-  gff <- combine_inblkSynOG(
+  gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
+  gffa <- fread(gffFile, showProgress = F, na.strings = c("NA", ""))
+  gff <- subset(gffa, isArrayRep)
+  gffc <- combine_inblkSynOG(
     genomeIDs = genomeIDs,
     refGenome = refGenome,
+    gff = gff,
     gsParam = gsParam)
 
   ##############################################################################
@@ -218,12 +222,9 @@ pangenome <- function(gsParam,
   # -- load the raw gff
   if(verbose)
     cat("\n\tAdding in array members ... \n")
-  gffFilea <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
-  gffa <- fread(gffFilea, na.strings = c("", "-", "NA"), showProgress = F)
-  gffa[,n := .N, by = "arrayID"]
 
-  # -- summarize by array, pulling the representative from the members
-  arrRep <- subset(gffa, n > 1)[,list(
+    # -- summarize by array, pulling the representative from the members
+  arrRep <- subset(gffa, !is.na(arrayID))[,list(
     mem = ofID[!isArrayRep], rep = ofID[isArrayRep]),
     by = c("arrayID", "genome", "chr")]
   arrRep[,`:=`(inPg = rep %in% pg$ofID, ofID = rep)]
@@ -306,20 +307,22 @@ pangenome <- function(gsParam,
 #' @import data.table
 #' @export
 combine_inblkSynOG <- function(refGenome,
-                                genomeIDs,
-                                gsParam){
+                               genomeIDs,
+                               gff,
+                               gsParam){
 
   ofID <- ofID1 <- ofID2 <- clus <- combOG <- NULL
   if(gsParam$params$verbose)
     cat("Combining synteny-constrained and inblock orthogroups ...\n")
-  gffFile <- file.path(gsParam$paths$results, "gffWithSynOgs.txt.gz")
-  gff <- fread(gffFile, showProgress = F, na.strings = c("-", "NA", ""))
+
 
   genomeIDs <- c(refGenome, genomeIDs[genomeIDs != refGenome])
   if(gsParam$params$verbose)
     cat(sprintf("\tsyn OGs: %s, inblk OGs: %s",
-                uniqueN(gff$synOG), uniqueN(gff$inblkOG)))
-  inblk <- gff[,list(ofID1 = ofID[-.N], ofID2 = ofID[-1]), by = "inblkOG"]
+                uniqueN(gff$synOG, na.rm = T), uniqueN(gff$inBlkOG, na.rm = T)))
+  if(all(is.na(gff$inBlkOG)))
+    gff[,inBlkOG := synOG]
+  inblk <- gff[,list(ofID1 = ofID[-.N], ofID2 = ofID[-1]), by = "inBlkOG"]
   syn <- gff[,list(ofID1 = ofID[-.N], ofID2 = ofID[-1]), by = "synOG"]
   u <- with(inblk, paste(ofID1, ofID2))
   syn <- subset(syn, !paste(ofID1, ofID2) %in% u & ofID1 != ofID2)
