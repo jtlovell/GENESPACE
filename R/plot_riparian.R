@@ -74,7 +74,7 @@
 #' @importFrom stats quantile
 #' @export
 plot_riparian <- function(gsParam,
-                          plotRegions = FALSE,
+                          plotRegions = TRUE,
                           refGenome = NULL,
                           genomeIDs = NULL,
                           onlyTheseChrs = NULL,
@@ -435,7 +435,7 @@ plot_riparian <- function(gsParam,
 
   par(mar = pmar)
   if(verbose)
-    cat("Done!")
+    cat("Done!\n")
   return(list(
     chrPos = chrPos,
     blockCoord = bc,

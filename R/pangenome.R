@@ -62,11 +62,11 @@ pangenome <- function(gsParam,
   ##############################################################################
   ##############################################################################
   # -- internal function to calculate gene positions by ref block coords
-  calc_geneBlkReford <- function(anchCoords, gff, anchHits, gsParam){
+  calc_geneBlkReford <- function(anchCoords, gff, anchHits, gsParam, refGenome){
     ofID2 <- refChr <- ord <- chr <- genome <- ord1 <- ofID1 <- isAnchor <- ord2 <- NULL
-    blkc <- data.table(anchCoords)
+    blkc <- subset(data.table(anchCoords), gen1 == refGenome)
     splg <- split(gff, by = c("genome", "chr"))
-    spla <- split(ba$anchors, by = "blkID")
+    spla <- split(subset(ba$anchors, gen1 == refGenome), by = "blkID")
     nCores <- gsParam$params$nCores
     nonRefPos <- rbindlist(mclapply(1:nrow(blkc), mc.cores = nCores, function(i){
       x <- blkc[i, ]
@@ -79,7 +79,8 @@ pangenome <- function(gsParam,
         by = "og", allow.cartesian = T, all = T)
       h <- subset(h, !is.na(ofID2))
       setkey(h, ord2)
-      h[,isAnchor := paste(ofID1, ofID2) %in% paste(a$ofID1, a$ofID2)]
+      u <- with(a, unique(paste(ofID1, ofID2), paste(ofID2, ofID1)))
+      h[,isAnchor := paste(ofID1, ofID2) %in% u]
       h$ord1[!h$isAnchor] <- NA
       h[,ord1 := interp_linear(x = ord2, y = ord1, interpTails = F)]
       h <- subset(h, !is.na(ord1))[,list(ord = median(ord1, na.rm = T)),
@@ -145,8 +146,9 @@ pangenome <- function(gsParam,
   # -- load synteny-constrained orthogroups
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
   gffa <- fread(gffFile, showProgress = F, na.strings = c("NA", ""))
+  gffa <- subset(gffa, genome %in% genomeIDs)
   gff <- subset(gffa, isArrayRep)
-  gffc <- combine_inblkSynOG(
+  gff <- combine_inblkSynOG(
     genomeIDs = genomeIDs,
     refGenome = refGenome,
     gff = gff,
@@ -167,8 +169,7 @@ pangenome <- function(gsParam,
   ba <- pull_blkAnchors(
     gsParam = gsParam,
     gff = gff,
-    refGenome = refGenome,
-    genomeIDs = genomeIDs)
+    refGenome = refGenome)
   if(verbose)
     cat(sprintf("\t\tFound %s anchors for %s blocks\n",
                 nrow(ba$anchors), nrow(ba$coords)))
@@ -179,15 +180,17 @@ pangenome <- function(gsParam,
   if(verbose)
     cat("Determining reference position for combined orthogroups ...\n\tLinear interpolation of gene order in reference ... ")
   gffRef <- calc_geneBlkReford(
+    refGenome = refGenome,
     anchCoords = ba$coords,
     anchHits = ba$anchors,
     gff = gff,
     gsParam = gsParam)
-  if(verbose)
-    cat("Done!\n\tOrthogroup clustering and median position determination ... ")
 
   ##############################################################################
   # -- summarize by orthogroup
+  if(verbose)
+    cat("Done!\n\tOrthogroup clustering and median position determination ... ")
+
   ogPos <- assign_og2reford(
     gffRef = gffRef,
     synBuff = synBuff)
@@ -274,7 +277,7 @@ pangenome <- function(gsParam,
   # -- output and write
   if(verbose)
     cat("\tFormating and writing the pangenome ... ")
-  pgout <- data.table(pg)
+  pgout <- subset(pg, !is.na(ofID))
 
   # -- give real names
   iv  <- gffa$id; names(iv) <- gffa$ofID
@@ -294,7 +297,7 @@ pangenome <- function(gsParam,
   pgf <- file.path(
     gsParam$paths$results,
     sprintf("%s_pangenomeDB.txt.gz", refGenome))
-  fwrite(pg, file = pgf, sep = "\t")
+  fwrite(pg, file = pgf, sep = "\t", showProgress = F)
   if(verbose)
     cat(sprintf("\nPangenome written to results/%s_pangenomeDB.txt.gz", refGenome))
   return(pgout)
@@ -375,20 +378,20 @@ pull_nonSynOrthologs <- function(gsParam,
 #' @export
 pull_blkAnchors <- function(gsParam,
                             gff,
-                            refGenome,
-                            genomeIDs){
+                            refGenome){
   isSelf <- blkAnchor <- ofID2 <- ofID1 <- ord1 <- ord2 <- NULL
+  genomeIDs <- unique(gff$genome)
+
   # -- get the hit files
-  fs <- list.files(path = gsParam$paths$results, pattern = "_synHits.txt.gz$")
-  fs <- fs[grepl(sprintf("^%s_", refGenome), fs) |
-             grepl(sprintf("%s_synHits.txt.gz", refGenome), fs)]
-  fs <- fs[sapply(fs, function(x)
-    any(sapply(genomeIDs, function(y)
-      grepl(y, x))))]
+  pfs <- CJ(g1 = genomeIDs, g2 = genomeIDs)
+  pfs[,fs := file.path(gsParam$paths$results,
+                       sprintf("%s_%s_synHits.txt.gz", g1, g2))]
+  pfs <- subset(pfs, file.exists(fs))
+  fs <- pfs$fs
 
   # -- block coords from hits
   out <- rbindlist(mclapply(fs, mc.cores = gsParam$params$nCores, function(i){
-    x <- fread(file.path(gsParam$paths$results, i),
+    x <- fread(i,
                select = c("ofID1", "ofID2","blkID","blkAnchor","gen1"),
                showProgress = F,
                na.strings = c("NA", "-", ""))
@@ -402,11 +405,12 @@ pull_blkAnchors <- function(gsParam,
 
   gv <- gff$genome; ov <- gff$ord; cv <- gff$chr
   names(gv) <- names(ov) <- names(cv) <- gff$ofID
-  out[,`:=`(gen2 = gv[ofID2], chr1 = cv[ofID1], chr2 = cv[ofID2],
+  out[,`:=`(gen1 = gv[ofID1], gen2 = gv[ofID2],
+            chr1 = cv[ofID1], chr2 = cv[ofID2],
             ord1 = ov[ofID1], ord2 = ov[ofID2])]
   bc <- out[,list(start1 = min(ord1, na.rm = T), end1 = max(ord1, na.rm = T),
                   start2 = min(ord2, na.rm = T), end2 = max(ord2, na.rm = T)),
-            by = c("gen2", "chr1", "chr2", "blkID")]
+            by = c("gen1","gen2", "chr1", "chr2", "blkID")]
   return(list(anchors = out, coords = bc))
 }
 
