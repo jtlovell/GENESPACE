@@ -11,6 +11,7 @@
 \alias{count_ogtypes}
 \alias{count_expectn}
 \alias{run_ofFromObj}
+\alias{combine_inblkSynOG}
 \title{syntenicOGs}
 \usage{
 pull_synOGs(gsParam, genomeIDs = NULL)
@@ -36,6 +37,8 @@ count_ogtypes(gff, hits)
 count_expectn(hits, gff)
 
 run_ofFromObj(blast00, blast01, blast10, blast11, pep0, pep1, writeDir)
+
+combine_inblkSynOG(refGenome, genomeIDs, gff, gsParam)
 }
 \arguments{
 \item{gsParam}{a list containing all parameters for a GENESPACE run. See
@@ -102,6 +105,8 @@ for an orthofinder run}
 \code{count_expectn} count_expectn
 
 \code{run_ofFromObj} run_ofFromObj
+
+\code{combine_inblkSynOG} combine_inblkSynOG
 }
 \details{
 ...

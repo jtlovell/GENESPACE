@@ -94,8 +94,9 @@ plot_riparian <- function(gsParam,
                           chrBorder = "black",
                           chrFill = "white",
                           chrRectBuffer = 1.5,
-                          colByChrs = c("#8B1D00", "#D05100", "#ED9004", "#F9C70E", "#EAE075", "#BAE0DB", "#8BEDF9", "#74B8FC", "#4871F9", "#040DC9","#0E004C","#5E09A3","#C054F9","#E6BDFC"),
+                          colByChrs = NULL,
                           labelChrBiggerThan = NULL,
+                          blackBg = TRUE,
                           chrLabFun = function(x)
                             gsub("^0","",gsub("^chr|^scaffold|^lg|_","",tolower(x)))){
 
@@ -107,6 +108,21 @@ plot_riparian <- function(gsParam,
   # 1. rename a few things, check parameters, read in hits/gff
   ##############################################################################
   # -- specify all the genomes
+
+  if(!all(are_colors(colByChrs)) || any(is.null(colByChrs))){
+    if(blackBg)
+      colByChrs <- c(
+        "#BC4F43", "#F67243", "#FFA856", "#FFD469", "#F3E97F", "#C4EAE5",
+        "#9DF4FF", "#9CC9FF", "#7D94FF", "#5758D6", "#44425E", "#8253C2",
+        "#CF84FF", "#EDCDFF")
+    if(!blackBg)
+      colByChrs <- c(
+        "#8B1D00", "#D05100", "#ED9004", "#F9C70E", "#EAE075", "#BAE0DB",
+        "#8BEDF9", "#74B8FC", "#4871F9", "#040DC9","#0E004C","#5E09A3",
+        "#C054F9","#E6BDFC")
+  }
+
+  verbose <- gsParam$params$verbose
   if(is.null(genomeIDs)){
     genomeIDs <- gsParam$genomes$genomeIDs
     genomeIDs <- genomeIDs[!genomeIDs %in% gsParam$genomes$outgroup]
@@ -122,30 +138,31 @@ plot_riparian <- function(gsParam,
     refGenome <- genomeIDs[1]
 
   # -- read the gff
+  if(verbose)
+    cat("\tLoading the gff ... ")
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
   gff <- fread(gffFile, showProgress = F, na.strings = c("", "NA"))
 
   if("refGenome" %in% colnames(gff))
     gff[,refGenome:=NULL]
 
-  if(!any(is.na(gff$combOG))){
-    gff[,og := combOG]
+  if(!any(is.na(gff$inBlkOG))){
+    gff[,og := inBlkOG]
   }else{
-    if(!any(is.na(gff$inBlkOG))){
-      gff[,og := inBlkOG]
+    if(!any(is.na(gff$synOG))){
+      gff[,og := synOG]
     }else{
-      if(!any(is.na(gff$synOG))){
-        gff[,og := synOG]
-      }else{
-        gff[,og := globOG]
-      }
+      gff[,og := globOG]
     }
   }
+
   gff[,synOg := og]
   gv <- gff$genome; cv <- gff$chr
   names(gv) <- names(cv) <- gff$ofID
 
   #-- read ref hits
+  if(verbose)
+    cat(sprintf("Done!\n\tMapping genes against %s chromosomes ... ", refGenome))
   refh <- load_refHits(
     gsParam = gsParam,
     plotRegions = plotRegions,
@@ -195,6 +212,8 @@ plot_riparian <- function(gsParam,
 
   names(cols) <- unique(rg$chr)
 
+  if(verbose)
+    cat("Done!\n\tProjecting linear coordinate system ... ")
   # -- load the gff
   gff <- reorder_gff(
     gff = gff,
@@ -223,6 +242,8 @@ plot_riparian <- function(gsParam,
     nCores = gsParam$params$nCores)
 
   # -- load hits in the riparian path
+  if(verbose)
+    cat("Done!\n\tGenerating block coordinates ... ")
   riph <- read_ripHits(
     gsParam = gsParam,
     genomeIDs = genomeIDs,
@@ -272,6 +293,8 @@ plot_riparian <- function(gsParam,
   # 3. make the plot
   ##############################################################################
   # -- determine plotting scale
+  if(verbose)
+    cat("Done!\n\tRendering plot ... ")
   pmar <- par()["mar"]
   par(mar = c(1, 1, 1, 1))
 
@@ -297,6 +320,13 @@ plot_riparian <- function(gsParam,
          ylab = "",
          xlab = "",
          main = ""))
+  if(blackBg)
+    with(chrPos, rect(xleft = min(start) - xBuff,
+         xright = max(end),
+         ybottom = min(y)-yBuff,
+         ytop = max(y) + yBuff,
+         border = NULL,
+         col = "grey15"))
 
   # -- make the labels
   chrRectWidth <- strheight("chr", cex = chrLabCex) * chrRectBuffer
@@ -386,6 +416,8 @@ plot_riparian <- function(gsParam,
     x = x - (max(chrPos$end) / 20), y = y,
     label = substr(genome, 1, nGenomeLabChar), adj = c(1.2, .5), cex = genomeLabCex))
   par(mar = pmar)
+  if(verbose)
+    cat("Done!")
   return(list(
     chrPos = chrPos,
     blockCoord = bc,
