@@ -19,6 +19,7 @@ plot_riparian(
   onlyTheseRegions = NULL,
   excludeChrOutOfRegion = FALSE,
   findRegHitsRecursive = FALSE,
+  highlightRef = "white",
   minGenes2plot = 50,
   braidAlpha = 0.8,
   braidBorderLwd = NULL,

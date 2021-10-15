@@ -83,6 +83,7 @@ plot_riparian <- function(gsParam,
                           onlyTheseRegions = NULL,
                           excludeChrOutOfRegion = FALSE,
                           findRegHitsRecursive = FALSE,
+                          highlightRef = "white",
                           minGenes2plot = 50,
                           braidAlpha = .8,
                           braidBorderLwd = NULL,
@@ -112,12 +113,15 @@ plot_riparian <- function(gsParam,
   # 1. rename a few things, check parameters, read in hits/gff
   ##############################################################################
   # -- specify all the genomes
+  highlightRef <- highlightRef[1]
+  if(!are_colors(highlightRef) || is.null(highlightRef))
+    highlightRef <- "white"
 
-  if(!all(are_colors(colByChrs)) || any(is.null(colByChrs))){
+   if(!all(are_colors(colByChrs)) || any(is.null(colByChrs))){
     if(blackBg)
       colByChrs <- c(
         "#BC4F43", "#F67243", "#FFA856", "#FFD469", "#F3E97F", "#C4EAE5",
-        "#9DF4FF", "#9CC9FF", "#7D94FF", "#5758D6", "#44425E", "#8253C2",
+        "#9DF4FF", "#9CC9FF", "#7D94FF", "#5758D6", "#8253C2",
         "#CF84FF", "#EDCDFF")
     if(!blackBg)
       colByChrs <- c(
@@ -195,8 +199,8 @@ plot_riparian <- function(gsParam,
     setkey(gff, genome, chr, start, end)
     setkey(onlyTheseRegions, genome, chr, start, end)
     fo <- foverlaps(gff, onlyTheseRegions)
-    fo <- subset(fo, complete.cases(fo))
-    genesInReg <- gff$ofID[gff$synOg %in% unique(fo$synOg)]
+    fo <- subset(fo, complete.cases(fo[,c("ofID", "start", "end")]))
+    genesInReg <- gff$ofID[gff$og %in% unique(fo$og)]
 
     if(excludeChrOutOfRegion){
       gff <- subset(gff, ofID %in% genesInReg)
@@ -414,7 +418,7 @@ plot_riparian <- function(gsParam,
       ybottom = y - wid,
       ytop = y + wid)),
       border = chrBorder,
-      col = chrFill,
+      col = ifelse(chrPos$genome[i] == refGenome, highlightRef, chrFill),
       lwd = .5)
     if(chrPos$genome[i] %in% labelTheseGenomes)
       if(with(chrPos[i,], end - start) > labelChrBiggerThan)
@@ -538,9 +542,9 @@ reorder_gff <- function(gff, genomeIDs, minGenesOnChr, refGenome){
   refChrs <- nGenes$chr[nGenes$genome == refGenome]
   ugc <- with(nGenes, paste(genome, chr))
   gff[,chrNameOrd := as.numeric(factor(paste(genome, chr), levels = ugc))]
-  if(!"synOg" %in% colnames(gff))
-    gff[,synOg := NA]
-  gff <- subset(gff, !is.na(chrNameOrd))[,c("genome","chr","chrNameOrd","ofID","ord","start","end","og","synOg")]
+  if(!"og" %in% colnames(gff))
+    gff[,og := NA]
+  gff <- subset(gff, !is.na(chrNameOrd))[,c("genome","chr","chrNameOrd","ofID","ord","start","end","og")]
   setkey(gff, genome, chrNameOrd, ord)
 
   gff[,ord := 1:.N, by = "genome"]
@@ -675,7 +679,7 @@ calc_refChrByGene <- function(gff,
   gff2 <- data.table(gff)
   linOrd <- NULL
   setkey(gff2, linOrd)
-  gff2[,refChr := chr[genome == refGenome][1], by = "synOg"]
+  gff2[,refChr := chr[genome == refGenome][1], by = "og"]
   gr <- subset(gff2, !is.na(refChr))
 
   # -- for these seed ref chrs, ensure that runs > blkSize
