@@ -86,6 +86,8 @@ be constrained to just those in synteny with the rest of the graph?}
 \item{findRegHitsRecursive}{logical, should regional hit discovery be
 recursive?}
 
+\item{highlightRef}{color to highlight the reference chromosomes.}
+
 \item{minGenes2plot}{integer specifying the minimum number of genes on a
 chr to plot}
 

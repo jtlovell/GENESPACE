@@ -5,7 +5,6 @@
 \alias{combine_inblkSynOG}
 \alias{pull_nonSynOrthologs}
 \alias{pull_blkAnchors}
-\alias{query_pangenome}
 \title{Build genespace pangenome}
 \usage{
 pangenome(gsParam, genomeIDs = NULL, refGenome = NULL)
@@ -15,15 +14,6 @@ combine_inblkSynOG(refGenome, genomeIDs, gff, gsParam)
 pull_nonSynOrthologs(gsParam, gff)
 
 pull_blkAnchors(gsParam, gff, refGenome)
-
-query_pangenome(
-  pg,
-  refChrom,
-  startOrder = NULL,
-  endOrder = NULL,
-  writeTo = NULL,
-  pavSynOnly = FALSE
-)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -58,8 +48,6 @@ genes and collapse into pangenome database
 \code{pull_nonSynOrthologs} pull_nonSynOrthologs
 
 \code{pull_blkAnchors} pull_blkAnchors
-
-\code{query_pangenome} query_pangenome
 }
 \details{
 The pangenome annotation is a projection of syntenic orthogroups

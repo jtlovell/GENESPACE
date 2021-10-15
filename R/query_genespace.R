@@ -1,0 +1,220 @@
+#' @title Query genespace datasets
+#'
+#' @description
+#' \code{query_genespace} Parse and output underlying data.
+#'
+#' @name query_genespace
+#'
+#' @param gsParam A list of genespace parameters. This should be created
+#' by setup_genespace, but can be built manually. Must have the following
+#' elements: blast (file.path to the original orthofinder run), synteny (
+#' file.path to the directory where syntenic results are stored), genomeIDs (
+#' character vector of genomeIDs).
+#' @param refGenome character string matching one of the genomeIDs in gsParam
+#' @param genomeIDs character vector, specifying which genomes to use. Defaults
+#' to all genomeIDs specification in gsParam.
+#' @param pg the pangenome data.table
+#' @param refChrom character string of length 1, the reference chromosome to
+#' grab from the pangenome
+#' @param startOrder numeric or integer specifying the start position for the
+#' pangenome query, in linear order.
+#' @param endOrder numeric or integer specifying the end position of the query
+#' @param writeTo file/path or character string giving file name to write to
+#' @param pavSynOnly logical, should PAV be calculated only for syntenic
+#' entries?
+#'
+#' @details ...
+#'
+#' @return ...
+#' @examples
+#' \dontrun{
+#' # coming soon
+#' }
+#' @note \code{pangenome} is a generic name for the functions documented.
+#' \cr
+#' If called, \code{pangenome} returns its own arguments.
+#'
+#' @title query_pangenome
+#' @description
+#' \code{query_pangenome} query_pangenome
+#' @rdname query_genespace
+#' @import data.table
+#' @export
+query_pangenome <- function(pg,
+                            refChrom,
+                            startOrder = NULL,
+                            endOrder = NULL,
+                            writeTo = NULL,
+                            pavSynOnly = FALSE){
+  pg <- as.data.table(pg)
+  if(nrow(pg) < 1)
+    stop("can't parse pg; is this a data.table produced by pangenome?\n")
+  if(!all(c("chr", "ord", "pgID", "og") %in% colnames(pg)))
+    stop("can't find the needed column names in pg; was this produced by pangenome?")
+
+  # -- get the starting/ending positions if not specified
+  chr <- ord <- NULL
+  if(is.null(startOrder))
+    startOrder <- 0
+  if(is.null(endOrder))
+    endOrder <- max(pg$ord, na.rm = T)
+  if(!refChrom %in% pg$chr)
+    stop("can't find", refChrom, "in the pangenome\n")
+
+  # -- subset to the region of interest
+  p <- subset(pg, chr == refChrom & ord >= startOrder & ord <= endOrder)
+  genIDs <- colnames(p)[-c(1:4)]
+
+  # -- if only syntenic ogs, parse these
+  pc <- data.table(p)
+  if(pavSynOnly){
+    pc[,(genIDs) := lapply(.SD, function(x) lapply(x, function(y)
+      y[!grepl("*", y, fixed = T)])),
+      .SDcols = genIDs, by = "pgID"]
+  }
+
+  # -- calculate CNV
+  pc[,(genIDs) := lapply(.SD, function(x) sapply(x, length)),
+     .SDcols = genIDs, by = "pgID"]
+
+  # -- calculate PAV
+  pav <- data.table(pc)
+  pav[,(genIDs) := lapply(.SD, function(x) x > 0),
+      .SDcols = genIDs, by = "pgID"]
+
+  # -- compress lists to character vectors
+  pr <- data.table(p)
+  pr[,(genIDs) := lapply(.SD, function(x) sapply(x, paste, collapse = ";")),
+     .SDcols = genIDs, by = "pgID"]
+
+  # -- write output and return
+  if(is.null(writeTo))
+    writeTo <- sprintf("Chr%s_Start%s_End%s.txt.gz",
+                       refChrom, min(pr$ord, na.rm = T), max(pr$ord, na.rm = T))
+  fwrite(pr, file = writeTo, sep = "\t", quote = F)
+
+  return(list(raw = p, pav = pav, cnts = pc))
+}
+
+
+#' @title write_phytozome
+#' @description
+#' \code{write_phytozome} write_phytozome
+#' @rdname query_genespace
+#' @import data.table
+#' @export
+write_phytozome <- function(gsParam,
+                            gsAnnot,
+                            useRegions = TRUE,
+                            genomeIDs = NULL){
+
+  # -- get the output directory
+  outdir <- file.path(gsParam$results, "phytozome")
+  dir.create(outdir)
+
+  # -- read in the block coordinates
+  blksFile <- file.path(gsParam$results, "syntenicBlocks.txt.gz")
+  blk <- fread(blksFile)
+
+  if(is.null(genomeIDs))
+    genomeIDs <- gsParam$genomes$genomeIDs
+
+  # -- load the annotated gff
+  gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
+  gff <- fread(gffFile, showProgress = F, na.strings = c("", "NA"))
+
+  # -- find the hit files
+  pfs <- CJ(g1 = genomeIDs, g2 = genomeIDs)
+  pfs[,fs := file.path(gsParam$paths$results,
+                       sprintf("%s_%s_synHits.txt.gz", g1, g2))]
+  pfs <- subset(pfs, file.exists(fs))
+  fs <- pfs$fs
+
+  # -- load the hits (either regions or blks)
+  so <- rbindlist(mclapply(fs, mc.cores = gsParam$params$nCores, function(i){
+    x <- fread(i,
+               select = c("ofID1", "ofID2","blkID","blkAnchor","gen1"),
+               showProgress = F,
+               na.strings = c("NA", "-", ""))
+    if(x$gen1 != refGenome){
+      setnames(x, c("ofID2", "ofID1","blkID","blkAnchor","gen1"))
+      x <- x[,c("ofID1", "ofID2","blkID","blkAnchor","gen1")]
+    }
+    x[,isSelf := any(ofID1 %in% ofID2), by = "blkID"]
+    return(subset(x, blkAnchor & !isSelf)[,1:3])
+  }))
+
+
+  sogFile <- list.files(gsParam$results, pattern = "_synog.txt.gz", full.names = T)
+  so <- rbindlist(lapply(sogFile, fread))
+  so <- subset(so, ofID1 %in% gff$ofID & ofID2 %in% gff$ofID)
+  ov <- gff$ord; names(ov) <- gff$ofID
+  cv <- gff$chr; names(cv) <- gff$ofID
+  sv <- gff$start; names(sv) <- gff$ofID
+  ev <- gff$end; names(ev) <- gff$ofID
+  gv <- gff$genome; names(gv) <- gff$ofID
+  iv <- gff$id; names(iv) <- gff$ofID
+  so[,`:=`(genome1 = gv[ofID1], genome2 = gv[ofID2],
+           chr1 = cv[ofID1], chr2 = cv[ofID2],
+           start1 = sv[ofID1], start2 = sv[ofID2],
+           end1 = ev[ofID1], end2 = ev[ofID2])]
+  so <- rbind(so, with(so, data.table(
+    ofID1 = ofID2, ofID2 = ofID1, blkID = blkID,
+    genome1 = genome2, genome2 = genome1, chr1 = chr2, chr2 = chr1,
+    start1 = start2, start2 = start1, end1 = end2, end2 = end1)))
+  so <- subset(so, !duplicated(so))
+  bo <- rbind(
+    with(subset(blk, orient == "+"), data.table(
+      proteomeA = c(genome1, genome2),
+      chromA = c(chr1, chr2),
+      startA = c(bpStart1, bpStart2),
+      endA = c(bpEnd1, bpEnd2),
+      proteomeB = c(genome2, genome1),
+      chromB = c(chr2, chr1),
+      startB = c(bpStart2, bpStart1),
+      endB = c(bpEnd2, bpEnd1),
+      strand = c(orient, orient),
+      blkID = c(blkID, blkID))),
+    with(subset(blk, orient == "-"), data.table(
+      proteomeA = c(genome1, genome2),
+      chromA = c(chr1, chr2),
+      startA = c(bpStart1, bpStart2),
+      endA = c(bpEnd1, bpEnd2),
+      proteomeB = c(genome2, genome1),
+      chromB = c(chr2, chr1),
+      startB = c(bpEnd2, bpEnd1),
+      endB = c(bpStart2, bpStart1),
+      strand = c(orient, orient),
+      blkID = c(blkID, blkID))))
+  bo <- subset(bo, !duplicated(bo))
+  splb <- split(bo, by = "proteomeA")
+  splo <- split(so, by = "genome1")
+  nu <- lapply(names(splb), function(i){
+    x <- splb[[i]]
+    y <- splo[[i]]
+    splx <- split(x, by = "proteomeB")
+    sply <- split(y, by = "genome2")
+    dirx <- file.path(outdir, i)
+    dir.create(dirx)
+    dir.create(file.path(dirx, "alignments"))
+    for(j in names(splx)){
+      bcoords <- splx[[j]]
+      oc <- sply[[j]]
+      splk <- split(oc, by = "blkID")
+      fwrite(bcoords[,1:9, with = F],
+             file = file.path(dirx, sprintf("%s_%s.csv", i, j)))
+      for(k in 1:nrow(bcoords)){
+        w <- bcoords[k,]
+        print(w)
+        z <- with(splk[[w$blkID]], data.table(
+          geneA = iv[ofID1], startA = start1, endA = end1,
+          geneB = iv[ofID2], startB = start2, endB = end2))
+        fn <- with(w, sprintf("%s__%s:%s-%s_%s__%s:%s-%s.csv",
+                              proteomeA, chromA, startA, endA,
+                              proteomeB, chromB, startB, endB))
+        fwrite(z, file = file.path(dirx, "alignments", fn))
+      }
+    }
+  })
+}
+

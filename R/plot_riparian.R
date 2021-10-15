@@ -44,6 +44,7 @@
 #' no coloring by chr, specify NULL.
 #' @param labelChrBiggerThan integer specifying the minimum number of genes or
 #' bp to label a chromosome
+#' @param highlightRef color to highlight the reference chromosomes.
 #' @param chrLabFun function to parse chr IDs to make them more readible
 #' @param gff annotated gff-like data.table
 #' @param hitsRef data.table containing all syn og hits against the reference
