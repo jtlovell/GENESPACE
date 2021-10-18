@@ -242,6 +242,26 @@ blks <- synteny(gsParam = gpar, overwrite = T)
 ## Done
 ```
 
+**Look at they synteny-constrained blastp hits**. 
+
+
+```r
+annBlast <- fread(
+  file.path(gpar$paths$results, "human_chimp_synHits.txt.gz"),
+  na.strings = c("", "NA"), showProgress = F)
+gsGff <- fread(
+  file.path(gpar$paths$results, "gffWithOgs.txt.gz"),
+  na.strings = c("", "NA"), showProgress = F)
+dpData <- plot_hits(
+  hits = annBlast, 
+  gff = gsGff, 
+  plotRegions = T, 
+  anchorOnly = T,
+  plotTitle = "human-chimp syntenic anchor hits")
+```
+
+![](readme_files/figure-html/dotplot-1.png)<!-- -->
+
 **Find synteny-constrained orthogroups**. Using the synteny databases generated during `synteny`, split global orthogroups into subgraphs with edges only connected by syntenic edges. The behavior of this function depends on whether `orthofinderInBlk = TRUE` or not. Here, since we are dealing with only haploid genomes, it only runs the global method. 
 
 
@@ -275,12 +295,38 @@ ripd  <- plot_riparian(gsParam = gpar)
 ```
 ## Done!
 ```
+**Zoom in on a couple chromosomes**. Showing some common parameters that might be useful. Here, only showing just three human chromosomes, with new colors, using physical position instead of gene rank order. 
+
+```r
+ripd  <- plot_riparian(
+  gsParam = gpar, 
+  refGenome = "human",
+  onlyTheseChrs = c("X",1:2),
+  colByChrs = c("grey","gold","dodgerblue"), 
+  useOrder = F)
+```
+
+```
+## 	Loading the gff ... Done!
+## 	Mapping genes against human chromosomes ... Done!
+## 	Projecting linear coordinate system ... Done!
+## 	Generating block coordinates ... Done!
+## 	Rendering plot ...
+```
+
+![](readme_files/figure-html/ripZoom-1.png)<!-- -->
+
+```
+## Done!
+```
 
 **Build the pangenome**. Here, the synteny constrained hits are used to predict their positions against a chosen reference genome. Then the orthology networks are decoded into a tabular format. 
 
 
 ```r
-pg <- pangenome(gsParam = gpar, refGenome = "human")
+pg <- pangenome(
+  gsParam = gpar, 
+  refGenome = "human")
 ```
 
 ```
@@ -304,23 +350,47 @@ pg <- pangenome(gsParam = gpar, refGenome = "human")
 ## Pangenome written to results/human_pangenomeDB.txt.gz
 ```
 
+**Query the pangenome**. Pull presence absence and geneID information from the pangenome. 
+
+
 ```r
-print(pg[5:15,])
+query_pangenome(
+  pg = pg, 
+  refChrom = "1", 
+  startOrder = 10, 
+  endOrder = 15)
 ```
 
 ```
-##     pgID og chr ord                           chimp    human         mouse
-##  1:    5  5   1   7                           NOC2L    NOC2L         Noc2l
-##  2:    6  6   1   8                          KLHL17   KLHL17        Klhl17
-##  3:    7  7   1   9                         PLEKHN1  PLEKHN1       Plekhn1
-##  4:    8  8   1  10                           PERM1    PERM1         Perm1
-##  5:    9  9   1  11                            HES4     HES4              
-##  6:   10 10   1  12                           ISG15    ISG15         Isg15
-##  7:   11 11   1  13                            AGRN     AGRN          Agrn
-##  8:   12 12   1  14 LOC746419,LOC112208569,PRAMEF20                       
-##  9:   13 13   1  14                          RNF223   RNF223        Rnf223
-## 10:   14 14   1  15                      C1H1orf159 C1orf159 9430015G10Rik
-## 11:   15 15   1  16                          TTLL10   TTLL10        Ttll10
+## $raw
+##    pgID og chr ord                           chimp    human         mouse
+## 1:    8  8   1  10                           PERM1    PERM1         Perm1
+## 2:    9  9   1  11                            HES4     HES4              
+## 3:   10 10   1  12                           ISG15    ISG15         Isg15
+## 4:   11 11   1  13                            AGRN     AGRN          Agrn
+## 5:   12 12   1  14 LOC746419,LOC112208569,PRAMEF20                       
+## 6:   13 13   1  14                          RNF223   RNF223        Rnf223
+## 7:   14 14   1  15                      C1H1orf159 C1orf159 9430015G10Rik
+## 
+## $pav
+##    pgID og chr ord chimp human mouse
+## 1:    8  8   1  10  TRUE  TRUE  TRUE
+## 2:    9  9   1  11  TRUE  TRUE FALSE
+## 3:   10 10   1  12  TRUE  TRUE  TRUE
+## 4:   11 11   1  13  TRUE  TRUE  TRUE
+## 5:   12 12   1  14  TRUE FALSE FALSE
+## 6:   13 13   1  14  TRUE  TRUE  TRUE
+## 7:   14 14   1  15  TRUE  TRUE  TRUE
+## 
+## $cnts
+##    pgID og chr ord chimp human mouse
+## 1:    8  8   1  10     1     1     1
+## 2:    9  9   1  11     1     1     0
+## 3:   10 10   1  12     1     1     1
+## 4:   11 11   1  13     1     1     1
+## 5:   12 12   1  14     3     0     0
+## 6:   13 13   1  14     1     1     1
+## 7:   14 14   1  15     1     1     1
 ```
 
 

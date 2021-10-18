@@ -133,6 +133,23 @@ gpar <- annotate_gff(gsParam = gpar, overwrite = T)
 blks <- synteny(gsParam = gpar, overwrite = T)
 ```
 
+**Look at they synteny-constrained blastp hits**. 
+
+```{r dotplot, eval = TRUE, fig.height = 4, fig.width = 4}
+annBlast <- fread(
+  file.path(gpar$paths$results, "human_chimp_synHits.txt.gz"),
+  na.strings = c("", "NA"), showProgress = F)
+gsGff <- fread(
+  file.path(gpar$paths$results, "gffWithOgs.txt.gz"),
+  na.strings = c("", "NA"), showProgress = F)
+dpData <- plot_hits(
+  hits = annBlast, 
+  gff = gsGff, 
+  plotRegions = T, 
+  anchorOnly = T,
+  plotTitle = "human-chimp syntenic anchor hits")
+```
+
 **Find synteny-constrained orthogroups**. Using the synteny databases generated during `synteny`, split global orthogroups into subgraphs with edges only connected by syntenic edges. The behavior of this function depends on whether `orthofinderInBlk = TRUE` or not. Here, since we are dealing with only haploid genomes, it only runs the global method. 
 
 ```{r pull_synOGs, eval = TRUE}
@@ -141,15 +158,36 @@ gpar <- pull_synOGs(gsParam = gpar)
 
 **Make a multi-species synteny plot**. The riparian plot tracks synteny across multiple genomes, color coding and ordering chromosomes by synteny to a reference genomes. There are a lot of parameters to optimize the appearence. See the help file.
 
-```{r plot_riparian, eval = TRUE, fig.height = 3.5, fig.width = 8}
+```{r plot_riparian, eval = TRUE, fig.height = 2.5, fig.width = 8}
 ripd  <- plot_riparian(gsParam = gpar)
+```
+**Zoom in on a couple chromosomes**. Showing some common parameters that might be useful. Here, only showing just three human chromosomes, with new colors, using physical position instead of gene rank order. 
+```{r ripZoom, eval = TRUE, fig.height = 2.5, fig.width = 8}
+ripd  <- plot_riparian(
+  gsParam = gpar, 
+  refGenome = "human",
+  onlyTheseChrs = c("X",1:2),
+  colByChrs = c("grey","gold","dodgerblue"), 
+  useOrder = F)
 ```
 
 **Build the pangenome**. Here, the synteny constrained hits are used to predict their positions against a chosen reference genome. Then the orthology networks are decoded into a tabular format. 
 
 ```{r pangenome, eval = TRUE}
-pg <- pangenome(gsParam = gpar, refGenome = "human")
-print(pg[5:15,])
+pg <- pangenome(
+  gsParam = gpar, 
+  refGenome = "human")
+
+```
+
+**Query the pangenome**. Pull presence absence and geneID information from the pangenome. 
+
+```{r query, eval = TRUE}
+query_pangenome(
+  pg = pg, 
+  refChrom = "1", 
+  startOrder = 10, 
+  endOrder = 15)
 ```
 
 

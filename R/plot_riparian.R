@@ -375,7 +375,7 @@ plot_riparian <- function(gsParam,
       label = mol,
       lwd = .5, cex = chrLabCex)
     if(is.null(labelChrBiggerThan))
-      labelChrBiggerThan <- mo/5
+      labelChrBiggerThan <- mo/20
   }else{
     draw_scaleBar(
       x = quantile(chrPos$start, .5, na.rm = T),
@@ -385,7 +385,7 @@ plot_riparian <- function(gsParam,
       label = mbl,
       lwd = .5, cex = chrLabCex)
     if(is.null(labelChrBiggerThan))
-      labelChrBiggerThan <- mb/5
+      labelChrBiggerThan <- mb/20
   }
 
   # -- draw the braid polygons
@@ -431,13 +431,13 @@ plot_riparian <- function(gsParam,
   cp <- chrPos[,list(x = min(start)), by = c("genome","y")]
   if(blackBg){
     with(cp, text(
-      x = x - (max(chrPos$end) / 20), y = y, col = "white",
-      label = substr(genome, 1, nGenomeLabChar), adj = c(1.2, .5), cex = genomeLabCex))
+      x = x - (max(chrPos$end) / 100), y = y, col = "white",
+      label = substr(genome, 1, nGenomeLabChar), adj = c(1, .5), cex = genomeLabCex))
 
   }else{
     with(cp, text(
-      x = x - (max(chrPos$end) / 20), y = y, col = "black",
-      label = substr(genome, 1, nGenomeLabChar), adj = c(1.2, .5), cex = genomeLabCex))
+      x = x - (max(chrPos$end) / 100), y = y, col = "black",
+      label = substr(genome, 1, nGenomeLabChar), adj = c(1, .5), cex = genomeLabCex))
   }
 
   par(mar = pmar)

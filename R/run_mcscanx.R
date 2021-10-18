@@ -59,7 +59,7 @@ run_mcscanx <- function(hits,
   ##############################################################################
   # set tmp directory
   tmpDir <- file.path(
-    gsParam$paths$wd,
+    gsParam$paths$results,
     paste0("tmp_",
            paste(sample(c(letters,LETTERS), 20, replace = T), collapse = "")))
   if (dir.exists(tmpDir))
