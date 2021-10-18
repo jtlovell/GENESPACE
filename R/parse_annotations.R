@@ -477,7 +477,7 @@ parse_gff <- function(
     filter = list(type = gffEntryType),
     tags = c(gffIdColumn))))
   if(troubleshoot)
-    print(head(gff, 10))
+    print(fread(path2rawGff3))
   if(verbose)
     cat("found", nrow(gff), "gff entires")
 

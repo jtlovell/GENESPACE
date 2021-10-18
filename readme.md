@@ -5,6 +5,7 @@ date: "15-Oct 2021"
 output: 
   html_document: 
     keep_md: yes
+    toc: yes
 ---
 
 
@@ -24,8 +25,21 @@ GENESPACE outputs a synteny-constrained and -anchored orthogroup pan-genome anno
 
 # 2. Quick start
 
-**Install and load GENESPACE**. Assuming `orthofinder`, `MCScanX`, `GENESPACE` and dependencies are installed (see 3. installation below), enter R and run:.
+For more detail regarding installation, input files format and outputs, see below. 
 
+## 2.1 Install and load GENESPACE
+
+GENESPACE is an R package. If R is not installed on your machine, you can get it [here](https://cran.r-project.org/). To run GENESPACE, open R, either from a terminal, or from Rstudio and install GENESPACE as follows:
+
+
+```r
+devtools::install_github("jtlovell/GENESPACE", upgrade = F)
+```
+
+```
+## Skipping install of 'GENESPACE' from a github remote, the SHA1 (e2a8a0fd) has not changed since last install.
+##   Use `force = TRUE` to force installation
+```
 
 ```r
 library(GENESPACE)
@@ -35,9 +49,21 @@ library(GENESPACE)
 ## Loading required package: data.table
 ```
 
-and genomes being used are all from NCBI, here is the full pipeline to build syntenic pan-genome annotations and make plots. Here, we are going to use human, chimpanzee and mouse genomes from NCBI. Each genome is a haploid representation of the diploid genotypes, so ploidy = 1. 
+**NOTE** Some GENESPACE specifications require that `orthofinder` is in the $PATH. See 3.2 (running orthofinder from within R) for more details on this method. 
 
-**Get the GENESPACE run initialized**. All the major parameters and paths to raw files are set here. 
+## 2.2 Get the raw annotation files
+
+GENESPACE operates on gff3-formatted protein-coding gene annotation files and fasta-formatted peptide files. These need to be downloaded from your repository of choice. Where possible, you want the primary annotation-only files; however, gff/fasta files with multiple entries/gene are OK too. GENESPACE will automatically take only the longest transcript. 
+
+Once you have the annotation files downloaded to your local machine, make a directory that these files will go into. For example `~/Desktop/rawRepo`. For each genome, you'll need a specific species and version subdirectory, which contains a directory called `annotation` that stores the annotation files. So, for example, the data for the three genome annotations might go in 
+
+- human: `~/Desktop/rawRepo/Homo_sapiens/GRCh38.p13/annotation`
+- chimp: `~/Desktop/rawRepo/Pan_troglodytes/Clint_PTRv2/annotation`
+- mouse: `~/Desktop/rawRepo/Mus_musculus/GRCm39/annotation`
+
+### 2.3 Get the GENESPACE run initialized
+
+This step is where all of the major parameters and paths to raw files are set. If things don't look right, GENESPACE should return an informative warning about how to resolve the problems. Here, we'll use an example from mammals: human, chimpanzee and mouse genomes, downloaded from NCBI. Each genome is a haploid representation of the diploid genotypes, so ploidy = 1. 
 
 **NOTE** You'll see some warning messages about being unable to run orthofinder. This just means you'll need to call orthofinder from the terminal outside of R. 
 
@@ -45,10 +71,10 @@ and genomes being used are all from NCBI, here is the full pipeline to build syn
 ```r
 gpar <- init_genespace(
   # -- unique genome IDs. these can't start with a number of special character
-  genomeIDs = c("human","chimp","mouse"), 
+  genomeIDs = c("human", "chimp", "mouse"), 
   
   # -- subdirectory in the rawGenomeDir matching genomeIDs
-  speciesIDs = c("Homo_sapiens","Pan_troglodytes","Mus_musculus"),
+  speciesIDs = c("Homo_sapiens", "Pan_troglodytes", "Mus_musculus"),
   
   # -- subdirectory in rawGenomeDir/speciesIDs containing the genome to use. 
   # -- for example, the human genome is here:
@@ -82,23 +108,7 @@ gpar <- init_genespace(
 ```
 
 ```
-## set working directory to /Users/jlovell/Desktop/mammalGenespace/run1
-```
-
-```
-## Warning in value[[3L]](cond): cannot call diamond from diamond
-```
-
-```
-## Warning in check_orthofinderInstall(path2orthofinder, verbose = T): Cannot call orthofinder from path specified to GENESPACE
-## 	Run orthofinder outside of R with commands supplied
-```
-
-```
-## Warning in value[[3L]](cond): cannot call diamond from diamond
-```
-
-```
+## set working directory to /Users/jlovell/Desktop/mammalGenespace/run1 
 ## 
 ## found raw gff files:
 ## 	 /Users/jlovell/Desktop/mammalGenespace/rawRepo/Homo_sapiens/GRCh38.p13/annotation/GCF_000001405.39_GRCh38.p13_genomic.gff.gz
@@ -117,11 +127,15 @@ gpar <- init_genespace(
 ```
 
 
-**Parse the genomes into GENESPACE format**, which is a simplified gff3-like text file with a column `id` that exactly matches the peptide fasta header. If your genome is not NCBI or phytozome formatted, this can be tricky. See the help file for `?parse_annotations` for more info.
+## 2.4 Parse the genomes into GENESPACE format
+
+To improve IO speed, GENESPACE uses a simplified gff3-like text file with a column `id` that exactly matches the peptide fasta header. GENESPACE has built in functions to parse NCBI (`parse_ncbi`) and phytozome (`parse_phytozome`); however, if using non-standard formatted annotations, this can be a tricky step. See 3.5 (using non-standard annotation files). 
 
 
 ```r
-parse_ncbi(gsParam = gpar, overwrite = T)
+parse_ncbi(
+  gsParam = gpar, 
+  overwrite = T)
 ```
 
 ```
@@ -139,20 +153,27 @@ parse_ncbi(gsParam = gpar, overwrite = T)
 ## 	Merging fa and gff found 22186 matching entires
 ```
 
-**Set the synteny parameters**. There are a lot of parameters, see `?set_syntenyParams`, but the defaults should be fine for most situations. See vignette 1 for more details. To see the full parameterization, print the synteny parameters as `print(gpar$params$synteny)`. This can be edited manually if needed to fine-tune the synteny search to diverse patterns of genome evolution.
+## 2.5 Set the synteny parameters 
+
+GENESPACE is fairly robust to parameter specification and the defaults should be fine for most situations; however, there are situations where the user may want to alter the defaults globally (e.g. studying paralogs) or for a specific genome (e.g. poor assembly contiguity). See 3.6 (paramterizing GENESPACE run) for more details. 
 
 
 ```r
-gpar <- set_syntenyParams(gsParam = gpar)
+gpar <- set_syntenyParams(
+  gsParam = gpar)
 ```
 
-**Run orthofinder**. If orthofinder is installed and in the path, this command will run orthofinder from R, but this is not necessary, or even preferable. Instead, it will print the command and you can run that in an environment with orthofinder in the path. 
+## 2.6 Run orthofinder
+
+GENESPACE acts on `orthofinder` output. If this is a new GENESPACE run, `orthofinder` has to run too. The best way to do this is outside of R. `run_orthofinder` will prepare a working director and print the `orthofinder` command and you can run that in an environment with orthofinder in the path. 
 
 Given the specification and missing orthofinder install, the initial `run_orthofinder` call without an existing orthofinder run will look like this: 
 
 
 ```r
-gpar <- run_orthofinder(gsParam = gpar, overwrite = F)
+gpar <- run_orthofinder(
+  gsParam = gpar, 
+  overwrite = F)
 
 # 	Cleaning out orthofinder directory and prepping run
 # 	Could not find valid orthofinder executable in the path
@@ -176,14 +197,18 @@ Then ensure that your working directory is set to the GENESPACE working director
 
 ```bash
 cd ~/Desktop/mammalGenespace/run1/orthofinder
-orthofinder -f /Users/jlovell/Desktop/mammalGenespace/run1/peptide -t 4 -a 1 -X -o 
+orthofinder -f ~/Desktop/mammalGenespace/run1/peptide -t 4 -a 1 -X -o 
 ```
 
-**Add arrays and other metadata to the gffs**. Subsetting the search to representatives of collinear arrays is a crucial step to accurate synteny inference. The behavior of this step depends on whether `recallArrays = TRUE`. Here, since `orthofinder` is not in the path of R, arrays are not re-called. 
+## 2.7 Add arrays and other metadata to the gffs 
+
+Subsetting the search to representatives of collinear arrays is a crucial step to accurate synteny inference. The behavior of this step depends on whether `recallArrays = TRUE`. Here, since `orthofinder` is not in the path of R, arrays are not re-called. See 3.7 (re-calling collinear arrays) for details. 
 
 
 ```r
-gpar <- annotate_gff(gsParam = gpar, overwrite = T)
+gpar <- annotate_gff(
+  gsParam = gpar, 
+  overwrite = T)
 ```
 
 ```
@@ -201,11 +226,15 @@ gpar <- annotate_gff(gsParam = gpar, overwrite = T)
 ## Writing gff to file: ~/Desktop/mammalGenespace/run1/results/gffWithOgs.txt.gz
 ```
 
-**Constrain blast results to synteny**. The primary engine of GENESPACE is `synteny`, which parses an orthofinder run into syntenic orthogroups. This operates on the syntenyParameters generated from `set_syntenyParam`. The synteny-constrained hits and corresponding dotplots are stored by default in the /results directory.
+## 2.8 Constrain blast results to synteny
+
+The primary engine of GENESPACE is `synteny`, which parses an `orthofinder` run into syntenic orthogroups. See 4.1 (synteny pipeline details) for more information. This operates on the syntenyParameters generated from `set_syntenyParam`. The synteny-constrained hits and corresponding dotplots are stored by default in the /results directory.
 
 
 ```r
-blks <- synteny(gsParam = gpar, overwrite = T)
+blks <- synteny(
+  gsParam = gpar, 
+  overwrite = T)
 ```
 
 ```
@@ -242,27 +271,13 @@ blks <- synteny(gsParam = gpar, overwrite = T)
 ## Done
 ```
 
-**Look at they synteny-constrained blastp hits**. 
-
-
-```r
-annBlast <- fread(
-  file.path(gpar$paths$results, "human_chimp_synHits.txt.gz"),
-  na.strings = c("", "NA"), showProgress = F)
-gsGff <- fread(
-  file.path(gpar$paths$results, "gffWithOgs.txt.gz"),
-  na.strings = c("", "NA"), showProgress = F)
-dpData <- plot_hits(
-  hits = annBlast, 
-  gff = gsGff, 
-  plotRegions = T, 
-  anchorOnly = T,
-  plotTitle = "human-chimp syntenic anchor hits")
-```
+Once synteny is done, have a look at they synteny-constrained blastp hits. Here is an example of human and chimp syntenic anchors
 
 ![](readme_files/figure-html/dotplot-1.png)<!-- -->
 
-**Find synteny-constrained orthogroups**. Using the synteny databases generated during `synteny`, split global orthogroups into subgraphs with edges only connected by syntenic edges. The behavior of this function depends on whether `orthofinderInBlk = TRUE` or not. Here, since we are dealing with only haploid genomes, it only runs the global method. 
+## 2.9 Find synteny-constrained orthogroups
+
+Using the synteny databases generated during `synteny`, split global orthogroups into subgraphs with edges only connected by syntenic edges. The behavior of this function depends on whether `orthofinderInBlk = TRUE` or not. Here, since we are dealing with only haploid genomes, it only runs the global method. See 4.3 (syntenic orthogroup pipeline details) for details. 
 
 
 ```r
@@ -275,11 +290,15 @@ gpar <- pull_synOGs(gsParam = gpar)
 ## 	n. syntenic OGs = 22561
 ```
 
-**Make a multi-species synteny plot**. The riparian plot tracks synteny across multiple genomes, color coding and ordering chromosomes by synteny to a reference genomes. There are a lot of parameters to optimize the appearence. See the help file.
+
+## 2.10 Make a multi-species synteny plot
+
+The riparian plot tracks synteny across multiple genomes, color coding and ordering chromosomes by synteny to a reference genomes. There are a lot of parameters to optimize the appearance. See the help file.
 
 
 ```r
-ripd  <- plot_riparian(gsParam = gpar)
+ripd  <- plot_riparian(
+  gsParam = gpar)
 ```
 
 ```
@@ -295,7 +314,9 @@ ripd  <- plot_riparian(gsParam = gpar)
 ```
 ## Done!
 ```
-**Zoom in on a couple chromosomes**. Showing some common parameters that might be useful. Here, only showing just three human chromosomes, with new colors, using physical position instead of gene rank order. 
+
+You can also zoom in on a couple chromosomes. Here is an example showing some common parameters that might be useful: showing just three human chromosomes, with new colors, using physical position instead of gene rank order. 
+
 
 ```r
 ripd  <- plot_riparian(
@@ -320,7 +341,9 @@ ripd  <- plot_riparian(
 ## Done!
 ```
 
-**Build the pangenome**. Here, the synteny constrained hits are used to predict their positions against a chosen reference genome. Then the orthology networks are decoded into a tabular format. 
+## 2.11 Build the pangenome
+
+GENESPACE uses the synteny constrained hits to predict gene positions against a chosen reference genome. Then the orthology networks are decoded into a tabular format, which we term a "pan-genome annotation". 
 
 
 ```r
@@ -350,7 +373,7 @@ pg <- pangenome(
 ## Pangenome written to results/human_pangenomeDB.txt.gz
 ```
 
-**Query the pangenome**. Pull presence absence and geneID information from the pangenome. 
+GENESPACE offers a method to pull presence absence and geneID information from the pangenome. Here, showing entries on Chr01 between pangenome positions 10 and 15.  
 
 
 ```r
@@ -396,7 +419,7 @@ query_pangenome(
 
 # 3. Setup
 
-### 3.1 Installing Dependencies
+## 3.1 Installing Dependencies
 
 The GENESPACE R package is designed only for use MacOSX and Linux. Testing on OSX 10.16 (Big Sur) and __ (). The R package requires that `MCScanX` is [installed](https://github.com/wyp1125/MCScanX) as well as the following R dependencies:
 
@@ -408,7 +431,7 @@ The GENESPACE R package is designed only for use MacOSX and Linux. Testing on OS
 GENESPACE cannot be run without results from `orthofinder`. This can be installed on a separate server or locally. The simplest method is with conda: `conda install -c bioconda orthofinder`, but other methods are available. See [orthofinder documentation](https://github.com/davidemms/OrthoFinder). 
 
 
-### 3.2 Install GENESPACE
+## 3.2 Install GENESPACE
 
 To install GENESPACE, enter R, either by typing `R` into the command line or `open -na rstudio` for RStudio. If not installed, install the `devtools` package via `install.packages("devtools")`. This will permit one-line installation from the gitlab repo. 
 
@@ -418,7 +441,7 @@ This should also install the dependencies, `data.table`, `igraph`, and `dbscan`.
 
 If devtools is not available or you'd prefer, you can install from the provided [zip file](https://github.com/jtlovell/GENESPACE/archive/refs/heads/dev.zip), saved in a location where you have execute privileges. If running on the command line, prior to entering R, run: `R cmd install path/to/GENESPACE.tar.gz`. Alternatively, if running GENESPACE from RStudio, open Rstudio once the orthofinder conda environment is activated, then install GENESPACE by clicking on the 'install' icon under the 'packages' tab. Select 'install from package archive file' and navigate to the location of the saved GENESPACE.tar.gz file. 
 
-### 3.3 Input data format
+## 3.3 Input data format
 
 GENESPACE requires two inputs for each genome: primary transcript annotation peptide fasta files and gene feature coordinates. The sequence headers in the fasta must be able to parsed to match the attributes column of the gff3 gene annotation. 
 
