@@ -108,6 +108,7 @@ write_phytozome <- function(gsParam,
                             useRegions = TRUE,
                             genomeIDs = NULL){
 
+  g1 <- g2 <- refGenome <- isSelf <- ofID1 <- ofID2 <- blkAnchor <- orient <- NULL
   # -- get the output directory
   outdir <- file.path(gsParam$results, "phytozome")
   dir.create(outdir)

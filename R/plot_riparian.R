@@ -105,7 +105,7 @@ plot_riparian <- function(gsParam,
                           chrLabFun = function(x)
                             gsub("^0","",gsub("^chr|^scaffold|^lg|_","",tolower(x)))){
 
-  arrayID <- og <- synOG <- globOG <- inBlkOG <- synOg <- NULL
+  arrayID <- og <- synOG <- globOG <- inBlkOG <- NULL
   genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1 <- ord1 <- ofID <- NULL
   rl <- refChr <- blkID <- gen2 <- startOrd1 <- endOrd1 <- end <- n <- NULL
   startOrd2 <- endOrd2 <- startBp1 <- endBp1 <- startBp2 <- NULL
@@ -171,7 +171,6 @@ plot_riparian <- function(gsParam,
     }
   }
 
-  gff[,synOg := og]
   gv <- gff$genome; cv <- gff$chr
   names(gv) <- names(cv) <- gff$ofID
 
@@ -532,7 +531,7 @@ split_blksByRef <- function(hitsRef,
 #' @rdname plot_riparian
 #' @export
 reorder_gff <- function(gff, genomeIDs, minGenesOnChr, refGenome){
-  genome <- ord <- n <- chr <- chrn <- medPos <- chrNameOrd <- synOg <- NULL
+  genome <- ord <- n <- chr <- chrn <- medPos <- chrNameOrd <- og <- NULL
   gff <- subset(gff, genome %in% genomeIDs)
   gff[,genome := factor(genome, levels = genomeIDs)]
   setkey(gff, genome, ord)
@@ -676,7 +675,7 @@ calc_refChrByGene <- function(gff,
                               blkSize,
                               nCores){
   refChr <- chr <- genome <- rl <- ofID <- NULL
-  # -- if a synOg has a ref chr in it, populate gff
+  # -- if a  has a ref chr in it, populate gff
   gff2 <- data.table(gff)
   linOrd <- NULL
   setkey(gff2, linOrd)

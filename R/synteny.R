@@ -486,6 +486,7 @@ finalize_blocks <- function(hits,
   colAnch <- rbindlist(mclapply(spl, mc.cores = nCores, function(x){
     suppressWarnings(x[,isCollin := !is.na(run_mcscanx(
       hits = x,
+      gsParam = gsParam,
       blkSize = blkSize,
       nGaps = nGaps,
       path2mcscanx = path2mcscanx)[paste(ofID1, ofID2)])])
@@ -762,6 +763,7 @@ find_globalAnchors <- function(hits,
   # -- initial anchor building
   anchu <- run_mcscanx(
     hits = anch,
+    gsParam = gsParam,
     blkSize = sp$blkSize,
     nGaps = sp$nGaps,
     path2mcscanx = gsParam$paths$mcscanxCall)
@@ -800,6 +802,7 @@ find_globalAnchors <- function(hits,
              ord2 = frank(ord2, ties.method = "dense"))]
   anchu <- run_mcscanx(
     hits = anch,
+    gsParam = gsParam,
     blkSize = sp$blkSize,
     nGaps = sp$nGaps,
     path2mcscanx = gsParam$paths$mcscanxCall)

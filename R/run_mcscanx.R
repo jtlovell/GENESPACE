@@ -28,6 +28,7 @@
 run_mcscanx <- function(hits,
                         blkSize,
                         nGaps,
+                        gsParam,
                         path2mcscanx){
   ##############################################################################
   # parameter argument checking
@@ -58,7 +59,7 @@ run_mcscanx <- function(hits,
   ##############################################################################
   # set tmp directory
   tmpDir <- file.path(
-    getwd(),
+    gsParam$paths$wd,
     paste0("tmp_",
            paste(sample(c(letters,LETTERS), 20, replace = T), collapse = "")))
   if (dir.exists(tmpDir))

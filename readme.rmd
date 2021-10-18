@@ -7,7 +7,9 @@ output:
     keep_md: yes
 ---
 
-
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = F)
+```
 
 
 # 1. Overview
@@ -26,13 +28,9 @@ GENESPACE outputs a synteny-constrained and -anchored orthogroup pan-genome anno
 
 **Install and load GENESPACE**. Assuming `orthofinder`, `MCScanX`, `GENESPACE` and dependencies are installed (see 3. installation below), enter R and run:.
 
+```{r install, eval = TRUE}
 
-```r
 library(GENESPACE)
-```
-
-```
-## Loading required package: data.table
 ```
 
 and genomes being used are all from NCBI, here is the full pipeline to build syntenic pan-genome annotations and make plots. Here, we are going to use human, chimpanzee and mouse genomes from NCBI. Each genome is a haploid representation of the diploid genotypes, so ploidy = 1. 
@@ -41,8 +39,7 @@ and genomes being used are all from NCBI, here is the full pipeline to build syn
 
 **NOTE** You'll see some warning messages about being unable to run orthofinder. This just means you'll need to call orthofinder from the terminal outside of R. 
 
-
-```r
+```{r init_genespace, eval = TRUE}
 gpar <- init_genespace(
   # -- unique genome IDs. these can't start with a number of special character
   genomeIDs = c("human","chimp","mouse"), 
@@ -81,68 +78,16 @@ gpar <- init_genespace(
   rawGenomeDir = "~/Desktop/mammalGenespace/rawRepo")
 ```
 
-```
-## set working directory to /Users/jlovell/Desktop/mammalGenespace/run1
-```
-
-```
-## Warning in value[[3L]](cond): cannot call diamond from diamond
-```
-
-```
-## Warning in check_orthofinderInstall(path2orthofinder, verbose = T): Cannot call orthofinder from path specified to GENESPACE
-## 	Run orthofinder outside of R with commands supplied
-```
-
-```
-## Warning in value[[3L]](cond): cannot call diamond from diamond
-```
-
-```
-## 
-## found raw gff files:
-## 	 /Users/jlovell/Desktop/mammalGenespace/rawRepo/Homo_sapiens/GRCh38.p13/annotation/GCF_000001405.39_GRCh38.p13_genomic.gff.gz
-## 	/Users/jlovell/Desktop/mammalGenespace/rawRepo/Pan_troglodytes/Clint_PTRv2/annotation/GCF_002880755.1_Clint_PTRv2_genomic.gff.gz
-## 	/Users/jlovell/Desktop/mammalGenespace/rawRepo/Mus_musculus/GRCm39/annotation/GCF_000001635.27_GRCm39_genomic.gff.gz
-## 
-## found raw peptide files:
-## 	 /Users/jlovell/Desktop/mammalGenespace/rawRepo/Homo_sapiens/GRCh38.p13/annotation/GCF_000001405.39_GRCh38.p13_translated_cds.faa.gz
-## 	/Users/jlovell/Desktop/mammalGenespace/rawRepo/Pan_troglodytes/Clint_PTRv2/annotation/GCF_002880755.1_Clint_PTRv2_translated_cds.faa.gz
-## 	/Users/jlovell/Desktop/mammalGenespace/rawRepo/Mus_musculus/GRCm39/annotation/GCF_000001635.27_GRCm39_translated_cds.faa.gz 
-## 
-## GENESPACE run initialized:
-## 	Initial orthofinder database generation method: default
-## 	Collinear array detection method: global
-## 	Orthology graph method: global
-```
-
 
 **Parse the genomes into GENESPACE format**, which is a simplified gff3-like text file with a column `id` that exactly matches the peptide fasta header. If your genome is not NCBI or phytozome formatted, this can be tricky. See the help file for `?parse_annotations` for more info.
 
-
-```r
+```{r parse_ncbi, eval = TRUE}
 parse_ncbi(gsParam = gpar, overwrite = T)
-```
-
-```
-## Parsing annotations: human
-## 	Reading gff ... found 19532 protein coding genes
-## 	Reading peptide fasta ... found 124038 / 19532 total and unique entries
-## 	Merging fa and gff found 19532 matching entires
-## Parsing annotations: chimp
-## 	Reading gff ... found 21504 protein coding genes
-## 	Reading peptide fasta ... found 80985 / 21504 total and unique entries
-## 	Merging fa and gff found 21504 matching entires
-## Parsing annotations: mouse
-## 	Reading gff ... found 22186 protein coding genes
-## 	Reading peptide fasta ... found 93165 / 22186 total and unique entries
-## 	Merging fa and gff found 22186 matching entires
 ```
 
 **Set the synteny parameters**. There are a lot of parameters, see `?set_syntenyParams`, but the defaults should be fine for most situations. See vignette 1 for more details. To see the full parameterization, print the synteny parameters as `print(gpar$params$synteny)`. This can be edited manually if needed to fine-tune the synteny search to diverse patterns of genome evolution.
 
-
-```r
+```{r set_syntenyParams, eval = TRUE}
 gpar <- set_syntenyParams(gsParam = gpar)
 ```
 
@@ -150,8 +95,7 @@ gpar <- set_syntenyParams(gsParam = gpar)
 
 Given the specification and missing orthofinder install, the initial `run_orthofinder` call without an existing orthofinder run will look like this: 
 
-
-```r
+```{r run_orthofinder, eval = F}
 gpar <- run_orthofinder(gsParam = gpar, overwrite = F)
 
 # 	Cleaning out orthofinder directory and prepping run
@@ -164,8 +108,7 @@ gpar <- run_orthofinder(gsParam = gpar, overwrite = F)
 
 Now open a terminal window, and either add orthofinder to your path, or install from conda: 
 
-
-```bash
+```{bash setupOrthofinderEnv, eval = F}
 # conda create -n orthofinder
 conda activate orthofinder # or add orthofinder to the path
 # conda install -c bioconda orthofinder 
@@ -173,154 +116,40 @@ conda activate orthofinder # or add orthofinder to the path
 
 Then ensure that your working directory is set to the GENESPACE working directory and run orthofinder by pasting the command from above. This will take 5-30 minutes to run, depending on your system. 
 
-
-```bash
+```{bash runOrthofinderBash, eval = F}
 cd ~/Desktop/mammalGenespace/run1/orthofinder
 orthofinder -f /Users/jlovell/Desktop/mammalGenespace/run1/peptide -t 4 -a 1 -X -o 
 ```
 
 **Add arrays and other metadata to the gffs**. Subsetting the search to representatives of collinear arrays is a crucial step to accurate synteny inference. The behavior of this step depends on whether `recallArrays = TRUE`. Here, since `orthofinder` is not in the path of R, arrays are not re-called. 
 
-
-```r
+```{r annotate_gff, eval = TRUE}
 gpar <- annotate_gff(gsParam = gpar, overwrite = T)
-```
-
-```
-## Loading annotations ...
-## 	Indexing location of orthofinder results ... Done!
-## 	Reading the gffs ... Done!
-## 	Pulling gene lengths ... Done!
-## 	Parsing global orthogroups ... Done!
-## Defining collinear orthogroup arrays ... 
-## 	Using collinear orthogroups for array identity:
-## 	chimp: 2338 genes in 814 collinear arrays
-## 	human: 2149 genes in 719 collinear arrays
-## 	mouse: 4585 genes in 883 collinear arrays
-## 	Choosing array representative genes ... Done!
-## Writing gff to file: ~/Desktop/mammalGenespace/run1/results/gffWithOgs.txt.gz
 ```
 
 **Constrain blast results to synteny**. The primary engine of GENESPACE is `synteny`, which parses an orthofinder run into syntenic orthogroups. This operates on the syntenyParameters generated from `set_syntenyParam`. The synteny-constrained hits and corresponding dotplots are stored by default in the /results directory.
 
-
-```r
+```{r synteny, eval = TRUE}
 blks <- synteny(gsParam = gpar, overwrite = T)
-```
-
-```
-## Setting up input data
-## 	Parsing annotations ... 
-## 	Found 63222 genes, 19626 orthogroups and 2416 arrays with 9072 genes
-## Pulling within-genome synteny
-## 	Genome: n raw hits / hits in (regions) / hits in (blks)
-## 	human   (selfhit): 61980 / 61980 (29) / 61980 (29)
-```
-
-```
-## 	chimp   (selfhit): 65970 / 65970 (39) / 65970 (39)
-```
-
-```
-## 	mouse   (selfhit): 115153 / 115153 (26) / 115153 (26)
-```
-
-```
-## Pulling intergenomic synteny
-## 	human  -chimp   (primary): 260292 / 49264 (44) / 47315 (93)
-```
-
-```
-## 	human  -mouse   (primary): 275661 / 45991 (209) / 44790 (284)
-```
-
-```
-## 	chimp  -mouse   (primary): 281906 / 47466 (227) / 45630 (301)
-```
-
-```
-## Done
 ```
 
 **Find synteny-constrained orthogroups**. Using the synteny databases generated during `synteny`, split global orthogroups into subgraphs with edges only connected by syntenic edges. The behavior of this function depends on whether `orthofinderInBlk = TRUE` or not. Here, since we are dealing with only haploid genomes, it only runs the global method. 
 
-
-```r
+```{r pull_synOGs, eval = TRUE}
 gpar <- pull_synOGs(gsParam = gpar)
-```
-
-```
-## Checking synteny-constrained global orthogroups for synOGs
-## 	n. global OGs = 19626
-## 	n. syntenic OGs = 22561
 ```
 
 **Make a multi-species synteny plot**. The riparian plot tracks synteny across multiple genomes, color coding and ordering chromosomes by synteny to a reference genomes. There are a lot of parameters to optimize the appearence. See the help file.
 
-
-```r
+```{r plot_riparian, eval = TRUE, fig.height = 3.5, fig.width = 8}
 ripd  <- plot_riparian(gsParam = gpar)
-```
-
-```
-## 	Loading the gff ... Done!
-## 	Mapping genes against human chromosomes ... Done!
-## 	Projecting linear coordinate system ... Done!
-## 	Generating block coordinates ... Done!
-## 	Rendering plot ...
-```
-
-![](readme_files/figure-html/plot_riparian-1.png)<!-- -->
-
-```
-## Done!
 ```
 
 **Build the pangenome**. Here, the synteny constrained hits are used to predict their positions against a chosen reference genome. Then the orthology networks are decoded into a tabular format. 
 
-
-```r
+```{r pangenome, eval = TRUE}
 pg <- pangenome(gsParam = gpar, refGenome = "human")
-```
-
-```
-## Combining synteny-constrained and inblock orthogroups ...
-## 	syn OGs: 22561, inblk OGs: 0, combined OGs: 22561
-## 	Flagged 6388 non-syntenic orthologs
-## 	Pulling block coordinates against human ...
-## 		Found 49452 anchors for 678 blocks
-## Determining reference position for combined orthogroups ...
-## 	Linear interpolation of gene order in reference ... Done!
-## 	Orthogroup clustering and median position determination ... Done!
-## 	Pos. count: 0x = 1140, 1x = 21415, 2x = 9, 3x = 0 4x = 0, 4+x = 0
-## Building the pan-genome annotation ...
-## 	Initial build with ... 
-## 		56566 genes, 22561 OGs and 22570 placements and 1137 unplaced OGs
-## 	Adding in array members ... 
-## 		Found 6656 genes, 1699 OGs and 1703/194 placed/unplaced OGs
-## 	Adding in non-syntenic orthologs ... 
-## 		Found 3991 genes, 2918 OGs and new 2923 entries
-## 	Formating and writing the pangenome ... 
-## Pangenome written to results/human_pangenomeDB.txt.gz
-```
-
-```r
 print(pg[5:15,])
-```
-
-```
-##     pgID og chr ord                           chimp    human         mouse
-##  1:    5  5   1   7                           NOC2L    NOC2L         Noc2l
-##  2:    6  6   1   8                          KLHL17   KLHL17        Klhl17
-##  3:    7  7   1   9                         PLEKHN1  PLEKHN1       Plekhn1
-##  4:    8  8   1  10                           PERM1    PERM1         Perm1
-##  5:    9  9   1  11                            HES4     HES4              
-##  6:   10 10   1  12                           ISG15    ISG15         Isg15
-##  7:   11 11   1  13                            AGRN     AGRN          Agrn
-##  8:   12 12   1  14 LOC746419,LOC112208569,PRAMEF20                       
-##  9:   13 13   1  14                          RNF223   RNF223        Rnf223
-## 10:   14 14   1  15                      C1H1orf159 C1orf159 9430015G10Rik
-## 11:   15 15   1  16                          TTLL10   TTLL10        Ttll10
 ```
 
 
