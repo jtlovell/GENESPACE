@@ -286,9 +286,37 @@ For example, lets use the default `gmap` liftover annotation formats and parse t
 
 ## 3.5 Running orthofinder from within R
 
+The default behavior of GENESPACE depends on whether R is called from an environment where `orthofinder` is in the path. While it would be optimal to have all third party calls come directly from R, this is not possible in a number of situations including conda environment incompatibilities, running orthofinder on a cluster, or R installation problems. These issues are common enough that we have opted to not require orthofinder as a dependency for GENESPACE and offer the example above as a way to run orthofinder separately from GENESPACE. 
+
+However, GENESPACE is designed to interact directly with orthofinder and generate synteny-constrained orthofinder runs. We HIGHLY recommend running orthofinder from R in two situations: 
+
+1. If any of the genomes are polyploid (or both outbred haplotypes are present in the analysis), we recommend using orthogroups within blocks. This will dramatically improve homeolog/homolog inference. Choose `orthofinderInBlk = TRUE`
+2. If more than ~10 haplotypes are analyzed. As the number of genomes gets larger, the specificity of orthofinder can decline, allowing for larger collinear orthogroups within a single genome. Re-calling arrays from within-genome blast hits only can stabilize the inference of collinear arrays. Choose `recallArrays = TRUE`.
+3. If the goal is syntenic region inference and not the precise definition of orthogroups. Choose `orthofinderMethod = "fast"`. In this case, `diamond --fast` is only called on unique pairs of genomes. Depending on the size of the GENESPACE run, this can improve speed by >500%. 
+
+To ensure that these specifications are implemented, place orthofinder in the $PATH, or activate a conda environment with orthofinder installed. Once this has been completed, open R studio (or your favorite way to interact with R) via `open -na rstudio`. Once in R, you can check to make sure orthofinder is there by running `system("orthofinder -h")` and seeing the orthofinder help document appear in the R console. 
+
+Once the install is confirmed, you can run GENESPACE from:
+
+```{r, eval = FALSE}
+gpar <- init_genespace(
+  ...,
+  orthofinderMethod = "fast",
+  orthofinderInBlk = TRUE, 
+  recallArrays = TRUE,
+  ...)
+```
+
 
 # 4. Pipeline details
 
+## 4.1 Syntenic region inference
+
+## 4.2 Calling collinear arrays
+
+## 4.3 Producing syntenic orthogroups
+
+## 4.4 Building pangenomes
 
 # 5. Legal
 
