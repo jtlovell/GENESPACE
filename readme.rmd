@@ -310,7 +310,14 @@ gpar <- init_genespace(
 
 # 4. Pipeline details
 
+Below, we provide a detailed explanation of the source code pipeline for GENESPACE. 
+
 ## 4.1 Syntenic region inference
+
+The `synteny` pipeline acts on pairs of genomes, choosing 
+
+### 4.1.1 Defining synteny between two single copy genomes.  
+
 
 ## 4.2 Calling collinear arrays
 

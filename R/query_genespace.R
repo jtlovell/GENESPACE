@@ -30,9 +30,9 @@
 #' \dontrun{
 #' # coming soon
 #' }
-#' @note \code{pangenome} is a generic name for the functions documented.
+#' @note \code{query_genespace} is a generic name for the functions documented.
 #' \cr
-#' If called, \code{pangenome} returns its own arguments.
+#' If called, \code{query_genespace} returns its own arguments.
 #'
 #' @title query_pangenome
 #' @description
@@ -41,59 +41,123 @@
 #' @import data.table
 #' @export
 query_pangenome <- function(pg,
-                            refChrom,
+                            refChrom = NULL,
+                            genomeIDs = NULL,
                             startOrder = NULL,
                             endOrder = NULL,
                             writeTo = NULL,
+                            useGlobalPgOrder = FALSE,
+                            cnv2keep = NULL,
+                            pav2keep = NULL,
                             pavSynOnly = FALSE){
-  pg <- as.data.table(pg)
+
+  # -- check the formatting of the pangenome
   if(nrow(pg) < 1)
     stop("can't parse pg; is this a data.table produced by pangenome?\n")
   if(!all(c("chr", "ord", "pgID", "og") %in% colnames(pg)))
     stop("can't find the needed column names in pg; was this produced by pangenome?")
 
+  if(is.null(refChrom)){
+    startOrder = NULL
+    endOrder = NULL
+  }
+  if(!is.null(refChrom))
+    if(!refChrom %in% pg$chr)
+      stop("can't find", refChrom, "in the pangenome\n")
+
+  # -- get genomeIDs in order, using the pangenome
+  pg <- as.data.table(pg)
+  if(is.null(genomeIDs))
+    genomeIDs <- colnames(pg)[-c(1:4)]
+  if(!all(genomeIDs %in% colnames(pg)))
+    genomeIDs <- colnames(pg)[-c(1:4)]
+  genomeIDs <- genomeIDs[!duplicated(genomeIDs)]
+
+  # -- check and prepare the cnv2keep and/or pav2keep
+  if(!is.null(cnv2keep)){
+    cnv2keep <- as.integer(cnv2keep)
+    if(length(cnv2keep) != length(genomeIDs) | any(is.na(cnv2keep)))
+      cnv2keep <- NULL
+    names(cnv2keep) <- genomeIDs
+  }
+
+  if(!is.null(pav2keep)){
+    pav2keep <- as.logical(pav2keep)
+    if(length(pav2keep) != length(pav2keep) | any(is.na(pav2keep)))
+      pav2keep <- NULL
+    names(pav2keep) <- genomeIDs
+  }
+
+  if(!is.null(pav2keep) & !is.null(cnv2keep))
+    pav2keep <- NULL
+
   # -- get the starting/ending positions if not specified
   chr <- ord <- NULL
-  if(is.null(startOrder))
+  if(is.null(startOrder) & !is.null(refChrom))
     startOrder <- 0
-  if(is.null(endOrder))
+  if(is.null(endOrder) & !is.null(refChrom))
     endOrder <- max(pg$ord, na.rm = T)
-  if(!refChrom %in% pg$chr)
-    stop("can't find", refChrom, "in the pangenome\n")
 
   # -- subset to the region of interest
-  p <- subset(pg, chr == refChrom & ord >= startOrder & ord <= endOrder)
-  genIDs <- colnames(p)[-c(1:4)]
+  p <- data.table(pg)
+
+  if(!is.null(refChrom)){
+    p <- subset(p, chr == refChrom)
+    if(!useGlobalPgOrder)
+      p[,ord := 1:.N]
+    p <- subset(p, ord >= startOrder & ord <= endOrder)
+  }
+
 
   # -- if only syntenic ogs, parse these
   pc <- data.table(p)
   if(pavSynOnly){
-    pc[,(genIDs) := lapply(.SD, function(x) lapply(x, function(y)
+    pc[,(genomeIDs) := lapply(.SD, function(x) lapply(x, function(y)
       y[!grepl("*", y, fixed = T)])),
-      .SDcols = genIDs, by = "pgID"]
+      .SDcols = genomeIDs, by = "pgID"]
   }
 
   # -- calculate CNV
-  pc[,(genIDs) := lapply(.SD, function(x) sapply(x, length)),
-     .SDcols = genIDs, by = "pgID"]
+  pc[,(genomeIDs) := lapply(.SD, function(x) sapply(x, length)),
+     .SDcols = genomeIDs, by = "pgID"]
 
   # -- calculate PAV
   pav <- data.table(pc)
-  pav[,(genIDs) := lapply(.SD, function(x) x > 0),
-      .SDcols = genIDs, by = "pgID"]
+  pav[,(genomeIDs) := lapply(.SD, function(x) x > 0),
+      .SDcols = genomeIDs, by = "pgID"]
 
   # -- compress lists to character vectors
   pr <- data.table(p)
-  pr[,(genIDs) := lapply(.SD, function(x) sapply(x, paste, collapse = ";")),
-     .SDcols = genIDs, by = "pgID"]
+  pr[,(genomeIDs) := lapply(.SD, function(x) sapply(x, paste, collapse = ";")),
+     .SDcols = genomeIDs, by = "pgID"]
+
+  # -- subset to user defined PAV/CNV
+  if(!is.null(pav2keep)){
+    pav[,tmp := apply(.SD, 1, paste, collapse = ""), .SDcols = genomeIDs]
+    wh <- which(pav$tmp == paste(pav2keep, collapse = ""))
+    pav[,tmp := NULL]
+  }else{
+    if(!is.null(cnv2keep)){
+      pc[,tmp := apply(.SD, 1, paste, collapse = ""), .SDcols = genomeIDs]
+      wh <- which(pc$tmp == paste(cnv2keep, collapse = ""))
+      pc[,tmp := NULL]
+    }else{
+      wh <- 1:nrow(pr)
+    }
+  }
 
   # -- write output and return
-  if(is.null(writeTo))
-    writeTo <- sprintf("Chr%s_Start%s_End%s.txt.gz",
-                       refChrom, min(pr$ord, na.rm = T), max(pr$ord, na.rm = T))
-  fwrite(pr, file = writeTo, sep = "\t", quote = F)
-
-  return(list(raw = p, pav = pav, cnts = pc))
+  if(is.null(writeTo)){
+    if(is.null(refChrom)){
+      writeTo <- "Pangenome.txt.gz"
+    }else{
+      writeTo <- sprintf(
+        "Pangenome_Chr%s_Start%s_End%s.txt.gz",
+        refChrom, min(pr$ord, na.rm = T), max(pr$ord, na.rm = T))
+    }
+  }
+  fwrite(pr[wh,], file = writeTo, sep = "\t", quote = F)
+  return(list(raw = p[wh,], pav = pav[wh,], cnts = pc[wh,]))
 }
 
 

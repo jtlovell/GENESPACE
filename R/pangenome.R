@@ -136,6 +136,9 @@ pangenome <- function(gsParam,
       "refGenome %s not one of the genomeIDs %s",
       refGenome, paste(genomeIDs, collapse = ",")))
 
+  if(!is.data.table(gsParam$params$synteny))
+    stop("Must run set_syntenyParams first!\n")
+
   # -- other needed parameters
   synBuff <- max(gsParam$params$synteny$synBuff)
   if(is.na(gsParam$paths$orthogroupsDir))
@@ -145,6 +148,8 @@ pangenome <- function(gsParam,
   ##############################################################################
   # -- load synteny-constrained orthogroups
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
+  if(!file.exists(gffFile))
+    stop("can't find the annotated gff-like text file\t\n ... have you run annotate_gff yet?\n")
   gffa <- fread(gffFile, showProgress = F, na.strings = c("NA", ""))
   gffa <- subset(gffa, genome %in% genomeIDs)
   gff <- subset(gffa, isArrayRep)

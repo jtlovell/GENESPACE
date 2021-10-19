@@ -102,6 +102,9 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   }
   genomeIDs <- genomeIDs[!genomeIDs %in% gsParam$genomes$outgroup]
 
+  if(!is.data.table(gsParam$params$synteny))
+    stop("Must run set_syntenyParams first!\n")
+
   verbose <- gsParam$params$verbose
   writeTo <- gsParam$paths$results
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
