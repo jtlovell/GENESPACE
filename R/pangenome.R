@@ -161,11 +161,17 @@ pangenome <- function(gsParam,
 
   ##############################################################################
   # -- pull genes that are missing
-  nsOrtho <- pull_nonSynOrthologs(
-    gff = gff,
-    gsParam = gsParam)
-  if(verbose)
-    cat(sprintf("\tFlagged %s non-syntenic orthologs\n", nrow(nsOrtho)))
+  if(is.na(gsParam$paths$orthologuesDir)){
+    cat("No orthologues found ...\n\tDid you only run orthofinder -og?")
+    nsOrtho <- NA
+  }else{
+    nsOrtho <- pull_nonSynOrthologs(
+      gff = gff,
+      gsParam = gsParam)
+    if(verbose)
+      cat(sprintf("\tFlagged %s non-syntenic orthologs\n", nrow(nsOrtho)))
+  }
+
 
   ##############################################################################
   # -- get the block coordinates
@@ -254,25 +260,27 @@ pangenome <- function(gsParam,
 
   ##############################################################################
   # -- integrate orthologs
-  if(verbose)
-    cat("\n\tAdding in non-syntenic orthologs ... \n")
-  gv <- gffa$genome; names(gv) <- gffa$ofID
-  pgs <- merge(
-    subset(pg, ofID %in% nsOrtho$ofID),
-    with(nsOrtho, data.table(ofID = ofID, mem = orthIDs)),
-    by  = "ofID", allow.cartesian = T)
-  pgs[,`:=`(ofID = mem, mem = NULL, nonSynOrtho = TRUE)]
+  if(!is.na(gsParam$paths$orthologuesDir)){
+    if(verbose)
+      cat("\n\tAdding in non-syntenic orthologs ... \n")
+    gv <- gffa$genome; names(gv) <- gffa$ofID
+    pgs <- merge(
+      subset(pg, ofID %in% nsOrtho$ofID),
+      with(nsOrtho, data.table(ofID = ofID, mem = orthIDs)),
+      by  = "ofID", allow.cartesian = T)
+    pgs[,`:=`(ofID = mem, mem = NULL, nonSynOrtho = TRUE)]
 
-  # -- ensure the genomeIDs are right
-  pgs[,genome := gv[ofID]]
-  pgs <- subset(pgs, !duplicated(pgs))
-  pg[,nonSynOrtho := FALSE]
-  with(pgs, cat(sprintf(
-    "\t\tFound %s genes, %s OGs and new %s entries\n",
-    uniqueN(ofID), uniqueN(og), uniqueN(pgID), uniqueN(og[is.na(ord)]))))
+    # -- ensure the genomeIDs are right
+    pgs[,genome := gv[ofID]]
+    pgs <- subset(pgs, !duplicated(pgs))
+    pg[,nonSynOrtho := FALSE]
+    with(pgs, cat(sprintf(
+      "\t\tFound %s genes, %s OGs and new %s entries\n",
+      uniqueN(ofID), uniqueN(og), uniqueN(pgID), uniqueN(og[is.na(ord)]))))
 
-  # -- combine pg with orthologs
-  pg <- rbind(pg, pgs)
+    # -- combine pg with orthologs
+    pg <- rbind(pg, pgs)
+  }
   setorder(pg, ord, na.last = T)
   pg[,`:=`(pgID = as.numeric(factor(pgID, levels = unique(pgID))),
            og = as.numeric(factor(og, levels = unique(og))))]

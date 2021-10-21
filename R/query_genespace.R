@@ -10,7 +10,6 @@
 #' elements: blast (file.path to the original orthofinder run), synteny (
 #' file.path to the directory where syntenic results are stored), genomeIDs (
 #' character vector of genomeIDs).
-#' @param refGenome character string matching one of the genomeIDs in gsParam
 #' @param genomeIDs character vector, specifying which genomes to use. Defaults
 #' to all genomeIDs specification in gsParam.
 #' @param pg the pangenome data.table
@@ -22,6 +21,18 @@
 #' @param writeTo file/path or character string giving file name to write to
 #' @param pavSynOnly logical, should PAV be calculated only for syntenic
 #' entries?
+#' @param cnv2keep integer vector of length matching genomeIDs, specifying the
+#' copy number for pangenome entries to be printed. For example, with three
+#' genomes, c(1,1,1) would return a single copy orthogroup. The behavior of
+#' this argument depends on whether pavSynOnly. If TRUE, then the copy number
+#' is only calculated on syntenic orthogroup CNVs. Otherwise, non-syntenic
+#' orthologs flagged with * are also used in the copy number calculation.
+#' @param pav2keep logical vector of lenght matching genomeIDs. Behaves the
+#' same as cnv2keep, but with a logical vector specifying whether any gene is
+#' present in that group. For example, c(TRUE, TRUE, TRUE) would return all
+#' pangenome entries complete across the three genomes.
+#' @param useGlobalPgOrder logical, should the start/endOrder be calculated
+#' within the specified refChrom or should the global pangenome order be used?
 #'
 #' @details ...
 #'
@@ -92,7 +103,7 @@ query_pangenome <- function(pg,
     pav2keep <- NULL
 
   # -- get the starting/ending positions if not specified
-  chr <- ord <- NULL
+  chr <- ord <- tmp <- NULL
   if(is.null(startOrder) & !is.null(refChrom))
     startOrder <- 0
   if(is.null(endOrder) & !is.null(refChrom))
@@ -100,14 +111,12 @@ query_pangenome <- function(pg,
 
   # -- subset to the region of interest
   p <- data.table(pg)
-
   if(!is.null(refChrom)){
     p <- subset(p, chr == refChrom)
     if(!useGlobalPgOrder)
       p[,ord := 1:.N]
     p <- subset(p, ord >= startOrder & ord <= endOrder)
   }
-
 
   # -- if only syntenic ogs, parse these
   pc <- data.table(p)
@@ -168,8 +177,6 @@ query_pangenome <- function(pg,
 #' @import data.table
 #' @export
 write_phytozome <- function(gsParam,
-                            gsAnnot,
-                            useRegions = TRUE,
                             genomeIDs = NULL){
 
   g1 <- g2 <- refGenome <- isSelf <- ofID1 <- ofID2 <- blkAnchor <- orient <- NULL

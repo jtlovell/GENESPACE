@@ -98,7 +98,7 @@ pull_synOGs <- function(gsParam, genomeIDs = NULL){
     gff[,inBlkOG := NA]
     gff[,og := synOG]
   }
-  fwrite(gff, file = gffFile)
+  fwrite(gff, file = gffFile, sep = "\t", quote = F, showProgress = F)
   return(gsParam)
 }
 

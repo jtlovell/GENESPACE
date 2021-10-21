@@ -8,14 +8,18 @@
 \usage{
 query_pangenome(
   pg,
-  refChrom,
+  refChrom = NULL,
+  genomeIDs = NULL,
   startOrder = NULL,
   endOrder = NULL,
   writeTo = NULL,
+  useGlobalPgOrder = FALSE,
+  cnv2keep = NULL,
+  pav2keep = NULL,
   pavSynOnly = FALSE
 )
 
-write_phytozome(gsParam, gsAnnot, useRegions = TRUE, genomeIDs = NULL)
+write_phytozome(gsParam, genomeIDs = NULL)
 }
 \arguments{
 \item{pg}{the pangenome data.table}
@@ -23,12 +27,30 @@ write_phytozome(gsParam, gsAnnot, useRegions = TRUE, genomeIDs = NULL)
 \item{refChrom}{character string of length 1, the reference chromosome to
 grab from the pangenome}
 
+\item{genomeIDs}{character vector, specifying which genomes to use. Defaults
+to all genomeIDs specification in gsParam.}
+
 \item{startOrder}{numeric or integer specifying the start position for the
 pangenome query, in linear order.}
 
 \item{endOrder}{numeric or integer specifying the end position of the query}
 
 \item{writeTo}{file/path or character string giving file name to write to}
+
+\item{useGlobalPgOrder}{logical, should the start/endOrder be calculated
+within the specified refChrom or should the global pangenome order be used?}
+
+\item{cnv2keep}{integer vector of length matching genomeIDs, specifying the
+copy number for pangenome entries to be printed. For example, with three
+genomes, c(1,1,1) would return a single copy orthogroup. The behavior of
+this argument depends on whether pavSynOnly. If TRUE, then the copy number
+is only calculated on syntenic orthogroup CNVs. Otherwise, non-syntenic
+orthologs flagged with * are also used in the copy number calculation.}
+
+\item{pav2keep}{logical vector of lenght matching genomeIDs. Behaves the
+same as cnv2keep, but with a logical vector specifying whether any gene is
+present in that group. For example, c(TRUE, TRUE, TRUE) would return all
+pangenome entries complete across the three genomes.}
 
 \item{pavSynOnly}{logical, should PAV be calculated only for syntenic
 entries?}
@@ -38,11 +60,6 @@ by setup_genespace, but can be built manually. Must have the following
 elements: blast (file.path to the original orthofinder run), synteny (
 file.path to the directory where syntenic results are stored), genomeIDs (
 character vector of genomeIDs).}
-
-\item{genomeIDs}{character vector, specifying which genomes to use. Defaults
-to all genomeIDs specification in gsParam.}
-
-\item{refGenome}{character string matching one of the genomeIDs in gsParam}
 }
 \value{
 ...
@@ -58,9 +75,9 @@ to all genomeIDs specification in gsParam.}
 ...
 }
 \note{
-\code{pangenome} is a generic name for the functions documented.
+\code{query_genespace} is a generic name for the functions documented.
 \cr
-If called, \code{pangenome} returns its own arguments.
+If called, \code{query_genespace} returns its own arguments.
 }
 \examples{
 \dontrun{

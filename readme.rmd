@@ -314,12 +314,69 @@ Below, we provide a detailed explanation of the source code pipeline for GENESPA
 
 ## 4.1 Syntenic region inference
 
-The `synteny` pipeline acts on pairs of genomes, choosing 
+The `synteny` pipeline acts on pairs of genomes, choosing the genome with the most gene annotation entries as the query sequence. The inputs are (1) the reciprocal blastp hits from diamond, (2) the merged gff with gene rank order position along chromosomes pre-calculated, and (3) orthofinder orthogroups.tsv genome-split orthogroup text file. Below, we use the following terms for parameters / statistics:
 
-### 4.1.1 Defining synteny between two single copy genomes.  
+- `synBuff`: the gene-rank order radius surround an anchor hit to include nearby hits that are in the buffer region
+- `blkSize`: the minimum size of a colinear run of genes for that region to be called a syntenic block. This parameter is used for both `dbscan(min.pts)` and `MCScanX_h -s` specification. 
+- `nGaps`: the `MCScanX_h -m` parameter; the number of gaps allowed for a collinear region to be called a block. 
+- `radius`: the `dbscan(eps)` parameter, either taken as the blkSize for final block calculation or synBuff for syntenic region calculation. 
 
+- "anchors": blast hits that are in colinear orthogroups that form the backbone for syntenic regions and block regions
+- "inBuffer": hits that are within the `synBuff` of anchors. 
+- "non-syntenic": hits outside of the buffer region
+- "blast": here, using this to mean diamond blast-like hits. 
+
+### 4.1.1 Defining self-synteny regions
+
+For each genome, genespace finds the self hits and uses these as anchors, extracting these and inBuffer hits for downstream analysis. These are the "self-syntenic hits". 
+
+### 4.1.2 Defining synteny between two genomes.  
+
+This routine is applied to paralogous regions in polyploids (see 4.1.3) and intergenomic hits. The steps for synteny determination are as follows:
+
+1. read in the blast file with `parse_blast4synteny`:
+    - reads in and mirrors the blast hits, retaining the unique hit with the highest score
+    - adds orthofinder orthogroup information 
+    - adds genome position (chromosome, bp, gene rank order)
+    - adds score-rank, where, for each gene, the blast hit is ranked by highest to lowest scoring
+2. subsets out potential anchor hits
+    - both query and target genes are array representatives (see 4.3)
+    - both query and target genes are in the same orthogroup
+    - the top n scoring hits, where n is informed by the ploidy of the query and target genomes. 
+3. finds initial anchor hits
+    - runs MCScanX_h on potential anchors
+    - runs dbscan on MCScanX_h-defined colinear hits. These retained genes are the seed anchor hits. 
+    - pulls all hits within the synBuff of the seed anchors. These are the seed anchor regions
+4. refines anchor hits
+    - adds within-seed anchor region reciprocal best hits as orthogroups. This can give better block breakpoints in regions where paralogs are not adequately captured in the orthogroups. 
+    - re-runs MCScanX_h on og or RBH-constrained hits
+    - re-calculates gene-rank order
+    - re-runs dbscan to get block identities
+    - splits overlapping dbscan blocks that are not duplicated.
+    - extracts all hits within the block coordinates
+    - subsets within-block coordinate hits to those within synBuff of the anchors. 
+    - These are the syntenic region hits. 
+5. finalize block coordinates
+    - within each syntenic region (see above), MCScanX_h is run and colinear hits are retained
+    - gene rank order is re-calculated on colinear hits within regions
+    - dbscan is run on colinear hits, using `eps = sqrt((blkSize^2)*2))` and `min.hits = blkSize`. This means that any inversion > blkSize will cause a block breakpoint
+    - gene rank order is re-calculated on these smaller blocks and dbscan is re-run with `eps = sqrt(2)+.1)`, so that all hits need to be exactly colinear. 
+    - as above, hits within the block coordinates and within synBuff are retained. 
+    - These are the "syntenic block hits". 
+
+### 4.1.3 Defining self-synteny paralogous regions
+
+For genomes with ploidy > 1, the self-syntenic hits are masked from the intragenomic blast hits (4.1.1). The gene rank order is re-calculated and the basic synteny pipeline (4.1.2) is applied to the data. The user can specify that paralagous hits should have different synteny parameters than the self/primary hits. See `set_synParams` for more info. 
 
 ## 4.2 Calling collinear arrays
+
+Gene family expansion along physically proximate regions of a chromosome is a common form of sequence evolution, especially in plants. Here, we term these expasions, which can include just a duplication or whole tandem arrays, as 'collinear arrays', defined as sets of genes in the same orthogroup within the synteny buffer (synBuff) defined above. The increase in orthogroup density can cause artifacts in 2d density clustering like dbscan, and it appears that some patterns of collinear arrays can confound MCScanX. In some cases, collinear arrays cause MCScanX to find erroneous inversions and duplications. While specific parameterization can resolve these issues within MCScanX, it is not straightforward to do this parameterization on the fly. 
+
+The GENESPACE solution to this problem requires a re-coding of collinear arrays prior to synteny calculation. This is conducted as follows:
+
+1. The global orthofinder orthogroups are clustered into within-genome collinear subgraphs. 
+2. (optional, if specified) Orthofinder is re-run within each chromosome and collinear orthogroups are re-calculated for each genome independently. This is an appopriate step if there is large variation in tandem array proliferation among the genomes being considered. Further, this method makes the collinear arrays agnostic to the other genomes in the run, since orthogroups are always inferred only within genomes. 
+3. An 'array representative' is chosen for each collinear array. This is chosen by (a) the gene with the most central position, then as a tiebreaker (b) the longest peptide sequence, and finally (c) most central in the array subgraph. 
 
 ## 4.3 Producing syntenic orthogroups
 

@@ -4,7 +4,7 @@
 \alias{run_mcscanx}
 \title{run_mcscanx}
 \usage{
-run_mcscanx(hits, blkSize, nGaps, path2mcscanx)
+run_mcscanx(hits, blkSize, nGaps, gsParam, path2mcscanx)
 }
 \arguments{
 \item{hits}{a data.table with at least ofID1, ofID2, chr1, chr2, ord1, ord2
@@ -15,6 +15,12 @@ as columns}
 \item{nGaps}{integer of length 1, specifying the -m param to mcscanx
 for the primary MCScanX run. This acts on the results from the initial
 MCScanX run.}
+
+\item{gsParam}{A list of genespace parameters. This should be created
+by setup_genespace, but can be built manually. Must have the following
+elements: blast (file.path to the original orthofinder run), synteny (
+file.path to the directory where syntenic results are stored), genomeIDs (
+character vector of genomeIDs).}
 
 \item{path2mcscanx}{character string file.path pointing to the install
 directory for the MCScanX program. In particular, there must be an

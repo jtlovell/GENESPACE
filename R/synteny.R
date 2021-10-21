@@ -138,6 +138,8 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   arrayReps <- gff$ofID[gff$isArrayRep]
 
   # -- flag syntenic arrays and choose optimal representative gene
+  if(!"arrayID" %in% colnames(gff))
+    stop("can't find arrays in the annotated gff-like text file\t\n ... have you run annotate_gff yet?\n")
   isArrayRep <- ord <- NULL
   if(verbose)
     with(gff, cat(sprintf(
