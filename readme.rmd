@@ -244,8 +244,24 @@ The GENESPACE R package is designed only for use MacOSX and Linux. Testing on OS
 
 - R/data.table (v1.13.6 or later)
 - R/igraph (v1.2.6 or later)
-- R/Biostrings (v2.58.0 or later)
+- R/Biostrings (v2.58.0 or later) - install from Bioconductor
 - R/dbscan (v1.1-5 or later)
+- R/rtracklayer () - install from Bioconductor
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("rtracklayer")
+
+add pdf
+
+documentation of the data
+
+write 1:1 query functions
+
+convert blks to bedmaps
+
+
 
 GENESPACE cannot be run without results from `orthofinder`. This can be installed on a separate server or locally. The simplest method is with conda: `conda install -c bioconda orthofinder`, but other methods are available. See [orthofinder documentation](https://github.com/davidemms/OrthoFinder). 
 

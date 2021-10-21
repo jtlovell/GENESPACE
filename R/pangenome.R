@@ -162,7 +162,7 @@ pangenome <- function(gsParam,
   ##############################################################################
   # -- pull genes that are missing
   if(is.na(gsParam$paths$orthologuesDir)){
-    cat("No orthologues found ...\n\tDid you only run orthofinder -og?")
+    cat("\tNo orthologues found ... will not be added to the pangenome\n")
     nsOrtho <- NA
   }else{
     nsOrtho <- pull_nonSynOrthologs(

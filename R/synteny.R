@@ -200,8 +200,13 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
                   regBuffer = paste(ofID1, ofID2) %in% names(blkv),
                   lgRegionID = blkv[paste(ofID1, ofID2)])]
       cat(sprintf("%s (%s) / %s (%s)\n",
-                  nrow(phits), uniqueN(phits$regID),
-                  nrow(phits), uniqueN(phits$regID)))
+                  sum(phits$regBuffer), uniqueN(phits$regID, na.rm = T),
+                  sum(phits$blkBuffer), uniqueN(phits$blkID, na.rm = T)))
+      if(!noParalog){
+        mhits <- subset(phits, chr1 == chr2)
+        mhits  <- subset(mhits, abs(ord1 - ord2) <= selfSyn$selfRegionMask[i] | regBuffer)
+      }
+      phits <- subset(phits, regBuffer)
 
       ############################################################################
       # 2.2 homeologs, if desired
@@ -215,7 +220,7 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
         shits <- pipe_synteny(
           gsParam = gsParam,
           gff = gff,
-          maskHits = subset(phits, !is.na(regBuffer)),
+          maskHits = mhits,
           synParam = selfSyn[i,],
           type = "secondary")
         shits$regID[!is.na(shits$regID)] <- paste0("sec_", shits$regID)[!is.na(shits$regID)]
@@ -310,11 +315,11 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
       }else{
         if(verbose)
           cat(sprintf(
-            "\t\t%s-%s (secondy): ", pull_strWidth(genome1, 7), pull_strWidth(genome2, 7)))
+            "\t%s-%s (secondy): ", pull_strWidth(gid1, 7), pull_strWidth(gid2, 7)))
         shits <- pipe_synteny(
           gsParam = gsParam,
           gff = gff,
-          maskHits = NULL,
+          maskHits = subset(phits, regBuffer),
           synParam = syn,
           type = "secondary")
         shits$regID[!is.na(shits$regID)] <- paste0("sec_", shits$regID)[!is.na(shits$regID)]
@@ -735,12 +740,13 @@ find_globalAnchors <- function(hits,
   isAnchor <- inBuffer <- NULL
   # -- get synteny parameters in line
   sp <- data.table(synParam[1,])
-  if(type == "Second")
+  if(type != "primary")
     sp[,`:=`(nhits1 = (nhits1-1 + nSecondHits1),
              nhits2 = (nhits2-1 + nSecondHits2),
              blkSize = blkSizeSecond,
              nGaps = nGapsSecond,
-             synBuff = synBuffSecond)]
+             synBuff = synBuffSecond,
+             onlyOgAnchors = onlyOgAnchorsSecond)]
 
   # -- drop masked hits and re-rank order
   hits <- subset(hits, !isMasked)
@@ -752,7 +758,7 @@ find_globalAnchors <- function(hits,
 
   # -- drop non-og hits, if necessary
   if(sp$onlyOgAnchors)
-    anch <- subset(hits, !is.na(og))
+    anch <- subset(anch, !is.na(og))
 
   # -- subset to top n hits
   setorder(anch, ofID1, -score)
