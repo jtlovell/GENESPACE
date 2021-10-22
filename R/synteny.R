@@ -1334,11 +1334,10 @@ add_arrayRep2gff <- function(gff,
 #' @export
 add_arrays2gff <- function(gsParam,
                            gff){
+  arrayID <- genome <- chr <- globOG <- n <- rng <- ord <- clus <- og <- NULL
+  collinearOG <- NULL
 
-  ##############################################################################
-  ##############################################################################
-  arrayID <-  genome <-  chr <-  globOG <-  n <-  rng <- ord  <- clus  <- og  <-  collinearOG <-
-    nCores <- gsParam$params$nCores
+  nCores <- gsParam$params$nCores
   verbose <- gsParam$params$verbose
   synBuff <- max(gsParam$params$synteny$synBuff)
 
@@ -1382,3 +1381,135 @@ add_arrays2gff <- function(gsParam,
   return(gff)
 }
 
+#' @title pull_synOGs
+#' @description
+#' \code{pull_synOGs} pull_synOGs
+#' @rdname synteny
+#' @import data.table
+#' @importFrom grDevices pdf dev.off
+#' @export
+pull_synOGs <- function(gsParam, genomeIDs = NULL){
+
+  isArrayRep <- ogInblk <- ofID1 <- ofID2 <- inBlkOG <- ofID <- NULL
+  og <- synOG <- globOG <- u <- arrayID <- NULL
+  gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
+  gff <- fread(gffFile, na.strings = c("", "NA"), showProgress = F)
+  verbose <- gsParam$params$verbose
+
+  if(is.null(genomeIDs))
+    genomeIDs <- gsParam$genomes$genomeIDs
+
+  # -- pull global syntenic orthogroups
+  if(verbose)
+    cat(sprintf(
+      "Checking synteny-constrained global orthogroups for synOGs\n\tn. global OGs = %s\n",
+      uniqueN(gff$globOG)))
+  synGff <- add_synOg2gff(
+    gff = subset(gff, isArrayRep),
+    useBlks = F,
+    gsParam = gsParam,
+    genomeIDs = genomeIDs,
+    allowRBHinOg = T)
+  synGff[,og := globOG]
+  # -- add the syntenic OGs to the original gff
+  gff[,u := ifelse(is.na(arrayID), ofID, arrayID)]
+  sog <- synGff$synOG
+  names(sog) <- with(synGff, ifelse(is.na(arrayID), ofID, arrayID))
+  gff[,`:=`(synOG = sog[u], u = NULL)]
+
+  if(verbose)
+    cat(sprintf("\tn. syntenic OGs = %s\n", uniqueN(gff$synOG)))
+
+  # -- if desired, pull orthogroups within blocks
+  if(gsParam$params$orthofinderInBlk){
+    if(verbose)
+      cat("Adding syntenic orthogroups from pairwise w/in-region hits\n")
+    ofh <- blkwise_orthofinder(
+      gsParam = gsParam,
+      gff = synGff)
+    ofh[, ogInblk := clus_igraph(ofID1, ofID2)]
+    ofv <- ofh$ogInblk; names(ofv) <- ofh$ofID1
+    synGff[,inBlkOG := ofv[ofID]]
+    mol <- max(synGff$inBlkOG, na.rm = T)
+    nmis <- sum(is.na(synGff$inBlkOG))
+    synGff$inBlkOG[is.na(synGff$inBlkOG)] <- (mol + 1):(mol + nmis)
+    synGff[,inBlkOG := as.integer(factor(inBlkOG, levels = unique(inBlkOG)))]
+
+    gff[,u := ifelse(is.na(arrayID), ofID, arrayID)]
+    bog <- synGff$inBlkOG
+    names(bog) <- with(synGff, ifelse(is.na(arrayID), ofID, arrayID))
+    gff[,`:=`(inBlkOG = bog[u], u = NULL)]
+    gff[,og := inBlkOG]
+  }else{
+    gff[,inBlkOG := NA]
+    gff[,og := synOG]
+  }
+  fwrite(gff, file = gffFile, sep = "\t", quote = F, showProgress = F)
+  return(gsParam)
+}
+
+#' @title add_synOg2gff
+#' @description
+#' \code{add_synOg2gff} add_synOg2gff
+#' @rdname synteny
+#' @export
+add_synOg2gff <- function(gff,
+                          hits = NULL,
+                          gsParam,
+                          genomeIDs,
+                          allowRBHinOg,
+                          useBlks){
+  blkBuffer <- isSelf <- ofID1 <- ofID2 <- og <- ofID <- synOG <- blkID <- NULL
+  # -- find hits files
+  if(is.null(hits)){
+    eg <- CJ(genomeIDs, genomeIDs)
+    fs <- file.path(gsParam$paths$results,
+                    sprintf("%s_%s_synHits.txt.gz",eg[[1]], eg[[2]]))
+    fs <- fs[file.exists(fs)]
+
+    # -- read all hits
+    nCores <- gsParam$params$nCores
+    hts <- rbindlist(mclapply(fs, mc.cores = nCores, function(i){
+      if(useBlks){
+        x <- fread(
+          i, select = c("ofID1","ofID2","og","blkBuffer","blkAnchor","blkID"),
+          na.strings = c("","NA"))
+      }else{
+        x <- fread(
+          i, select = c("ofID1","ofID2","og","regBuffer","regAnchor","regID"),
+          na.strings = c("","NA"),
+          col.names = c("ofID1","ofID2","og","blkBuffer","blkAnchor","blkID"))
+      }
+      x <- subset(x, blkBuffer)
+      x[,isSelf := any(ofID1 == ofID2), by = "blkID"]
+      x <- subset(x, !isSelf & !is.na(og))
+      if(!allowRBHinOg)
+        x <- subset(x, !grepl("RBH", og))
+      return(x[,c("ofID1", "ofID2", "blkAnchor", "blkID")])
+    }))
+  }else{
+    hts <- data.table(hits)
+    hts <- subset(hts, !is.na(og))
+    if(!allowRBHinOg)
+      hts <- subset(hts, !grepl("RBH", og))
+    if(useBlks){
+      hts <- hts[,c("ofID1", "ofID2", "blkBuffer", "blkAnchor", "blkID")]
+    }else{
+      hts <- with(hts, data.table(
+        ofID1 = ofID1, ofID2 = ofID2,
+        blkBuffer = regBuffer, blkAnchor = regAnchor, blkID = regID))
+    }
+    hts <- subset(hts, blkBuffer)
+    hts[,blkBuffer := NULL]
+  }
+
+  # -- convert to syntenic orthogroups
+  ic <- with(subset(hts, !is.na(blkID)), clus_igraph(
+    id1 = c(ofID1, ofID2), id2 = c(ofID2, ofID1)))
+  gff[,synOG := ic[ofID]]
+  nmis <- sum(is.na(gff$synOG))
+  mol <- max(gff$synOG, na.rm = T)
+  gff$synOG[is.na(gff$synOG)] <- (mol + 1):(mol + nmis)
+  gff[,synOG := as.integer(factor(synOG, levels = unique(synOG)))]
+  return(gff)
+}

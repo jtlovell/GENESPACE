@@ -16,6 +16,8 @@
 \alias{annotate_gff}
 \alias{add_arrayRep2gff}
 \alias{add_arrays2gff}
+\alias{pull_synOGs}
+\alias{add_synOg2gff}
 \title{Parsing of pairwise hits into synteny}
 \usage{
 synteny(gsParam, genomeIDs = NULL, overwrite = F)
@@ -60,6 +62,10 @@ annotate_gff(gsParam, genomeIDs = NULL, overwrite = FALSE)
 add_arrayRep2gff(gff, gsParam)
 
 add_arrays2gff(gsParam, gff)
+
+pull_synOGs(gsParam, genomeIDs = NULL)
+
+add_synOg2gff(gff, hits = NULL, gsParam, genomeIDs, allowRBHinOg, useBlks)
 }
 \arguments{
 \item{gsParam}{a list containing all parameters for a GENESPACE run. See
@@ -154,6 +160,10 @@ hits to synteny.
 \code{add_arrayRep2gff} choose most central gene by orthogroup
 
 \code{add_arrays2gff} add_arrays2gff
+
+\code{pull_synOGs} pull_synOGs
+
+\code{add_synOg2gff} add_synOg2gff
 }
 \details{
 The main engine for GENESPACE synteny searching. This

@@ -7,7 +7,8 @@
 \alias{fast_ofDb}
 \alias{default_ofDb}
 \alias{find_orthofinderResults}
-\title{Build orthofinder database}
+\alias{blkwise_orthofinder}
+\title{Build orthofinder databases}
 \usage{
 run_orthofinder(gsParam, overwrite = FALSE)
 
@@ -20,6 +21,8 @@ fast_ofDb(gsParam)
 default_ofDb(gsParam)
 
 find_orthofinderResults(gsParam, onlyCheckRun = F)
+
+blkwise_orthofinder(gsParam, gff, genomeIDs = NULL, minGenes4of = 40)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -31,22 +34,13 @@ character vector of genomeIDs).}
 \item{overwrite}{logical, should results be overwritten?}
 
 \item{onlyCheckRun}{logical, should nothing be done but see if there is a run}
-}
-\value{
-A data.table that is needed for many downstream analyses. This has
-metadata for each pair of genomes with the following columns:
-\enumerate{
-\item genome1/2: the genome IDs for each pairwise run
-\item uGenes1/2: the number of unique genes for each genome
-\item query/target: the identity of query/target genomes in each blast run
-\item run/mirrorBlast: logical whether the blast was run or mirrored
-\item gn1/2: orthofinder genomeID numbers for each genome
-\item db/fa/1/2/blFile: diamond database, fasta files and blast files.
-}
+
+\item{gff}{annotated gff with orthogroups included, see read_gff}
 }
 \description{
-\code{run_orthofinder} Simplified blast database construction for and orthogroup
-construction in orthofinder.
+\code{run_orthofinder} GENESPACE routines for running orthofinder within R,
+generating code to run outside of R, or re-running orthofinder on pre-
+computed blast results within syntenic regions.
 
 \code{fast_ofDb} fast_ofDb
 
@@ -59,20 +53,11 @@ construction in orthofinder.
 \code{prep_ofDbFromPeptide} prep_ofDbFromPeptide
 
 \code{find_orthofinderResults} find_orthofinderResults
-}
-\details{
-Build pairwise blast database without running both sides of
-pairwise blasts. The genome with more genes is set as the query, then to
-complete the blast database, a mirrored blast file is written with
-the query genome as the target. Self blast runs are done as usual.
+
+\code{blkwise_orthofinder} blkwise_orthofinder
 }
 \note{
 \code{run_orthofinder} is a generic name for the functions documented.
 \cr
 If called, \code{run_orthofinder} returns its own arguments.
-}
-\examples{
-\dontrun{
-# coming soon
-}
 }
