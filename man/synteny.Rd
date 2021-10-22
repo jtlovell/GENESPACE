@@ -13,6 +13,9 @@
 \alias{pull_selfRegion}
 \alias{get_hitsInBlks}
 \alias{split_overlaps}
+\alias{annotate_gff}
+\alias{add_arrayRep2gff}
+\alias{add_arrays2gff}
 \title{Parsing of pairwise hits into synteny}
 \usage{
 synteny(gsParam, genomeIDs = NULL, overwrite = F)
@@ -51,6 +54,12 @@ split_overlaps(
   maxIter = 20,
   verbose
 )
+
+annotate_gff(gsParam, genomeIDs = NULL, overwrite = FALSE)
+
+add_arrayRep2gff(gff, gsParam)
+
+add_arrays2gff(gsParam, gff)
 }
 \arguments{
 \item{gsParam}{a list containing all parameters for a GENESPACE run. See
@@ -139,6 +148,12 @@ hits to synteny.
 \code{get_hitsInBlks} get_hitsInBlks
 
 \code{split_overlaps} split_overlaps
+
+\code{annotate_gff} add number of anchors to gff
+
+\code{add_arrayRep2gff} choose most central gene by orthogroup
+
+\code{add_arrays2gff} add_arrays2gff
 }
 \details{
 The main engine for GENESPACE synteny searching. This
