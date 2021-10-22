@@ -84,6 +84,7 @@ plot_riparian <- function(gsParam,
                           onlyTheseRegions = NULL,
                           excludeChrOutOfRegion = FALSE,
                           findRegHitsRecursive = FALSE,
+                          invertTheseChrs = NULL,
                           highlightRef = "white",
                           minGenes2plot = 50,
                           braidAlpha = .8,
@@ -152,6 +153,18 @@ plot_riparian <- function(gsParam,
   labelTheseGenomes <- labelTheseGenomes[labelTheseGenomes %in% genomeIDs]
   if(length(genomeIDs) < 1)
     labelTheseGenomes <- genomeIDs
+
+  invChrs <- invertTheseChrs
+  if(!is.data.frame(invChrs))
+    invChrs <- NULL
+  if(!is.null(invChrs)){
+    if(!all(colnames(invChrs) %in% c("genome", "chr"))){
+      invChrs <- NULL
+    }else{
+      invChrs <- with(invChrs, paste(genome, chr))
+    }
+  }
+
   # -- read the gff
   if(verbose)
     cat("\tLoading the gff ... ")
@@ -168,6 +181,24 @@ plot_riparian <- function(gsParam,
       gff[,og := synOG]
     }else{
       gff[,og := globOG]
+    }
+  }
+
+  if(!is.null(invChrs)){
+    invChrs <- invChrs[invChrs %in% paste(gff$genome, gff$chr)]
+    gi <- subset(gff, paste(genome, chr) %in% invChrs)
+    if(nrow(gi) > 0){
+      ga <- subset(gff, !paste(genome, chr) %in% invChrs)
+      setorder(gi, genome, chr, -ord)
+      gi[,`:=`(ord = 1:.N,
+               start = max(start) - start,
+               end = max(end - end)), by = c("genome", "chr")]
+
+      gff <- rbind(gi, ga)
+      setkey(gff, genome, chr, ord)
+      gff[,ord := 1:.N, by = "genome"]
+    }else{
+      invChrs <- NULL
     }
   }
 
@@ -424,7 +455,9 @@ plot_riparian <- function(gsParam,
       if(with(chrPos[i,], end - start) > labelChrBiggerThan)
         with(chrPos[i,], text(
           (start + end)/2, y,
-          labels = chrLabFun(chr), cex = chrLabCex))
+          labels = ifelse(paste(genome, chr) %in% invChrs,
+                          paste0(chrLabFun(chr), "*"), chrLabFun(chr)),
+          cex = chrLabCex))
   }
 
   # label the genomes
