@@ -409,16 +409,15 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   fwrite(blks, file = blksFile, sep = "\t", quote = F, showProgress = F)
   if(verbose)
     cat(sprintf(
-      "\nSynteny constraints - Done!\n\tSyntenic block coordinates written to /results/%s\n",
+      "\tSynteny constraints - Done!\n\tSyntenic block coordinates written to /results/%s\n",
         basename(blksFile)))
 
   # -- get syntenic orthologs
-  if(verbose)
-    cat("Pulling syntenic orthogroups ...")
   gsParam <- pull_synOGs(gsParam = gsParam)
-
   if(verbose)
-    cat("\n\tDone\n")
+    cat("Done!\n\tWrote gff to file: /results/gffWithOgs.txt.gz\n")
+  if(verbose)
+    cat("\tDone!\n")
   return(gsParam)
 }
 
@@ -1248,7 +1247,7 @@ annotate_gff <- function(gsParam,
   setkey(gff, genome, ord)
 
   if(verbose)
-    cat(sprintf("Done!\nWriting gff to file: %s", gffFile))
+    cat("Done!\n")
   gff[,`:=`(synOG = NA, inBlkOG = NA, combOG = NA, og = globOG, refCoord = NA)]
   fwrite(gff, file = gffFile, sep = "\t", quote = F, showProgress = F)
   return(gsParam)
@@ -1383,8 +1382,8 @@ add_arrays2gff <- function(gsParam,
   if(verbose){
     cat("\tUsing collinear orthogroups for array identity:\n")
     nu <- lapply(split(subset(gff, !is.na(arrayID)), by = "genome"), function(x)
-      cat(sprintf("\t%s%s: %s genes in %s collinear arrays\n",
-                  app, x$genome[1], nrow(x), uniqueN(x$arrayID))))
+      cat(sprintf("\t%s: %s genes in %s collinear arrays\n",
+                  x$genome[1], nrow(x), uniqueN(x$arrayID))))
   }
 
   return(gff)
