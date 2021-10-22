@@ -93,6 +93,7 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   genome1 <- genome2 <- gnum1 <- gnum2 <- synOg <- genome <- og <- nChr1 <- NULL
   nChr2 <- blkID <- ofID1 <- ofID2 <- score <- scrRank1 <- scrRank2 <- NULL
   isAnchor <- gen1 <- gen2 <- chr1 <- chr2 <- regBuffer <- globOG <- NULL
+  ord1 <- ord2 <- NULL
 
   if(is.null(genomeIDs)){
     genomeIDs <- gsParam$genomes$genomeIDs
@@ -136,22 +137,15 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   ##############################################################################
   # 1. load and parse the gff
   ##############################################################################
-  if(verbose)
-    cat("Setting up input data\n\tParsing annotations ... \n\t")
-
   # -- find the location of orthofinder results files
   if(is.na(gsParam$paths$orthogroupsDir))
     gsParam <- find_orthofinderResults(gsParam)
 
   # -- annotate gff with arrays, syntenic orthogroups, etc.
-  if(!file.exists(gffFile))
-    stop("can't find the annotated gff-like text file\t\n ... have you run annotate_gff yet?\n")
   gff <- fread(gffFile, na.strings = c("NA",""), showProgress = F)
   arrayReps <- gff$ofID[gff$isArrayRep]
 
   # -- flag syntenic arrays and choose optimal representative gene
-  if(!"arrayID" %in% colnames(gff))
-    stop("can't find arrays in the annotated gff-like text file\t\n ... have you run annotate_gff yet?\n")
   isArrayRep <- ord <- NULL
   if(verbose)
     with(gff, cat(sprintf(
@@ -164,7 +158,7 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   # -- run the following steps for each genome and only within genome hits
   ##############################################################################
   if(verbose)
-    cat("Pulling within-genome synteny\n\tGenome:",
+    cat("Pulling within-genome synteny ... \n\tGenome:",
         "n raw hits / hits in (regions) / hits in (blks)\n")
   intraBcs <- rbindlist(lapply(1:nrow(selfSyn), function(i){
 
@@ -296,7 +290,7 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   # -- run the following steps for each non-self pairwise genome combination
   ##############################################################################
   if(verbose)
-    cat("Pulling intergenomic synteny\n")
+    cat("Pulling intergenomic synteny ...\n")
 
   interBcs <- rbindlist(lapply(1:nrow(nonSelfSyn), function(i){
     gid1 <- nonSelfSyn$genome1[i]
@@ -415,9 +409,7 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   # -- get syntenic orthologs
   gsParam <- pull_synOGs(gsParam = gsParam)
   if(verbose)
-    cat("Done!\n\tWrote gff to file: /results/gffWithOgs.txt.gz\n")
-  if(verbose)
-    cat("\tDone!\n")
+    cat("\tWrote gff to file: /results/gffWithOgs.txt.gz\n\tDone!\n")
   return(gsParam)
 }
 
@@ -757,7 +749,7 @@ find_globalAnchors <- function(hits,
   nhits1 <- nSecondHits1 <- nhits2 <- nSecondHits2 <- blkSizeSecond <- NULL
   nGapsSecond <- synBuffSecond <- isMasked <- ord1 <- ord2 <- isArrayRep <- NULL
   og <- ofID1 <- score <- scrRank1 <- ofID2 <- scrRank2 <- blkID <- NULL
-  isAnchor <- inBuffer <- NULL
+  isAnchor <- inBuffer <- onlyOgAnchorsSecond <- NULL
   # -- get synteny parameters in line
   sp <- data.table(synParam[1,])
   if(type != "primary")
@@ -1396,7 +1388,8 @@ add_arrays2gff <- function(gsParam,
 #' @import data.table
 #' @importFrom grDevices pdf dev.off
 #' @export
-pull_synOGs <- function(gsParam, genomeIDs = NULL){
+pull_synOGs <- function(gsParam,
+                        genomeIDs = NULL){
 
   isArrayRep <- ogInblk <- ofID1 <- ofID2 <- inBlkOG <- ofID <- NULL
   og <- synOG <- globOG <- u <- arrayID <- NULL

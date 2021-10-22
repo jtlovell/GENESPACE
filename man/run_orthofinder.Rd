@@ -36,6 +36,11 @@ character vector of genomeIDs).}
 \item{onlyCheckRun}{logical, should nothing be done but see if there is a run}
 
 \item{gff}{annotated gff with orthogroups included, see read_gff}
+
+\item{genomeIDs}{character vector with the genomes to include in the run}
+
+\item{minGenes4of}{integer specifying the minimum number of genes needed to
+run orthofinder.}
 }
 \description{
 \code{run_orthofinder} GENESPACE routines for running orthofinder within R,

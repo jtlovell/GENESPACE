@@ -87,6 +87,9 @@ be constrained to just those in synteny with the rest of the graph?}
 \item{findRegHitsRecursive}{logical, should regional hit discovery be
 recursive?}
 
+\item{invertTheseChrs}{data.table with two columns, genome and chr containing
+the lists of genomes and chromosomes that should be inverted in the plot}
+
 \item{highlightRef}{color to highlight the reference chromosomes.}
 
 \item{minGenes2plot}{integer specifying the minimum number of genes on a

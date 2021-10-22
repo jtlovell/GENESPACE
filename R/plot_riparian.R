@@ -12,6 +12,8 @@
 #' @param onlyTheseChrs character vector specifying the reference chrs that
 #' should be plot
 #' @param labelTheseGenomes character string of genomes that have labeled chrs
+#' @param invertTheseChrs data.table with two columns, genome and chr containing
+#' the lists of genomes and chromosomes that should be inverted in the plot
 #' @param genomeLabCex chracter expansion of the genome labels
 #' @param minGenesOnChr integer, specifying the min number of genes a chromosome
 #' that is plotted cna contain
@@ -106,7 +108,7 @@ plot_riparian <- function(gsParam,
                           chrLabFun = function(x)
                             gsub("^0","",gsub("^chr|^scaffold|^lg|_","",tolower(x)))){
 
-  arrayID <- og <- synOG <- globOG <- inBlkOG <- NULL
+  arrayID <- og <- synOG <- globOG <- inBlkOG <- ord <- NULL
   genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1 <- ord1 <- ofID <- NULL
   rl <- refChr <- blkID <- gen2 <- startOrd1 <- endOrd1 <- end <- n <- NULL
   startOrd2 <- endOrd2 <- startBp1 <- endBp1 <- startBp2 <- NULL

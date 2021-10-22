@@ -13,6 +13,9 @@
 #' @param overwrite logical, should results be overwritten?
 #' @param onlyCheckRun logical, should nothing be done but see if there is a run
 #' @param gff annotated gff with orthogroups included, see read_gff
+#' @param genomeIDs character vector with the genomes to include in the run
+#' @param minGenes4of integer specifying the minimum number of genes needed to
+#' run orthofinder.
 #'
 #' @note \code{run_orthofinder} is a generic name for the functions documented.
 #' \cr
