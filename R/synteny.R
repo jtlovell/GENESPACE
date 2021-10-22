@@ -407,9 +407,18 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   blks <- subset(blks, !duplicated(paste(gen1, gen2, blkID)))
 
   fwrite(blks, file = blksFile, sep = "\t", quote = F, showProgress = F)
+  if(verbose)
+    cat(sprintf(
+      "\nSynteny constraints - Done!\n\tSyntenic block coordinates written to /results/%s\n",
+        basename(blksFile)))
+
+  # -- get syntenic orthologs
+  if(verbose)
+    cat("Pulling syntenic orthogroups ...")
+  gsParam <- pull_synOGs(gsParam = gsParam)
 
   if(verbose)
-    cat("Done\n")
+    cat("\n\tDone\n")
   return(gsParam)
 }
 
