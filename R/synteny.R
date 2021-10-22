@@ -107,14 +107,20 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
   blksFile <- file.path(gsParam$paths$results, "syntenicBlocks.txt.gz")
 
+  # set the synteny parameters
+  if(is.data.table(gsParam$params$synteny))
+    if(!all(genomeIDs %in% gsParam$params$synteny$genome1))
+      gsParam$params$synteny <- NULL
+  if(!is.data.table(gsParam$params$synteny)){
+    cat("Synteny Parameters have not been set! Setting to defaults\n")
+    gsParam <- set_syntenyParams(gsParam)
+  }
+
   # -- get an annotated gff file
   gsParam <- annotate_gff(
     gsParam = gsParam,
     genomeIDs = genomeIDs,
     overwrite = overwrite)
-
-  if(!is.data.table(gsParam$params$synteny))
-    stop("Must run set_syntenyParams first!\n")
 
   # -- enforce genome order from genomeIDs, keep only uni-directional blasts
   syn <- data.table(gsParam$params$synteny)
@@ -404,7 +410,7 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F){
 
   if(verbose)
     cat("Done\n")
-  return(blks)
+  return(gsParam)
 }
 
 #' @title calc_blkCoords
