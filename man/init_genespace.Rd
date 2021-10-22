@@ -15,7 +15,6 @@ init_genespace(
   diamondMode = "more-sensitive",
   orthofinderMethod = ifelse(any(ploidy > 1), "fast", "default"),
   orthofinderInBlk = any(ploidy > 1),
-  recallArrays = any(ploidy > 1 | length(genomeIDs) > 6),
   nCores = detectCores()/2,
   minPepLen = 20,
   overwrite = FALSE,
@@ -62,9 +61,6 @@ build_OFdb for details.}
 
 \item{orthofinderInBlk}{logical, should orthofinder be re-run within
 syntenic regions? Highly recommended for polyploids}
-
-\item{recallArrays}{logical, should a self-orthofinder be run within
-chromosomes? Highly recommended for polyploids or runs with lots of genomes.}
 
 \item{nCores}{integer of length 1 specifying the number of parallel processes
 to run}

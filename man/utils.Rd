@@ -31,6 +31,8 @@
 \alias{calc_curvePolygon}
 \alias{round_rect}
 \alias{interp_linear}
+\alias{add_ofID2gff}
+\alias{add_pepLen2gff}
 \title{Generic internal functions used by genespace}
 \usage{
 order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
@@ -104,6 +106,10 @@ calc_curvePolygon(start1, end1 = NULL, start2, end2 = NULL, y1, y2)
 round_rect(xleft, ybottom, xright, ytop)
 
 interp_linear(x, y, interpTails = TRUE)
+
+add_ofID2gff(gff, blastDir)
+
+add_pepLen2gff(gff, gsParam)
 }
 \arguments{
 \item{path}{file path character string}
@@ -194,7 +200,11 @@ interp_linear(x, y, interpTails = TRUE)
 
 \item{ytop}{numeric, specifying the coordinate of upper y position}
 
-\item{interpTails}{logical, should unbounded tails be interpolated?
+\item{interpTails}{logical, should unbounded tails be interpolated?}
+
+\item{gff}{annotated gff with orthogroups included, see read_gff}
+
+\item{blastDir}{file.path to the location of the blast results.
 \cr
 If called, \code{utils} returns its own arguments.}
 }
@@ -268,4 +278,9 @@ file
 \code{round_rect} from x-y coordinates, make a rounded rectangle
 
 \code{round_rect} from x-y coordinates, make a rounded rectangle
+
+\code{add_ofID2gff} read the orthofinder species and gene IDs and merge
+these with the gff-like data.table
+
+\code{add_pepLen2gff} read the peptide lengths and merge with the gff
 }

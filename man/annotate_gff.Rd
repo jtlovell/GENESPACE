@@ -2,50 +2,31 @@
 % Please edit documentation in R/annotate_gff.R
 \name{annotate_gff}
 \alias{annotate_gff}
-\alias{add_pepLen2gff}
 \alias{add_arrayRep2gff}
-\alias{add_ofID2gff}
-\alias{recall_arrays}
-\alias{clus_arrays}
 \alias{add_arrays2gff}
-\alias{pull_ogsByChr}
 \title{annotate_gff}
 \usage{
-annotate_gff(gsParam, minGenes4of = 40, genomeIDs = NULL, overwrite = FALSE)
-
-add_pepLen2gff(gff, gsParam)
+annotate_gff(gsParam, genomeIDs = NULL, overwrite = FALSE)
 
 add_arrayRep2gff(gff, gsParam)
 
-add_ofID2gff(gff, blastDir)
-
-recall_arrays(gsParam, minGenes4of = 50)
-
-clus_arrays(gff, gsParam, synBuff, minGenes4of = 40, genomeID)
-
-add_arrays2gff(gsParam, gff, minGenes4of = 40)
-
-pull_ogsByChr(gsParam, gff, synBuff, minGenes4of, nCores)
+add_arrays2gff(gsParam, gff)
 }
 \arguments{
 \item{gsParam}{a list containing all parameters for a GENESPACE run. See
 init_genespace}
-
-\item{minGenes4of}{integer specifying the minimum number of genes allowed
-for an orthofinder run}
 
 \item{genomeIDs}{an optional vector of genomeIDs to consider. If not
 specified (default) taken from gsParam$genomeIDs$genomeIDs}
 
 \item{overwrite}{logical, should existing results be overwritten?}
 
-\item{gff}{annotated gff with orthogroups included, see read_gff}
-
-\item{blastDir}{file.path to the location of the blast results.}
+\item{genomeID}{single value fromo genomeIDs}
 
 \item{synBuff}{synteny buffer, see set_synParam}
 
-\item{genomeID}{single value fromo genomeIDs}
+\item{minGenes4of}{integer specifying the minimum number of genes allowed
+for an orthofinder run}
 
 \item{nCores}{integer of length 1 specifying the number of parallel processes
 to run}
@@ -58,21 +39,9 @@ to run}
 
 \code{annotate_gff} add number of anchors to gff
 
-\code{add_pepLen2gff} read the peptide lengths and merge with the gff
-
 \code{add_arrayRep2gff} choose most central gene by orthogroup
 
-\code{add_ofID2gff} read the orthofinder species and gene IDs and merge
-these with the gff-like data.table
-
-\code{recall_arrays} More precise than global runs, since global orthogroups
-can expand as a function of paralogy among genomes.
-
-\code{clus_arrays} Routine piped by recall_arrays
-
 \code{add_arrays2gff} add_arrays2gff
-
-\code{pull_ogsByChr} pull_ogsByChr
 }
 \details{
 ...

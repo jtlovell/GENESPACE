@@ -17,8 +17,6 @@
 #' build_OFdb for details.
 #' @param orthofinderInBlk logical, should orthofinder be re-run within
 #' syntenic regions? Highly recommended for polyploids
-#' @param recallArrays logical, should a self-orthofinder be run within
-#' chromosomes? Highly recommended for polyploids or runs with lots of genomes.
 #' @param speciesIDs file path character vector. This is the subdirectory in
 #' rawGenomeDir containing the files for each genomeID.
 #' @param versionIDs file path character vector. This is the subdirectory in
@@ -73,7 +71,6 @@ init_genespace <- function(genomeIDs,
                            diamondMode = "more-sensitive",
                            orthofinderMethod = ifelse(any(ploidy > 1), "fast", "default"),
                            orthofinderInBlk = any(ploidy > 1),
-                           recallArrays = any(ploidy > 1 | length(genomeIDs) > 6),
                            nCores = detectCores()/2,
                            minPepLen = 20,
                            overwrite = FALSE,
@@ -311,12 +308,6 @@ init_genespace <- function(genomeIDs,
   }
 
   ##############################################################################
-  choose_arrayMethod <- function(path2orthofinder, recallArrays = TRUE){
-    recallArrays <- check_logicalArg(recallArrays)
-    return(recallArrays && check_orthofinderInstall(path2orthofinder))
-  }
-
-  ##############################################################################
   choose_ofMethod <- function(path2orthofinder, orthofinderMethod = "default"){
     ofm <- match.arg(orthofinderMethod, choices = c("fast", "default"))
     isInstall <- check_orthofinderInstall(path2orthofinder)
@@ -369,17 +360,6 @@ init_genespace <- function(genomeIDs,
       "\n#####################################\n",
       "Could not find orthofinder in system path, but fast method specified\n",
       "For this run, setting orthofinder method = default (slower but more accurate)\n",
-      "If this isn't right, open R from a terminal with orthofinder in the path\n")
-
-  # -- array method checks
-  p$params$recallArrays <- choose_arrayMethod(
-    recallArrays = recallArrays,
-    path2orthofinder = path2orthofinder)
-  if(!p$params$recallArrays & recallArrays)
-    cat(
-      "\n#####################################\n",
-      "Could not find orthofinder in system path, but recallArrays specified\n",
-      "For this run, setting recallArrays to FALSE (faster but potentially less accurate)\n",
       "If this isn't right, open R from a terminal with orthofinder in the path\n")
 
   # -- orthofinder in block method checks
@@ -460,10 +440,7 @@ init_genespace <- function(genomeIDs,
     cat(sprintf(
       "\tInitial orthofinder database generation method: %s\n",
       p$params$orthofinderMethod))
-  if(verbose)
-    cat(sprintf(
-      "\tCollinear array detection method: %s\n",
-      ifelse(p$params$recallArrays, "inBlock", "global")))
+
   if(verbose)
     cat(sprintf(
       "\tOrthology graph method: %s\n",

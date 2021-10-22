@@ -51,6 +51,8 @@
 #' @param ofID2 orthofinder ID of the second gene
 #' @param onlyIDScore logical, should only the geneIDs and score be returned?
 #' @param interpTails logical, should unbounded tails be interpolated?
+#' @param gff annotated gff with orthogroups included, see read_gff
+#' @param blastDir file.path to the location of the blast results.
 #' \cr
 #' If called, \code{utils} returns its own arguments.
 #'
@@ -750,4 +752,40 @@ interp_linear <- function(x,
   }
 
   return(y)
+}
+
+#' @title add orthofinder ID to a gff object
+#' @description
+#' \code{add_ofID2gff} read the orthofinder species and gene IDs and merge
+#' these with the gff-like data.table
+#' @rdname utils
+#' @export
+add_ofID2gff <- function(gff,
+                         blastDir){
+  id <- ofID <- genomeNum <- genome <- NULL
+  specIDs <- read_orthofinderSpeciesIDs(blastDir)
+  gv <- names(specIDs); names(gv) <- as.character(specIDs)
+  seqIDs <- read_orthofinderSequenceIDs(blastDir)
+  seqIDs[,genome :=  gv[as.character(genomeNum)]]
+  idv <- seqIDs$ofID; names(idv) <- with(seqIDs, paste(genome, id))
+  gff[,ofID := idv[paste(genome, id)]]
+  return(gff)
+}
+
+#' @title add peptide length to a gff object
+#' @description
+#' \code{add_pepLen2gff} read the peptide lengths and merge with the gff
+#' @rdname utils
+#' @export
+add_pepLen2gff <- function(gff,
+                           gsParam){
+  pepLen <- id <- ofID <-  NULL
+  spl <- split(gff, by = "genome")
+  naa <- rbindlist(lapply(spl, function(x){
+    x[,pepLen := get_nAA(gsParam$paths$peptide[x$genome[1]], raw = T)[id]]
+    return(x[,c("ofID","pepLen")])
+  }))
+  nao <- naa$pepLen; names(nao) <- naa$ofID
+  gff[,pepLen := nao[ofID]]
+  return(gff)
 }
