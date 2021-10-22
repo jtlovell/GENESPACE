@@ -2,12 +2,6 @@
 % Please edit documentation in R/plot_riparian.R
 \name{plot_riparian}
 \alias{plot_riparian}
-\alias{split_blksByRef}
-\alias{reorder_gff}
-\alias{load_refHits}
-\alias{add_synChr2gff}
-\alias{read_ripHits}
-\alias{calc_refChrByGene}
 \title{Genespace plotting routines}
 \usage{
 plot_riparian(
@@ -40,27 +34,6 @@ plot_riparian(
   blackBg = TRUE,
   chrLabFun = function(x) gsub("^0", "", gsub("^chr|^scaffold|^lg|_", "", tolower(x)))
 )
-
-split_blksByRef(
-  hitsRef,
-  hitsRip,
-  gff,
-  chrd,
-  chrl,
-  refGenome,
-  minrl = 5,
-  minprp = 0.9
-)
-
-reorder_gff(gff, genomeIDs, minGenesOnChr, refGenome)
-
-load_refHits(gsParam, genomeIDs, refGenome, plotRegions)
-
-add_synChr2gff(gff, refHits, genomeIDs, gapProp, refGenome)
-
-read_ripHits(gsParam, genomeIDs, useBlks)
-
-calc_refChrByGene(gff, refGenome, blkSize, nCores)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -138,21 +111,6 @@ bp to label a chromosome}
 
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
 
-\item{hitsRef}{data.table containing all syn og hits against the reference}
-
-\item{hitsRip}{data.table containing all syn og hits among riparian genomes}
-
-\item{gff}{annotated gff-like data.table}
-
-\item{chrd}{data.table converted chrList}
-
-\item{chrl}{see chrList}
-
-\item{minrl}{minimum run-length of consecutive refChr hits in a block to
-warrant splitting.}
-
-\item{minprp}{minimum proportion of hits to a refChr to get a block break}
-
 \item{minGenesOnChr}{integer, specifying the min number of genes a chromosome
 that is plotted cna contain}
 
@@ -163,29 +121,25 @@ that is plotted cna contain}
 \item{blkSize}{integer specifying minimum block size}
 
 \item{nCores}{integer specifying the number of parallel processes to run}
+
+\item{gff}{annotated gff-like data.table}
+
+\item{hitsRef}{data.table containing all syn og hits against the reference}
+
+\item{hitsRip}{data.table containing all syn og hits among riparian genomes}
+
+\item{chrd}{data.table converted chrList}
+
+\item{chrl}{see chrList}
+
+\item{minrl}{minimum run-length of consecutive refChr hits in a block to
+warrant splitting.}
+
+\item{minprp}{minimum proportion of hits to a refChr to get a block break}
 }
 \description{
 \code{plot_riparian} Genespace plotting routines
-
-\code{plot_riparian} Make a riparian plot
-
-\code{split_blksByRef} split_blksByRef
-
-\code{reorder_gff} reorder_gff
-
-\code{load_refHits} load_refHits
-
-\code{add_synChr2gff} vector of points for polygons based on cosine curves
-
-\code{read_ripHits} read_ripHits
-
-\code{calc_refChrByGene} calc_refChrByGene
 }
 \details{
 ...
-}
-\note{
-\code{plot_riparian} is a generic name for the functions documented.
-\cr
-If called, \code{plot_riparian} returns its own arguments.
 }

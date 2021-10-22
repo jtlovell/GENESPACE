@@ -1,7 +1,6 @@
 #' @title Genespace plotting routines
 #' @description
 #' \code{plot_hits} Genespace plotting routines
-#' @name plot_hits
 #'
 #' @param gsParam A list of genespace parameters. This should be created
 #' by setup_genespace, but can be built manually. Must have the following
@@ -36,14 +35,6 @@
 #' @param minHits2plot integer, the minimum number of hits to include
 #' @details ...
 #'
-#' @note \code{plot_hits} is a generic name for the functions documented.
-#' \cr
-#' If called, \code{plot_hits} returns its own arguments.
-#'
-#' @title plot_heatmap plot
-#' @description
-#' \code{plot_heatmap} Make a riparian plot
-#' @rdname plot_hits
 #' @import data.table
 #' @importFrom graphics title
 #' @export
@@ -238,78 +229,3 @@ plot_hits <- function(hits,
   return(tp)
 }
 
-#' @title order_synChrs plot
-#' @description
-#' \code{order_synChrs} Make a riparian plot
-#' @rdname plot_hits
-#' @import data.table
-#' @export
-order_synChrs <- function(hits,
-                           minHits2plot = 50){
-
-  ofID1 <- ofID2 <- ord1 <- ord2 <- chr1 <- chr2 <- nHits1 <- nHits2 <- NULL
-  chrn1 <- meanPos1 <- chrOrder1 <- meanPos2 <- chrn2 <- chrOrder2 <- NULL
-  nHits2tot <- propTot <- NULL
-
-  h <- hits[,list(nu = uniqueN(c(ofID1, ofID2)),
-                  nHits1 = uniqueN(ofID1),
-                  nHits2 = uniqueN(ofID2),
-                  meanPos1 = mean(ord1)),
-          by = c("gen1", "gen2", "chr1", "chr2")]
-  h[,`:=`(chrn1 = as.numeric(gsub("[^0-9]", "", chr1)),
-          chrn2 = as.numeric(gsub("[^0-9]", "", chr2)))]
-  h <- subset(h, nHits1 >= minHits2plot & nHits2 >= minHits2plot)
-  setorder(h, chrn1, -nHits1, meanPos1)
-  h[,chrOrder1 := as.numeric(factor(chr1, levels = unique(chr1)))]
-  setorder(h, chrOrder1)
-  c1 <- subset(h, !duplicated(chr1))
-
-  h2 <- hits[,list(nHits2tot = uniqueN(ofID2),
-                   meanPos2 = mean(ord2)),
-             by = "chr2"]
-  h2 <- merge(h, h2, by = "chr2")
-  h2[,propTot := nHits2 / nHits2tot]
-  setorder(h2, chr2, -propTot, meanPos2)
-  c2 <- subset(h2, !duplicated(chr2))
-  setorder(c2, chrOrder1, chrn2, -propTot, meanPos2)
-  c2[,chrOrder2 := 1:.N]
-  return(data.table(
-    genome = c(c1$gen1, c2$gen2),
-    chr = c(c1$chr1, c2$chr2),
-    chrOrder = c(c1$chrOrder1, c2$chrOrder2)))
-}
-
-#' @title get colors for chromosome backgrounds
-#' @description
-#' \code{color_chrBounds}  get colors for chromosome backgrounds
-#' @rdname plot_hits
-#' @import data.table
-#' @importFrom grDevices colorRampPalette
-#' @export
-color_chrBounds <- function(hits, lightChrFill, darkChrFill, emptyChrFill){
-  x <- y <- n <- chr1 <- chr2 <- max1 <- percMax1 <- NULL
-  setkey(hits, x)
-  hits[,`:=`(chr1 = factor(chr1, levels = unique(chr1)),
-             chr2 = factor(chr2, levels = unique(chr2)))]
-  eg <- hits[,list(CJ(levels(chr1), levels(chr2)))]
-  setnames(eg, c("chr1", "chr2"))
-  chrBx <- hits[, list(x0 = min(x), x1 = max(x), x12 = mean(range(x))),
-                by = c("chr1")]
-  chrBy <- hits[, list(y0 = min(y), y1 = max(y), y12 = mean(range(y))),
-                by = c("chr2")]
-  chrBnd <- merge(chrBx, merge(chrBy, eg, by = "chr2"), by = "chr1")
-  chrN <- hits[,list(n = .N),
-               by = c("chr1", "chr2")]
-  chrBnd <- merge(chrBnd, chrN, by = c("chr1", "chr2"), all.x = T)
-  chrBnd$n[is.na(chrBnd$n)] <- 0
-  chrBnd[,n := n - min(n), by = "chr1"]
-  chrBnd[,max1 := max(n), by = "chr1"]
-  cb0 <- subset(chrBnd, n == 0)
-  cb0[,col := emptyChrFill]
-  cb1 <- subset(chrBnd, n > 0)
-  cb1[,percMax1 := ceiling((n / max1)*100)]
-  cscl <- colorRampPalette(c(lightChrFill, darkChrFill))(100)
-  cb1[,col := cscl[percMax1]]
-  cb <- rbind(cb0, cb1, fill = T)[,c(colnames(chrBnd), "col"), with = F]
-  return(cb)
-}

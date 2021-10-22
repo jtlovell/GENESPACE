@@ -2,8 +2,6 @@
 % Please edit documentation in R/plot_hits.R
 \name{plot_hits}
 \alias{plot_hits}
-\alias{order_synChrs}
-\alias{color_chrBounds}
 \title{Genespace plotting routines}
 \usage{
 plot_hits(
@@ -30,10 +28,6 @@ plot_hits(
   chrLabFun = function(x) gsub("^0", "", gsub("^chr|^scaffold|^lg|_", "", tolower(x))),
   plotTitle = "diamond hit dotplot"
 )
-
-order_synChrs(hits, minHits2plot = 50)
-
-color_chrBounds(hits, lightChrFill, darkChrFill, emptyChrFill)
 }
 \arguments{
 \item{hits}{data.table of hits}
@@ -92,18 +86,7 @@ to reduce the total number of points. 1 = don't round}
 }
 \description{
 \code{plot_hits} Genespace plotting routines
-
-\code{plot_heatmap} Make a riparian plot
-
-\code{order_synChrs} Make a riparian plot
-
-\code{color_chrBounds}  get colors for chromosome backgrounds
 }
 \details{
 ...
-}
-\note{
-\code{plot_hits} is a generic name for the functions documented.
-\cr
-If called, \code{plot_hits} returns its own arguments.
 }

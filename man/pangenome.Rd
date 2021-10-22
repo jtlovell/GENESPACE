@@ -2,18 +2,9 @@
 % Please edit documentation in R/pangenome.R
 \name{pangenome}
 \alias{pangenome}
-\alias{combine_inblkSynOG}
-\alias{pull_nonSynOrthologs}
-\alias{pull_blkAnchors}
 \title{Build genespace pangenome}
 \usage{
 pangenome(gsParam, genomeIDs = NULL, refGenome = NULL)
-
-combine_inblkSynOG(refGenome, genomeIDs, gff, gsParam)
-
-pull_nonSynOrthologs(gsParam, gff)
-
-pull_blkAnchors(gsParam, gff, refGenome)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -39,15 +30,6 @@ chromosome, the positions are broken out by the column 'clus'.
 \code{pangenome} Convert orthogroup and synteny information into a
 pangenome database. Predict locations of orthogroups that are missing a
 node in the reference.
-
-\code{pangenome} Predict locations in reference genome for all
-genes and collapse into pangenome database
-
-\code{combine_inblkSynOG} combine_inblkSynOG
-
-\code{pull_nonSynOrthologs} pull_nonSynOrthologs
-
-\code{pull_blkAnchors} pull_blkAnchors
 }
 \details{
 The pangenome annotation is a projection of syntenic orthogroups
@@ -66,13 +48,9 @@ placed orthgroups are added within reference position information
 \item non-syntenic orthologs are added and flagged
 }
 }
-\note{
-\code{pangenome} is a generic name for the functions documented.
-\cr
-If called, \code{pangenome} returns its own arguments.
-}
 \examples{
 \dontrun{
 # coming soon
 }
+
 }

@@ -2,70 +2,9 @@
 % Please edit documentation in R/synteny.R
 \name{synteny}
 \alias{synteny}
-\alias{calc_blkCoords}
-\alias{finalize_blocks}
-\alias{parse_blast4synteny}
-\alias{find_hitsInBuff}
-\alias{clus_dbscan}
-\alias{find_globalAnchors}
-\alias{pipe_synteny}
-\alias{pull_nonSelfReg}
-\alias{pull_selfRegion}
-\alias{get_hitsInBlks}
-\alias{split_overlaps}
-\alias{annotate_gff}
-\alias{add_arrayRep2gff}
-\alias{add_arrays2gff}
-\alias{pull_synOGs}
-\alias{add_synOg2gff}
 \title{Parsing of pairwise hits into synteny}
 \usage{
 synteny(gsParam, genomeIDs = NULL, overwrite = F)
-
-calc_blkCoords(hits)
-
-finalize_blocks(
-  hits,
-  synParam,
-  gsParam,
-  type = "primary",
-  verbose = FALSE,
-  minRbhScore = 50
-)
-
-parse_blast4synteny(gsParam, genome1, genome2, gff, selfOnly)
-
-find_hitsInBuff(hits, nCores, synBuff)
-
-clus_dbscan(hits, radius, blkSize, nCores)
-
-find_globalAnchors(hits, gsParam, synParam, type = "primary")
-
-pipe_synteny(gsParam, gff, maskHits, synParam, type = "primary")
-
-pull_nonSelfReg(hits, selfRegionMask, nhits)
-
-pull_selfRegion(hits, synBuff)
-
-get_hitsInBlks(blks, hits, nCores)
-
-split_overlaps(
-  hits,
-  dropInterleavesSmallerThan,
-  minPropDup = 0.05,
-  maxIter = 20,
-  verbose
-)
-
-annotate_gff(gsParam, genomeIDs = NULL, overwrite = FALSE)
-
-add_arrayRep2gff(gff, gsParam)
-
-add_arrays2gff(gsParam, gff)
-
-pull_synOGs(gsParam, genomeIDs = NULL)
-
-add_synOg2gff(gff, hits = NULL, gsParam, genomeIDs, allowRBHinOg, useBlks)
 }
 \arguments{
 \item{gsParam}{a list containing all parameters for a GENESPACE run. See
@@ -73,97 +12,13 @@ init_genespace}
 
 \item{genomeIDs}{an optional vector of genomeIDs to consider. If not
 specified (default) taken from gsParam$genomeIDs$genomeIDs}
-
-\item{overwrite}{logical, should the results be overwrittem?}
-
-\item{hits}{data.table containing annotated blast-format pairwise hits}
-
-\item{synParam}{data.table with synteny parameters. See set_syntenyParams.}
-
-\item{type}{either 'primary' or 'secondary' depending on the scale of
-inference}
-
-\item{verbose}{logical, should updates be printed to the console?}
-
-\item{minRbhScore}{integer of length 1, see set_syntenyParams}
-
-\item{genome1}{character string specifying first of two genomeIDs}
-
-\item{genome2}{character string specifying second of two genomeIDs}
-
-\item{gff}{annotated gff with orthogroups included, see read_gff}
-
-\item{selfOnly}{logical, should only self hits be considered}
-
-\item{nCores}{integer of length 1 specifying the number of parallel processes
-to run}
-
-\item{synBuff}{integer of length 1 specifying the maximum euclidean distance
-from an 'anchor' so that it can be considered syntenic}
-
-\item{radius}{numeric of length 1 specifying the eps dbscan parameter; the
-search radius within which to count clustered density-based xy points.}
-
-\item{blkSize}{integer of length 1 specifying the minimum size for a syntenic
-block and the -s 'size' MCScanX parameter}
-
-\item{maskHits}{data.table of hits that should be excluded}
-
-\item{selfRegionMask}{integer, the radius around self hits that should be
-masked}
-
-\item{nhits}{integer, the number of hits to retain}
-
-\item{blks}{data.table containing the block coordinates}
-
-\item{dropInterleavesSmallerThan}{integer, the minimum block size to retain
-after splitting overlapping blocks}
-
-\item{minPropDup}{numeric (0-1) specifying the minimum proportion of
-duplicated hits to allow two overlapping blocks to not be split}
-
-\item{maxIter}{integer, the maximum number of block splitting interations}
 }
 \value{
-a 'hits' data.table for a pairwise combination of genomes.
+updated gsParam list
 }
 \description{
 \code{synteny} The main GENESPACE engine to constrain genome-wide homology
 hits to synteny.
-
-\code{synteny} the pipeline to form sytenic regions, blocks and coordiantes
-
-\code{calc_blkCoords} calc_blkCoords
-
-\code{finalize_blocks} finalize_blocks
-
-\code{parse_blast4synteny} parse_blast4synteny
-
-\code{find_hitsInBuff} find_hitsInBuff
-
-\code{clus_dbscan} clus_dbscan
-
-\code{find_globalAnchors} find_globalAnchors
-
-\code{pipe_synteny} pipe_synteny
-
-\code{pull_nonSelfReg} pull_nonSelfReg
-
-\code{pull_selfRegion} pull_selfRegion
-
-\code{get_hitsInBlks} get_hitsInBlks
-
-\code{split_overlaps} split_overlaps
-
-\code{annotate_gff} add number of anchors to gff
-
-\code{add_arrayRep2gff} choose most central gene by orthogroup
-
-\code{add_arrays2gff} add_arrays2gff
-
-\code{pull_synOGs} pull_synOGs
-
-\code{add_synOg2gff} add_synOg2gff
 }
 \details{
 The main engine for GENESPACE synteny searching. This
@@ -199,10 +54,4 @@ contrast desired. To simplify parameterization, we have build a convenience
 function that infers various parameters based on basic
 genespace parameters and ploidy. Set set_syntenyParams for more information
 about the input synParam data.table.
-}
-\examples{
-\dontrun{
-# coming soon
-}
-
 }

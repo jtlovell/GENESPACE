@@ -5,8 +5,6 @@
 #' pangenome database. Predict locations of orthogroups that are missing a
 #' node in the reference.
 #'
-#' @name pangenome
-#'
 #' @param gsParam A list of genespace parameters. This should be created
 #' by setup_genespace, but can be built manually. Must have the following
 #' elements: blast (file.path to the original orthofinder run), synteny (
@@ -42,15 +40,8 @@
 #' \dontrun{
 #' # coming soon
 #' }
-#' @note \code{pangenome} is a generic name for the functions documented.
-#' \cr
-#' If called, \code{pangenome} returns its own arguments.
 #'
-#' @title build pangenome database
-#' @description
-#' \code{pangenome} Predict locations in reference genome for all
-#' genes and collapse into pangenome database
-#' @rdname pangenome
+#
 #' @import data.table
 #' @importFrom parallel mclapply
 #' @importFrom dbscan dbscan frNN
@@ -314,115 +305,4 @@ pangenome <- function(gsParam,
   if(verbose)
     cat(sprintf("\nPangenome written to results/%s_pangenomeDB.txt.gz", refGenome))
   return(pgout)
-}
-
-#' @title combine_inblkSynOG
-#' @description
-#' \code{combine_inblkSynOG} combine_inblkSynOG
-#' @rdname pangenome
-#' @import data.table
-#' @export
-combine_inblkSynOG <- function(refGenome,
-                               genomeIDs,
-                               gff,
-                               gsParam){
-
-  ofID <- ofID1 <- ofID2 <- clus <- combOG <- inBlkOG <- synOG <- NULL
-  if(gsParam$params$verbose)
-    cat("Combining synteny-constrained and inblock orthogroups ...\n")
-
-
-  genomeIDs <- c(refGenome, genomeIDs[genomeIDs != refGenome])
-  if(gsParam$params$verbose)
-    cat(sprintf("\tsyn OGs: %s, inblk OGs: %s",
-                uniqueN(gff$synOG, na.rm = T), uniqueN(gff$inBlkOG, na.rm = T)))
-  if(all(is.na(gff$inBlkOG)))
-    gff[,inBlkOG := synOG]
-  inblk <- gff[,list(ofID1 = ofID[-.N], ofID2 = ofID[-1]), by = "inBlkOG"]
-  syn <- gff[,list(ofID1 = ofID[-.N], ofID2 = ofID[-1]), by = "synOG"]
-  u <- with(inblk, paste(ofID1, ofID2))
-  syn <- subset(syn, !paste(ofID1, ofID2) %in% u & ofID1 != ofID2)
-  tmp <- rbind(syn[,c("ofID1", "ofID2")], inblk[,c("ofID1", "ofID2")])
-  tmp[,clus := clus_igraph(ofID1, ofID2)]
-  ov <- with(tmp, c(clus, clus)); names(ov) <- with(tmp, c(ofID1, ofID2))
-  gff[,combOG := ov[ofID]]
-  nmis <- sum(is.na(gff$combOG))
-  mol <- max(gff$combOG, na.rm = T)
-  gff$combOG[is.na(gff$combOG)] <- (mol + 1):(mol + nmis)
-  gff[,combOG := as.integer(factor(combOG, levels = unique(combOG)))]
-
-  if(gsParam$params$verbose)
-    cat(sprintf(", combined OGs: %s\n",
-                uniqueN(gff$combOG)))
-  return(gff)
-}
-
-#' @title pull_nonSynOrthologs
-#' @description
-#' \code{pull_nonSynOrthologs} pull_nonSynOrthologs
-#' @rdname pangenome
-#' @import data.table
-#' @export
-pull_nonSynOrthologs <- function(gsParam,
-                                gff){
-
-  gen1 <- og2 <- og1 <- orthIDs <- ofID <- id2 <- gen2 <- id1 <- NULL
-  idv <- gff$ofID; names(idv) <- with(gff, paste(genome, id))
-  ogv <- gff$combOG; names(ogv) <- gff$ofID
-
-  orths <- rbindlist(lapply(unique(gff$genome), function(i){
-    x <- parse_orthologues(
-      gsParam = gsParam,
-      refGenome = i,
-      nCores = gsParam$params$nCores)
-    x[,`:=`(ofID = idv[paste(gen1, id1)], orthIDs = idv[paste(gen2, id2)])]
-    x[,`:=`(og1 = ogv[ofID], og2 = ogv[orthIDs])]
-    x <- subset(x, og1 != og2)
-    return(x)
-  }))
-  return(orths[,c("ofID", "orthIDs", "orthID")])
-}
-
-#' @title pull_blkAnchors
-#' @description
-#' \code{pull_blkAnchors} pull_blkAnchors
-#' @rdname pangenome
-#' @import data.table
-#' @export
-pull_blkAnchors <- function(gsParam,
-                            gff,
-                            refGenome){
-  isSelf <- blkAnchor <- ofID2 <- ofID1 <- ord1 <- ord2 <- g1 <- g2 <- NULL
-  genomeIDs <- unique(gff$genome)
-
-  # -- get the hit files
-  pfs <- CJ(g1 = genomeIDs, g2 = genomeIDs)
-  pfs[,fs := file.path(gsParam$paths$results,
-                       sprintf("%s_%s_synHits.txt.gz", g1, g2))]
-  pfs <- subset(pfs, file.exists(fs))
-  fs <- pfs$fs
-
-  # -- block coords from hits
-  out <- rbindlist(mclapply(fs, mc.cores = gsParam$params$nCores, function(i){
-    x <- fread(i,
-               select = c("ofID1", "ofID2","blkID","blkAnchor","gen1"),
-               showProgress = F,
-               na.strings = c("NA", "-", ""))
-    if(x$gen1 != refGenome){
-      setnames(x, c("ofID2", "ofID1","blkID","blkAnchor","gen1"))
-      x <- x[,c("ofID1", "ofID2","blkID","blkAnchor","gen1")]
-    }
-    x[,isSelf := any(ofID1 %in% ofID2), by = "blkID"]
-    return(subset(x, blkAnchor & !isSelf)[,1:3])
-  }))
-
-  gv <- gff$genome; ov <- gff$ord; cv <- gff$chr
-  names(gv) <- names(ov) <- names(cv) <- gff$ofID
-  out[,`:=`(gen1 = gv[ofID1], gen2 = gv[ofID2],
-            chr1 = cv[ofID1], chr2 = cv[ofID2],
-            ord1 = ov[ofID1], ord2 = ov[ofID2])]
-  bc <- out[,list(start1 = min(ord1, na.rm = T), end1 = max(ord1, na.rm = T),
-                  start2 = min(ord2, na.rm = T), end2 = max(ord2, na.rm = T)),
-            by = c("gen1","gen2", "chr1", "chr2", "blkID")]
-  return(list(anchors = out, coords = bc))
 }
