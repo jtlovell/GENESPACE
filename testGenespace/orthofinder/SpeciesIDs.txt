@@ -1,3 +1,0 @@
-0: chimp.fa
-1: human.fa
-2: rhesus.fa
