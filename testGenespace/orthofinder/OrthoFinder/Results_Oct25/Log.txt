@@ -1,0 +1,12 @@
+2021-10-25 11:25:24 : Started OrthoFinder version 2.5.2
+Command Line: /opt/miniconda3/envs/orthofinder/bin/orthofinder -b /Users/jlovell/Desktop/GENESPACE/testGenespace/orthofinder -t 4 -a 1 -X -og
+
+WorkingDirectory_Base: /Users/jlovell/Desktop/GENESPACE/testGenespace/orthofinder/
+
+Species used: 
+0: chimp.fa
+1: human.fa
+2: rhesus.fa
+
+FN_Orthogroups: /Users/jlovell/Desktop/GENESPACE/testGenespace/orthofinder/OrthoFinder/Results_Oct25/WorkingDirectory/clusters_OrthoFinder_I1.5.txt_id_pairs.txt
+2021-10-25 11:25:34 : OrthoFinder run completed

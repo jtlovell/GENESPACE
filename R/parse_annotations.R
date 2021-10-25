@@ -43,6 +43,41 @@
 #' and all files are present, just returns a named vector of gff/pep file
 #' locations
 #' @param verbose logical, should updates be printed to the console?
+#'
+
+#' @examples
+#' \dontrun{
+#' runwd <- file.path(getwd(), "testGenespace")
+#' make_exampleDataDir(writeDir = runwd)
+#'
+#' gpar <- init_genespace(
+#'   genomeIDs = c("human","chimp","rhesus"),
+#'   speciesIDs = c("human","chimp","rhesus"),
+#'   versionIDs = c("human","chimp","rhesus"),
+#'   ploidy = rep(1,3),
+#'   diamondMode = "fast",
+#'   orthofinderMethod = "fast",
+#'   wd = runwd,
+#'   nCores = 4,
+#'   minPepLen = 50,
+#'   gffString = "gff",
+#'   pepString = "pep",
+#'   path2orthofinder = "orthofinder",
+#'   path2mcscanx = "~/MCScanX",
+#'   rawGenomeDir = file.path(runwd, "rawGenomes"))
+#'
+#' # -- in the example dataset, the raw NCBI annotations have been parsed and
+#' # subset to a more compact file format. Therefore, we cant use parse_ncbi
+#' # and must use parse_annotations with some custom specs:
+#' parse_annotations(
+#'   gsParam = gpar,
+#'   gffEntryType = "gene",
+#'   gffIdColumn = "locus",
+#'   gffStripText = "locus=",
+#'   headerEntryIndex = 1,
+#'   headerSep = " ",
+#'   headerStripText = "locus=")
+#' }
 
 #' @note \code{parse_annotations} is a generic name for the functions documented.
 #' \cr
@@ -280,9 +315,6 @@ parse_ncbi <- function(gsParam, overwrite = F, genomeIDs = NULL){
   }
 }
 
-#' @title build matching gene fasta and coordinate datasets
-#' @description
-#' \code{parse_annotations} parse fasta headers and gff3 attributes
 #' @rdname parse_annotations
 #' @import data.table
 #' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet

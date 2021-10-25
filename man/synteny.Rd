@@ -2,9 +2,32 @@
 % Please edit documentation in R/synteny.R
 \name{synteny}
 \alias{synteny}
+\alias{set_syntenyParams}
+\alias{run_mcscanx}
+\alias{pull_synOGs}
 \title{Parsing of pairwise hits into synteny}
 \usage{
-synteny(gsParam, genomeIDs = NULL, overwrite = F)
+synteny(gsParam, genomeIDs = NULL, overwrite = F, ...)
+
+set_syntenyParams(
+  gsParam,
+  onlyOgAnchors = TRUE,
+  onlyOgAnchorsSecond = TRUE,
+  blkSize = 5,
+  blkSizeSecond = blkSize,
+  nGaps = 5,
+  nGapsSecond = nGaps,
+  nSecondHits = 0,
+  synBuff = 100,
+  synBuffSecond = synBuff,
+  selfRegionMask = synBuff * 2,
+  dropInterleavesSmallerThan = 2,
+  minRbhScore = 50
+)
+
+run_mcscanx(hits, blkSize, nGaps, gsParam, path2mcscanx)
+
+pull_synOGs(gsParam, genomeIDs = NULL)
 }
 \arguments{
 \item{gsParam}{a list containing all parameters for a GENESPACE run. See
@@ -12,13 +35,68 @@ init_genespace}
 
 \item{genomeIDs}{an optional vector of genomeIDs to consider. If not
 specified (default) taken from gsParam$genomeIDs$genomeIDs}
+
+\item{...}{additional arguments passed to set_syntenyParam().}
+
+\item{onlyOgAnchors}{logical, should only hits in orthogroups be considered
+for anchors?}
+
+\item{onlyOgAnchorsSecond}{logical should only hits in orthogroups be
+considered for anchors in secondary blocks?}
+
+\item{blkSize}{integer of length 1, specifying the -s param to mcscanx}
+
+\item{blkSizeSecond}{see blkSize, but passed to the secondary scan if
+nSecondaryHits > 0.}
+
+\item{nGaps}{integer of length 1, specifying the -m param to mcscanx
+for the primary MCScanX run. This acts on the results from the initial
+MCScanX run.}
+
+\item{nGapsSecond}{see nGaps, but passed to secondary hits after masking
+primary hits.}
+
+\item{nSecondHits}{integer of length 1, specifying the number of blast
+hits to include after masking.}
+
+\item{synBuff}{Numeric > 0, specifying the distance from an anchor
+to consider a hit syntenic. This parameter is also used to limit the search
+radius in dbscan-based blk calculation. Larger values will return larger
+tandem arrays but also may permit inclusion of spurious non-syntenic networks}
+
+\item{synBuffSecond}{see syntenyBuffer. Applied only to synteny
+construction of secondary hits.}
+
+\item{selfRegionMask}{integer specifying the size of the region (radius, gene
+rank order) surrounding self hits to mask for secondary/homeologous hits}
+
+\item{dropInterleavesSmallerThan}{integer specifying the smallest block to
+keep in the split interleaves synteny step}
+
+\item{minRbhScore}{integer specifying the minimum blast bit score to allow
+for a RBH to be included}
+
+\item{path2mcscanx}{character string file.path pointing to the install
+directory for the MCScanX program. In particular, there must be an
+executable in this directory for MCScanX_h.}
 }
 \value{
 updated gsParam list
+
+\cr
+If called, \code{synteny} returns its own arguments.
 }
 \description{
 \code{synteny} The main GENESPACE engine to constrain genome-wide homology
 hits to synteny.
+
+\code{set_syntenyParams} Calculate paramters for pairwise synteny search.
+Other synteny functions require this as input.
+
+\code{run_mcscanx} Internal GENESPACE function to run MCScanX on hits when
+searching for synteny.
+
+\code{pull_synOGs} pull_synOGs
 }
 \details{
 The main engine for GENESPACE synteny searching. This
@@ -54,4 +132,58 @@ contrast desired. To simplify parameterization, we have build a convenience
 function that infers various parameters based on basic
 genespace parameters and ploidy. Set set_syntenyParams for more information
 about the input synParam data.table.
+}
+\examples{
+\dontrun{
+
+runwd <- file.path(getwd(), "testGenespace")
+make_exampleDataDir(writeDir = runwd)
+
+gpar <- init_genespace(
+  genomeIDs = c("human","chimp","rhesus"),
+  speciesIDs = c("human","chimp","rhesus"),
+  versionIDs = c("human","chimp","rhesus"),
+  ploidy = rep(1,3),
+  diamondMode = "fast",
+  orthofinderMethod = "fast",
+  wd = runwd,
+  nCores = 4,
+  minPepLen = 50,
+  gffString = "gff",
+  pepString = "pep",
+  path2orthofinder = "orthofinder",
+  path2mcscanx = "~/MCScanX",
+  rawGenomeDir = file.path(runwd, "rawGenomes"))
+
+parse_annotations(
+  gsParam = gpar,
+  gffEntryType = "gene",
+  gffIdColumn = "locus",
+  gffStripText = "locus=",
+  headerEntryIndex = 1,
+  headerSep = " ",
+  headerStripText = "locus=")
+
+gpar <- run_orthofinder(gsParam = gpar, overwrite = F)
+
+gpar <- synteny(gsParam = gpar) # use defaults
+
+# -- run again (need to set overwrite = T) with blkSize = 10
+gpar$params$synteny <- NULL
+gpar <- synteny(gsParam = gpar, blkSize = 10, overwrite = T)
+
+# -- run again with custom specs
+# **NOTE** if params$synteny is a data.table, synteny will respect it. So,
+# this can be generated and modified before running. If it is NULL (as above)
+#synteny will calculate parameters internally with additional arguments.
+
+# here, increase the synteny buffer and
+# make the blocks need to be bigger between human and chimp
+gpar <- set_syntenyParams(gpar, synBuff = 200)
+wh <- with(gpar$params$synteny, which(genome1 \%in\% c("humnan", "chimp") & genome2 \%in\% c("humnan", "chimp")))
+gpar$params$synteny$blkSize[wh] <- 10
+gpar <- synteny(gsParam = gpar, overwrite = T)
+}
+
+
 }

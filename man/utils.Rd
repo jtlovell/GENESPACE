@@ -33,6 +33,27 @@
 \alias{interp_linear}
 \alias{add_ofID2gff}
 \alias{add_pepLen2gff}
+\alias{drop_unusedPeptides}
+\alias{prep_ofDbFromPeptide}
+\alias{find_orthofinderResults}
+\alias{calc_blkCoords}
+\alias{finalize_blocks}
+\alias{parse_blast4synteny}
+\alias{find_hitsInBuff}
+\alias{clus_dbscan}
+\alias{find_globalAnchors}
+\alias{pipe_synteny}
+\alias{pull_nonSelfReg}
+\alias{pull_selfRegion}
+\alias{get_hitsInBlks}
+\alias{split_overlaps}
+\alias{annotate_gff}
+\alias{add_arrayRep2gff}
+\alias{add_arrays2gff}
+\alias{add_synOg2gff}
+\alias{combine_inblkSynOG}
+\alias{pull_nonSynOrthologs}
+\alias{pull_blkAnchors}
 \title{Generic internal functions used by genespace}
 \usage{
 order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
@@ -110,6 +131,61 @@ interp_linear(x, y, interpTails = TRUE)
 add_ofID2gff(gff, blastDir)
 
 add_pepLen2gff(gff, gsParam)
+
+drop_unusedPeptides(gsParam)
+
+prep_ofDbFromPeptide(gsParam)
+
+find_orthofinderResults(gsParam, onlyCheckRun = F)
+
+calc_blkCoords(hits)
+
+finalize_blocks(
+  hits,
+  synParam,
+  gsParam,
+  type = "primary",
+  verbose = FALSE,
+  minRbhScore = 50
+)
+
+parse_blast4synteny(gsParam, genome1, genome2, gff, selfOnly)
+
+find_hitsInBuff(hits, nCores, synBuff)
+
+clus_dbscan(hits, radius, blkSize, nCores)
+
+find_globalAnchors(hits, gsParam, synParam, type = "primary")
+
+pipe_synteny(gsParam, gff, maskHits, synParam, type = "primary")
+
+pull_nonSelfReg(hits, selfRegionMask, nhits)
+
+pull_selfRegion(hits, synBuff)
+
+get_hitsInBlks(blks, hits, nCores)
+
+split_overlaps(
+  hits,
+  dropInterleavesSmallerThan,
+  minPropDup = 0.05,
+  maxIter = 20,
+  verbose
+)
+
+annotate_gff(gsParam, genomeIDs = NULL, overwrite = FALSE)
+
+add_arrayRep2gff(gff, gsParam)
+
+add_arrays2gff(gsParam, gff)
+
+add_synOg2gff(gff, hits = NULL, gsParam, genomeIDs, allowRBHinOg, useBlks)
+
+combine_inblkSynOG(refGenome, genomeIDs, gff, gsParam)
+
+pull_nonSynOrthologs(gsParam, gff)
+
+pull_blkAnchors(gsParam, gff, refGenome)
 }
 \arguments{
 \item{path}{file path character string}
@@ -158,7 +234,8 @@ add_pepLen2gff(gff, gsParam)
 
 \item{refGenome}{character string specifying which genome is the reference}
 
-\item{nCores}{integer, the number of parallel processes to run}
+\item{nCores}{integer of length 1 specifying the number of parallel processes
+to run}
 
 \item{blFile}{file path to the blast-like text file}
 
@@ -204,9 +281,63 @@ add_pepLen2gff(gff, gsParam)
 
 \item{gff}{annotated gff with orthogroups included, see read_gff}
 
-\item{blastDir}{file.path to the location of the blast results.
+\item{blastDir}{file.path to the location of the blast results.}
+
+\item{onlyCheckRun}{logical, should the run just be checked?}
+
+\item{hits}{data.table containing annotated blast-format pairwise hits}
+
+\item{synParam}{data.table with synteny parameters. See set_syntenyParams.}
+
+\item{type}{either 'primary' or 'secondary' depending on the scale of
+inference}
+
+\item{verbose}{logical, should updates be printed to the console?
 \cr
 If called, \code{utils} returns its own arguments.}
+
+\item{minRbhScore}{integer of length 1, see set_syntenyParams}
+
+\item{genome1}{character string specifying first of two genomeIDs}
+
+\item{genome2}{character string specifying second of two genomeIDs}
+
+\item{selfOnly}{logical, should only self hits be considered}
+
+\item{synBuff}{integer of length 1 specifying the maximum euclidean distance
+from an 'anchor' so that it can be considered syntenic}
+
+\item{radius}{numeric of length 1 specifying the eps dbscan parameter; the
+search radius within which to count clustered density-based xy points.}
+
+\item{blkSize}{integer of length 1 specifying the minimum size for a syntenic
+block and the -s 'size' MCScanX parameter}
+
+\item{maskHits}{data.table of hits that should be excluded}
+
+\item{selfRegionMask}{integer, the radius around self hits that should be
+masked}
+
+\item{nhits}{integer, the number of hits to retain}
+
+\item{blks}{data.table containing the block coordinates}
+
+\item{dropInterleavesSmallerThan}{integer, the minimum block size to retain
+after splitting overlapping blocks}
+
+\item{minPropDup}{numeric (0-1) specifying the minimum proportion of
+duplicated hits to allow two overlapping blocks to not be split}
+
+\item{maxIter}{integer, the maximum number of block splitting interations}
+
+\item{genomeIDs}{an optional vector of genomeIDs to consider. If not
+specified (default) taken from gsParam$genomeIDs$genomeIDs}
+
+\item{overwrite}{logical, should the results be overwrittem?}
+
+\item{useBlks}{logical, for cross compatibility with plot_hits}
+
+\item{allowRBHinOG}{logical, for cross compatibility with plot_hits}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called
@@ -283,4 +414,46 @@ file
 these with the gff-like data.table
 
 \code{add_pepLen2gff} read the peptide lengths and merge with the gff
+
+\code{drop_unusedPeptides} drop_unusedPeptides
+
+\code{prep_ofDbFromPeptide} prep_ofDbFromPeptide
+
+\code{find_orthofinderResults} find_orthofinderResults
+
+\code{calc_blkCoords} calc_blkCoords
+
+\code{finalize_blocks} finalize_blocks
+
+\code{parse_blast4synteny} parse_blast4synteny
+
+\code{find_hitsInBuff} find_hitsInBuff
+
+\code{clus_dbscan} clus_dbscan
+
+\code{find_globalAnchors} find_globalAnchors
+
+\code{pipe_synteny} pipe_synteny
+
+\code{pull_nonSelfReg} pull_nonSelfReg
+
+\code{pull_selfRegion} pull_selfRegion
+
+\code{get_hitsInBlks} get_hitsInBlks
+
+\code{split_overlaps} split_overlaps
+
+\code{annotate_gff} add number of anchors to gff
+
+\code{add_arrayRep2gff} choose most central gene by orthogroup
+
+\code{add_arrays2gff} add_arrays2gff
+
+\code{add_synOg2gff} add_synOg2gff
+
+\code{combine_inblkSynOG} combine_inblkSynOG
+
+\code{pull_nonSynOrthologs} pull_nonSynOrthologs
+
+\code{pull_blkAnchors} pull_blkAnchors
 }

@@ -104,6 +104,68 @@ annotation and assembly files.
 }
 \examples{
 \dontrun{
-# coming soon
+runwd <- file.path(getwd(), "testGenespace")
+make_exampleDataDir(writeDir = runwd)
+
+#############################################################################
+###### Default method, can run orthofinder outside of R on a cluster etc. ###
+gpar <- init_genespace(
+  genomeIDs = c("human","chimp","rhesus"),
+  speciesIDs = c("human","chimp","rhesus"),
+  versionIDs = c("human","chimp","rhesus"),
+  ploidy = rep(1,3),
+  wd = runwd,
+  nCores = 4,
+  gffString = "gff",
+  pepString = "pep",
+  path2orthofinder = "orthofinder",
+  path2mcscanx = "~/MCScanX",
+  rawGenomeDir = file.path(runwd, "rawGenomes"))
+
+#############################################################################
+###### Slower but more accurate inference  ##################################
+###### especially for distantly related genomes or ploidy > 1 ###############
+# add in orthofinder in block orthogroup ...
+gpar <- init_genespace(
+  genomeIDs = c("human","chimp","rhesus"),
+  speciesIDs = c("human","chimp","rhesus"),
+  versionIDs = c("human","chimp","rhesus"),
+  ploidy = rep(1,3),
+  wd = runwd,
+  nCores = 4,
+  orthofinderInBlk = TRUE,
+  gffString = "gff",
+  pepString = "pep",
+  path2orthofinder = "orthofinder",
+  path2mcscanx = "~/MCScanX",
+  rawGenomeDir = file.path(runwd, "rawGenomes"))
+
+#############################################################################
+###### Fast visualization of closely related genome #########################
+# just a quick visualization ... not recommended for a full run, although
+# probably not much less sensitive with closely related genomes
+# **NOTE** this method can only be done when orthofinder is installed in the
+# path for this R session (e.g. opening R from a conda env with orthofinder)
+# **NOTE** increasing minPepLen results in a loss of fidelity, but an
+# increase in speed.
+
+# This is the parameterization used in the help files.
+
+gpar <- init_genespace(
+  genomeIDs = c("human","chimp","rhesus"),
+  speciesIDs = c("human","chimp","rhesus"),
+  versionIDs = c("human","chimp","rhesus"),
+  ploidy = rep(1,3),
+  diamondMode = "fast",
+  orthofinderMethod = "fast",
+  wd = runwd,
+  nCores = 4,
+  minPepLen = 50,
+  gffString = "gff",
+  pepString = "pep",
+  path2orthofinder = "orthofinder",
+  path2mcscanx = "~/MCScanX",
+  rawGenomeDir = file.path(runwd, "rawGenomes"))
+
 }
 }

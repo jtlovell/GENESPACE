@@ -37,6 +37,7 @@
 #' @details ...
 #'
 #' @return ...
+#'
 #' @examples
 #' \dontrun{
 #' # coming soon

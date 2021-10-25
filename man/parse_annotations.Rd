@@ -104,8 +104,6 @@ and writes the full genespace-formatted files.
 
 \code{parse_ncbi} parse NCBI-formatted annotations
 
-\code{parse_annotations} parse fasta headers and gff3 attributes
-
 \code{parse_gff} parse the gff3-formatted annotation into genespace-readable
 data.table/csv file. This has a unique ID for each gene that matches the
 fasta annotation entries exactly.
@@ -116,4 +114,38 @@ fasta annotation entries exactly.
 \code{parse_annotations} is a generic name for the functions documented.
 \cr
 If called, \code{parse_annotations} returns its own arguments.
+}
+\examples{
+\dontrun{
+runwd <- file.path(getwd(), "testGenespace")
+make_exampleDataDir(writeDir = runwd)
+
+gpar <- init_genespace(
+  genomeIDs = c("human","chimp","rhesus"),
+  speciesIDs = c("human","chimp","rhesus"),
+  versionIDs = c("human","chimp","rhesus"),
+  ploidy = rep(1,3),
+  diamondMode = "fast",
+  orthofinderMethod = "fast",
+  wd = runwd,
+  nCores = 4,
+  minPepLen = 50,
+  gffString = "gff",
+  pepString = "pep",
+  path2orthofinder = "orthofinder",
+  path2mcscanx = "~/MCScanX",
+  rawGenomeDir = file.path(runwd, "rawGenomes"))
+
+# -- in the example dataset, the raw NCBI annotations have been parsed and
+# subset to a more compact file format. Therefore, we cant use parse_ncbi
+# and must use parse_annotations with some custom specs:
+parse_annotations(
+  gsParam = gpar,
+  gffEntryType = "gene",
+  gffIdColumn = "locus",
+  gffStripText = "locus=",
+  headerEntryIndex = 1,
+  headerSep = " ",
+  headerStripText = "locus=")
+}
 }
