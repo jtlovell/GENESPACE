@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="JTLovell" />
+
+<meta name="date" content="2021-10-25" />
+
+<title>Introduction to GENESPACE</title>
+
+<script src="data:application/javascript;base64,Ly8gUGFuZG9jIDIuOSBhZGRzIGF0dHJpYnV0ZXMgb24gYm90aCBoZWFkZXIgYW5kIGRpdi4gV2UgcmVtb3ZlIHRoZSBmb3JtZXIgKHRvCi8vIGJlIGNvbXBhdGlibGUgd2l0aCB0aGUgYmVoYXZpb3Igb2YgUGFuZG9jIDwgMi44KS4KZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcsIGZ1bmN0aW9uKGUpIHsKICB2YXIgaHMgPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCJkaXYuc2VjdGlvbltjbGFzcyo9J2xldmVsJ10gPiA6Zmlyc3QtY2hpbGQiKTsKICB2YXIgaSwgaCwgYTsKICBmb3IgKGkgPSAwOyBpIDwgaHMubGVuZ3RoOyBpKyspIHsKICAgIGggPSBoc1tpXTsKICAgIGlmICghL15oWzEtNl0kL2kudGVzdChoLnRhZ05hbWUpKSBjb250aW51ZTsgIC8vIGl0IHNob3VsZCBiZSBhIGhlYWRlciBoMS1oNgogICAgYSA9IGguYXR0cmlidXRlczsKICAgIHdoaWxlIChhLmxlbmd0aCA+IDApIGgucmVtb3ZlQXR0cmlidXRlKGFbMF0ubmFtZSk7CiAgfQp9KTsK"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<link rel="stylesheet" href="data:text/css,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" type="text/css" />
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Introduction to GENESPACE</h1>
+<h4 class="author">JTLovell</h4>
+<h4 class="date">10/25/2021</h4>
+
+
+
+<div id="overview" class="section level2">
+<h2>1. Overview</h2>
+<p>GENESPACE is a comparative genomics framework implemented in the R environment for statistical computing. The premise is that, when analyzing high-quality genome assemblies and annotations, we can improve the confidence of evolutionary inference by combining two sources of evidence for common ancestry: synteny (i.e. collinearity of gene order) and coding sequence similarity (homology). GENESPACE produces pairwise genome comparisons via dotplots and annotated blast8 files as well as multi-genome comparisons via riparian plots and a pan-genome annotation. GENESPACE requires results from <code>orthofinder</code> and <code>MCScanX</code>. Both of these programs should be installed (see 2. Installation below).</p>
+</div>
+<div id="installation" class="section level2">
+<h2>2. Installation</h2>
+<div id="install-required-programs" class="section level4">
+<h4>2.1 Install required programs</h4>
+<p>GENESPACE requires third-party software can be installed as follows: <code>orthofinder</code> (which includes <code>diamond</code>) is most simply installed via conda.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> create -n orthofinder</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> activate orthofinder</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> install -c bioconda orthofinder </span></code></pre></div>
+<p>If conda is not available on your machine, you can install orthofinder from a number of other sources. See <a href="https://github.com/davidemms/OrthoFinder">orthofinder documentation</a> for details.</p>
+<p><code>MCScanX</code> should be installed from <a href="https://github.com/wyp1125/MCScanX">github</a>. <strong>NOTE</strong> Due to nested dependencies in the <code>orthofinder</code> install, <code>orthofinder</code> must be in the path when called, while the file path to <code>MCScanX</code> does not need to be in the path and can be specified in R.</p>
+</div>
+<div id="install-genespace" class="section level4">
+<h4>2.2 Install GENESPACE</h4>
+<p>If you are planning to run orthofinder from within R, which is needed if using orthofinderInBlk (see below for details) and recommended when using any genomes with ploidy &gt; 1, enter R from the terminal with either <code>R</code> (for command line interace), or if Rstudio is installed on your machine <code>open -na rstudio</code>.</p>
+<p>Once in R, GENESPACE can be installed directly from github via:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">requireNamespace</span>(<span class="st">&quot;devtools&quot;</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">install.packages</span>(<span class="st">&quot;devtools&quot;</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;jtlovell/GENESPACE&quot;</span>, <span class="at">upgrade =</span> F)</span></code></pre></div>
+</div>
+<div id="install-r-dependencies" class="section level4">
+<h4>2.3 Install R dependencies</h4>
+<p>The above command will install the CRAN-sourced dependencies (<code>data.table</code>, <code>dbscan</code> and <code>R.utils</code>). The bioconductor dependencies (<code>Rtracklayer</code> and <code>Biostrings</code>) need to be installed separately via:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">requireNamespace</span>(<span class="st">&quot;BiocManager&quot;</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">install.packages</span>(<span class="st">&quot;BiocManager&quot;</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="fu">c</span>(<span class="st">&quot;Biostrings&quot;</span>, <span class="st">&quot;Rtracklayer&quot;</span>))</span></code></pre></div>
+</div>
+</div>
+<div id="genespace-workflow" class="section level2">
+<h2>3. GENESPACE workflow</h2>
+<div id="example-data" class="section level4">
+<h4>3.1 Example data</h4>
+<p>Here, we will use the example data provided with the GENESPACE installation: chromosomes 17-18 in the human, chimpanzee and rhesus macaque genomes. See <code>?make_exampleData</code> for more information on data sources.</p>
+<p>First off, we need to specify a place to run everything. Here, we’ll use a test directory on the desktop:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(GENESPACE)</span></code></pre></div>
+<pre><code>## Loading required package: data.table</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>runwd <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="st">&quot;~/Desktop/testGenespace&quot;</span>)</span></code></pre></div>
+<p>To illustrate all steps of the pipeline, lightly subset NCBI-formatted annotations of human/chimpanzee chrs 3-4 and rhesus chr 2 &amp; 5 are provided in the extData of the GENESPACE R package. These data can be added to the above directory with the correct subdirectory structure for GENESPACE via:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make_exampleDataDir</span>(<span class="at">writeDir =</span> runwd)</span></code></pre></div>
+<pre><code>## Done! Run GENESPACE with rawGenomeRepo = ~/Desktop/testGenespace/rawGenomes</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(runwd, <span class="at">recursive =</span> T, <span class="at">full.names =</span> F)</span></code></pre></div>
+<pre><code>## [1] &quot;rawGenomes/chimp/chimp/annotation/chimp_Clint_PTRv2_gene.gff.gz&quot;
+## [2] &quot;rawGenomes/chimp/chimp/annotation/chimp_Clint_PTRv2_pep.fa.gz&quot;  
+## [3] &quot;rawGenomes/human/human/annotation/human_GRCh38.p13_gene.gff.gz&quot; 
+## [4] &quot;rawGenomes/human/human/annotation/human_GRCh38.p13_pep.fa.gz&quot;   
+## [5] &quot;rawGenomes/rhesus/rhesus/annotation/rhesus_Mmul_10_gene.gff.gz&quot; 
+## [6] &quot;rawGenomes/rhesus/rhesus/annotation/rhesus_Mmul_10_pep.fa.gz&quot;</code></pre>
+<p><strong>NOTE</strong> this creates a subdirectory called <code>/rawGenomes</code>. For downstream flexibility (e.g. multiple genome versions for one species, metadata or assembly data, etc), the raw genome directory structure follows: <code>/rawGenomes/$speciesID/$versionID/annotion</code>.</p>
+<p>When working with your own data, place the raw annotation files in this same directory structure with separate directories for each species, separate subdirectories for each genome version, and the annotation files in a subdirectory called “annotation”.</p>
+</div>
+<div id="initialize-the-genespace-run" class="section level4">
+<h4>3.2 Initialize the GENESPACE run</h4>
+<p>All elements of GENESPACE require a list of parameters, specified to functions as <code>gsParam</code>. This contains paths to files, working directories, program executables the basic parameterization of the run.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>gpar <span class="ot">&lt;-</span> <span class="fu">init_genespace</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">genomeIDs =</span> <span class="fu">c</span>(<span class="st">&quot;human&quot;</span>,<span class="st">&quot;chimp&quot;</span>,<span class="st">&quot;rhesus&quot;</span>),</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">speciesIDs =</span> <span class="fu">c</span>(<span class="st">&quot;human&quot;</span>,<span class="st">&quot;chimp&quot;</span>,<span class="st">&quot;rhesus&quot;</span>),</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">versionIDs =</span> <span class="fu">c</span>(<span class="st">&quot;human&quot;</span>,<span class="st">&quot;chimp&quot;</span>,<span class="st">&quot;rhesus&quot;</span>),</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">ploidy =</span> <span class="fu">rep</span>(<span class="dv">1</span>,<span class="dv">3</span>),</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">diamondMode =</span> <span class="st">&quot;fast&quot;</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">orthofinderMethod =</span> <span class="st">&quot;fast&quot;</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">wd =</span> runwd,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">nCores =</span> <span class="dv">4</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">minPepLen =</span> <span class="dv">50</span>,</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">gffString =</span> <span class="st">&quot;gff&quot;</span>,</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">pepString =</span> <span class="st">&quot;pep&quot;</span>,</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">path2orthofinder =</span> <span class="st">&quot;orthofinder&quot;</span>,</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">path2mcscanx =</span> <span class="st">&quot;~/MCScanX&quot;</span>,</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">rawGenomeDir =</span> <span class="fu">file.path</span>(runwd, <span class="st">&quot;rawGenomes&quot;</span>))</span></code></pre></div>
+<pre><code>## set working directory to /Users/jlovell/Desktop/testGenespace 
+## 
+## found raw gff files:
+##   /Users/jlovell/Desktop/testGenespace/rawGenomes/human/human/annotation/human_GRCh38.p13_gene.gff.gz
+##  /Users/jlovell/Desktop/testGenespace/rawGenomes/chimp/chimp/annotation/chimp_Clint_PTRv2_gene.gff.gz
+##  /Users/jlovell/Desktop/testGenespace/rawGenomes/rhesus/rhesus/annotation/rhesus_Mmul_10_gene.gff.gz
+## 
+## found raw peptide files:
+##   /Users/jlovell/Desktop/testGenespace/rawGenomes/human/human/annotation/human_GRCh38.p13_pep.fa.gz
+##  /Users/jlovell/Desktop/testGenespace/rawGenomes/chimp/chimp/annotation/chimp_Clint_PTRv2_pep.fa.gz
+##  /Users/jlovell/Desktop/testGenespace/rawGenomes/rhesus/rhesus/annotation/rhesus_Mmul_10_pep.fa.gz 
+## 
+## 
+## Can&#39;t find all parsed annotation files ... need to run parse_annotations, parse_ncbi or parse_phytozome
+## 
+## GENESPACE run initialized:
+##  Initial orthofinder database generation method: fast
+##  Orthology graph method: global</code></pre>
+</div>
+<div id="format-the-raw-annotations-for-genespace" class="section level4">
+<h4>3.3 Format the raw annotations for GENESPACE</h4>
+<p>To improve read/write speed, GENESPACE uses a simplified gff3-like text file with a column <code>id</code> that exactly matches the peptide fasta header. GENESPACE has built in functions to parse NCBI (<code>parse_ncbi</code>) and phytozome (<code>parse_phytozome</code>); however, if using non-standard formatted annotations, this can be a tricky step. See 4.1 (using non-standard annotation files). While the example data was originally downloaded from NCBI, much of the NCBI formatting was stripped to make the files smaller. They now can be parsed with the generic <code>parse_annotations</code>:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">parse_annotations</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">gsParam =</span> gpar,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">gffEntryType =</span> <span class="st">&quot;gene&quot;</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">gffIdColumn =</span> <span class="st">&quot;locus&quot;</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">gffStripText =</span> <span class="st">&quot;locus=&quot;</span>,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">headerEntryIndex =</span> <span class="dv">1</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">headerSep =</span> <span class="st">&quot; &quot;</span>,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">headerStripText =</span> <span class="st">&quot;locus=&quot;</span>)</span></code></pre></div>
+<pre><code>## Parsing annotation files ...
+##  human ... 
+##      Importing gff ... found 1787 gff entires, and 1787 gene entries
+##      Importing fasta ... found 1787 fasta entires
+##      1786 gff-peptide matches
+##  Done!
+##  chimp ... 
+##      Importing gff ... found 1927 gff entires, and 1927 gene entries
+##      Importing fasta ... found 1927 fasta entires
+##      1926 gff-peptide matches
+##  Done!
+##  rhesus ... 
+##      Importing gff ... found 1906 gff entires, and 1906 gene entries
+##      Importing fasta ... found 1906 fasta entires
+##      1904 gff-peptide matches
+##  Done!</code></pre>
+</div>
+<div id="run-orthofinder" class="section level4">
+<h4>3.4 Run orthofinder</h4>
+<p>GENESPACE requires orthofinder to be run. Here, since orthofinder is in the path, we can run it straight from R, using the ‘fast’ search method</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>gpar <span class="ot">&lt;-</span> <span class="fu">run_orthofinder</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">gsParam =</span> gpar)</span></code></pre></div>
+<pre><code>## Synteny Parameters have not been set! Setting to defaults
+##  Running &#39;draft&#39; a.k.a &#39;fast&#39; genespace orthofinder method 
+##  ############################################################ 
+##  ***NOTE***
+##  This method should only be used for: 
+##      (1) closely related diploid species, 
+##      (2) visualization/genome QC purposes, or 
+##      (3) inferring orthogroups WITHIN syntenic regions 
+##  ############################################################
+##      Running 1/6 (chimp vs. chimp)
+##      Running 2/6 (chimp vs. rhesus)
+##      Running 3/6 (rhesus vs. rhesus)
+##      Running 4/6 (chimp vs. human)
+##      Running 5/6 (rhesus vs. human)
+##      Running 6/6 (human vs. human)
+##      Done!
+##  Inverting intergenomic files ... Done!
+##  Running orthofinder -og on pre-computed blast:</code></pre>
+</div>
+<div id="run-the-genespace-synteny-search" class="section level4">
+<h4>3.4 Run the GENESPACE synteny search</h4>
+<p>The main engine of GENESPACE is <code>synteny</code>. This is a complex function that parses pairwise blast hits into syntenic regions and blocks. See 4.1 (synteny specifications) for details. Here, we will just use the defaults for synteny:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>gpar <span class="ot">&lt;-</span> <span class="fu">synteny</span>(<span class="at">gsParam =</span> gpar)</span></code></pre></div>
+<pre><code>## Loading annotations ...
+##  Indexing location of orthofinder results ... Done!
+##  Reading the gffs ... Done!
+##  Pulling gene lengths ... Done!
+##  Parsing global orthogroups ... Done!
+## Defining collinear orthogroup arrays ... 
+##  Using collinear orthogroups for array identity:
+##  chimp: 102 genes in 37 collinear arrays
+##  human: 102 genes in 33 collinear arrays
+##  rhesus: 97 genes in 37 collinear arrays
+##  Choosing array representative genes ... Done!
+## Found 5616 genes, 1955 orthogroups and 107 arrays with 301 genes
+## Pulling within-genome synteny ... 
+##  Genome: n raw hits / hits in (regions) / hits in (blks)
+##  human   (selfhit): 3834 / 3218 (2) / 3218 (2)</code></pre>
+<pre><code>##  chimp   (selfhit): 3834 / 3188 (2) / 3188 (2)</code></pre>
+<pre><code>##  rhesus  (selfhit): 3700 / 3056 (2) / 3056 (2)</code></pre>
+<pre><code>## Pulling intergenomic synteny ...
+##  human  -chimp   (primary): 4282 / 2771 (4) / 2761 (5)</code></pre>
+<pre><code>##  human  -rhesus  (primary): 4195 / 2624 (9) / 2613 (12)</code></pre>
+<pre><code>##  chimp  -rhesus  (primary): 4402 / 2712 (10) / 2695 (14)</code></pre>
+<pre><code>##  Synteny constraints - Done!
+##  Syntenic block coordinates written to /results/syntenicBlocks.txt.gz
+## Checking synteny-constrained global orthogroups for synOGs
+##  n. global OGs = 1955
+##  n. syntenic OGs = 2002
+## Combining synteny-constrained and inblock orthogroups ...
+##  syn OGs: 2002, inblk OGs: 0, combined OGs: 2002
+##  Wrote gff to file: /results/gffWithOgs.txt.gz
+##  Done!</code></pre>
+<p>This function populates the results directory (~/Desktop/testGenespace/results) directory with dotplots and annotated blast hits.</p>
+</div>
+<div id="make-multi-species-synteny-plots" class="section level4">
+<h4>3.5 Make multi-species synteny plots</h4>
+<p>GENESPACE visualizes multi-species synteny with a ‘riparian’ plot. The default specification orders chromosomes by maximum synteny to a reference genome and colors the synteny by their reference chromosome of origins.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>ripdat <span class="ot">&lt;-</span> <span class="fu">plot_riparian</span>(</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  gpar,</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">colByChrs =</span> <span class="fu">c</span>(<span class="st">&quot;#BC4F43&quot;</span>, <span class="st">&quot;#F67243&quot;</span>))</span></code></pre></div>
+<pre><code>##  Loading the gff ... Done!
+##  Mapping genes against human chromosomes ... Done!
+##  Projecting linear coordinate system ... Done!
+##  Generating block coordinates ... Done!
+##  Rendering plot ...</code></pre>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<pre><code>## Done!</code></pre>
+</div>
+<div id="build-a-pangenome-annotation" class="section level4">
+<h4>3.6 Build a pangenome annotation</h4>
+<p>The main output of GENESPACE is a synteny-anchored pan-genome annotation, where every unique synteny-constrained orthogroup is placed in a position on the reference genome gene order. This is constructed by <code>pangenome</code>. See 4.2 (pan-genome specification and querying) for more details.</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>pg <span class="ot">&lt;-</span> <span class="fu">pangenome</span>(gpar)</span></code></pre></div>
+<pre><code>## Building pangenome source data ...
+##  Reading gff ...
+##  ... found 5616 genes 5422 array reps in 1760 merged OGs
+##  No orthologues found ... will not be added to the pangenome
+##  Pulling block coordinates against human ...
+##  ... found 5047 anchors for 31 blocks
+##  Linear interpolation of gene order in reference ... Done!
+##  Orthogroup clustering and median position determination ... Done!
+##  Pos. count: 0x = 10, 1x = 1750, 2x = 3, 3x = 0 4x = 0, 4+x = 0
+## Building the pan-genome annotation ...
+##  Initial build with ... 
+##  ... 5422 genes, 1760 OGs and 1763 placements and 7 unplaced OGs
+##  Adding in array members ... 
+##  ... found 194 genes, 61 OGs and 61/4 placed/unplaced OGs    Formating and writing the pangenome ... Done!
+## Pangenome written to results/human_pangenomeDB.txt.gz</code></pre>
+</div>
+<div id="inspect-the-pangenome" class="section level4">
+<h4>3.7 Inspect the pangenome</h4>
+<p>The pangenome long-format is saved to file and provides fast access to large-scale parsing etc. However, for small scale viewing and querying, the <code>pangenome</code> function returns a data table, here <code>pg</code>, that condenses the hits within each genome into a list. You can explore this manually with starndard R/data.table or R/tidyverse subsetting routines. However, genespace also offers a query function to look at specific regions. Here is what the first 20 entries on human chr3 look like.</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">query_pangenome</span>(</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">pg =</span> pg, </span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">refChrom =</span> <span class="st">&quot;3&quot;</span>, </span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">startOrder =</span> <span class="dv">1</span>, </span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">endOrder =</span> <span class="dv">5</span>)</span></code></pre></div>
+<pre><code>## $raw
+##    pgID og chr ord       chimp       human            rhesus
+## 1:    1  1   3   1        CHL1        CHL1              CHL1
+## 2:    2  2   3   2 CNTN6,CNTN4 CNTN6,CNTN4 CNTN6,CNTN3,CNTN4
+## 3:    3  3   3   3       IL5RA       IL5RA             IL5RA
+## 4:    4  4   3   4       TRNT1       TRNT1             TRNT1
+## 5:    5  5   3   5        CRBN        CRBN              CRBN
+## 
+## $pav
+##    pgID og chr ord chimp human rhesus
+## 1:    1  1   3   1  TRUE  TRUE   TRUE
+## 2:    2  2   3   2  TRUE  TRUE   TRUE
+## 3:    3  3   3   3  TRUE  TRUE   TRUE
+## 4:    4  4   3   4  TRUE  TRUE   TRUE
+## 5:    5  5   3   5  TRUE  TRUE   TRUE
+## 
+## $cnts
+##    pgID og chr ord chimp human rhesus
+## 1:    1  1   3   1     1     1      1
+## 2:    2  2   3   2     2     2      3
+## 3:    3  3   3   3     1     1      1
+## 4:    4  4   3   4     1     1      1
+## 5:    5  5   3   5     1     1      1</code></pre>
+<p>Note the array present in all three genomes at position 2. We can pull a separate regions to look at PAV:</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">query_pangenome</span>(</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">pg =</span> pg, </span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">refChrom =</span> <span class="st">&quot;3&quot;</span>, </span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">startOrder =</span> <span class="dv">38</span>, </span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">endOrder =</span> <span class="dv">42</span>)</span></code></pre></div>
+<pre><code>## $raw
+##    pgID og chr ord           chimp    human              rhesus
+## 1:   38 38   3  38            EMC3     EMC3                EMC3
+## 2:   39 39   3  39    LOC107970560                 LOC106996836
+## 3:   40 40   3  40 FANCD2,FANCD2P2   FANCD2 LOC716070,LOC723158
+## 4:   41 41   3  41        FANCD2OS FANCD2OS            FANCD2OS
+## 5:   42 42   3  42            BRK1     BRK1                BRK1
+## 
+## $pav
+##    pgID og chr ord chimp human rhesus
+## 1:   38 38   3  38  TRUE  TRUE   TRUE
+## 2:   39 39   3  39  TRUE FALSE   TRUE
+## 3:   40 40   3  40  TRUE  TRUE   TRUE
+## 4:   41 41   3  41  TRUE  TRUE   TRUE
+## 5:   42 42   3  42  TRUE  TRUE   TRUE
+## 
+## $cnts
+##    pgID og chr ord chimp human rhesus
+## 1:   38 38   3  38     1     1      1
+## 2:   39 39   3  39     1     0      1
+## 3:   40 40   3  40     2     1      2
+## 4:   41 41   3  41     1     1      1
+## 5:   42 42   3  42     1     1      1</code></pre>
+</div>
+</div>
+<div id="parameter-argument-details" class="section level2">
+<h2>4. Parameter / argument details</h2>
+<div id="parameterizing-your-run" class="section level4">
+<h4>4.1 Parameterizing your run</h4>
+<p>There are four major considerations when parameterizing your GENESPACE run.</p>
+<ol style="list-style-type: decimal">
+<li>Do you <strong>just want to show a synteny plot</strong> and don’t care about the membership of orthogroups in the pangenome?
+<ul>
+<li>If so, you can set <code>orthofinderMethod = &quot;fast&quot;</code> and <code>diamondMode = &quot;fast&quot;</code> in <code>init_genespace()</code>.</li>
+</ul></li>
+<li>Are any of your genomes represented at <strong>higher ploidy than haploid</strong>?
+<ul>
+<li>If so, you should definitely specify <code>orthofinderInBlk = TRUE</code> in <code>init_genespace()</code>. This takes longer, but can recover &gt;50% more orthologs than the global orthofinder run.</li>
+<li>If your polyploid (or have both haplotypes in an outbred diploid genome) genomes have subgenomes that are very closely related, the benefits of the within-block orthofinder runs are tempered, so this isn’t as necessary.</li>
+</ul></li>
+<li>Are all of your genomes haploid, <strong>very closely related</strong> (e.g. the same species) and you are only interested in orthologs?
+<ul>
+<li>If so, you can get away with <code>orthofinderMethod = &quot;fast&quot;</code> and <code>diamondMode = &quot;fast&quot;</code> in `init_genespace().</li>
+<li>This is especially useful if you have a large number of genomes, as this specification can result in 10X speed improvement over orthofinder defaults.</li>
+</ul></li>
+<li>What is the expected <strong>scale of synteny</strong> among your genomes?
+<ul>
+<li>If you think that some of your genomes may have very little retained synteny, you should consider NOT using GENESPACE at all.</li>
+<li>If there is still complete genome-wide synteny, but it is divided into very small blocks, you should decrease the block size in the synteny search (see 4.3 synteny parameters below).</li>
+</ul></li>
+<li>Are you only interested in orthologs, or <strong>are paralogs of interest too</strong>?
+<ul>
+<li>If you are interested in paralogs (e.g. regions that retain &gt; ploidy syntenic hits), you should look closely at your dotplots.</li>
+<li>If the dotplots do not capture the paralogous regions, it is likely that they are highly diverged and may not be captured by genome-wide synteny rules. You can adjust this by increasing the number of secondary hits to retain to the number of paralogs you expect to fine.</li>
+</ul></li>
+</ol>
+<p>Below we go into detail about these cases can be handled, but here is some basic advice. For each of these and other GENESPACE functions, you can see the help files in R via <code>?</code>. For example, to see the parameteris in synteny, run <code>?synteny</code> from R.</p>
+</div>
+<div id="init_genespace-parameter-details" class="section level4">
+<h4>4.2 <code>init_genespace</code> parameter details</h4>
+<p>See <code>?init_genespace</code> for additional information. Here is the important stuff.</p>
+<ul>
+<li><code>genomeIDs</code>: A character vector of &gt; 1 unique entries. The genomeIDs are the labels for all plots, files, columns etc. They cannot be duplicated and can’t start with a number of special character. If you wish to compare a genome to itself, you need to specify two separate unique genomeIDs, with identical speciesIDs and versionIDs (see below).</li>
+<li><code>wd</code>: the working directory for the GENESPACE run. This should be an existing directory, or a path within an existing directory to initiate the run.</li>
+<li><code>rawGenomeDir</code>: file path point to the parent directory where are the raw genomes are stored. The directory structure here must follow <code>/rawGenomes/$speciesID/$versionID/annotion</code>.</li>
+<li><code>speciesIDs</code>: exact match of a subdirectory in the rawGenomeDir that corresponds to the genomeIDs. So, if there are three genomeIDs, there need to be three speciesIDs that match up to the order of the genomeIDs. for example, the human genome might be stored here: /mammalGenespace/rawRepo/Homo_sapiens/GRCh38.p13/annotation. In this case the speciesID for the human genomeID is “Homo_sapiens”. This is case sensitive.</li>
+<li><code>versionIDs</code>: Like speciesIDs, but the next level up in the rawGenomeDir directory structure. So, in the above example, the versionID for the human genome would be “GRCh38.p13”.</li>
+<li><code>ploidy</code>: a ploidy for each genome - this is an integer vector that matches the length of genomeIDs. This is not necessarily the ploidy of the organism, but the ploidy of the genome. In most cases this is 1. If not specified, the default is to set all genomes to haploid ploidy.</li>
+<li><code>orthofinderMethod</code>: this can be either ‘default’ (the default specification or orthofinder, including running diamond with mode = –more-sensitive) or ‘fast’. The fast specification can only be run if GENESPACE is initiated in an environment with orthofinder in the path. The ‘fast’ method accomplishes all unique pairwise blasts, treating the genome with more proteins as the query and the smaller genome as the target. The resulting blast files are inverted so that the reciprocal blasts are also present for orthofinder. The ‘fast’ method cannot accurately produce orthologs, so is only run to the orthogroup inference step. This means that non-syntenic orthologs are not flagged during pangenome construction.</li>
+<li><code>diamondMode</code>: only respected if orthofinderMethod = “fast”. It can be any of the specifications in diamond. Namely, “fast”, “sensitive”, “more-sensitive”, “ultra-sensitive”. See diamond help files for more information.</li>
+<li><code>nCores</code>: the number of parallel processes to run throughout the pipeline. By default, this is set to 1, but can be as many as your system can handle. If running on MacOSX and you see a warning during installation of the data.table library some steps may not be parallelized.</li>
+<li><code>gffString</code>: the unique character string (“word”) that identifies your gff files from all others in the rawGenomeDir. Usually “gff”, but if you have other files in there (like a repeat annotation gff), you may need to be more specific.</li>
+<li><code>pepString</code>: the unique character string (“word”) that identifies your peptide fasta files from all others in the rawGenomeDir. Usually “pep” or “fa”, but if you have other files in there (like a cds fa), you may need to be more specific.</li>
+<li><code>path2orthofinder</code>: this should not be specified, but is here for future compatibility with orthofinder installed outside of the path.</li>
+<li><code>path2diamond</code>: this should not be specified, but is here for future compatibility with diamond installed outside of the path.</li>
+<li><code>path2mcscanx</code>: the path to your MCScanX installation. This directory should include an executable called <code>MCScanX_h</code>.</li>
+</ul>
+</div>
+<div id="synteny-parameter-details" class="section level4">
+<h4>4.3 <code>synteny</code> parameter details</h4>
+<p>Synteny has a lot of parameters that allow you to fine-tune the synteny search. For most cases the defaults should be fine, but in some cases (e.g. very diverged genomes or studying ancient whole-genome duplicates) it will be crucial to manipulate these. If you do not run <code>set_syntenyParams</code> prior to <code>synteny</code>, the defaults are used unless you specify them in the call. For example, if you want to only find larger blocks, you could run <code>synteny(gsParam, blkSize = 20)</code>. However, if you have previously run <code>synteny</code> you will need to separately re-specify your parameters with <code>set_syntenyParams</code>, since <code>synteny</code> will respect the previously defined parameters in the gsParam list.</p>
+<p>Below are a list of the synteny parameters. For many there is a “second” option. This is the parameter specification for homeologs (duplicates within polyploid genomes) or paralogs after masking the orthologous regions.</p>
+<ul>
+<li><code>nSecondHits</code>: the number of secondary hits, after accounting for ploidy. This is usually set to 0, unless you wish to test for paralogous regions. Any parameters below ending in “Second” are passed to these secondary hits.</li>
+<li><code>onlyOgAnchors</code>; <code>onlyOgAnchorsSecond</code>: logical, should only orthogroup-constrained hits be considered as candidates for syntenic anchors? This should almost always be TRUE, unless the genomes you are studying are very diverged.</li>
+<li><code>synBuff</code>; <code>synBuffSecond</code>: the gene-rank order radius surround an anchor hit to include nearby hits that are in the buffer region.</li>
+<li><code>blkSize</code>; <code>blkSizeSecond</code>: the minimum size of a colinear run of genes for that region to be called a syntenic block. This parameter is used for both <code>dbscan(min.pts)</code> and <code>MCScanX_h -s</code> specification.</li>
+<li><code>nGaps</code>; <code>nGapsSecond</code>: the <code>MCScanX_h -m</code> parameter; the number of gaps allowed for a collinear region to be called a block.</li>
+<li><code>synBuff</code>; <code>synBuffSecond</code>: the gene-rank order position around syntenic anchors within which hits are considered within a syntenic region and retained in the pan-genome db.</li>
+<li><code>selfRegionMask</code>: this is an additional masking parameter for secondary blast hits. This can be increased in cases where tandem arrays are very large and might extend beyond the synBuff region. This is only used when ploidy &gt; 1 or nSecondHits &gt; 0.</li>
+<li><code>dropInterleavesSmallerThan</code>: when two blocks overlap, they are checked for duplicate genes in both block anchors. If there are duplicates, GENESPACE assumes the overlap to be a true duplicate. However, if there are no duplicated block anchors, then its assumed that the block coordinates are inaccurate extensions of interleaved blocks. This is a common problem with MCScanX and is corrected here by splitting out the interleaved blocks. The smallest interleaved blocks to retain are set here. Set to 0 if you wish all anchors to be retained regardless of whether they contain multiple collinear anchors or not.</li>
+<li><code>minRbhScore</code>: to improve block coordinate determination in diverged regions, the reciprocal best hits are added to the orthogroup graphs during block determination. All RBHs are retained with a score greater than this.</li>
+</ul>
+</div>
+<div id="plot_riparian-parameter-details" class="section level4">
+<h4>4.4 <code>plot_riparian</code> parameter details</h4>
+<p>See <code>?plot_riparian</code> - you’ll notice there are a lot of customization options. So many that it is not useful to describe here. Instead, we have a separate vignette dedicated to plot_riparian. Check that out for more info.</p>
+</div>
+</div>
+<div id="pipeline-details" class="section level1">
+<h1>5. Pipeline details</h1>
+<p>Below, we provide a detailed explanation of the source code pipeline for GENESPACE.</p>
+<div id="syntenic-region-inference" class="section level2">
+<h2>5.1 Syntenic region inference</h2>
+<p>The <code>synteny</code> pipeline acts on pairs of genomes, choosing the genome with the most gene annotation entries as the query sequence. The inputs are (1) the reciprocal blastp hits from diamond, (2) the merged gff with gene rank order position along chromosomes pre-calculated, and (3) orthofinder orthogroups.tsv genome-split orthogroup text file. Below, we use the following terms for parameters / statistics:</p>
+<ul>
+<li><p><code>synBuff</code>: the gene-rank order radius surround an anchor hit to include nearby hits that are in the buffer region</p></li>
+<li><p><code>blkSize</code>: the minimum size of a colinear run of genes for that region to be called a syntenic block. This parameter is used for both <code>dbscan(min.pts)</code> and <code>MCScanX_h -s</code> specification.</p></li>
+<li><p><code>nGaps</code>: the <code>MCScanX_h -m</code> parameter; the number of gaps allowed for a collinear region to be called a block.</p></li>
+<li><p><code>radius</code>: the <code>dbscan(eps)</code> parameter, either taken as the blkSize for final block calculation or synBuff for syntenic region calculation.</p></li>
+<li><p>“anchors”: blast hits that are in colinear orthogroups that form the backbone for syntenic regions and block regions</p></li>
+<li><p>“inBuffer”: hits that are within the <code>synBuff</code> of anchors.</p></li>
+<li><p>“non-syntenic”: hits outside of the buffer region</p></li>
+<li><p>“blast”: here, using this to mean diamond blast-like hits.</p></li>
+</ul>
+<div id="defining-self-synteny-regions" class="section level3">
+<h3>5.1.1 Defining self-synteny regions</h3>
+<p>For each genome, genespace finds the self hits and uses these as anchors, extracting these and inBuffer hits for downstream analysis. These are the “self-syntenic hits”.</p>
+</div>
+<div id="defining-synteny-between-two-genomes." class="section level3">
+<h3>5.1.2 Defining synteny between two genomes.</h3>
+<p>This routine is applied to paralogous regions in polyploids (see 4.1.3) and intergenomic hits. The steps for synteny determination are as follows:</p>
+<ol style="list-style-type: decimal">
+<li>read in the blast file with <code>parse_blast4synteny</code>:
+<ul>
+<li>reads in and mirrors the blast hits, retaining the unique hit with the highest score</li>
+<li>adds orthofinder orthogroup information</li>
+<li>adds genome position (chromosome, bp, gene rank order)</li>
+<li>adds score-rank, where, for each gene, the blast hit is ranked by highest to lowest scoring</li>
+</ul></li>
+<li>subsets out potential anchor hits
+<ul>
+<li>both query and target genes are array representatives (see 4.3)</li>
+<li>both query and target genes are in the same orthogroup</li>
+<li>the top n scoring hits, where n is informed by the ploidy of the query and target genomes.</li>
+</ul></li>
+<li>finds initial anchor hits
+<ul>
+<li>runs MCScanX_h on potential anchors</li>
+<li>runs dbscan on MCScanX_h-defined colinear hits. These retained genes are the seed anchor hits.</li>
+<li>pulls all hits within the synBuff of the seed anchors. These are the seed anchor regions</li>
+</ul></li>
+<li>refines anchor hits
+<ul>
+<li>adds within-seed anchor region reciprocal best hits as orthogroups. This can give better block breakpoints in regions where paralogs are not adequately captured in the orthogroups.</li>
+<li>re-runs MCScanX_h on og or RBH-constrained hits</li>
+<li>re-calculates gene-rank order</li>
+<li>re-runs dbscan to get block identities</li>
+<li>splits overlapping dbscan blocks that are not duplicated.</li>
+<li>extracts all hits within the block coordinates</li>
+<li>subsets within-block coordinate hits to those within synBuff of the anchors.</li>
+<li>These are the syntenic region hits.</li>
+</ul></li>
+<li>finalize block coordinates
+<ul>
+<li>within each syntenic region (see above), MCScanX_h is run and colinear hits are retained</li>
+<li>gene rank order is re-calculated on colinear hits within regions</li>
+<li>dbscan is run on colinear hits, using <code>eps = sqrt((blkSize^2)*2))</code> and <code>min.hits = blkSize</code>. This means that any inversion &gt; blkSize will cause a block breakpoint</li>
+<li>gene rank order is re-calculated on these smaller blocks and dbscan is re-run with <code>eps = sqrt(2)+.1)</code>, so that all hits need to be exactly colinear.</li>
+<li>as above, hits within the block coordinates and within synBuff are retained.</li>
+<li>These are the “syntenic block hits”.</li>
+</ul></li>
+</ol>
+</div>
+<div id="defining-self-synteny-paralogous-regions" class="section level3">
+<h3>5.1.3 Defining self-synteny paralogous regions</h3>
+<p>For genomes with ploidy &gt; 1, the self-syntenic hits are masked from the intragenomic blast hits (4.1.1). The gene rank order is re-calculated and the basic synteny pipeline (4.1.2) is applied to the data. The user can specify that paralagous hits should have different synteny parameters than the self/primary hits. See <code>set_synParams</code> for more info.</p>
+</div>
+</div>
+<div id="producing-syntenic-orthogroups" class="section level2">
+<h2>5.2 Producing syntenic orthogroups</h2>
+<p>… coming soon</p>
+</div>
+<div id="building-pangenomes" class="section level2">
+<h2>5.3 Building pangenomes</h2>
+<p>… coming soon</p>
+</div>
+</div>
+<div id="legal" class="section level1">
+<h1>6. Legal</h1>
+<p>GENESPACE R Package (GENESPACE) Copyright (c) 2021,HudsonAlpha Institute for Biotechnology. All rights reserved.</p>
+<p>If you have questions about your rights to use or distribute this software, please contact Berkeley Lab’s Intellectual Property Office at <a href="mailto:IPO@lbl.gov" class="email">IPO@lbl.gov</a>.</p>
+<p>NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S. Government consequently retains certain rights. As such, the U.S. Government has been granted for itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform publicly and display publicly, and to permit others to do so.</p>
+<p>*** License Agreement ***</p>
+<p>GENESPACE R Package (GENESPACE) Copyright (c) 2021, HudsonAlpha Institute for Biotechnology. All rights reserved.</p>
+<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met: (1) Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
+<ol start="2" style="list-style-type: decimal">
+<li><p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p></li>
+<li><p>Neither the name of the HudsonAlpha Institute for Biotechnology nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p></li>
+</ol>
+<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+<p>You are under no obligation whatsoever to provide any bug fixes, patches, or upgrades to the features, functionality or performance of the source code (“Enhancements”) to anyone; however, if you choose to make your Enhancements available either publicly, or directly to Lawrence Berkeley National Laboratory, without imposing a separate written license agreement for such Enhancements, then you hereby grant the following license: a non-exclusive, royalty-free perpetual license to install, use, modify, prepare derivative works, incorporate into other computer software, distribute, and sublicense such enhancements or derivative works thereof, in binary and source code form.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

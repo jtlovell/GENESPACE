@@ -2,6 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-inst/doc
-doc
+#inst/doc
+#doc
 Meta
