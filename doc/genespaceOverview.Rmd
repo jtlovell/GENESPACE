@@ -2,9 +2,9 @@
 title: "Introduction to GENESPACE"
 author: "JTLovell"
 date: "10/25/2021"
-output: rmarkdown::html_vignette
+output: rmarkdown::pdf_document
 vignette: >
-  %\VignetteIndexEntry{genespaceOverview}
+  %\VignetteIndexEntry{Introduction to GENESPACE}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
