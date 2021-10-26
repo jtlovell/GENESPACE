@@ -134,7 +134,7 @@ genespace parameters and ploidy. Set set_syntenyParams for more information
 about the input synParam data.table.
 }
 \examples{
-\dontrun{
+\donttest{
 
 runwd <- file.path(getwd(), "testGenespace")
 make_exampleDataDir(writeDir = runwd)

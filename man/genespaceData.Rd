@@ -64,7 +64,7 @@ existent path within an existing directory.}
 If called, \code{genespaceData} returns its own arguments.
 }
 \examples{
-\dontrun{
+\donttest{
 make_exampleData(writeDir = "inst/extdata")
 }
 }

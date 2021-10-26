@@ -181,7 +181,7 @@ add_arrays2gff(gsParam, gff)
 
 add_synOg2gff(gff, hits = NULL, gsParam, genomeIDs, allowRBHinOg, useBlks)
 
-combine_inblkSynOG(refGenome, genomeIDs, gff, gsParam)
+combine_inblkSynOG(genomeIDs, gff, gsParam)
 
 pull_nonSynOrthologs(gsParam, gff)
 

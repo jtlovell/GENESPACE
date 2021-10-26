@@ -2,7 +2,11 @@
 title: "Introduction to GENESPACE"
 author: "JTLovell"
 date: "10/25/2021"
-output: pdf_document
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to GENESPACE}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
 ---
 
 ```{r setup, include=FALSE}
@@ -145,7 +149,7 @@ This function populates the results directory (`r gpar$paths$results`) directory
 
 GENESPACE visualizes multi-species synteny with a 'riparian' plot. The default specification orders chromosomes by maximum synteny to a reference genome and colors the synteny by their reference chromosome of origins.
 
-```{r riparian}
+```{r riparian, fig.width=5}
 ripdat <- plot_riparian(
   gpar,
   colByChrs = c("#BC4F43", "#F67243"))

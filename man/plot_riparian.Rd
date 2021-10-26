@@ -32,7 +32,9 @@ plot_riparian(
   labelChrBiggerThan = NULL,
   labelTheseGenomes = NULL,
   blackBg = TRUE,
-  chrLabFun = function(x) gsub("^0", "", gsub("^chr|^scaffold|^lg|_", "", tolower(x)))
+  returnSourceData = F,
+  chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf", "",
+    gsub("chr|chromosome|scaffold|^lg|_", "", tolower(x))))
 )
 }
 \arguments{

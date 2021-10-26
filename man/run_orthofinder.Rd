@@ -5,7 +5,7 @@
 \alias{blkwise_orthofinder}
 \title{Build orthofinder database for GENESPACE}
 \usage{
-run_orthofinder(gsParam, overwrite = FALSE)
+run_orthofinder(gsParam, overwrite = FALSE, quietOrthofinder = FALSE)
 
 blkwise_orthofinder(gsParam, gff, genomeIDs = NULL, minGenes4of = 40)
 }
@@ -17,6 +17,9 @@ file.path to the directory where syntenic results are stored), genomeIDs (
 character vector of genomeIDs).}
 
 \item{overwrite}{logical, should results be overwritten?}
+
+\item{quietOrthofinder}{logical, should orthofinder-generated output be
+printed ot the console?}
 
 \item{gff}{annotated gff with orthogroups included, see read_gff}
 
@@ -41,7 +44,7 @@ computed blast results within syntenic regions.
 ...
 }
 \examples{
-\dontrun{
+\donttest{
 
 runwd <- file.path(getwd(), "testGenespace")
 make_exampleDataDir(writeDir = runwd)
