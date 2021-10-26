@@ -18,11 +18,13 @@
 #' @param genomeIDs character vector with the genomes to include in the run
 #' @param minGenes4of integer specifying the minimum number of genes needed to
 #' run orthofinder.
+#' @param quietOrthofinder logical, should orthofinder-generated output be
+#' printed ot the console?
 #' @details ...
 #' @return ...
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #'
 #' runwd <- file.path(getwd(), "testGenespace")
 #' make_exampleDataDir(writeDir = runwd)
@@ -66,12 +68,13 @@
 #' @import data.table
 #' @export
 run_orthofinder <- function(gsParam,
-                            overwrite = FALSE){
+                            overwrite = FALSE,
+                            quietOrthofinder = FALSE){
 
   ##############################################################################
   ##############################################################################
   ##############################################################################
-  default_ofDb <- function(gsParam){
+  default_ofDb <- function(gsParam, quietOrthofinder){
     if(all(is.na(gsParam$params$synteny)))
       stop("must run set_syntenyParams first\n")
 
@@ -100,12 +103,14 @@ run_orthofinder <- function(gsParam,
       cat("\tRunning full orthofinder on pre-computed blast",
           "\n\t##################################################",
           "\n\t##################################################\n")
+    quiet <- ifelse(quietOrthofinder, "1>/dev/null 2>&1", "")
     com <- sprintf(
-      "%s -f %s -t %s -a 1 -X -o %s",
+      "%s -f %s -t %s -a 1 -X -o %s %s",
       p2of,
       dirname(gsParam$paths$peptide[1]),
       gsParam$params$nCores,
-      gsParam$paths$orthofinder)
+      gsParam$paths$orthofinder,
+      quiet)
 
     ############################################################################
     # 4. run it
@@ -126,7 +131,7 @@ run_orthofinder <- function(gsParam,
   ##############################################################################
   ##############################################################################
   ##############################################################################
-  fast_ofDb <- function(gsParam){
+  fast_ofDb <- function(gsParam, quietOrthofinder){
     runBlast <- genome1 <- genome2 <- db2 <- fa1 <- blFile <- NULL
     ############################################################################
     # Ad hoc internal functions
@@ -225,10 +230,13 @@ run_orthofinder <- function(gsParam,
     # 7. Run orthofinder
     if(gsParam$params$verbose)
       cat("Done!\n\tRunning orthofinder -og on pre-computed blast:\n")
+    quiet <- ifelse(quietOrthofinder, "1>/dev/null 2>&1", "")
     com <- with(gsParam, sprintf(
-      "%s -b %s -t %s -a 1 -X -og",
-      paths$orthofinderCall, paths$orthofinder, params$nCores, params$nCores))
-
+      "%s -b %s -t %s -a 1 -X -og %s",
+      paths$orthofinderCall,
+      paths$orthofinder,
+      params$nCores,
+      quiet))
     system(com)
     return(com)
   }
@@ -256,7 +264,9 @@ run_orthofinder <- function(gsParam,
     gsParam <- find_orthofinderResults(gsParam, onlyCheckRun = F)
   }else{
     if(is.na(gsParam$paths$orthofinderCall)){
-      com <- default_ofDb(gsParam)
+      com <- default_ofDb(
+        gsParam,
+        quietOrthofinder = quietOrthofinder)
     }else{
       if(gsParam$params$orthofinderMethod == "fast"){
         if(gsParam$params$verbose & gsParam$params$diamondMode == "fast")
@@ -275,12 +285,16 @@ run_orthofinder <- function(gsParam,
               "\n\t\t(2) visualization/genome QC purposes, or",
               "\n\t\t(3) inferring orthogroups WITHIN syntenic regions",
               "\n\t############################################################\n")
-        com <- fast_ofDb(gsParam)
+        com <- fast_ofDb(
+          gsParam,
+          quietOrthofinder = quietOrthofinder)
       }else{
         if(gsParam$params$verbose)
           cat("\tRunning 'defualt' genespace orthofinder method",
               "\n\t############################################################\n")
-        com <- default_ofDb(gsParam)
+        com <- default_ofDb(
+          gsParam,
+          quietOrthofinder = quietOrthofinder)
       }
     }
   }

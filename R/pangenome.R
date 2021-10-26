@@ -141,15 +141,14 @@ pangenome <- function(gsParam,
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
   if(!file.exists(gffFile))
     stop("can't find the annotated gff-like text file\t\n ... have you run annotate_gff yet?\n")
+  if(verbose)
+    cat("Building pangenome source data ...\n\tReading gff ...")
   gffa <- fread(gffFile, showProgress = F, na.strings = c("NA", ""))
   gffa <- subset(gffa, genome %in% genomeIDs)
   gff <- subset(gffa, isArrayRep)
-  gff <- combine_inblkSynOG(
-    genomeIDs = genomeIDs,
-    refGenome = refGenome,
-    gff = gff,
-    gsParam = gsParam)
-
+  if(verbose)
+    cat(sprintf("\n\t... found %s genes %s array reps in %s merged OGs\n",
+                nrow(gffa), nrow(gff), uniqueN(gff$combOG)))
   ##############################################################################
   # -- pull genes that are missing
   if(is.na(gsParam$paths$orthologuesDir)){
@@ -173,14 +172,14 @@ pangenome <- function(gsParam,
     gff = gff,
     refGenome = refGenome)
   if(verbose)
-    cat(sprintf("\t\tFound %s anchors for %s blocks\n",
+    cat(sprintf("\t... found %s anchors for %s blocks\n",
                 nrow(ba$anchors), nrow(ba$coords)))
   blkc <- data.table(ba$coords)
 
   ##############################################################################
   # -- get expected blocks and reference order for every gene
   if(verbose)
-    cat("Determining reference position for combined orthogroups ...\n\tLinear interpolation of gene order in reference ... ")
+    cat("\tLinear interpolation of gene order in reference ... ")
   gffRef <- calc_geneBlkReford(
     refGenome = refGenome,
     anchCoords = ba$coords,
@@ -192,7 +191,6 @@ pangenome <- function(gsParam,
   # -- summarize by orthogroup
   if(verbose)
     cat("Done!\n\tOrthogroup clustering and median position determination ... ")
-
   ogPos <- assign_og2reford(
     gffRef = gffRef,
     synBuff = synBuff)
@@ -219,7 +217,7 @@ pangenome <- function(gsParam,
   pg[,`:=`(pgID = as.numeric(factor(u, levels = unique(u))), u = NULL)]
   if(verbose)
     with(pg, cat(sprintf(
-      "\tInitial build with ... \n\t\t%s genes, %s OGs and %s placements and %s unplaced OGs",
+      "\tInitial build with ... \n\t... %s genes, %s OGs and %s placements and %s unplaced OGs",
       uniqueN(ofID), uniqueN(og), uniqueN(pgID), uniqueN(og[is.na(ord)]))))
 
   ##############################################################################
@@ -243,7 +241,7 @@ pangenome <- function(gsParam,
   # -- rename ofIDs from arrays
   pga[,`:=`(ofID = mem, mem = NULL)]
   with(pga, cat(sprintf(
-    "\t\tFound %s genes, %s OGs and %s/%s placed/unplaced OGs",
+    "\t... found %s genes, %s OGs and %s/%s placed/unplaced OGs",
     uniqueN(ofID), uniqueN(og), uniqueN(pgID), uniqueN(og[is.na(ord)]))))
 
   # -- add arrays to the pg
@@ -266,7 +264,7 @@ pangenome <- function(gsParam,
     pgs <- subset(pgs, !duplicated(pgs))
     pg[,nonSynOrtho := FALSE]
     with(pgs, cat(sprintf(
-      "\t\tFound %s genes, %s OGs and new %s entries\n",
+      "\t... found %s genes, %s OGs and new %s entries\n",
       uniqueN(ofID), uniqueN(og), uniqueN(pgID), uniqueN(og[is.na(ord)]))))
 
     # -- combine pg with orthologs
@@ -303,6 +301,6 @@ pangenome <- function(gsParam,
     sprintf("%s_pangenomeDB.txt.gz", refGenome))
   fwrite(pg, file = pgf, sep = "\t", showProgress = F)
   if(verbose)
-    cat(sprintf("\nPangenome written to results/%s_pangenomeDB.txt.gz", refGenome))
+    cat(sprintf("Done!\nPangenome written to results/%s_pangenomeDB.txt.gz", refGenome))
   return(pgout)
 }

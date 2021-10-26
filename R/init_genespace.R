@@ -55,7 +55,7 @@
 #' path is returned as null and a warning is printed.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' runwd <- file.path(getwd(), "testGenespace")
 #' make_exampleDataDir(writeDir = runwd)
 #'

@@ -80,7 +80,7 @@
 #' If called, \code{synteny} returns its own arguments.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #'
 #' runwd <- file.path(getwd(), "testGenespace")
 #' make_exampleDataDir(writeDir = runwd)
@@ -463,7 +463,12 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F, ...){
         basename(blksFile)))
 
   # -- get syntenic orthologs
-  gsParam <- pull_synOGs(gsParam = gsParam)
+  gff <- pull_synOGs(gsParam = gsParam)
+  gffo <- combine_inblkSynOG(
+    genomeIDs = genomeIDs,
+    gff = gff,
+    gsParam = gsParam)
+  fwrite(gff, file = gffFile, sep = "\t", quote = F, showProgress = F)
   if(verbose)
     cat("\tWrote gff to file: /results/gffWithOgs.txt.gz\n\tDone!\n")
   return(gsParam)
@@ -815,7 +820,6 @@ pull_synOGs <- function(gsParam,
     gff[,inBlkOG := NA]
     gff[,og := synOG]
   }
-  fwrite(gff, file = gffFile, sep = "\t", quote = F, showProgress = F)
-  return(gsParam)
+  return(gff)
 }
 

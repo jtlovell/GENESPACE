@@ -46,7 +46,7 @@
 #'
 
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' runwd <- file.path(getwd(), "testGenespace")
 #' make_exampleDataDir(writeDir = runwd)
 #'

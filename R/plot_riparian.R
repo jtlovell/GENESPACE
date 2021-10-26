@@ -96,8 +96,9 @@ plot_riparian <- function(gsParam,
                           labelChrBiggerThan = NULL,
                           labelTheseGenomes = NULL,
                           blackBg = TRUE,
+                          returnSourceData = F,
                           chrLabFun = function(x)
-                            gsub("^0","",gsub("^chr|^scaffold|^lg|_","",tolower(x)))){
+                            gsub("^0","",gsub("chr|scaf","", gsub("chr|chromosome|scaffold|^lg|_","",tolower(x))))){
 
   arrayID <- og <- synOG <- globOG <- inBlkOG <- ord <- NULL
   genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1 <- ord1 <- ofID <- NULL
@@ -316,7 +317,7 @@ plot_riparian <- function(gsParam,
   bc[,`:=`(refChr = rcv[firstGene1])]
   bc$refChr[bc$gen1 == refGenome] <- bc$chr1[bc$gen1 == refGenome]
   bc$refChr[bc$gen2 == refGenome] <- bc$chr2[bc$gen2 == refGenome]
-  bc[,col := cols[refChr]]
+  bc[,col := cols[as.character(refChr)]]
 
   # -- calculate chromosome start/end coords
   gff[,x := linBp]
@@ -469,20 +470,21 @@ plot_riparian <- function(gsParam,
   par(mar = pmar)
   if(verbose)
     cat("Done!\n")
-  return(list(
-    chrPos = chrPos,
-    blockCoord = bc,
-    polygonList = polygonList,
-    useOrder = useOrder,
-    genomeIDs = genomeIDs,
-    ripHits = riph,
-    gff = gff,
-    chrFill = chrFill,
-    chrBorder = chrBorder,
-    labelChrBiggerThan = labelChrBiggerThan,
-    genomeLabCex = genomeLabCex,
-    chrLabFun = chrLabFun,
-    chrLabCex = chrLabCex,
-    chrRectBuffer = chrRectBuffer))
+  if(returnSourceData)
+    return(list(
+      chrPos = chrPos,
+      blockCoord = bc,
+      polygonList = polygonList,
+      useOrder = useOrder,
+      genomeIDs = genomeIDs,
+      ripHits = riph,
+      gff = gff,
+      chrFill = chrFill,
+      chrBorder = chrBorder,
+      labelChrBiggerThan = labelChrBiggerThan,
+      genomeLabCex = genomeLabCex,
+      chrLabFun = chrLabFun,
+      chrLabCex = chrLabCex,
+      chrRectBuffer = chrRectBuffer))
 }
 

@@ -28,7 +28,7 @@
 #'
 #' @return ...
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' make_exampleData(writeDir = "inst/extdata")
 #' }
 #' @note \code{genespaceData} is a generic name for the functions documented.
@@ -56,19 +56,19 @@ make_exampleData <- function(writeDir){
         dirname(writeDir), "doesnt exist\n")
 
   # -- get the raw data
-  rawFileLoc <- download_rawData(
+  ftps <- download_rawData(
     writeDir = "/Users/jlovell/Desktop/GENESPACE/inst/extdata")
-
+  ftps <- ftps
   gffs <- sapply(names(ftps), function(i)
-    file.path(wd, sprintf("%s_%s_gene.gff.gz", i, names(ftps[[i]]))))
+    file.path(writeDir, sprintf("%s_%s_gene.gff.gz", i, names(ftps[[i]]))))
   peps <- sapply(names(ftps), function(i)
-    file.path(wd, sprintf("%s_%s_pep.fa.gz", i, names(ftps[[i]]))))
+    file.path(writeDir, sprintf("%s_%s_pep.fa.gz", i, names(ftps[[i]]))))
 
 
-  gffl <- lapply(names(rawFileLoc), function(i){
+  gffl <- lapply(names(ftps), function(i){
     cat(i)
-    gffLoc <- rawFileLoc[[i]]$gff
-    pepLoc <- rawFileLoc[[i]]$pep
+    gffLoc <- ftps[[i]]$gff
+    pepLoc <- ftps[[i]]$pep
     gff <- data.table(data.frame(readGFF(
       filepath = gffLoc,
       filter = list(type = "gene"),
@@ -95,9 +95,11 @@ make_exampleData <- function(writeDir){
 
     # -- rename sequences in gene gff with regions
     gff <- merge(gff, gchr[,c("seqid", "chr")], by = "seqid")
-    uchrs <- c(1,2,"2a","2b",3)
+    uchrs <- c(paste("human", 3:4),
+               paste("chimp", 3:4),
+               paste("rhesus", c(2, 5)))
     gff[,seqid := chr]
-    gff <- subset(gff[,1:9], seqid %in% uchrs)
+    gff <- subset(gff[,1:9], paste(i, seqid) %in% uchrs)
     cat("", nrow(gff), "gff entries ... ")
 
     # -- subset the peptide

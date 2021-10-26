@@ -1962,8 +1962,7 @@ add_synOg2gff <- function(gff,
 #' @rdname utils
 #' @import data.table
 #' @export
-combine_inblkSynOG <- function(refGenome,
-                               genomeIDs,
+combine_inblkSynOG <- function(genomeIDs,
                                gff,
                                gsParam){
 
@@ -1971,8 +1970,6 @@ combine_inblkSynOG <- function(refGenome,
   if(gsParam$params$verbose)
     cat("Combining synteny-constrained and inblock orthogroups ...\n")
 
-
-  genomeIDs <- c(refGenome, genomeIDs[genomeIDs != refGenome])
   if(gsParam$params$verbose)
     cat(sprintf("\tsyn OGs: %s, inblk OGs: %s",
                 uniqueN(gff$synOG, na.rm = T), uniqueN(gff$inBlkOG, na.rm = T)))
