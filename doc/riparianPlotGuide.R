@@ -6,7 +6,7 @@ if(!dir.exists("~/Desktop/testGenespace"))
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = "~/Desktop/testGenespace")
 
-## ----run, echo = TRUE, error = FALSE, comment = FALSE, warning = FALSE, message = FALSE----
+## ----run, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, include = FALSE----
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 if (!requireNamespace("GENESPACE", quietly = TRUE))

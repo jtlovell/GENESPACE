@@ -22,7 +22,7 @@ knitr::opts_knit$set(root.dir = "~/Desktop/testGenespace")
 
 See the GENESPACE overview for pipeline details. The full run through syntenic block construction is here: 
 
-```{r run, echo = TRUE, error = FALSE, comment = FALSE, warning = FALSE, message = FALSE}
+```{r run, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, include = FALSE}
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 if (!requireNamespace("GENESPACE", quietly = TRUE))
