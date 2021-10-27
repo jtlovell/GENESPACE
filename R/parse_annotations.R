@@ -508,8 +508,13 @@ parse_gff <- function(
     filepath = path2rawGff3,
     filter = list(type = gffEntryType),
     tags = c(gffIdColumn))))
-  if(troubleshoot)
-    print(fread(path2rawGff3))
+  if(troubleshoot){
+    if(grepl(".gz$", path2rawGff3)){
+      print(system(sprintf("cat %s | gunzip -c | grep -v '#' | head -10",path2rawGff3)))
+    }else{
+      print(system(sprintf("cat %s | grep -v '#' | head -10",path2rawGff3)))
+    }
+  }
   if(verbose)
     cat("found", nrow(gff), "gff entires")
 

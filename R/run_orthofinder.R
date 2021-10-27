@@ -68,7 +68,6 @@
 #' @export
 run_orthofinder <- function(gsParam,
                             overwrite = FALSE,
-                            genomeIDs = NULL,
                             quietOrthofinder = FALSE){
 
   ##############################################################################
@@ -250,13 +249,8 @@ run_orthofinder <- function(gsParam,
       gsParam$paths$orthofinderCall <- NA
 
   # set the synteny parameters
-  if(is.null(genomeIDs))
-    genomeIDs <- gsParam$genomes$genomeIDs
-  if(!any(genomeIDs) %in% gsParam$genomes$genomeIDs)
-    genomeIDs <- gsParam$genomes$genomeIDs
-
   if(is.data.table(gsParam$params$synteny))
-    if(!all(genomeIDs %in% gsParam$params$synteny$genome1))
+    if(!all(gsParam$genomes$genomeIDs %in% gsParam$params$synteny$genome1))
       gsParam$params$synteny <- NULL
   if(!is.data.table(gsParam$params$synteny)){
     cat("Synteny Parameters have not been set! Setting to defaults\n")
