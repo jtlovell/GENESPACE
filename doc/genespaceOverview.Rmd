@@ -5,7 +5,7 @@ date: "10/25/2021"
 output: rmarkdown::pdf_document
 vignette: >
   %\VignetteIndexEntry{Introduction to GENESPACE}
-  %\VignetteEngine{knitr::knitr}
+  %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
 
