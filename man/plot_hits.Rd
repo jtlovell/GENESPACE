@@ -88,3 +88,9 @@ to reduce the total number of points. 1 = don't round}
 \details{
 ...
 }
+\examples{
+\dontrun{
+# coming soon
+}
+
+}

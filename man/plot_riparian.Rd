@@ -126,3 +126,9 @@ specified, taken from gsParam.}
 \details{
 ...
 }
+\examples{
+\dontrun{
+# see vignette dedicated to plot_riparian
+}
+
+}

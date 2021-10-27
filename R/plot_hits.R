@@ -32,7 +32,13 @@
 #' @param cols vector of colors to use for points
 #' @param fixedAspRat logical, should the plots have fixed aspect ratios?
 #' @param plotTitle character string specifying the title of the plot
+#'
 #' @details ...
+#'
+#' @examples
+#' \dontrun{
+#' # coming soon
+#' }
 #'
 #' @import data.table
 #' @importFrom graphics title

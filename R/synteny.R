@@ -82,7 +82,7 @@
 #' If called, \code{synteny} returns its own arguments.
 #'
 #' @examples
-#' \donttest{
+#' \dontrun{
 #'
 #' runwd <- file.path(getwd(), "testGenespace")
 #' make_exampleDataDir(writeDir = runwd)
@@ -128,7 +128,8 @@
 #' # here, increase the synteny buffer and
 #' # make the blocks need to be bigger between human and chimp
 #' gpar <- set_syntenyParams(gpar, synBuff = 200)
-#' wh <- with(gpar$params$synteny, which(genome1 %in% c("humnan", "chimp") & genome2 %in% c("humnan", "chimp")))
+#' wh <- with(gpar$params$synteny, which(
+#'   genome1 %in% c("humnan", "chimp") & genome2 %in% c("humnan", "chimp")))
 #' gpar$params$synteny$blkSize[wh] <- 10
 #' gpar <- synteny(gsParam = gpar, overwrite = T)
 #' }

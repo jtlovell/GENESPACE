@@ -83,4 +83,5 @@ If called, \code{query_genespace} returns its own arguments.
 \dontrun{
 # coming soon
 }
+
 }

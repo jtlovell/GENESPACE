@@ -116,7 +116,7 @@ fasta annotation entries exactly.
 If called, \code{parse_annotations} returns its own arguments.
 }
 \examples{
-\donttest{
+\dontrun{
 runwd <- file.path(getwd(), "testGenespace")
 make_exampleDataDir(writeDir = runwd)
 

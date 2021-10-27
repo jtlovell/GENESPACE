@@ -53,7 +53,13 @@
 #' specified, taken from gsParam.
 #' @param returnSourceData logical, should the source data to build the plot
 #' be returned?
+#'
 #' @details ...
+#'
+#' @examples
+#' \dontrun{
+#' # see vignette dedicated to plot_riparian
+#' }
 #'
 #' @import data.table
 #' @importFrom graphics strheight polygon text

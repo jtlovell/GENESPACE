@@ -138,7 +138,7 @@ genespace parameters and ploidy. Set set_syntenyParams for more information
 about the input synParam data.table.
 }
 \examples{
-\donttest{
+\dontrun{
 
 runwd <- file.path(getwd(), "testGenespace")
 make_exampleDataDir(writeDir = runwd)
@@ -184,7 +184,8 @@ gpar <- synteny(gsParam = gpar, blkSize = 10, overwrite = T)
 # here, increase the synteny buffer and
 # make the blocks need to be bigger between human and chimp
 gpar <- set_syntenyParams(gpar, synBuff = 200)
-wh <- with(gpar$params$synteny, which(genome1 \%in\% c("humnan", "chimp") & genome2 \%in\% c("humnan", "chimp")))
+wh <- with(gpar$params$synteny, which(
+  genome1 \%in\% c("humnan", "chimp") & genome2 \%in\% c("humnan", "chimp")))
 gpar$params$synteny$blkSize[wh] <- 10
 gpar <- synteny(gsParam = gpar, overwrite = T)
 }

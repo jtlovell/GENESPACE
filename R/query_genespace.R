@@ -42,6 +42,7 @@
 #' \dontrun{
 #' # coming soon
 #' }
+#'
 #' @note \code{query_genespace} is a generic name for the functions documented.
 #' \cr
 #' If called, \code{query_genespace} returns its own arguments.
