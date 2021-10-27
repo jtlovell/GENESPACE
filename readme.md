@@ -1,4 +1,4 @@
-# Overview
+## Overview
 GENESPACE is a comparative genomics framework implemented in the R environment for statistical computing. The premise is that, when analyzing high-quality genome assemblies and annotations, we can improve the confidence of evolutionary inference by combining two sources of evidence for common ancestry: synteny (i.e. collinearity of gene order) and coding sequence similarity (homology). In addition to providing a second line of evidence beyond sequence similarity, combining synteny and homology have several benefits:
 
 - exclude paralogous regions
@@ -9,10 +9,51 @@ GENESPACE is a comparative genomics framework implemented in the R environment f
 
 GENESPACE outputs a synteny-constrained and -anchored orthogroup pan-genome annotation among multiple genomes. This simple text file allows for extraction and exploration of regional gene-level variation, a necessary step to integrate comparative and quantitative genomic goals. 
 
-For details, see /vignettes directory. 
+**For details and a complete example run, see /vignettes directory.**
+
+## Installation
+
+#### Install required programs
+
+GENESPACE requires third-party software can be installed as follows.
+
+`orthofinder` (which includes `diamond`) is most simply installed via conda (in the terminal, not R). 
+
+```{bash, eval = FALSE}
+conda create -n orthofinder
+conda activate orthofinder
+conda install -c bioconda orthofinder 
+```
+
+If conda is not available on your machine, you can install orthofinder from a number of other sources.  See [orthofinder documentation](https://github.com/davidemms/OrthoFinder) for details.  
+
+`MCScanX` should be installed from [github](https://github.com/wyp1125/MCScanX). 
+**NOTE** Due to nested dependencies in the `orthofinder` install, `orthofinder` must be in the path when called, while the file path to `MCScanX` does not need to be in the path and can be specified in R. 
+
+#### Install GENESPACE
+
+If you are planning to run orthofinder from within R, which is needed if using orthofinderInBlk (see below for details) and recommended when using any genomes with ploidy > 1, enter R from the terminal with either `R` (for command line interace), or if Rstudio is installed on your machine `open -na rstudio`. 
+
+Once in R, GENESPACE can be installed directly from github via:
+
+```{r, eval = FALSE}
+if (!requireNamespace("devtools", quietly = TRUE))
+    install.packages("devtools")
+devtools::install_github("jtlovell/GENESPACE", upgrade = F)
+```
+
+#### Install R dependencies
+
+The above command will install the CRAN-sourced dependencies (`data.table`, `dbscan` and `R.utils`). The bioconductor dependencies (`Rtracklayer` and `Biostrings`) need to be installed separately via:
+
+```{r, eval = FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(c("Biostrings", "Rtracklayer"))
+```
 
 
-# Legal
+## Legal
 
 GENESPACE R Package (GENESPACE) Copyright (c) 2021,HudsonAlpha Institute for Biotechnology. All rights reserved.
 
