@@ -5,7 +5,7 @@ date: "10/25/2021"
 output: rmarkdown::pdf_document
 vignette: >
   %\VignetteIndexEntry{Riparian Plot Guide}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEngine{knitr::knitr}
   \usepackage[utf8]{inputenc}
 ---
 
