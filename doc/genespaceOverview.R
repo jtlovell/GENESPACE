@@ -9,12 +9,16 @@ knitr::opts_knit$set(root.dir = "~/Desktop/testGenespace")
 ## ---- eval = FALSE------------------------------------------------------------
 #  if (!requireNamespace("devtools", quietly = TRUE))
 #      install.packages("devtools")
-#  devtools::install_github("jtlovell/GENESPACE", upgrade = F)
+#  if (!requireNamespace("GENESPACE", quietly = TRUE))
+#      devtools::install_github("jtlovell/GENESPACE", upgrade = F)
 
 ## ---- eval = FALSE------------------------------------------------------------
 #  if (!requireNamespace("BiocManager", quietly = TRUE))
 #      install.packages("BiocManager")
-#  BiocManager::install(c("Biostrings", "Rtracklayer"))
+#  if (!requireNamespace("Biostrings", quietly = TRUE))
+#    BiocManager::install("Biostrings")
+#  if (!requireNamespace("rtracklayer", quietly = TRUE))
+#     BiocManager::install("rtracklayer")
 
 ## -----------------------------------------------------------------------------
 library(GENESPACE)
@@ -22,6 +26,8 @@ runwd <- file.path("~/Desktop/testGenespace")
 
 ## -----------------------------------------------------------------------------
 make_exampleDataDir(writeDir = runwd)
+
+## -----------------------------------------------------------------------------
 list.files(runwd, recursive = T, full.names = F)
 
 ## -----------------------------------------------------------------------------

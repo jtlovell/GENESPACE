@@ -49,7 +49,8 @@ Once in R, GENESPACE can be installed directly from github via:
 ```{r, eval = FALSE}
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
-devtools::install_github("jtlovell/GENESPACE", upgrade = F)
+if (!requireNamespace("GENESPACE", quietly = TRUE))
+    devtools::install_github("jtlovell/GENESPACE", upgrade = F)
 ```
 
 #### 2.3 Install R dependencies
@@ -59,7 +60,10 @@ The above command will install the CRAN-sourced dependencies (`data.table`, `dbs
 ```{r, eval = FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-BiocManager::install(c("Biostrings", "Rtracklayer"))
+if (!requireNamespace("Biostrings", quietly = TRUE))
+  BiocManager::install("Biostrings")
+if (!requireNamespace("rtracklayer", quietly = TRUE))
+   BiocManager::install("rtracklayer")
 ```
 
 
@@ -80,10 +84,13 @@ To illustrate all steps of the pipeline, lightly subset NCBI-formatted annotatio
 
 ```{r}
 make_exampleDataDir(writeDir = runwd)
-list.files(runwd, recursive = T, full.names = F)
 ```
 
 **NOTE** this creates a subdirectory called `/rawGenomes`. For downstream flexibility (e.g. multiple genome versions for one species, metadata or assembly data, etc), the raw genome directory structure follows: `/rawGenomes/$speciesID/$versionID/annotion`. 
+
+```{r}
+list.files(runwd, recursive = T, full.names = F)
+```
 
 When working with your own data, place the raw annotation files in this same directory structure with separate directories for each species, separate subdirectories for each genome version, and the annotation files in a subdirectory called "annotation".
 

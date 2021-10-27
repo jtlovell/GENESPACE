@@ -63,6 +63,8 @@
 #' @param findRegHitsRecursive logical, should regional hit discovery be
 #' recursive?
 #' @param nGenomeLabChar number of characters for genome labes
+#' @param verbose should progress updates be printed to the console? If not
+#' specified, taken from gsParam.
 #' @details ...
 #'
 #' @import data.table
@@ -97,6 +99,7 @@ plot_riparian <- function(gsParam,
                           labelTheseGenomes = NULL,
                           blackBg = TRUE,
                           returnSourceData = F,
+                          verbose = NULL,
                           chrLabFun = function(x)
                             gsub("^0","",gsub("chr|scaf","", gsub("chr|chromosome|scaffold|^lg|_","",tolower(x))))){
 
@@ -126,7 +129,12 @@ plot_riparian <- function(gsParam,
         "#C054F9","#E6BDFC")
   }
 
-  verbose <- gsParam$params$verbose
+  if(is.null(verbose) || !is.logical(verbose[1])){
+    verbose <- gsParam$params$verbose
+  }else{
+    verbose <- verbose[1]
+  }
+
   if(is.null(genomeIDs)){
     genomeIDs <- gsParam$genomes$genomeIDs
     genomeIDs <- genomeIDs[!genomeIDs %in% gsParam$genomes$outgroup]
