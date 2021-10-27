@@ -9,7 +9,7 @@ GENESPACE is a comparative genomics framework implemented in the R environment f
 
 GENESPACE outputs a synteny-constrained and -anchored orthogroup pan-genome annotation among multiple genomes. This simple text file allows for extraction and exploration of regional gene-level variation, a necessary step to integrate comparative and quantitative genomic goals. 
 
-**For details and a complete example run, see /vignettes directory.**
+For details and a complete example run, see the [vignette](https://github.com/jtlovell/GENESPACE/blob/dev/doc/genespaceOverview.pdf) and source code in `/doc` directory. 
 
 ## Installation
 
