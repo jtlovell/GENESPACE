@@ -6,7 +6,7 @@ if(!dir.exists("~/Desktop/testGenespace"))
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = "~/Desktop/testGenespace")
 
-## ----run, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, include = FALSE----
+## ----run, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, results='hide'----
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 if (!requireNamespace("GENESPACE", quietly = TRUE))
@@ -65,23 +65,24 @@ ripSourceData <- plot_riparian(
 ## ----bp, fig.width = 5, fig.height = 3, fig.align = 'center'------------------
 plot_riparian(
   gpar, 
-  plotRegions = F, 
-  useOrder = F, 
+  plotRegions = FALSE, 
+  useOrder = FALSE, 
   colByChrs = c("gold", "cyan"),
   braidAlpha = .25,
-  verbose = F)
+  verbose = FALSE)
 
 ## ----invert, fig.width = 5, fig.height = 3, fig.align = 'center'--------------
 invertThisGenomeChr <- data.table(genome = "rhesus", chr = "2")
 plot_riparian(
   gpar, 
   invertTheseChrs = invertThisGenomeChr,
-  verbose = F)
+  verbose = FALSE)
 
 ## ----hchr, fig.width = 5, fig.height = 3, fig.align = 'center'----------------
 plot_riparian(
   gpar, 
-  onlyTheseChrs = "4")
+  onlyTheseChrs = "4",
+  verbose = FALSE)
 
 ## ----ichr, fig.width = 5, fig.height = 3, fig.align = 'center'----------------
 regs <- data.table(
@@ -91,23 +92,23 @@ regs <- data.table(
   end = c(1e7, 1e7))
 plot_riparian(
   gpar, 
-  useOrder = F, 
+  useOrder = FALSE, 
   onlyTheseRegions = regs,
-  verbose = F)
+  verbose = FALSE)
 
 ## ----ic, fig.width = 5, fig.height = 3, fig.align = 'center'------------------
 regs <- data.table(
-  genome = c("human"),
-  chr = c(3),
-  start = c(0),
-  end = c(5e7))
+  genome = "human",
+  chr = 3,
+  start = 0,
+  end = 5e7)
 plot_riparian(
   gpar, 
-  useOrder = F, 
+  useOrder = FALSE, 
   onlyTheseRegions = regs, 
-  excludeChrOutOfRegion = F, 
+  excludeChrOutOfRegion = TRUE, 
   colByChrs = "white",
-  verbose = F)
+  verbose = FALSE)
 
 ## ----orange, fig.width = 5, fig.height = 3, fig.align = 'center'--------------
 plot_riparian(
@@ -116,14 +117,14 @@ plot_riparian(
   chrFill = "orange",
   chrBorder = "grey",
   braidAlpha = 1,
-  verbose = F)
+  verbose = FALSE)
 
 ## ----bp1, fig.width = 5, fig.height = 3, fig.align = 'center'-----------------
 plot_riparian(
   gpar,
   chrLabCex = 1,
   chrRectBuffer = 1.1,
-  verbose = F)
+  verbose = FALSE)
 
 ## ----lab, fig.width = 5, fig.height = 3, fig.align = 'center'-----------------
 plot_riparian(

@@ -33,6 +33,7 @@ plot_riparian(
   labelTheseGenomes = NULL,
   blackBg = TRUE,
   returnSourceData = F,
+  verbose = NULL,
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf", "",
     gsub("chr|chromosome|scaffold|^lg|_", "", tolower(x))))
 )
@@ -110,6 +111,9 @@ bp to label a chromosome}
 \item{labelTheseGenomes}{character string of genomes that have labeled chrs}
 
 \item{blackBg}{logical, should the background be dark?}
+
+\item{verbose}{should progress updates be printed to the console? If not
+specified, taken from gsParam.}
 
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
 

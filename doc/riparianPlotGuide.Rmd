@@ -22,7 +22,7 @@ knitr::opts_knit$set(root.dir = "~/Desktop/testGenespace")
 
 See the GENESPACE overview for pipeline details. The full run through syntenic block construction is here: 
 
-```{r run, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, include = FALSE}
+```{r run, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, results='hide'}
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 if (!requireNamespace("GENESPACE", quietly = TRUE))
@@ -93,11 +93,11 @@ Use physical positioninstead of gene rank order (`useOrder = F`) and plot the sm
 ```{r bp, fig.width = 5, fig.height = 3, fig.align = 'center'}
 plot_riparian(
   gpar, 
-  plotRegions = F, 
-  useOrder = F, 
+  plotRegions = FALSE, 
+  useOrder = FALSE, 
   colByChrs = c("gold", "cyan"),
   braidAlpha = .25,
-  verbose = F)
+  verbose = FALSE)
 ```
 
 #### 2.3 Invert a chromosome that is more syntenic if flipped
@@ -109,7 +109,7 @@ invertThisGenomeChr <- data.table(genome = "rhesus", chr = "2")
 plot_riparian(
   gpar, 
   invertTheseChrs = invertThisGenomeChr,
-  verbose = F)
+  verbose = FALSE)
 ```
 
 ## 3. Using riparian plots to highlight specific regions
@@ -121,7 +121,8 @@ Often, the user wants to study a specific region, we can use riparian to just  z
 ```{r hchr, fig.width = 5, fig.height = 3, fig.align = 'center'}
 plot_riparian(
   gpar, 
-  onlyTheseChrs = "4")
+  onlyTheseChrs = "4",
+  verbose = FALSE)
 ```
 
 #### 3.2 only plot specific regions
@@ -136,26 +137,26 @@ regs <- data.table(
   end = c(1e7, 1e7))
 plot_riparian(
   gpar, 
-  useOrder = F, 
+  useOrder = FALSE, 
   onlyTheseRegions = regs,
-  verbose = F)
+  verbose = FALSE)
 ```
 
 we can also zoom in on just the highlighted regions. 
 
 ```{r ic, fig.width = 5, fig.height = 3, fig.align = 'center'}
 regs <- data.table(
-  genome = c("human"),
-  chr = c(3),
-  start = c(0),
-  end = c(5e7))
+  genome = "human",
+  chr = 3,
+  start = 0,
+  end = 5e7)
 plot_riparian(
   gpar, 
-  useOrder = F, 
+  useOrder = FALSE, 
   onlyTheseRegions = regs, 
-  excludeChrOutOfRegion = F, 
+  excludeChrOutOfRegion = TRUE, 
   colByChrs = "white",
-  verbose = F)
+  verbose = FALSE)
 ```
 
 
@@ -172,7 +173,7 @@ plot_riparian(
   chrFill = "orange",
   chrBorder = "grey",
   braidAlpha = 1,
-  verbose = F)
+  verbose = FALSE)
 ```
 
 
@@ -185,7 +186,7 @@ plot_riparian(
   gpar,
   chrLabCex = 1,
   chrRectBuffer = 1.1,
-  verbose = F)
+  verbose = FALSE)
 ```
 
 
