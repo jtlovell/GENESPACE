@@ -13,7 +13,6 @@
 #' file.path to the directory where syntenic results are stored), genomeIDs (
 #' character vector of genomeIDs).
 #' @param overwrite logical, should results be overwritten?
-#' @param onlyCheckRun logical, should nothing be done but see if there is a run
 #' @param gff annotated gff with orthogroups included, see read_gff
 #' @param genomeIDs character vector with the genomes to include in the run
 #' @param minGenes4of integer specifying the minimum number of genes needed to
@@ -69,6 +68,7 @@
 #' @export
 run_orthofinder <- function(gsParam,
                             overwrite = FALSE,
+                            genomeIDs = NULL,
                             quietOrthofinder = FALSE){
 
   ##############################################################################
@@ -250,6 +250,11 @@ run_orthofinder <- function(gsParam,
       gsParam$paths$orthofinderCall <- NA
 
   # set the synteny parameters
+  if(is.null(genomeIDs))
+    genomeIDs <- gsParam$genomes$genomeIDs
+  if(!any(genomeIDs) %in% gsParam$genomes$genomeIDs)
+    genomeIDs <- gsParam$genomes$genomeIDs
+
   if(is.data.table(gsParam$params$synteny))
     if(!all(genomeIDs %in% gsParam$params$synteny$genome1))
       gsParam$params$synteny <- NULL

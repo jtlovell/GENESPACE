@@ -14,8 +14,6 @@
 \alias{flatten_list}
 \alias{check_minPepLen}
 \alias{check_dropInterSize}
-\alias{are_colors}
-\alias{add_alpha}
 \alias{pull_strWidth}
 \alias{round_toInteger}
 \alias{calc_partialSw}
@@ -26,11 +24,6 @@
 \alias{parse_ogs}
 \alias{parse_orthologues}
 \alias{read_blast}
-\alias{draw_scaleBar}
-\alias{cosine_points}
-\alias{calc_curvePolygon}
-\alias{round_rect}
-\alias{interp_linear}
 \alias{add_ofID2gff}
 \alias{add_pepLen2gff}
 \alias{drop_unusedPeptides}
@@ -80,10 +73,6 @@ check_minPepLen(x)
 
 check_dropInterSize(x)
 
-are_colors(col)
-
-add_alpha(col, alpha = 1)
-
 scale_between(x, min, max, scale1toMean = TRUE)
 
 pull_strWidth(x, width)
@@ -117,16 +106,6 @@ read_blast(
   path = NULL,
   onlyIDScore = TRUE
 )
-
-draw_scaleBar(x, y, yspan, xspan, label, lwd, cex)
-
-cosine_points()
-
-calc_curvePolygon(start1, end1 = NULL, start2, end2 = NULL, y1, y2)
-
-round_rect(xleft, ybottom, xright, ytop)
-
-interp_linear(x, y, interpTails = TRUE)
 
 add_ofID2gff(gff, blastDir)
 
@@ -212,10 +191,6 @@ pull_blkAnchors(gsParam, gff, refGenome)
 
 \item{dt}{data.table with the first two columns as id1, id2.}
 
-\item{col}{a vector of colors}
-
-\item{alpha}{numeric 0-1, specifying transparency}
-
 \item{width}{integer, the number of characters to return in string.}
 
 \item{to}{what should the value be rounded to?}
@@ -244,40 +219,6 @@ to run}
 \item{ofID2}{orthofinder ID of the second gene}
 
 \item{onlyIDScore}{logical, should only the geneIDs and score be returned?}
-
-\item{y}{y position of the scale bar}
-
-\item{yspan}{amount of span on the y axis}
-
-\item{xspan}{amount of span on the x axis}
-
-\item{label}{scale bar label}
-
-\item{lwd}{line thickness for scale bar}
-
-\item{cex}{scale bar label character expansion}
-
-\item{start1}{numeric, specifying the coordinate of blk start in genome1}
-
-\item{end1}{numeric, specifying the coordinate of  blk end in genome1}
-
-\item{start2}{numeric, specifying the coordinate of  blk start in genome2}
-
-\item{end2}{numeric, specifying the coordinate of blk end in genome2}
-
-\item{y1}{numeric, specifying the coordinate of y position in genome1}
-
-\item{y2}{numeric, specifying the coordinate of  y position in genome1}
-
-\item{xleft}{numeric, specifying the coordinate of left x position}
-
-\item{ybottom}{numeric, specifying the coordinate of lower y position}
-
-\item{xright}{numeric, specifying the coordinate of right x position}
-
-\item{ytop}{numeric, specifying the coordinate of upper y position}
-
-\item{interpTails}{logical, should unbounded tails be interpolated?}
 
 \item{gff}{annotated gff with orthogroups included, see read_gff}
 
@@ -335,9 +276,10 @@ specified (default) taken from gsParam$genomeIDs$genomeIDs}
 
 \item{overwrite}{logical, should the results be overwrittem?}
 
-\item{useBlks}{logical, for cross compatibility with plot_hits}
+\item{allowRBHinOg}{logical, should reciprocal best blast hits be used when
+finalizing block coordinates?}
 
-\item{allowRBHinOG}{logical, for cross compatibility with plot_hits}
+\item{useBlks}{logical, for cross compatibility with plot_hits}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called
@@ -370,10 +312,6 @@ IDs among all unique elements in a subgraph
 
 \code{check_dropInterSize} checks for init_genespace
 
-\code{are_colors} check if a vector is coercible to R colors
-
-\code{add_alpha} add transparency to a color
-
 \code{scale_between} ...
 
 \code{pull_strWidth} pull_strWidth
@@ -399,16 +337,6 @@ IDs:gene name dictionary into memory.
 
 \code{read_blast} Reads in a single pairwise orthofinder-formaatted blast
 file
-
-\code{draw_scaleBar} draw_scaleBar
-
-\code{cosine_points} vector of points for polygons based on cosine curves
-
-\code{calc_curvePolygon} from 2d coordinates, make a curve
-
-\code{round_rect} from x-y coordinates, make a rounded rectangle
-
-\code{round_rect} from x-y coordinates, make a rounded rectangle
 
 \code{add_ofID2gff} read the orthofinder species and gene IDs and merge
 these with the gff-like data.table

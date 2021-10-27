@@ -28,7 +28,7 @@
 #'
 #' @return ...
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' make_exampleData(writeDir = "inst/extdata")
 #' }
 #' @note \code{genespaceData} is a generic name for the functions documented.
@@ -45,6 +45,8 @@
 #' @export
 make_exampleData <- function(writeDir){
 
+  chr <- chromosome <- end <- gene <- gene_biotype <- isBest <- nGene <-
+    nbp <- segments <- seqid <- start <- NULL
   # -- make sure the writeDir is empty or non-existent in an existing parent dir
   if(dir.exists(writeDir))
     if(length(dir(writeDir)) > 0)

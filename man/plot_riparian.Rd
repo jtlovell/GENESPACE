@@ -112,36 +112,13 @@ bp to label a chromosome}
 
 \item{blackBg}{logical, should the background be dark?}
 
+\item{returnSourceData}{logical, should the source data to build the plot
+be returned?}
+
 \item{verbose}{should progress updates be printed to the console? If not
 specified, taken from gsParam.}
 
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
-
-\item{minGenesOnChr}{integer, specifying the min number of genes a chromosome
-that is plotted cna contain}
-
-\item{refHits}{data.table of hits against the reference}
-
-\item{useBlks}{logical, should blocks be used instead of regions?}
-
-\item{blkSize}{integer specifying minimum block size}
-
-\item{nCores}{integer specifying the number of parallel processes to run}
-
-\item{gff}{annotated gff-like data.table}
-
-\item{hitsRef}{data.table containing all syn og hits against the reference}
-
-\item{hitsRip}{data.table containing all syn og hits among riparian genomes}
-
-\item{chrd}{data.table converted chrList}
-
-\item{chrl}{see chrList}
-
-\item{minrl}{minimum run-length of consecutive refChr hits in a block to
-warrant splitting.}
-
-\item{minprp}{minimum proportion of hits to a refChr to get a block break}
 }
 \description{
 \code{plot_riparian} Genespace plotting routines

@@ -81,8 +81,6 @@ to reduce the total number of points. 1 = don't round}
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
 
 \item{plotTitle}{character string specifying the title of the plot}
-
-\item{minHits2plot}{integer, the minimum number of hits to include}
 }
 \description{
 \code{plot_hits} Genespace plotting routines

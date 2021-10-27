@@ -14,12 +14,6 @@
 #' @param invertTheseChrs data.table with two columns, genome and chr containing
 #' the lists of genomes and chromosomes that should be inverted in the plot
 #' @param genomeLabCex chracter expansion of the genome labels
-#' @param minGenesOnChr integer, specifying the min number of genes a chromosome
-#' that is plotted cna contain
-#' @param refHits data.table of hits against the reference
-#' @param useBlks logical, should blocks be used instead of regions?
-#' @param blkSize integer specifying minimum block size
-#' @param nCores integer specifying the number of parallel processes to run
 #' @param braidAlpha numeric (0-1) specifying the transparency of the braids
 #' @param braidBorderLwd numeric specifying the weight of borders on the braids
 #' @param genomeIDs character vector at least partially matching the genomeIDs
@@ -47,14 +41,6 @@
 #' bp to label a chromosome
 #' @param highlightRef color to highlight the reference chromosomes.
 #' @param chrLabFun function to parse chr IDs to make them more readible
-#' @param gff annotated gff-like data.table
-#' @param hitsRef data.table containing all syn og hits against the reference
-#' @param hitsRip data.table containing all syn og hits among riparian genomes
-#' @param chrd data.table converted chrList
-#' @param chrl see chrList
-#' @param minrl minimum run-length of consecutive refChr hits in a block to
-#' warrant splitting.
-#' @param minprp minimum proportion of hits to a refChr to get a block break
 #' @param minGenes2plot integer specifying the minimum number of genes on a
 #' chr to plot
 #' @param onlyTheseRegions data.table with genome, chr, start and end columns
@@ -65,10 +51,12 @@
 #' @param nGenomeLabChar number of characters for genome labes
 #' @param verbose should progress updates be printed to the console? If not
 #' specified, taken from gsParam.
+#' @param returnSourceData logical, should the source data to build the plot
+#' be returned?
 #' @details ...
 #'
 #' @import data.table
-#' @importFrom graphics strheight polygon
+#' @importFrom graphics strheight polygon text
 #' @importFrom stats quantile
 #' @export
 plot_riparian <- function(gsParam,

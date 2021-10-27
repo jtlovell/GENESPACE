@@ -13,7 +13,6 @@
 #' @param refGenome character string matching one of the genomeIDs in gsParam
 #' @param genomeIDs character vector, specifying which genomes to use. Defaults
 #' to all genomeIDs specification in gsParam.
-#' @param gff gff with additional annotations columns (see synteny)
 #'
 #' @details The pangenome annotation is a projection of syntenic orthogroups
 #' on the physical coordinate system of a reference genome. The pangenome

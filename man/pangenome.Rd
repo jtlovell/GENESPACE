@@ -17,8 +17,6 @@ character vector of genomeIDs).}
 to all genomeIDs specification in gsParam.}
 
 \item{refGenome}{character string matching one of the genomeIDs in gsParam}
-
-\item{gff}{gff with additional annotations columns (see synteny)}
 }
 \value{
 a data.table with lists of gene ids for each genome. Each row

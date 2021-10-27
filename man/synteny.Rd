@@ -36,6 +36,8 @@ init_genespace}
 \item{genomeIDs}{an optional vector of genomeIDs to consider. If not
 specified (default) taken from gsParam$genomeIDs$genomeIDs}
 
+\item{overwrite}{logical, should existing directories be overwritten?}
+
 \item{...}{additional arguments passed to set_syntenyParam().}
 
 \item{onlyOgAnchors}{logical, should only hits in orthogroups be considered
@@ -75,6 +77,8 @@ keep in the split interleaves synteny step}
 
 \item{minRbhScore}{integer specifying the minimum blast bit score to allow
 for a RBH to be included}
+
+\item{hits}{data.table of hits}
 
 \item{path2mcscanx}{character string file.path pointing to the install
 directory for the MCScanX program. In particular, there must be an

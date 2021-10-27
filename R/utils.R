@@ -11,7 +11,6 @@
 #' @param recursive logical, should the search be recursive
 #' @param which character specifying which method to use
 #' @param x vector of observations
-#' @param col a vector of colors
 #' @param id1 character vector of ids with length matching id2
 #' @param id2 character vector of ids with length matching id1
 #' @param min numeric, length 1 specifying the minumum value in the scaled data
@@ -19,25 +18,8 @@
 #' @param dt data.table with the first two columns as id1, id2.
 #' @param raw logical, should a raw vector of peptide widths be returned?
 #' @param scale1toMean logical, if single value, should it be the mean?
-#' @param alpha numeric 0-1, specifying transparency
 #' @param width integer, the number of characters to return in string.
 #' @param x x position of the scale bar
-#' @param y y position of the scale bar
-#' @param xspan amount of span on the x axis
-#' @param yspan amount of span on the y axis
-#' @param label scale bar label
-#' @param cex scale bar label character expansion
-#' @param lwd line thickness for scale bar
-#' @param xleft numeric, specifying the coordinate of left x position
-#' @param ybottom numeric, specifying the coordinate of lower y position
-#' @param xright numeric, specifying the coordinate of right x position
-#' @param ytop numeric, specifying the coordinate of upper y position
-#' @param start1 numeric, specifying the coordinate of blk start in genome1
-#' @param end1 numeric, specifying the coordinate of  blk end in genome1
-#' @param start2 numeric, specifying the coordinate of  blk start in genome2
-#' @param end2 numeric, specifying the coordinate of blk end in genome2
-#' @param y1 numeric, specifying the coordinate of y position in genome1
-#' @param y2 numeric, specifying the coordinate of  y position in genome1
 #' @param to what should the value be rounded to?
 #' @param byGrpCol column which serves as the by factor
 #' @param windowSize integer specifying the window size
@@ -50,7 +32,6 @@
 #' @param ofID1 orthofinder ID of the first gene
 #' @param ofID2 orthofinder ID of the second gene
 #' @param onlyIDScore logical, should only the geneIDs and score be returned?
-#' @param interpTails logical, should unbounded tails be interpolated?
 #' @param gff annotated gff with orthogroups included, see read_gff
 #' @param blastDir file.path to the location of the blast results.
 #' @param onlyCheckRun logical, should the run just be checked?
@@ -84,8 +65,9 @@
 #' @param maxIter integer, the maximum number of block splitting interations
 #' @param nhits integer, the number of hits to retain
 #' @param blks data.table containing the block coordinates
-#' @param allowRBHinOG logical, for cross compatibility with plot_hits
 #' @param useBlks logical, for cross compatibility with plot_hits
+#' @param allowRBHinOg logical, should reciprocal best blast hits be used when
+#' finalizing block coordinates?
 #' @param verbose logical, should updates be printed to the console?
 #' \cr
 #' If called, \code{utils} returns its own arguments.
@@ -274,41 +256,6 @@ check_dropInterSize <- function(x){
   if(x < 1)
     x <- 1
   return(x)
-}
-
-#' @title check if a vector is coercible to R colors
-#' @description
-#' \code{are_colors} check if a vector is coercible to R colors
-#' @rdname utils
-#' @importFrom grDevices col2rgb
-#' @export
-are_colors <- function(col) {
-  sapply(col, function(X) {
-    tryCatch(is.matrix(col2rgb(X)),
-             error = function(e) FALSE)
-  })
-}
-
-#' @title add transparency to a color
-#' @description
-#' \code{add_alpha} add transparency to a color
-#' @rdname utils
-#' @importFrom grDevices col2rgb rgb
-#' @export
-add_alpha <- function(col,
-                      alpha = 1){
-
-  if (missing(col))
-    stop("Please provide a vector of colors.")
-  if (!all(are_colors(col)))
-    stop("Please provide a vector of colors.")
-
-  apply(sapply(col, col2rgb)/255, 2,
-        function(x)
-          rgb(x[1],
-              x[2],
-              x[3],
-              alpha = alpha))
 }
 
 #' @title
@@ -584,208 +531,6 @@ read_blast <- function(blFile = NULL,
   }
 
   return(bl)
-}
-
-#' @title draw_scaleBar
-#' @description
-#' \code{draw_scaleBar} draw_scaleBar
-#' @rdname utils
-#' @export
-draw_scaleBar <- function(x, y, yspan, xspan, label, lwd, cex){
-  xstart <- x - (xspan / 2)
-  xend <- x + (xspan / 2)
-  ytop <- y + (yspan / 2)
-  ybottom <- y - (yspan / 2)
-  segments(x0 = xstart, x1 = xend, y0 = y, y1 = y, lwd = lwd)
-  segments(x0 = xstart, x1 = xstart, y0 = ytop, y1 = ybottom, lwd = lwd)
-  segments(x0 = xend, x1 = xend, y0 = ytop, y1 = ybottom, lwd = lwd)
-  text(x = xstart + (xspan / 2), y = ytop + (yspan / 2), labels = label, adj = c(.5,0), cex = cex)
-}
-
-
-#' @title cosine curve source data
-#' @description
-#' \code{cosine_points} vector of points for polygons based on cosine curves
-#' @rdname utils
-#' @export
-cosine_points <- function(){
-  npts = 1e4 # initial number of points
-  keepat = round(npts / 20) # grid to keep always
-  grid <- seq(from = 0, to = pi, length.out = npts) # grid
-  x <- (1 - cos(grid)) / max((1 - cos(grid))) # scaled cosine
-  y <- grid / max(grid) # scaled grid
-  # calculate slope for each point
-  x1 <- x[-1];  y1 <- y[-1]
-  x2 <- x[-length(x)];  y2 <- y[-length(y)]
-  s <-  (y1 - y2) / (x1 - x2)
-  # choose points that capture changes in slope
-  ds <- cumsum(abs(diff(s)))*5
-  wh <- c(1,which(!duplicated(round(ds))), length(x))
-  wh2 <- c(wh, seq(from = 0, to = length(x), by = round(keepat)))
-  wh <- c(wh, wh2)[!duplicated(c(wh, wh2))]
-  wh <- wh[order(wh)]
-  return(cbind(x[wh], y[wh]))
-}
-
-#' @title convert cosine points to polygon
-#' @description
-#' \code{calc_curvePolygon} from 2d coordinates, make a curve
-#' @rdname utils
-#' @export
-calc_curvePolygon <- function(start1,
-                              end1 = NULL,
-                              start2,
-                              end2 = NULL,
-                              y1,
-                              y2){
-  scaledCurve <- cosine_points()
-  if (!is.null(end1) | !is.null(end2)) {
-    tp <- rbind(
-      start1 = data.table(
-        x = start1, y = y1),
-      poly1 = data.table(
-        x = scale_between(x = scaledCurve[,1], min = start1, max = start2),
-        y = scale_between(x = scaledCurve[,2], min = y1, max = y2)),
-      start2 = data.table(x = start2, y = y2),
-      end2 = data.table(
-        x = end2, y = y2),
-      poly2 = data.table(
-        x = scale_between(x = scaledCurve[,1], min = end2, max = end1),
-        y = scale_between(x = scaledCurve[,2], min = y2, max = y1)),
-      end1 = data.table(
-        x = end1, y = y1))
-  }else{
-    tp <- data.table(
-      x = scale_between(x = scaledCurve[,1], min = start1, max = start2),
-      y = scale_between(x = scaledCurve[,2], min = y1, max = y2))
-  }
-  return(tp)
-}
-
-#' @title calculate coordinates for rounded rectange polygons
-#' @description
-#' \code{round_rect} from x-y coordinates, make a rounded rectangle
-#' @rdname utils
-#' @importFrom graphics par
-#' @importFrom grDevices dev.size
-#' @export
-round_rect <- function(xleft, ybottom, xright, ytop){
-
-  if (ytop <= ybottom)
-    stop("ytop must be > ybottom")
-  if (xleft >= xright)
-    stop("xleft must be < xright")
-
-  # measure graphics device
-  asp <- diff(par("usr")[3:4]) / diff(par("usr")[1:2])
-  dev <- dev.size()[1] / dev.size()[2]
-
-  # make a curve and split into left and right
-  radius <- (ytop - ybottom) / 2
-  centerY <- ytop - radius
-  centerX <- mean(c(xleft, xright))
-  theta <- seq(0, 2 * pi, length = 200)
-  circX <- cos(theta)
-  circY <- sin(theta)
-  leftC <- which(circX <= 0)
-  rightC <- which(circX >= 0)
-
-  xR <- circX[rightC]
-  yR <- circY[rightC]
-  ordYR <- rev(order(yR))
-  xR <- xR[ordYR]
-  yR <- yR[ordYR]
-
-  xL <- circX[leftC]
-  yL <- circY[leftC]
-  ordYL <- order(yL)
-  xL <- xL[ordYL]
-  yL <- yL[ordYL]
-
-  # project onto graphics device and scale
-  xRightS <- xright - (radius / asp / dev)
-  xLeftS <- xleft + (radius / asp / dev)
-  if (centerX < xLeftS)
-    xLeftS <- centerX
-  if (centerX > xRightS)
-    xRightS <- centerX
-  xLS <- scale_between(xL, xleft, xLeftS)
-  xRS <- scale_between(xR, xRightS, xright)
-  yLS <- scale_between(yL, ybottom, ytop)
-  yRS <- scale_between(yR, ybottom, ytop)
-  return(data.table(x = c(xRS,xLS), y = c(yRS, yLS)))
-}
-
-#' @title calculate coordinates for rounded rectange polygons
-#' @description
-#' \code{round_rect} from x-y coordinates, make a rounded rectangle
-#' @rdname utils
-#' @import data.table
-#' @export
-interp_linear <- function(x,
-                          y,
-                          interpTails = TRUE){
-  rl <- ip <- NULL
-  if(length(x) != length(y) || !is.numeric(x) || !is.numeric(y)){
-    warning("x and y must be numeric/integer vectors of equal length\n")
-  }else{
-
-    # -- convert to data table
-    z <- subset(data.table(x = x, y = y, i = 1:length(x)), !is.na(x))
-    if(nrow(z) < 1 || all(is.na(y))){
-      warning("no non-missing values in x or y\n")
-    }else{
-
-      # -- subset to complete cases in x and order by x
-      z <- subset(z, !is.na(x))
-      setkey(z, x)
-
-      # -- find runs of NAs in y
-      z[,rl := add_rle(is.na(y), which = "id")]
-
-      # -- pull runs to infer (not first and last if they are NAs)
-      if(interpTails){
-        if(is.na(z$y[1])){
-          z[,rl := rl + 1]
-          z <- rbind(data.table(
-            x = min(z$x, na.rm = T) - .5,
-            y = min(z$y, na.rm = T) - .5,
-            i = 0, rl = 1),
-            z)
-        }
-        if(is.na(z$y[nrow(z)])){
-          print(z)
-          z <- rbind(z, data.table(
-            x = max(z$x, na.rm = T) + .5,
-            y = max(z$y, na.rm = T) + .5,
-            i = max(z$i, na.rm = T) + 1,
-            rl = max(z$rl, na.rm = T) + 1))
-        }
-        toinf <- subset(z, is.na(y))
-      }else{
-        toinf <- subset(z, is.na(y) & !rl %in% c(1, max(rl)))
-      }
-
-      if(nrow(toinf) < 1){
-        warning("no missing values of y to interpolate")
-      }else{
-        # -- get max right and min left values for each non-missing run
-        minr <- with(subset(z, !is.na(y)), tapply(y, rl, min))
-        maxl <- with(subset(z, !is.na(y)), tapply(y, rl, max))
-
-        # -- linear interpolation of runs of NAs from bounding values
-        toinf[,ip := seq(from = maxl[as.character(rl-1)],
-                         to = minr[as.character(rl+1)],
-                         length.out = .N+2)[-c(1, .N+2)],
-              by = "rl"]
-
-        # -- fill NAs and return
-        y[toinf$i] <- toinf$ip
-      }
-    }
-  }
-
-  return(y)
 }
 
 #' @title add orthofinder ID to a gff object

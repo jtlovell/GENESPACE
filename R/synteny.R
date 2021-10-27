@@ -9,6 +9,7 @@
 #' init_genespace
 #' @param genomeIDs an optional vector of genomeIDs to consider. If not
 #' specified (default) taken from gsParam$genomeIDs$genomeIDs
+#' @param hits data.table of hits
 #' @param nGaps integer of length 1, specifying the -m param to mcscanx
 #' for the primary MCScanX run. This acts on the results from the initial
 #' MCScanX run.
@@ -38,6 +39,7 @@
 #' @param path2mcscanx character string file.path pointing to the install
 #' directory for the MCScanX program. In particular, there must be an
 #' executable in this directory for MCScanX_h.
+#' @param overwrite logical, should existing directories be overwritten?
 #' @param ... additional arguments passed to set_syntenyParam().
 #'
 #' @details The main engine for GENESPACE synteny searching. This

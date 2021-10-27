@@ -32,7 +32,6 @@
 #' @param cols vector of colors to use for points
 #' @param fixedAspRat logical, should the plots have fixed aspect ratios?
 #' @param plotTitle character string specifying the title of the plot
-#' @param minHits2plot integer, the minimum number of hits to include
 #' @details ...
 #'
 #' @import data.table
