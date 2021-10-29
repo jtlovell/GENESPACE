@@ -4,7 +4,12 @@
 \alias{pangenome}
 \title{Build genespace pangenome}
 \usage{
-pangenome(gsParam, genomeIDs = NULL, refGenome = NULL)
+pangenome(
+  gsParam,
+  genomeIDs = NULL,
+  refGenome = NULL,
+  maxGapsBetweenEntries = NULL
+)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -17,6 +22,12 @@ character vector of genomeIDs).}
 to all genomeIDs specification in gsParam.}
 
 \item{refGenome}{character string matching one of the genomeIDs in gsParam}
+
+\item{maxGapsBetweenEntries}{numeric of length 1, giving the maximum number
+of pangenome entries between two unique orthogroup-prediction positions to
+merge those positions. This cannot be smaller than the synteny buffer
+in gsParam$params$synteny$synBuff and will be set to 2x that number if not specified
+(default) or smaller than the synBuff maximum value.}
 }
 \value{
 a data.table with lists of gene ids for each genome. Each row

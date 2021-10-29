@@ -20,6 +20,10 @@
 #' to consider a hit syntenic. This parameter is also used to limit the search
 #' radius in dbscan-based blk calculation. Larger values will return larger
 #' tandem arrays but also may permit inclusion of spurious non-syntenic networks
+#' @param arrayBuffer Numeric length 1, specifying the maximum gene-rank order
+#' position of two genes to be considered members of the same collinear array.
+#' Set to synBuff + 1 if smaller than the maximum synBuff or sqrt(2*(synBuff^2))
+#' if not specified.
 #' @param nGapsSecond see nGaps, but passed to secondary hits after masking
 #' primary hits.
 #' @param blkSizeSecond see blkSize, but passed to the secondary scan if
@@ -471,7 +475,7 @@ synteny <- function(gsParam, genomeIDs = NULL, overwrite = F, ...){
     genomeIDs = genomeIDs,
     gff = gff,
     gsParam = gsParam)
-  fwrite(gff, file = gffFile, sep = "\t", quote = F, showProgress = F)
+  fwrite(gffo, file = gffFile, sep = "\t", quote = F, showProgress = F)
   if(verbose)
     cat("\tWrote gff to file: /results/gffWithOgs.txt.gz\n\tDone!\n")
   return(gsParam)
@@ -497,7 +501,8 @@ set_syntenyParams <- function(gsParam,
                               synBuffSecond = synBuff,
                               selfRegionMask = synBuff * 2,
                               dropInterleavesSmallerThan = 2,
-                              minRbhScore = 50){
+                              minRbhScore = 50,
+                              arrayBuffer = sqrt(2*(synBuff^2))){
 
   ##############################################################################
   # 1. setup environment
@@ -636,6 +641,13 @@ set_syntenyParams <- function(gsParam,
 
   cmb <- cmb[with(cmb, order(-(nGenes1 + nGenes2))),]
   gsParam$params$synteny <- cmb
+  mxBuff <- max(gsParam$params$synteny$synBuff)
+  if(is.null(arrayBuffer))
+    arrayBuffer <- mxBuff
+  arrayBuffer <- as.numeric(arrayBuffer[1])
+  if(is.na(arrayBuffer) || arrayBuffer < mxBuff)
+    arrayBuffer <- mxBuff
+  gsParam$params$arrayBuffer <- arrayBuffer
   return(gsParam)
 }
 

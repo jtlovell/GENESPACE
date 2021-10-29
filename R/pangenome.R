@@ -13,6 +13,11 @@
 #' @param refGenome character string matching one of the genomeIDs in gsParam
 #' @param genomeIDs character vector, specifying which genomes to use. Defaults
 #' to all genomeIDs specification in gsParam.
+#' @param maxGapsBetweenEntries numeric of length 1, giving the maximum number
+#' of pangenome entries between two unique orthogroup-prediction positions to
+#' merge those positions. This cannot be smaller than the synteny buffer
+#' in gsParam$params$synteny$synBuff and will be set to 2x that number if not specified
+#' (default) or smaller than the synBuff maximum value.
 #'
 #' @details The pangenome annotation is a projection of syntenic orthogroups
 #' on the physical coordinate system of a reference genome. The pangenome
@@ -48,7 +53,8 @@
 #' @export
 pangenome <- function(gsParam,
                       genomeIDs = NULL,
-                      refGenome = NULL){
+                      refGenome = NULL,
+                      maxGapsBetweenEntries = NULL){
   ##############################################################################
   ##############################################################################
   # -- internal function to calculate gene positions by ref block coords
@@ -130,7 +136,17 @@ pangenome <- function(gsParam,
     stop("Must run set_syntenyParams first!\n")
 
   # -- other needed parameters
-  synBuff <- max(gsParam$params$synteny$synBuff)
+  if(is.null(maxGapsBetweenEntries)){
+    maxGapsBetweenEntries <- max(gsParam$params$synteny$synBuff)*2
+  }else{
+    maxGapsBetweenEntries <- as.numeric(maxGapsBetweenEntries[1])
+    if(is.na(maxGapsBetweenEntries))
+      stop("count not coerce maxGapsBetweenEntries to numeric\n")
+  }
+  mxBuff <- max(gsParam$params$synteny$synBuff)
+  if(maxGapsBetweenEntries < mxBuff)
+    maxGapsBetweenEntries <- mxBuff
+  synBuff <- maxGapsBetweenEntries
   if(is.na(gsParam$paths$orthogroupsDir))
     gsParam <- find_orthofinderResults(gsParam)
   verbose <- gsParam$params$verbose
@@ -300,6 +316,6 @@ pangenome <- function(gsParam,
     sprintf("%s_pangenomeDB.txt.gz", refGenome))
   fwrite(pg, file = pgf, sep = "\t", showProgress = F)
   if(verbose)
-    cat(sprintf("Done!\nPangenome written to results/%s_pangenomeDB.txt.gz", refGenome))
+    cat(sprintf("Done!\nPangenome written to results/%s_pangenomeDB.txt.gz\n", refGenome))
   return(pgout)
 }

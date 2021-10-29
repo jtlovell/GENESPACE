@@ -1589,10 +1589,10 @@ add_arrays2gff <- function(gsParam,
                            gff){
   arrayID <- genome <- chr <- globOG <- n <- rng <- ord <- clus <- og <- NULL
   collinearOG <- NULL
-
+  synBuff <- gsParam$params$arrayBuffer
   nCores <- gsParam$params$nCores
   verbose <- gsParam$params$verbose
-  synBuff <- max(gsParam$params$synteny$synBuff)
+  # synBuff <- max(gsParam$params$synteny$synBuff)
 
   # -- make global arrays from orthogroups
   gff[,arrayID := sprintf("%s_%s_%s", genome, chr, globOG)]
@@ -1720,6 +1720,7 @@ combine_inblkSynOG <- function(genomeIDs,
                 uniqueN(gff$synOG, na.rm = T), uniqueN(gff$inBlkOG, na.rm = T)))
   if(all(is.na(gff$inBlkOG)))
     gff[,inBlkOG := synOG]
+
   inblk <- gff[,list(ofID1 = ofID[-.N], ofID2 = ofID[-1]), by = "inBlkOG"]
   syn <- gff[,list(ofID1 = ofID[-.N], ofID2 = ofID[-1]), by = "synOG"]
   u <- with(inblk, paste(ofID1, ofID2))

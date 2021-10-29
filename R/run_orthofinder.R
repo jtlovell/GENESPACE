@@ -118,7 +118,7 @@ run_orthofinder <- function(gsParam,
         "\tCould not find valid orthofinder executable in the path\n",
         "\tRun the following command outside of R (assuming orthofinder is in the path):",
         "\n################\n",
-        sprintf("cd %s\n", gsParam$paths$orthofinder),
+        sprintf("cd %s\n", dirname(gsParam$paths$orthofinder)),
         com,
         "\n################\n", sep = "")
     }else{

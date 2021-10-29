@@ -22,7 +22,8 @@ set_syntenyParams(
   synBuffSecond = synBuff,
   selfRegionMask = synBuff * 2,
   dropInterleavesSmallerThan = 2,
-  minRbhScore = 50
+  minRbhScore = 50,
+  arrayBuffer = sqrt(2 * (synBuff^2))
 )
 
 run_mcscanx(hits, blkSize, nGaps, gsParam, path2mcscanx)
@@ -77,6 +78,11 @@ keep in the split interleaves synteny step}
 
 \item{minRbhScore}{integer specifying the minimum blast bit score to allow
 for a RBH to be included}
+
+\item{arrayBuffer}{Numeric length 1, specifying the maximum gene-rank order
+position of two genes to be considered members of the same collinear array.
+Set to synBuff + 1 if smaller than the maximum synBuff or sqrt(2*(synBuff^2))
+if not specified.}
 
 \item{hits}{data.table of hits}
 

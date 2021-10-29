@@ -5,12 +5,7 @@
 \alias{blkwise_orthofinder}
 \title{Build orthofinder database for GENESPACE}
 \usage{
-run_orthofinder(
-  gsParam,
-  overwrite = FALSE,
-  genomeIDs = NULL,
-  quietOrthofinder = FALSE
-)
+run_orthofinder(gsParam, overwrite = FALSE, quietOrthofinder = FALSE)
 
 blkwise_orthofinder(gsParam, gff, genomeIDs = NULL, minGenes4of = 40)
 }
@@ -23,12 +18,12 @@ character vector of genomeIDs).}
 
 \item{overwrite}{logical, should results be overwritten?}
 
-\item{genomeIDs}{character vector with the genomes to include in the run}
-
 \item{quietOrthofinder}{logical, should orthofinder-generated output be
 printed ot the console?}
 
 \item{gff}{annotated gff with orthogroups included, see read_gff}
+
+\item{genomeIDs}{character vector with the genomes to include in the run}
 
 \item{minGenes4of}{integer specifying the minimum number of genes needed to
 run orthofinder.}
