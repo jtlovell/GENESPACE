@@ -1,3 +1,5 @@
+For a full tutorial, see: https://github.com/jtlovell/GENESPACE/blob/dev/doc/genespaceOverview.pdf
+
 ## Overview
 GENESPACE is a comparative genomics framework implemented in the R environment for statistical computing. The premise is that, when analyzing high-quality genome assemblies and annotations, we can improve the confidence of evolutionary inference by combining two sources of evidence for common ancestry: synteny (i.e. collinearity of gene order) and coding sequence similarity (homology). In addition to providing a second line of evidence beyond sequence similarity, combining synteny and homology have several benefits:
 
