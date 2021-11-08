@@ -172,15 +172,15 @@ plot_riparian <- function(gsParam,
   if("refGenome" %in% colnames(gff))
     gff[,refGenome:=NULL]
 
-  if(!any(is.na(gff$inBlkOG))){
-    gff[,og := inBlkOG]
-  }else{
-    if(!any(is.na(gff$synOG))){
-      gff[,og := synOG]
-    }else{
-      gff[,og := globOG]
-    }
-  }
+#   if(!any(is.na(gff$inBlkOG))){
+#     gff[,og := inBlkOG]
+#   }else{
+#     if(!any(is.na(gff$synOG))){
+#       gff[,og := synOG]
+#     }else{
+#       gff[,og := globOG]
+#     }
+#   }
 
   if(!is.null(invChrs)){
     invChrs <- invChrs[invChrs %in% paste(gff$genome, gff$chr)]
@@ -224,21 +224,14 @@ plot_riparian <- function(gsParam,
     }
   }
 
-  if(!is.null(onlyTheseRegions)){
+  genesInReg <- unique(gff$ofID)
+  if(!is.null(onlyTheseRegions) & excludeChrOutOfRegion){
     setkey(gff, genome, chr, start, end)
     setkey(onlyTheseRegions, genome, chr, start, end)
     fo <- foverlaps(gff, onlyTheseRegions)
     fo <- subset(fo, complete.cases(fo[,c("ofID", "start", "end")]))
     genesInReg <- gff$ofID[gff$og %in% unique(fo$og)]
-
-    if(excludeChrOutOfRegion){
-      gff <- subset(gff, ofID %in% genesInReg)
-    }else{
-      gcu <- with(refh, unique(c(paste(gen1, chr1), paste(gen2, chr2))))
-      gff <- subset(gff, paste(genome, chr) %in% gcu)
-    }
-  }else{
-    genesInReg <- unique(gff$ofID)
+    gff <- subset(gff, ofID %in% genesInReg)
   }
 
   # -- get the colors
@@ -283,6 +276,15 @@ plot_riparian <- function(gsParam,
     refGenome = refGenome,
     blkSize = 5,
     nCores = gsParam$params$nCores)
+
+  # -- find all genes in region if necessary
+  if(!is.null(onlyTheseRegions) & !excludeChrOutOfRegion){
+    setkey(gff, genome, chr, start, end)
+    setkey(onlyTheseRegions, genome, chr, start, end)
+    fo <- foverlaps(gff, onlyTheseRegions)
+    fo <- subset(fo, complete.cases(fo[,c("ofID", "start", "end")]))
+    genesInReg <- gff$ofID[gff$og %in% unique(fo$og)]
+  }
 
   # -- load hits in the riparian path
   if(verbose)
