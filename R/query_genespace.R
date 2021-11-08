@@ -292,3 +292,100 @@ write_phytozome <- function(gsParam,
   })
 }
 
+#' @title pull_pgIntervals
+#' @description
+#' \code{pull_pgIntervals} pull_pgIntervals
+#' @rdname query_genespace
+#' @import data.table
+#' @export
+pull_pgIntervals <- function(gsParam,
+                             refGenome = NULL,
+                             genomeIDs = NULL,
+                             intervals){
+
+  # -- pull the gff file
+  if(is.null(genomeIDs))
+    genomeIDs <- gsParam$genomes$genomeIDs
+  genomeIDs <- genomeIDs[genomeIDs %in% gsParam$genomes$genomeIDs]
+  wd <- gsParam$paths$results
+  path2gff <- file.path(wd, "gffWithOgs.txt.gz")
+
+  # -- find the right pangenomeDB file
+  pgf <- list.files(path = wd, pattern = "pangenomeDB.txt.gz")
+  if(length(pgf) == 0)
+    stop("cannot find a pan-genome annotation ... have you run pangenome?")
+  if(length(pgf) > 1 & is.null(refGenome)){
+    pgf <- pgf[1]
+    warning(sprintf(
+      "found >1 pangenomes and no refgenome specified. Using the first: %s\n",
+      pgf))
+  }
+
+  # -- if a ref genome is specified, make sure a pangenome matches.
+  if(!is.null(refGenome)){
+    pgf <- sprintf("%s_pangenomeDB.txt.gz", refGenome)
+    if(!file.exists(file.path(wd, pgf)))
+      stop(sprintf(
+        "couldn't find %s_pangenomeDB.txt.gz in /results\n",
+        refGenome))
+  }
+  path2pg <- file.path(wd, pgf)
+
+  # -- check the intervals
+  ints <- data.table(intervals)
+  if(nrow(ints) < 1)
+    stop("could not find entries in intervals ... is this a data.table?\n")
+  if(!all(c("genome", "chr", "start", "end") %in% colnames(ints)))
+    stop("intervals must have columns: genome, chr, start, end")
+  ints <- with(ints, data.table(
+    genome = as.character(genome),
+    chr = as.character(chr),
+    start = as.numeric(start),
+    end = as.numeric(end)))
+
+  # -- read in the data
+  pg <- fread(path2pg, na.strings = c("NA", ""), showProgress = F)
+  gff <- fread(path2gff, na.strings = c("NA", ""), showProgress = F)
+
+  # -- re-check the intervals against the gff
+  if(!all(ints$genome %in% unique(pg$genome)))
+    warning("the pangenome doesn't contain some of the interval genomes\n")
+
+  u <- with(gff, unique(paste(genome, chr)))
+  if(!all(with(ints, paste(genome, chr) %in% u)))
+    warning("the gff doesn't contain some of the interval genomes/chrs\n")
+
+  ints <- subset(ints, paste(genome, chr) %in% u)
+  if(nrow(ints) < 1)
+    stop("no intervals found in the gff and pangenome\n")
+
+  # -- merge intervals with the gff
+  ints[,intID := 1:.N]
+  setkey(ints, genome, chr, start, end)
+  setkey(gff, genome, chr, start, end)
+  fo <- subset(foverlaps(gff, ints), !is.na(start) & !is.na(end) & !is.na(intID))
+  fo <- fo[,c("genome", "chr", "start", "end", "ofID", "intID")]
+
+  # -- subset to entries with genes in the intervals
+  pgout <- subset(pg, !is.na(ofID))
+  upgid <- unique(subset(pg, ofID %in% fo$ofID)$pgID)
+  pgout <- subset(pgout, pgID %in% upgid)
+  pv <- subset(pgout, ofID %in% fo$ofID)[,c("ofID", "pgID")]
+  fo <- merge(fo, pv, by = "ofID", allow.cartesian = T)
+
+  # -- add intervalIDs
+  pgout <- merge(pgout, fo[,c("intID", "pgID")], by = "pgID", allow.cartesian = T)
+
+  # -- give real names
+  iv  <- gff$id; names(iv) <- gff$ofID
+  pgout[,id := iv[ofID]]
+
+  # -- reshape to wide format
+  pgout <- dcast(pgout, pgID + og + chr + ord + intID ~ genome,
+                 value.var = "id", fun.aggregate = function(x) list(x))
+
+  # -- order by pg position
+  pgout <- subset(pgout, !is.na(intID) & !is.na(ord))
+  setorder(pgout, intID,  ord, na.last = T)
+  return(split(pgout, by = "intID"))
+}

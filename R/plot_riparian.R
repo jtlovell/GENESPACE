@@ -95,7 +95,9 @@ plot_riparian <- function(gsParam,
                           returnSourceData = F,
                           verbose = NULL,
                           chrLabFun = function(x)
-                            gsub("^0","",gsub("chr|scaf","", gsub("chr|chromosome|scaffold|^lg|_","",tolower(x))))){
+                            gsub("^0","",gsub("chr|scaf","", gsub("chr|chromosome|scaffold|^lg|_","",tolower(x)))),
+                          annotatePlot = TRUE,
+                          add2plot = FALSE){
 
   arrayID <- og <- synOG <- globOG <- inBlkOG <- ord <- NULL
   genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1 <- ord1 <- ofID <- NULL
@@ -336,8 +338,10 @@ plot_riparian <- function(gsParam,
   # -- determine plotting scale
   if(verbose)
     cat("Done!\n\tRendering plot ... ")
-  pmar <- par()["mar"]
-  par(mar = c(1, 1, 1, 1))
+  if(!add2plot){
+    pmar <- par()["mar"]
+    par(mar = c(1, 1, 1, 1))
+  }
 
   sevenChrWidth <- 0.1111654*nGenomeLabChar
   XinHt <- 0.1193034
@@ -351,68 +355,76 @@ plot_riparian <- function(gsParam,
   xBuff <- xPlotBuffProp * diff(range(gff$x, na.rm = T))
 
   # -- make the plot
-  chrPos <- subset(chrPos, complete.cases(chrPos))
-  with(chrPos,
-       plot(
-         1, 1, type = "n", axes = F, bty = "n",
-         xlim = c(min(start) - xBuff,
-                  max(end)),
-         ylim = c(min(y)-yBuff, max(y) + yBuff),
-         ylab = "",
-         xlab = "",
-         main = ""))
+  if(!add2plot){
+    chrPos <- subset(chrPos, complete.cases(chrPos))
+    with(chrPos,
+         plot(
+           1, 1, type = "n", axes = F, bty = "n",
+           xlim = c(min(start) - xBuff,
+                    max(end)),
+           ylim = c(min(y)-yBuff, max(y) + yBuff),
+           ylab = "",
+           xlab = "",
+           main = ""))
+  }
 
   # -- make the labels
   chrRectWidth <- strheight("chr", cex = chrLabCex) * chrRectBuffer
   subchrText <- sprintf(
     "Chromosomes scaled by %s",
     ifelse(useOrder, "gene rank order", "physical position"))
-  text(
+  if(annotatePlot)
+    text(
     x = 0, y = 1 - (chrRectWidth*2),
     label = subchrText, adj = c(.5,.5), cex = genomeLabCex)
 
-  if(blackBg)
-    with(chrPos, rect(
-      xleft = min(start) - xBuff, xright = max(end),
-      ybottom = min(y)-(chrRectWidth/2),  ytop = max(y)+(chrRectWidth/2),
-      border = NULL, col = "grey15"))
+  if(!add2plot){
+    if(blackBg)
+      with(chrPos, rect(
+        xleft = min(start) - xBuff, xright = max(end),
+        ybottom = min(y)-(chrRectWidth/2),  ytop = max(y)+(chrRectWidth/2),
+        border = NULL, col = "grey15"))
+  }
+
 
   # -- make the scale bar
-  mo <- with(subset(gff, genome == refGenome), max(ord))
-  mo <- ifelse(mo > 1e5, 5e4, ifelse(mo > 1e4, 5e3, ifelse(mo > 1e3, 500, 50)))
-  mb <- sum(with(subset(gff, genome == refGenome), tapply(end, chr, max)))
-  mb <- ifelse(mb > 1e9, 5e8, ifelse(mb > 1e8, 5e7, ifelse(mb > 1e7, 5e6, ifelse(mb > 1e6, 5e5, ifelse(mb > 1e5, 5e4, 5e3)))))
-  if(mo >= 1e3){
-    mol <- sprintf("%sk genes", mo/1e3)
-  }else{
-    mol <- sprintf("%s genes", mo)
-  }
-  if(mb >= 1e6){
-    mbl <- sprintf("%s Mb", mb/1e6)
-  }else{
-    mbl <- sprintf("%s kb", mb/1e3)
-  }
+  if(annotatePlot){
+    mo <- with(subset(gff, genome == refGenome), max(ord))
+    mo <- ifelse(mo > 1e5, 5e4, ifelse(mo > 1e4, 5e3, ifelse(mo > 1e3, 500, 50)))
+    mb <- sum(with(subset(gff, genome == refGenome), tapply(end, chr, max)))
+    mb <- ifelse(mb > 1e9, 5e8, ifelse(mb > 1e8, 5e7, ifelse(mb > 1e7, 5e6, ifelse(mb > 1e6, 5e5, ifelse(mb > 1e5, 5e4, 5e3)))))
+    if(mo >= 1e3){
+      mol <- sprintf("%sk genes", mo/1e3)
+    }else{
+      mol <- sprintf("%s genes", mo)
+    }
+    if(mb >= 1e6){
+      mbl <- sprintf("%s Mb", mb/1e6)
+    }else{
+      mbl <- sprintf("%s kb", mb/1e3)
+    }
 
-  if(useOrder){
-    draw_scaleBar(
-      x = quantile(chrPos$start,.5, na.rm = T),
-      y = length(genomeIDs) + (chrRectWidth),
-      xspan = mo,
-      yspan = chrRectWidth/2,
-      label = mol,
-      lwd = .5, cex = chrLabCex)
-    if(is.null(labelChrBiggerThan))
-      labelChrBiggerThan <- mo/20
-  }else{
-    draw_scaleBar(
-      x = quantile(chrPos$start, .5, na.rm = T),
-      y = length(genomeIDs) + (chrRectWidth * 1.5),
-      xspan = mb,
-      yspan = chrRectWidth,
-      label = mbl,
-      lwd = .5, cex = chrLabCex)
-    if(is.null(labelChrBiggerThan))
-      labelChrBiggerThan <- mb/20
+    if(useOrder){
+      draw_scaleBar(
+        x = quantile(chrPos$start,.5, na.rm = T),
+        y = length(genomeIDs) + (chrRectWidth),
+        xspan = mo,
+        yspan = chrRectWidth/2,
+        label = mol,
+        lwd = .5, cex = chrLabCex)
+      if(is.null(labelChrBiggerThan))
+        labelChrBiggerThan <- mo/20
+    }else{
+      draw_scaleBar(
+        x = quantile(chrPos$start, .5, na.rm = T),
+        y = length(genomeIDs) + (chrRectWidth * 1.5),
+        xspan = mb,
+        yspan = chrRectWidth,
+        label = mbl,
+        lwd = .5, cex = chrLabCex)
+      if(is.null(labelChrBiggerThan))
+        labelChrBiggerThan <- mb/20
+    }
   }
 
   # -- draw the braid polygons
@@ -437,39 +449,41 @@ plot_riparian <- function(gsParam,
   })
 
   # -- draw and lable the chrs
-  for (i in 1:nrow(chrPos)) {
-    wid <- ifelse(chrPos$genome[i] %in% labelTheseGenomes,
-                  chrRectWidth/2, chrRectWidth/4)
-    polygon(with(chrPos[i,], round_rect(
-      xleft = start, xright = end,
-      ybottom = y - wid,
-      ytop = y + wid)),
-      border = chrBorder,
-      col = ifelse(chrPos$genome[i] == refGenome, highlightRef, chrFill),
-      lwd = .5)
-    if(chrPos$genome[i] %in% labelTheseGenomes)
-      if(with(chrPos[i,], end - start) > labelChrBiggerThan)
-        with(chrPos[i,], text(
-          (start + end)/2, y,
-          labels = ifelse(paste(genome, chr) %in% invChrs,
-                          paste0(chrLabFun(chr), "*"), chrLabFun(chr)),
-          cex = chrLabCex))
+  if(annotatePlot){
+    for (i in 1:nrow(chrPos)) {
+      wid <- ifelse(chrPos$genome[i] %in% labelTheseGenomes,
+                    chrRectWidth/2, chrRectWidth/4)
+      polygon(with(chrPos[i,], round_rect(
+        xleft = start, xright = end,
+        ybottom = y - wid,
+        ytop = y + wid)),
+        border = chrBorder,
+        col = ifelse(chrPos$genome[i] == refGenome, highlightRef, chrFill),
+        lwd = .5)
+      if(chrPos$genome[i] %in% labelTheseGenomes)
+        if(with(chrPos[i,], end - start) > labelChrBiggerThan)
+          with(chrPos[i,], text(
+            (start + end)/2, y,
+            labels = ifelse(paste(genome, chr) %in% invChrs,
+                            paste0(chrLabFun(chr), "*"), chrLabFun(chr)),
+            cex = chrLabCex))
+    }
+
+    # label the genomes
+    cp <- chrPos[,list(x = min(start)), by = c("genome","y")]
+    if(blackBg){
+      with(cp, text(
+        x = x - (max(chrPos$end) / 100), y = y, col = "white",
+        label = substr(genome, 1, nGenomeLabChar), adj = c(1, .5), cex = genomeLabCex))
+
+    }else{
+      with(cp, text(
+        x = x - (max(chrPos$end) / 100), y = y, col = "black",
+        label = substr(genome, 1, nGenomeLabChar), adj = c(1, .5), cex = genomeLabCex))
+    }
   }
 
-  # label the genomes
-  cp <- chrPos[,list(x = min(start)), by = c("genome","y")]
-  if(blackBg){
-    with(cp, text(
-      x = x - (max(chrPos$end) / 100), y = y, col = "white",
-      label = substr(genome, 1, nGenomeLabChar), adj = c(1, .5), cex = genomeLabCex))
-
-  }else{
-    with(cp, text(
-      x = x - (max(chrPos$end) / 100), y = y, col = "black",
-      label = substr(genome, 1, nGenomeLabChar), adj = c(1, .5), cex = genomeLabCex))
-  }
-
-  par(mar = pmar)
+  # par(mar = pmar)
   if(verbose)
     cat("Done!\n")
   if(returnSourceData)
