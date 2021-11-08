@@ -64,6 +64,7 @@
 #' @import data.table
 #' @importFrom graphics strheight polygon text
 #' @importFrom stats quantile
+#' @importFrom dbscan dbscan frNN
 #' @export
 plot_riparian <- function(gsParam,
                           plotRegions = TRUE,
@@ -284,6 +285,7 @@ plot_riparian <- function(gsParam,
     fo <- foverlaps(gff, onlyTheseRegions)
     fo <- subset(fo, complete.cases(fo[,c("ofID", "start", "end")]))
     genesInReg <- gff$ofID[gff$og %in% unique(fo$og)]
+    gffir <- subset(gff, ofID %in% genesInReg)
   }
 
   # -- load hits in the riparian path
@@ -294,14 +296,28 @@ plot_riparian <- function(gsParam,
     genomeIDs = genomeIDs,
     useBlks = !plotRegions)
   riph <- subset(riph, ofID1 %in% genesInReg & ofID2 %in% genesInReg)
-
-  # -- add the reference chr and make new blocks therein
   riph[,`:=`(
     gen1 = gv[ofID1], gen2 = gv[ofID2],chr1 = cv[ofID1], chr2 = cv[ofID2],
     refChr = rcv[ofID1], ord1 = ov[ofID1], ord2 = ov[ofID2],
     start1 = sv[ofID1], start2 = sv[ofID2], end1 = sv[ofID1], end2 = sv[ofID2])]
   setkey(riph, gen1, chr1, ord1)
   riph <- subset(riph, complete.cases(riph))
+
+  if(!is.null(onlyTheseRegions)){
+    radius <- max(gsParam$params$synteny$synBuff)
+    blkSize <- max(gsParam$params$synteny$blkSize)
+    if(!is.finite(radius))
+      radius <- 100
+    if(!is.finite(blkSize))
+      blkSize <- 5
+    riph[,tmp := dbscan(frNN(cbind(ord1, ord2), eps = radius),
+                        minPts = blkSize)$cluster,
+         by = c("gen1", "gen2","chr1", "chr2")]
+    riph <- subset(riph, tmp > 0)
+    riph[,blkID := paste(blkID, tmp)]
+  }
+
+  # -- add the reference chr and make new blocks therein
   riph[,rl := add_rle(refChr, which = "id"),
        by = c("gen1", "chr1")]
   riph$refChr[riph$gen1 == refGenome] <- riph$chr1[riph$gen1 == refGenome]
