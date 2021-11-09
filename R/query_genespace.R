@@ -389,3 +389,83 @@ pull_pgIntervals <- function(gsParam,
   setorder(pgout, intID,  ord, na.last = T)
   return(split(pgout, by = "intID"))
 }
+
+
+#' @title pull_pgGenes
+#' @description
+#' \code{pull_pgGenes} pull_pgGenes
+#' @rdname query_genespace
+#' @import data.table
+#' @export
+pull_pgGenes <- function(gsParam,
+                         refGenome = NULL,
+                         genomeGenes){
+
+  # -- pull the gff file
+  wd <- gsParam$paths$results
+  path2gff <- file.path(wd, "gffWithOgs.txt.gz")
+
+  # -- find the right pangenomeDB file
+  pgf <- list.files(path = wd, pattern = "pangenomeDB.txt.gz")
+  if(length(pgf) == 0)
+    stop("cannot find a pan-genome annotation ... have you run pangenome?")
+  if(length(pgf) > 1 & is.null(refGenome)){
+    pgf <- pgf[1]
+    warning(sprintf(
+      "found >1 pangenomes and no refgenome specified. Using the first: %s\n",
+      pgf))
+  }
+
+  # -- if a ref genome is specified, make sure a pangenome matches.
+  if(!is.null(refGenome)){
+    pgf <- sprintf("%s_pangenomeDB.txt.gz", refGenome)
+    if(!file.exists(file.path(wd, pgf)))
+      stop(sprintf(
+        "couldn't find %s_pangenomeDB.txt.gz in /results\n",
+        refGenome))
+  }
+  path2pg <- file.path(wd, pgf)
+
+  # -- check the intervals
+  gids <- data.table(genomeGenes)
+  if(nrow(gids) < 1)
+    stop("could not find entries in genomeGenes ... is this a data.table?\n")
+  if(!all(c("genome", "id") %in% colnames(gids)))
+    stop("intervals must have columns: genome, id\n")
+  gids <- with(gids, data.table(
+    genome = as.character(genome),
+    id = as.character(id)))
+  u <- with(gids, paste(genome, id))
+
+  # -- read in the data
+  pg <- fread(path2pg, na.strings = c("NA", ""), showProgress = F)
+  gffa <- fread(path2gff, na.strings = c("NA", ""), showProgress = F)
+  gff <- subset(gffa, paste(genome, id) %in% u)
+
+  if(nrow(gff) < 1)
+    stop("could not find those gene-genome combinations in the gff\n")
+
+  # -- subset to entries with genes in the intervals
+  pgids <- unique(subset(pg, !is.na(ofID) & ofID %in% gff$ofID)$pgID)
+  pgout <- subset(pg, pgID %in% pgids)
+  pgl <- data.table(pgout)
+
+  # -- flag non-syn orthos
+  iv  <- gffa$id; names(iv) <- gffa$ofID
+  pgout[,id := iv[ofID]]
+
+  pgout$id[pgout$nonSynOrtho] <- paste0(pgout$id[pgout$nonSynOrtho], "*")
+
+  # -- reshape to wide format
+  pgout <- dcast(pgout, pgID + og + chr + ord ~ genome,
+                 value.var = "id", fun.aggregate = function(x) list(x))
+
+  # -- order by pg position
+  setorder(pgout, ord, na.last = T)
+
+  return(list(raw = pgl, wide = pgout))
+}
+
+
+
+

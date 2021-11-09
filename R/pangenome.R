@@ -170,9 +170,15 @@ pangenome <- function(gsParam,
     cat("\tNo orthologues found ... will not be added to the pangenome\n")
     nsOrtho <- NA
   }else{
-    nsOrtho <- pull_nonSynOrthologs(
-      gff = gff,
-      gsParam = gsParam)
+    orth <- parse_orthologues(
+      gsParam = gsParam,
+      refGenome = refGenome,
+      nCores = gsParam$params$nCores)
+    iv <- gffa$ofID; names(iv) <- with(gffa, paste(genome, id))
+    ogv <- gffa$og; names(ogv) <- gffa$ofID
+    orth[,`:=`(ofID1 = iv[paste(gen1, id1)], ofID2 = iv[paste(gen2, id2)])]
+    orth[,`:=`(og1 = ogv[ofID1], og2 = ogv[ofID2])]
+    nsOrtho <- subset(orth, og1 != og2)[,c("ofID1", "ofID2")]
     if(verbose)
       cat(sprintf("\tFlagged %s non-syntenic orthologs\n", nrow(nsOrtho)))
   }
@@ -269,8 +275,8 @@ pangenome <- function(gsParam,
       cat("\n\tAdding in non-syntenic orthologs ... \n")
     gv <- gffa$genome; names(gv) <- gffa$ofID
     pgs <- merge(
-      subset(pg, ofID %in% nsOrtho$ofID),
-      with(nsOrtho, data.table(ofID = ofID, mem = orthIDs)),
+      subset(pg, ofID %in% nsOrtho$ofID1),
+      with(nsOrtho, data.table(ofID = ofID1, mem = ofID2)),
       by  = "ofID", allow.cartesian = T)
     pgs[,`:=`(ofID = mem, mem = NULL, nonSynOrtho = TRUE)]
 
@@ -289,12 +295,12 @@ pangenome <- function(gsParam,
   pg[,`:=`(pgID = as.numeric(factor(pgID, levels = unique(pgID))),
            og = as.numeric(factor(og, levels = unique(og))))]
 
-
   ##############################################################################
   # -- output and write
   if(verbose)
     cat("\tFormating and writing the pangenome ... ")
   pgout <- subset(pg, !is.na(ofID))
+  setkey(pgout, pgID, genome)
 
   # -- give real names
   iv  <- gffa$id; names(iv) <- gffa$ofID
