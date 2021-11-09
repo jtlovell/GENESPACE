@@ -278,16 +278,6 @@ plot_riparian <- function(gsParam,
     blkSize = 5,
     nCores = gsParam$params$nCores)
 
-  # -- find all genes in region if necessary
-  if(!is.null(onlyTheseRegions) & !excludeChrOutOfRegion){
-    setkey(gff, genome, chr, start, end)
-    setkey(onlyTheseRegions, genome, chr, start, end)
-    fo <- foverlaps(gff, onlyTheseRegions)
-    fo <- subset(fo, complete.cases(fo[,c("ofID", "start", "end")]))
-    genesInReg <- gff$ofID[gff$og %in% unique(fo$og)]
-    gffir <- subset(gff, ofID %in% genesInReg)
-  }
-
   # -- load hits in the riparian path
   if(verbose)
     cat("Done!\n\tGenerating block coordinates ... ")
@@ -303,28 +293,50 @@ plot_riparian <- function(gsParam,
   setkey(riph, gen1, chr1, ord1)
   riph <- subset(riph, complete.cases(riph))
 
+  # -- if only regions, give new colors and get coords
   if(!is.null(onlyTheseRegions)){
+    # -- extend the network across genomes
+    setkey(gff, genome, chr, start, end)
+    setkey(onlyTheseRegions, genome, chr, start, end)
+    onlyTheseRegions[,regID := 1:.N]
+    fo <- foverlaps(gff, onlyTheseRegions)
+    fo <- subset(fo, complete.cases(fo[,c("ofID", "start", "end")]))
+    genesInReg <- gff$ofID[gff$og %in% unique(fo$og)]
+    ogInReg <- lapply(split(fo, by = "regID"), function(x) unique(x$og))
+    genesInRegList <- lapply(ogInReg, function(x) subset(gff, og %in% x))
+
     radius <- max(gsParam$params$synteny$synBuff)
     blkSize <- max(gsParam$params$synteny$blkSize)
     if(!is.finite(radius))
       radius <- 100
     if(!is.finite(blkSize))
       blkSize <- 5
-    riph[,tmp := dbscan(frNN(cbind(ord1, ord2), eps = radius),
+
+    # -- assign regIDs to these
+    riphl <- lapply(genesInRegList, function(x)
+      subset(riph, ofID1 %in% x$ofID & riph$ofID2 %in% x$ofID))
+    riph <- rbindlist(lapply(1:length(riphl), function(i){
+      riphl[[i]][,refChr := i]
+      return(riphl[[i]])
+    }))
+
+    riph[,rl := dbscan(frNN(cbind(ord1, ord2), eps = radius),
                         minPts = blkSize)$cluster,
-         by = c("gen1", "gen2","chr1", "chr2")]
-    riph <- subset(riph, tmp > 0)
-    riph[,blkID := paste(blkID, tmp)]
+         by = c("gen1", "gen2","chr1", "chr2", "refChr")]
+    riph <- subset(riph, rl > 0)
+  }else{
+    riph[,rl := add_rle(refChr, which = "id"),
+         by = c("gen1", "chr1")]
+    riph$refChr[riph$gen1 == refGenome] <- riph$chr1[riph$gen1 == refGenome]
+    riph$refChr[riph$gen2 == refGenome] <- riph$chr1[riph$gen2 == refGenome]
+    riph$rl[riph$gen1 == refGenome] <- 1
+    riph$rl[riph$gen2 == refGenome] <- 1
   }
 
   # -- add the reference chr and make new blocks therein
-  riph[,rl := add_rle(refChr, which = "id"),
-       by = c("gen1", "chr1")]
-  riph$refChr[riph$gen1 == refGenome] <- riph$chr1[riph$gen1 == refGenome]
-  riph$refChr[riph$gen2 == refGenome] <- riph$chr1[riph$gen2 == refGenome]
-  riph$rl[riph$gen1 == refGenome] <- 1
-  riph$rl[riph$gen2 == refGenome] <- 1
   riph[,blkID := sprintf("%s_%s_%s_%s_%s", gen1, gen2, blkID, refChr, rl)]
+  blkv <- riph$refChr; names(blkv) <- riph$blkID
+  blkv <- blkv[!duplicated(names(blkv))]
 
   # -- get the block coordinates
   bc <- calc_blkCoords(riph)
@@ -336,11 +348,16 @@ plot_riparian <- function(gsParam,
   }
 
   # -- add in the referenc chr and get the colors
-  bc[,`:=`(refChr = rcv[firstGene1])]
-  bc$refChr[bc$gen1 == refGenome] <- bc$chr1[bc$gen1 == refGenome]
-  bc$refChr[bc$gen2 == refGenome] <- bc$chr2[bc$gen2 == refGenome]
+  bc[,`:=`(refChr = blkv[blkID])]
+  if(is.null(onlyTheseRegions)){
+    bc$refChr[bc$gen1 == refGenome] <- bc$chr1[bc$gen1 == refGenome]
+    bc$refChr[bc$gen2 == refGenome] <- bc$chr2[bc$gen2 == refGenome]
+  }
+  if(!is.null(onlyTheseRegions)){
+    cols <- onlyTheseRegions$col
+    names(cols) <- as.character(onlyTheseRegions$regID)
+  }
   bc[,col := cols[as.character(refChr)]]
-
   # -- calculate chromosome start/end coords
   gff[,x := linBp]
   if(useOrder)

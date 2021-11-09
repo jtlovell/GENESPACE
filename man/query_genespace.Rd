@@ -4,6 +4,7 @@
 \alias{query_genespace}
 \alias{query_pangenome}
 \alias{write_phytozome}
+\alias{pull_pgIntervals}
 \title{Query genespace datasets}
 \usage{
 query_pangenome(
@@ -20,6 +21,8 @@ query_pangenome(
 )
 
 write_phytozome(gsParam, genomeIDs = NULL)
+
+pull_pgIntervals(gsParam, refGenome = NULL, genomeIDs = NULL, intervals)
 }
 \arguments{
 \item{pg}{the pangenome data.table}
@@ -70,6 +73,8 @@ character vector of genomeIDs).}
 \code{query_pangenome} query_pangenome
 
 \code{write_phytozome} write_phytozome
+
+\code{pull_pgIntervals} pull_pgIntervals
 }
 \details{
 ...

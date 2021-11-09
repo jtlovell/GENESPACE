@@ -35,7 +35,9 @@ plot_riparian(
   returnSourceData = F,
   verbose = NULL,
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf", "",
-    gsub("chr|chromosome|scaffold|^lg|_", "", tolower(x))))
+    gsub("chr|chromosome|scaffold|^lg|_", "", tolower(x)))),
+  annotatePlot = TRUE,
+  add2plot = FALSE
 )
 }
 \arguments{
