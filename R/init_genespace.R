@@ -267,6 +267,26 @@ init_genespace <- function(genomeIDs,
   }
 
   ##############################################################################
+  check_minPepLen <- function(x){
+    x <- as.integer(x)[1]
+    if(is.na(x) || is.null(x))
+      stop("minPepLen must be an integer\n")
+    if(x < 0)
+      x <- 0
+    return(x)
+  }
+
+  ##############################################################################
+  check_dropInterSize <- function(x){
+    x <- as.integer(x)[1]
+    if(is.na(x) || is.null(x))
+      stop("dropInterleavesSmallerThan must be an integer\n")
+    if(x < 1)
+      x <- 1
+    return(x)
+  }
+
+  ##############################################################################
   make_parsedAnnotPaths <- function(path, genomeIDs){
     gp <- file.path(path, "gff")
     if(!dir.exists(gp))

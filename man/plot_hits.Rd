@@ -6,52 +6,28 @@
 \usage{
 plot_hits(
   hits,
-  gff,
-  plotRegions = FALSE,
-  bufferOnly = FALSE,
-  anchorOnly = FALSE,
-  noBlkCol = add_alpha("gold", 0.2),
-  gsParam,
-  minGenes2plot = 50,
-  onlyOg = TRUE,
+  plotType = c("allHits", "allOG", "regAnchor", "regBuffer", "blkAnchor", "blkBuffer"),
+  reorderChrs = TRUE,
+  minGenes2plot = 10,
   gapProp = 0.005,
-  useOrder = T,
+  useOrder = TRUE,
   round2 = ifelse(useOrder, 10, 50000),
   cols = NULL,
   alpha = 1,
-  fixedAspRat = TRUE,
   axisTitleCex = 0.6,
   darkChrFill = "grey60",
   lightChrFill = "grey85",
   emptyChrFill = "grey97",
   chrLabCex = 0.4,
-  chrLabFun = function(x) gsub("^0", "", gsub("^chr|^scaffold|^lg|_", "", tolower(x))),
-  plotTitle = "diamond hit dotplot"
+  returnSourceData = F,
+  chrLabFun = function(x) gsub("^0", "", gsub("^chr|^scaffold|^lg|_", "", tolower(x)))
 )
 }
 \arguments{
 \item{hits}{data.table of hits}
 
-\item{gff}{annotated gff-like data.table}
-
-\item{plotRegions}{logical, should regions be plotted (instead of blocks)?}
-
-\item{bufferOnly}{logical, should only hits in buffers be plotted?}
-
-\item{anchorOnly}{logical, should only hits that are anchors be plotted?}
-
-\item{noBlkCol}{color for points that are not in blocks}
-
-\item{gsParam}{A list of genespace parameters. This should be created
-by setup_genespace, but can be built manually. Must have the following
-elements: blast (file.path to the original orthofinder run), synteny (
-file.path to the directory where syntenic results are stored), genomeIDs (
-character vector of genomeIDs).}
-
 \item{minGenes2plot}{integer specifying the minimum number of genes on a
 chr to plot}
-
-\item{onlyOg}{logical, should only og hits be plotted?}
 
 \item{gapProp}{numeric (0-1) specifying the proportional size of gaps
 relative to the length of the largest genome}
@@ -66,8 +42,6 @@ to reduce the total number of points. 1 = don't round}
 
 \item{alpha}{numeric (0-1) specifying transparency of the points}
 
-\item{fixedAspRat}{logical, should the plots have fixed aspect ratios?}
-
 \item{axisTitleCex}{character expansion for the axes and genome labels}
 
 \item{darkChrFill}{color of the most dense chr backgrounds}
@@ -79,6 +53,16 @@ to reduce the total number of points. 1 = don't round}
 \item{chrLabCex}{character expansion for the chromosome labels}
 
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
+
+\item{plotRegions}{logical, should regions be plotted (instead of blocks)?}
+
+\item{bufferOnly}{logical, should only hits in buffers be plotted?}
+
+\item{anchorOnly}{logical, should only hits that are anchors be plotted?}
+
+\item{gff}{annotated gff-like data.table}
+
+\item{onlyOg}{logical, should only og hits be plotted?}
 
 \item{plotTitle}{character string specifying the title of the plot}
 }

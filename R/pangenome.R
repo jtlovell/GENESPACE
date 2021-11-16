@@ -70,8 +70,8 @@ pangenome <- function(gsParam,
       g2 <- splg[[sprintf("%s.%s", x$gen2, x$chr2)]]
       a <- spla[[x$blkID]]
       h <- merge(
-        data.table(ofID1 = g1$ofID, og = g1$combOG, ord1 = g1$ord),
-        data.table(ofID2 = g2$ofID, og = g2$combOG, ord2 = g2$ord),
+        data.table(ofID1 = g1$ofID, og = g1$og, ord1 = g1$ord),
+        data.table(ofID2 = g2$ofID, og = g2$og, ord2 = g2$ord),
         by = "og", allow.cartesian = T, all = T)
       h <- subset(h, !is.na(ofID2))
       setkey(h, ord2)
@@ -98,16 +98,16 @@ pangenome <- function(gsParam,
   # -- internal function to assign and cluster orthogroups by ref position
   assign_og2reford <- function(gffRef, synBuff){
     rngOrd <- interpRefOrd <- clus <- NULL
-    gffRef[,rngOrd := diff(range(interpRefOrd)), by = c("combOG", "refChr")]
+    gffRef[,rngOrd := diff(range(interpRefOrd)), by = c("og", "refChr")]
     g1 <- subset(gffRef, rngOrd <= synBuff)
     g1[,clus := 1]
     g2 <- subset(gffRef, rngOrd > synBuff)
     g2[,clus := dbscan(frNN(cbind(interpRefOrd, interpRefOrd), eps = synBuff),
                        minPts = 0)$cluster,
-       by = c("combOG", "refChr")]
+       by = c("og", "refChr")]
     gffRef <- rbind(g1, g2)
     ogPos <- gffRef[,list(ord = median(interpRefOrd, na.rm = T)),
-                    by = c("combOG", "refChr", "clus")]
+                    by = c("og", "refChr", "clus")]
     return(ogPos)
   }
 
@@ -163,7 +163,7 @@ pangenome <- function(gsParam,
   gff <- subset(gffa, isArrayRep)
   if(verbose)
     cat(sprintf("\n\t... found %s genes %s array reps in %s merged OGs\n",
-                nrow(gffa), nrow(gff), uniqueN(gff$combOG)))
+                nrow(gffa), nrow(gff), uniqueN(gff$og)))
   ##############################################################################
   # -- pull genes that are missing
   if(is.na(gsParam$paths$orthologuesDir)){
@@ -215,10 +215,10 @@ pangenome <- function(gsParam,
   ogPos <- assign_og2reford(
     gffRef = gffRef,
     synBuff = synBuff)
-  ogn <- ogPos[,list(n = .N), by = "combOG"]
+  ogn <- ogPos[,list(n = .N), by = "og"]
   if(verbose)
     cat(sprintf("Done!\n\tPos. count: 0x = %s, 1x = %s, 2x = %s, 3x = %s 4x = %s, 4+x = %s",
-        sum(!gff$combOG %in% ogn$combOG),
+        sum(!gff$og %in% ogn$og),
         sum(ogn$n == 1), sum(ogn$n == 2), sum(ogn$n == 3),
         sum(ogn$n == 4), sum(ogn$n > 4)))
 
@@ -229,8 +229,8 @@ pangenome <- function(gsParam,
 
   # -- combine the array rep gff with inferred positions of all OGs
   pg <- merge(
-    with(gff, data.table(genome = genome, ofID = ofID, og = combOG)),
-    with(ogPos, data.table(og = combOG, chr = refChr, clus = clus, ord = ord)),
+    with(gff, data.table(genome = genome, ofID = ofID, og = og)),
+    with(ogPos, data.table(og = og, chr = refChr, clus = clus, ord = ord)),
     by = "og", all= T, allow.cartesian = T)
 
   # -- rename the pangenome IDs
