@@ -127,68 +127,61 @@ run_orthofinder <- function(gsParam,
 
     return(com)
   }
+
   ##############################################################################
+  # --- invert blast file
+  invert_blast <- function(fileIn, fileOut){
+    tmp <- fread(fileIn, verbose = F, showProgress = F)
+    tmp <- tmp[,c(2,1,3:6,8,7,10,9,11,12)]
+    fwrite(
+      tmp, sep = "\t", quote = FALSE,  col.names = FALSE, row.names = FALSE,
+      file = fileOut, showProgress = FALSE, verbose = FALSE)
+  }
+
   ##############################################################################
+  # -- move and reorganize orthofinder input files
+  reorg_ofInput <- function(ofDir){
+    origF <- list.files(ofDir, full.names = TRUE)
+    ofTmp <- dirname(list.files(
+      path = ofDir,
+      pattern = "diamondDBSpecies0.dmnd",
+      recursive = T,
+      full.names = T))
+    ofFiles <- list.files(path = ofTmp, full.names = TRUE)
+    for(i in ofFiles)
+      file.copy(from = i, to = ofDir, overwrite = T)
+    unlink(origF, recursive = T, force = T)
+  }
+
   ##############################################################################
+  # -- add blast metadata / calls
+  add_blastInfo2syn <- function(gsParam){
+    si <- read_orthofinderSpeciesIDs(gsParam$paths$orthofinder)
+    p <- data.table(gsParam$params$synteny)
+    diamondMode <- gsParam$params$diamondMode
+    ofd <- gsParam$paths$orthofinder
+    p[,`:=`(db1 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd",si[genome1])),
+            db2 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd",si[genome2])),
+            fa1 = file.path(ofd, sprintf("Species%s.fa",si[genome1])),
+            fa2 = file.path(ofd, sprintf("Species%s.fa",si[genome2])),
+            blFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome1], si[genome2])),
+            invertFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome2], si[genome1])))]
+    dm <- ifelse(gsParam$params$diamondMode == "--fast", "", gsParam$params$diamondMode)
+    p[,com := sprintf(
+      "%s blastp %s --quiet -e %s -p %s --compress 1 -d %s -q %s -o %s",
+      "diamond", dm, .1, gsParam$params$nCores, db2, fa1, blFile)]
+    return(p)
+  }
+
+  ##############################################################################
+  # -- fast pairwise (non-reciprocal) blast hits
   fast_ofDb <- function(gsParam, quietOrthofinder){
-    runBlast <- genome1 <- genome2 <- db2 <- fa1 <- blFile <- NULL
-    ############################################################################
-    # Ad hoc internal functions
-    ############################################################################
-    # a. invert blast file
-    invert_blast <- function(fileIn, fileOut){
-      tmp <- fread(fileIn, verbose = F, showProgress = F)
-      tmp <- tmp[,c(2,1,3:6,8,7,10,9,11,12)]
-      fwrite(tmp, sep = "\t",
-             quote = FALSE,
-             col.names = FALSE,
-             row.names = FALSE,
-             file = fileOut,
-             showProgress = FALSE,
-             verbose = FALSE)
-    }
-    ############################################################################
-    # b. move and reorganize orthofinder input files
-    reorg_ofInput <- function(ofDir){
-      origF <- list.files(ofDir, full.names = TRUE)
 
-      ofTmp <- dirname(list.files(
-        path = ofDir,
-        pattern = "diamondDBSpecies0.dmnd",
-        recursive = T,
-        full.names = T))
-      ofFiles <- list.files(path = ofTmp, full.names = TRUE)
-      for(i in ofFiles)
-        file.copy(from = i, to = ofDir, overwrite = T)
-      unlink(origF, recursive = T, force = T)
-    }
-    ############################################################################
-    # c. add blast metadata / calls
-    add_blastInfo2syn <- function(gsParam, ofSpeciesIDs){
-      p <- data.table(gsParam$params$synteny)
-      diamondMode <- gsParam$params$diamondMode
-      ofd <- gsParam$paths$orthofinder
-      p[,`:=`(db1 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd",si[genome1])),
-              db2 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd",si[genome2])),
-              fa1 = file.path(ofd, sprintf("Species%s.fa",si[genome1])),
-              fa2 = file.path(ofd, sprintf("Species%s.fa",si[genome2])),
-              blFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome1], si[genome2])),
-              invertFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome2], si[genome1])))]
-      dm <- ifelse(gsParam$params$diamondMode == "--fast", "", gsParam$params$diamondMode)
-      p[,com := sprintf(
-        "%s blastp %s --quiet -e %s -p %s --compress 1 -d %s -q %s -o %s",
-        "diamond", dm, .1, gsParam$params$nCores, db2, fa1, blFile)]
-      return(p)
-    }
-
-    ############################################################################
-    # 1. Remove existing orthofinder directory if it exists
-    if(dir.exists(gsParam$paths$orthofinder)){
+    # -- Remove existing orthofinder directory if it exists
+    if(dir.exists(gsParam$paths$orthofinder))
       unlink(gsParam$paths$orthofinder, recursive = T)
-    }
 
-    ############################################################################
-    # 2. convert to orthofinder
+    # -- convert to orthofinder
     com <- sprintf(
       "%s -f %s -t %s -a 1 -op -o %s 1>/dev/null 2>&1",
       gsParam$paths$orthofinderCall,
@@ -197,36 +190,32 @@ run_orthofinder <- function(gsParam,
       gsParam$paths$orthofinder)
     system(com)
 
-    ############################################################################
-    # 3. place orthofinder input files in paths$orthofinder
+    # -- place orthofinder input files in paths$orthofinder
     reorg_ofInput(gsParam$paths$orthofinder)
-    si <- read_orthofinderSpeciesIDs(gsParam$paths$orthofinder)
 
-    ############################################################################
-    # 4. get blast parameters
-    p <- add_blastInfo2syn(gsParam = gsParam, ofSpeciesIDs = si)
+    # -- get blast parameters
+    p <- add_blastInfo2syn(gsParam = gsParam)
 
-    ############################################################################
-    # 5. Run blasts
+    # -- Run blasts
+    runBlast <- NULL
     pwp <- subset(p, runBlast)
     for(i in 1:nrow(pwp)){
       if(gsParam$params$verbose)
-        with(pwp[i,], cat(sprintf("\t\tRunning %s/%s (%s vs. %s)\n",
-                                  i, nrow(pwp), genome1, genome2)))
+        with(pwp[i,], cat(sprintf(
+          "\t\tRunning %s/%s (%s vs. %s)\n",
+          i, nrow(pwp), genome1, genome2)))
       system(pwp$com[i])
     }
 
-    ############################################################################
-    # 6. Invert blasts if necessary
+    # -- Invert blasts if necessary
     if(gsParam$params$verbose)
       cat("\t\tDone!\n\tInverting intergenomic files ... ")
+    runBlast <- genome1 <- genome2 <- NULL
     ip <- subset(p, !runBlast & genome1 != genome2)
-    for(i in 1:nrow(ip)){
+    for(i in 1:nrow(ip))
       invert_blast(fileIn = ip$invertFile[i], fileOut = ip$blFile[i])
-    }
 
-    ############################################################################
-    # 7. Run orthofinder
+    # -- Run orthofinder
     if(gsParam$params$verbose)
       cat("Done!\n\tRunning orthofinder -og on pre-computed blast:\n")
     quiet <- ifelse(quietOrthofinder, "1>/dev/null 2>&1", "")
@@ -242,13 +231,12 @@ run_orthofinder <- function(gsParam,
 
   ##############################################################################
   ##############################################################################
-  ##############################################################################
-
+  # -- check the orthofinder call
   if(is.logical(gsParam$paths$orthofinderCall))
     if(!gsParam$paths$orthofinderCall && !is.na(gsParam$paths$orthofinderCall))
       gsParam$paths$orthofinderCall <- NA
 
-  # set the synteny parameters
+  # -- set the synteny parameters
   if(is.data.table(gsParam$params$synteny))
     if(!all(gsParam$genomes$genomeIDs %in% gsParam$params$synteny$genome1))
       gsParam$params$synteny <- NULL
@@ -305,7 +293,6 @@ run_orthofinder <- function(gsParam,
 #' \code{blkwise_orthofinder} blkwise_orthofinder
 #' @rdname run_orthofinder
 #' @import data.table
-#' @importFrom dbscan dbscan frNN
 #' @importFrom Biostrings readAAStringSet
 #' @export
 blkwise_orthofinder <- function(gsParam,
@@ -354,74 +341,7 @@ blkwise_orthofinder <- function(gsParam,
     }
     return(h)
   }
-  ##############################################################################
-  ##############################################################################
-  run_ofInReg <- function(gsParam, genome1, genome2, blks, gff, pepspl){
 
-    V1 <- V2 <- ord <- ofID1 <- ofID2 <- synOg1 <- synOg2 <- og <- regID <- NULL
-    cls <- og <- gen1 <- gen2 <- nHits1 <- genome <- lgRegionID <- NULL
-    nCores <- gsParam$params$nCores
-    geno1 <- genome1[1]
-    geno2 <- genome2[1]
-    genome1 <- genome2 <- NULL
-
-    # -- subset the blks object to the genomes of interst
-    b <- subset(blks, gen1 == geno1 & gen2 == geno2)
-    setorder(b, -nHits1)
-
-    # -- read in the hits
-    fs <- file.path(
-      gsParam$paths$results,
-      sprintf("%s_%s_synHits.txt.gz",geno1, geno2))
-    hits <- fread(
-      fs,
-      na.strings = c("NA", ""),
-      showProgress = F)
-
-    # -- read the raw blasts
-    h <- read_hits4of(
-      gsParam = gsParam,
-      genome1 = geno1,
-      genome2 = geno2)
-
-    # -- parse the gff
-    gs1 <- split(subset(gff, genome == geno1), by = "chr")
-    gs2 <- split(subset(gff, genome == geno2), by = "chr")
-
-    # -- for each block ...
-    synOgHits <- rbindlist(mclapply(1:nrow(b), mc.cores = nCores, function(j){
-      bj <- b[j,]
-      hitj <- subset(hits, lgRegionID == bj$blkID)
-      gj1 <- subset(
-        gs1[[as.character(bj$chr1)]],
-        ord >= bj$startOrd1 & ord <= bj$endOrd1)
-      gj2 <- subset(
-        gs2[[as.character(bj$chr2)]],
-        ord >= bj$minOrd2 & ord <= bj$maxOrd2)
-      uj <- unique(c(gj1$ofID, gj2$ofID))
-      hj <- subset(h, V1 %in% uj & V2 %in% uj)
-      hij <- subset(hits, ofID1 %in% uj & ofID2 %in% uj)
-      tmpDir <- file.path(gsParam$params$wd, sprintf("%s_og4inBlkTMPdir", j))
-      if(dir.exists(tmpDir))
-        unlink(tmpDir, recursive = T)
-      ogdt <- run_ofFromObj(
-        blast00 = subset(hj, V1 %in% gj1$ofID & V2 %in% gj1$ofID),
-        blast01 = subset(hj, V1 %in% gj1$ofID & V2 %in% gj2$ofID),
-        blast10 = subset(hj, V1 %in% gj2$ofID & V2 %in% gj1$ofID),
-        blast11 = subset(hj, V1 %in% gj2$ofID & V2 %in% gj2$ofID),
-        pep0 = pepspl[[geno1]],
-        pep1 = pepspl[[geno2]],
-        writeDir = tmpDir)
-      if(dir.exists(tmpDir))
-        unlink(tmpDir, recursive = T)
-      ogv <- ogdt$og; names(ogv) <- ogdt$ofID
-      hij[,`:=`(synOg1 = ogv[ofID1], synOg2 = ogv[ofID2])]
-      return(subset(hij, synOg1 == synOg2 | !(is.na(og) | is.na(regID))))
-    }))
-    synOgHits <- subset(synOgHits, !duplicated(paste(ofID1, ofID2)))
-    synOgHits[,cls := ifelse(is.na(og), "onlyInBlk", ifelse(synOg1 != synOg2, "onlyGlob", "both"))]
-    return(synOgHits)
-  }
   ##############################################################################
   ##############################################################################
   run_ofFromObj <- function(blast00,
@@ -432,7 +352,6 @@ blkwise_orthofinder <- function(gsParam,
                             pep1,
                             writeDir){
 
-    ofID <- ofID1 <- ofID2 <- id <- ofID <- og <- Orthogroup <- NULL
     if(dir.exists(writeDir))
       stop(sprintf("%s exists. Specify non-existing directory\n",
                    writeDir))
@@ -460,7 +379,10 @@ blkwise_orthofinder <- function(gsParam,
     # -- rename peptides and invert dictionary
     p0 <- pep0[id0]; names(p0) <- names(id0)
     p1 <- pep1[id1]; names(p1) <- names(id1)
-    di0 <- names(id0); di1 <- names(id1); names(di0) <- id0; names(di1) <- id1
+    di0 <- names(id0)
+    di1 <- names(id1)
+    names(di0) <- id0
+    names(di1) <- id1
 
     # -- write the peptide files / fake diamond dbs
     writeXStringSet(p0, filepath = file.path(writeDir, "Species0.fa"))
@@ -480,6 +402,7 @@ blkwise_orthofinder <- function(gsParam,
       sep = "\n", file = file.path(writeDir, "SpeciesIDs.txt"))
 
     # -- rename the blast files
+    ofID1 <- ofID2 <- NULL
     bl00 <- subset(blast00, ofID1 %in% names(di0) & ofID2 %in% names(di0))
     bl01 <- subset(blast01, ofID1 %in% names(di0) & ofID2 %in% names(di1))
     bl10 <- subset(blast10, ofID1 %in% names(di1) & ofID2 %in% names(di0))
@@ -546,33 +469,7 @@ blkwise_orthofinder <- function(gsParam,
 
     return(ogdt)
   }
-  ##############################################################################
-  ##############################################################################
-  count_expectn <- function(hits, gff){
-    ord1 <- ord2 <- genome <- chr <- start <- end <- ofID <- nReg <- regID <- NULL
-    b <- hits[,list(start = min(ord1), end = max(ord1)),
-              by = c("gen1","chr1","regID")]
-    if(hits$gen1[1] != hits$gen2[1] ){
-      b2 <- hits[,list(start = min(ord2), end = max(ord2)),
-                 by = c("gen2","chr2","regID")]
-      setnames(b2, colnames(b))
-      b <- rbind(b, b2)
-    }
-    b <- with(b, data.table(
-      genome = gen1, chr = chr1, regID = regID, start = start, end = end))
-    g <- with(subset(gff, genome %in% c(hits$gen1[1], hits$gen2[1])), data.table(
-      genome = genome, chr = chr, start = ord, end = ord, ofID = ofID))
-    setkey(g, genome, chr, start, end)
-    setkey(b, genome, chr, start, end)
-    f <- subset(foverlaps(g, b), !is.na(ofID))[,c("genome","regID","ofID")]
-    f[,nReg := uniqueN(regID[!is.na(regID)]), by = "ofID"]
-    return(f)
-  }
-  ##############################################################################
-  ##############################################################################
-  genome1 <- genome2 <- gnum1 <- gnum2 <- lgRegionID <- regBuffer <- n2 <- NULL
-  n1 <- V2 <- V1 <- blkID <- hasOgGlob <- og <- regID <- ofID <- regAnchor <- NULL
-  ofID1 <- ofID2 <- synOg1 <- synOg2 <- hasOgPw <- NULL
+
   ##############################################################################
   # 1.Checking
   ##############################################################################
@@ -581,6 +478,7 @@ blkwise_orthofinder <- function(gsParam,
     genomeIDs <- gsParam$genomes$genomeIDs
   verbose <- gsParam$params$verbose
   nCores <- gsParam$params$nCores
+
   # -- make sure orthofinder has been run and blast results exist
   if(is.na(gsParam$paths$blastDir))
     gsParam <- find_orthofinderResults(gsParam)
@@ -590,10 +488,11 @@ blkwise_orthofinder <- function(gsParam,
   names(ov) <- names(sv) <- names(ev) <- gff$ofID
 
   # -- get the synParams in
+  genome1 <- genome2 <- runBlast <- gnum1 <- gnum2 <- NULL
   synp <- data.table(gsParam$params$synteny)
   synp[,`:=`(gnum1 = match(genome1, genomeIDs),
              gnum2 = match(genome2, genomeIDs))]
-  synp <- subset(synp, gnum1 <= gnum2)
+  synp <- subset(synp, runBlast)
   setkey(synp, gnum1, gnum2)
 
   # -- get orthofinder species IDs
@@ -605,96 +504,121 @@ blkwise_orthofinder <- function(gsParam,
                               sprintf("Species%s.fa", ofSpId[i]))))
 
   # -- run orthofinder within each region
-  p5 <- function(x)
-    paste(c(x, rep(" ", max(0, 7 - nchar(x)))), collapse = "")
   if(verbose)
-    cat(sprintf(
-      "\tRunning orthofinder by region ...\n\tGenome1-Genome2| Copy Number: %s%s%s%s\n",
-      p5("absent"),p5("1x"),p5("2x"),p5("2+x")))
+    cat("Running orthofinder by region ... n.genes, nOGs global/syntenic/inblk\n")
+  genome <- chr <- start <- end <- NULL
+  setkey(gff, genome, chr, start, end)
 
-  blnk <- paste(rep(" ", 16), collapse = "")
+  ofSpId <- read_orthofinderSpeciesIDs(gsParam$paths$blastDir)
+  pepspl <- sapply(genomeIDs, USE.NAMES = T, simplify = F, function(i)
+    readAAStringSet(file.path(gsParam$paths$blastDir,
+                              sprintf("Species%s.fa", ofSpId[i]))))
+
+  arrep <- with(subset(gff, isArrayRep), split(ofID, genome))
+
   synOgInBlkHits <- rbindlist(lapply(1:nrow(synp), function(i){
-    geno1 <- synp$genome1[i]
-    geno2 <- synp$genome2[i]
+    geno1 <- synp$genome1[i]; geno2 <- synp$genome2[i]
     if(verbose)
-      cat(sprintf("\t%s-%s|", pull_strWidth(geno1, 7),pull_strWidth(geno2, 7)))
+      cat(sprintf("\t%s-%s: ", pull_strWidth(geno1, 8),pull_strWidth(geno2, 8)))
 
     # -- load the syntenic hits
     fs <- file.path(
       gsParam$paths$results,
-      sprintf("%s_%s_synHits.txt.gz",geno1, geno2))
-    hits <- subset(fread(
-      fs,
-      na.strings = c("NA", ""),
-      showProgress = F),
-      !is.na(lgRegionID) & regBuffer)
+      sprintf("%s_%s_synHits.txt.gz", geno1, geno2))
+    hits <- fread(fs, na.strings = c("NA", ""), showProgress = F,
+                  select = c("ofID1","ofID2", "lgRegID","regBuffer"))
 
-    # -- calculate block coordinates from lgRegions (aggregated regions)
-    hits[,`:=`(blkID = lgRegionID, blkAnchor = regAnchor, blkBuffer = regBuffer)]
-    bv <- with(hits, c(blkID, blkID))
-    names(bv) <- with(hits, c(paste(ofID1, ofID2), paste(ofID2, ofID1)))
-    bv <- bv[!duplicated(names(bv))]
-    expn <- count_expectn(hits = hits, gff = gff)
-    tb <- subset(expn, !duplicated(paste(ofID, regID)))
-    tb <- tb[,list(n = sum(!is.na(regID))), by = "ofID"]
+    # -- subset to hits in the large regions
+    lgRegID <- NULL
+    hits <- subset(hits, !is.na(lgRegID))
+
+    # --  subset hits to array Reps
+    hits <- subset(hits, ofID1 %in% arrep[[geno1]] & ofID2 %in% arrep[[geno2]])
+
+    # -- subset to non-self regions
+    ofID1 <- ofID2 <- anySelf <- NULL
+    hits[,anySelf := any(ofID1 %in% ofID2), by = "lgRegID"]
+    hits <- subset(hits, !anySelf)
+
+    # -- subset to the genomes of interest and report updates
+    genome <- ofID <- synOG <- globOG <- NULL
+    g <- subset(gff, genome %in% c(geno1, geno2))
     if(verbose)
-      cat(sprintf(" expected CN: %s%s%s%s\n",
-                  p5(sum(tb$n == 0)), p5(sum(tb$n == 1)), p5(sum(tb$n == 2)), p5(sum(tb$n > 2))))
-    oggl <- with(subset(hits, !is.na(og)), unique(paste(
-      c(regID, regID), c(ofID1, ofID2))))
-    expn[,hasOgGlob := paste(regID, ofID) %in% oggl]
-    tb <- expn[,list(n = sum(!is.na(regID) & hasOgGlob)), by = "ofID"]
-    if(verbose)
-      cat(sprintf("\t%sglob. hit CN: %s%s%s%s\n",
-                  blnk,  p5(sum(tb$n == 0)), p5(sum(tb$n == 1)), p5(sum(tb$n == 2)), p5(sum(tb$n > 2))))
+      with(g, cat(sprintf("%s genes, %s / %s ",
+                  uniqueN(ofID), uniqueN(globOG), uniqueN(synOG))))
+    if(nrow(hits) == 0){
+      if(verbose)
+        cat("no non-self syn. regions\n")
+      return(NULL)
+    }else{
+      # -- read in the hits
+      h <- read_hits4of(
+        gsParam = gsParam,
+        genome1 = geno1,
+        genome2 = geno2)
+      u12 <- with(hits, paste(ofID1, ofID2))
+      u21 <- with(hits, paste(ofID2, ofID1))
+      h00 <- subset(h, V1 %in% arrep[[geno1]] & V1 == V2)
+      h11 <- subset(h, V1 %in% arrep[[geno2]] & V1 == V2)
+      h01 <- subset(h, paste(V1, V2) %in% u12)
+      h10 <- subset(h, paste(V1, V2) %in% u21)
+      hspl <- split(hits, by = "lgRegID")
+      # -- split hits by lgRegs
+      inblkOgDt <- rbindlist(mclapply(names(hspl), mc.cores = nCores, mc.preschedule = F, function(j){
+        tmpDir <- file.path(gsParam$params$wd, sprintf("%s_og4inBlkTMPdir", j))
+        if(dir.exists(tmpDir))
+          unlink(tmpDir, recursive = T)
 
-    # -- read raw blast hits
-    h <- read_hits4of(
-      gsParam = gsParam,
-      genome1 = geno1,
-      genome2 = geno2)
-    h[,blkID := bv[paste(V1, V2)]]
-    h <- subset(h, !is.na(blkID))
-    hc <- h[,list(n1 = uniqueN(V1), n2 = uniqueN(V2)), by = "blkID"]
-    hc <- subset(hc, n1 >= minGenes4of & n2 >= minGenes4of)
-    setorder(hc, -n1, -n2)
-    # -- split hits by blocks with enuf genes
-    splh <- sapply(split(h, by = "blkID"), simplify = F, USE.NAMES = T, function(x) x[,1:12])
+        out <- data.table(hspl[[j]])
+        u1 <- unique(out$ofID1)
+        u2 <- unique(out$ofID2)
 
-    # -- run of in each block
-    synOgHits <- rbindlist(mclapply(hc$blkID, mc.cores = nCores, function(j){
-      hj <- splh[[j]]
-      rj <- subset(hits, lgRegionID == j)
-      tmpDir <- file.path(gsParam$params$wd, sprintf("%s_og4inBlkTMPdir", j))
-      if(dir.exists(tmpDir))
-        unlink(tmpDir, recursive = T)
-      ogdt <- run_ofFromObj(
-        blast00 = subset(h, V1 %in% rj$ofID1 & V2 %in% rj$ofID1),
-        blast01 = subset(h, V1 %in% rj$ofID1 & V2 %in% rj$ofID2),
-        blast10 = subset(h, V1 %in% rj$ofID2 & V2 %in% rj$ofID1),
-        blast11 = subset(h, V1 %in% rj$ofID2 & V2 %in% rj$ofID2),
-        pep0 = pepspl[[geno1]],
-        pep1 = pepspl[[geno2]],
-        writeDir = tmpDir)
-      if(dir.exists(tmpDir))
-        unlink(tmpDir, recursive = T)
-      ogv <- ogdt$og; names(ogv) <- ogdt$ofID
-      rj[,`:=`(synOg1 = ogv[ofID1], synOg2 = ogv[ofID2])]
-      return(subset(rj, !is.na(og) | synOg1 == synOg2))
-    }))
+        # -- run orthofinder from these hits
+        V1 <- V2 <- lgRegID <- NULL
+        ogdt <- run_ofFromObj(
+          blast00 = subset(h00, V1 %in% u1 & V2 %in% u1),
+          blast01 = subset(h01, V1 %in% u1 & V2 %in% u2),
+          blast10 = subset(h10, V1 %in% u2 & V2 %in% u1),
+          blast11 = subset(h11, V1 %in% u2 & V2 %in% u2),
+          pep0 = pepspl[[geno1]],
+          pep1 = pepspl[[geno2]],
+          writeDir = tmpDir)
+        ogdt[,og := as.numeric(as.factor(og))]
+        ogv <- ogdt$og; names(ogv) <- ogdt$ofID
+        u <- unique(c(u1,u2))
+        uo <- u[!u %in% names(ogv)]
+        uv <- (max(ogv) + 1):(max(ogv) + length(uo))
+        names(uv) <- uo
+        ogv <- c(ogv, uv)
+        out[,isInblkOg := ogv[ofID1] == ogv[ofID2]]
 
-    ogpw <- with(subset(synOgHits, synOg1 == synOg2), unique(paste(
-      c(regID, regID), c(ofID1, ofID2))))
+        return(out[,c(1:2,6)])
+      }))
 
-    expn[,hasOgPw := paste(regID, ofID) %in% ogpw]
-    tb <- expn[,list(n = sum(!is.na(regID) & hasOgPw)), by = "ofID"]
-    if(verbose)
-      cat(sprintf("\t%sinblk hit CN: %s%s%s%s\n",
-                  blnk,  p5(sum(tb$n == 0)), p5(sum(tb$n == 1)), p5(sum(tb$n == 2)), p5(sum(tb$n > 2))))
+      ic <- with(subset(inblkOgDt, isInblkOg), clus_igraph(
+        id1 = c(ofID1, ofID2), id2 = c(ofID2, ofID1)))
+      ic <- ic[!duplicated(names(ic))]
+      uc <- with(hits, unique(c(ofID1, ofID2)))
+      uc <- uc[!uc %in% names(ic)]
+      if(verbose)
+        cat(sprintf("/ %s\n", uniqueN(ic) + length(uc)))
 
-    return(with(subset(synOgHits, synOg1 == synOg2), data.table(
-      ofID1 = ofID1, ofID2 = ofID2, synOg = synOg1)))
+      return(inblkOgDt)
+    }
   }))
+  ib <- subset(synOgInBlkHits, isInblkOg)
+  gff[,arrv := as.character(as.numeric(as.factor(arrayID)))]
+  av <- gff$arrv; names(av) <- gff$ofID
+  ib[,`:=`(a1 = as.character(av[ofID1]),
+            a2 = as.character(av[ofID2]))]
+  ic <- with(ib, clus_igraph(id1 = a1, id2 = a2))
+  ic <- ic[!duplicated(names(ic))]
+  icn <- gff$arrv[!gff$arrv %in% names(ic)]
+  icv <- max(ic + 1):(max(ic) + length(icn))
+  names(icv) <- icn
+  ic <- c(ic, icv)
+  gff[,inblkOG := ic[arrv]]
+  gff[,arrv := NULL]
 
-  return(synOgInBlkHits)
+  return(gff)
 }

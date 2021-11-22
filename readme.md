@@ -1,3 +1,15 @@
+---
+**Update 17-Nov 2021**
+Pushed updates and user-suggested improvements to /dev. These will be incorporated in v0.8.6 which is to be released on 19-Nov 2021. Updates include:
+
+1. Iterative array parsing - eliminates nearly-syntenic duplicates in the pangenome
+2. Batch parallelization of synteny. Modest improvement of speed in single threaded mode. Significant and linear improvement in speed with multi-threaded mode. 
+3. Smaller file size and clearer dotplot graphics
+4. Significant improvement in synteny-constrained and within-block orthogroup construction resulting from iterative arrays and slightly improved algorithm. 
+5. Better error catching and more informative warning messages. 
+6. More streamlined functions: easier to follow help files and documentation. 
+---
+
 For a full tutorial, see: https://github.com/jtlovell/GENESPACE/blob/dev/doc/genespaceOverview.pdf
 
 ## Overview

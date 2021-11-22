@@ -106,8 +106,14 @@ pangenome <- function(gsParam,
                        minPts = 0)$cluster,
        by = c("og", "refChr")]
     gffRef <- rbind(g1, g2)
+    gffRef[,wt := genomeWts[genome]]
+    gffRef[,wtSum := sum(wt), by = c("og", "refChr", "clus")]
     ogPos <- gffRef[,list(ord = median(interpRefOrd, na.rm = T)),
                     by = c("og", "refChr", "clus")]
+    ogPos[,nplace := uniqueN(ord)]
+    u <- unique(ogPos$og[duplicated(ogPos$og)])
+    gffDup <- subset(gffRef, og %in% u)
+
     return(ogPos)
   }
 
@@ -212,9 +218,19 @@ pangenome <- function(gsParam,
   # -- summarize by orthogroup
   if(verbose)
     cat("Done!\n\tOrthogroup clustering and median position determination ... ")
+
+  # -- specify genome weights. Higher = more force assigning syntenic positions
+  if(is.null(genomeWts)){
+    gwt <- rep(2*(1/(length(genomeIDs)-1)), length(genomeIDs)); names(gwt) <- genomeIDs
+    gwt[gwt > 1] <- 1
+    gwt[refGenome] <- 1
+  }
+
   ogPos <- assign_og2reford(
     gffRef = gffRef,
-    synBuff = synBuff)
+    synBuff = synBuff,
+    genomeIDs = genomeIDs,
+    genomeWts = gwt)
   ogn <- ogPos[,list(n = .N), by = "og"]
   if(verbose)
     cat(sprintf("Done!\n\tPos. count: 0x = %s, 1x = %s, 2x = %s, 3x = %s 4x = %s, 4+x = %s",

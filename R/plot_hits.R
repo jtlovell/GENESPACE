@@ -54,6 +54,45 @@ plot_hits <- function(hits,
                       chrLabFun = function(x)
                         gsub("^0","",gsub("^chr|^scaffold|^lg|_","",tolower(x)))){
 
+  add_linCoords2hits <- function(hits,
+                                 gapProp,
+                                 useOrder,
+                                 reorderChrs){
+    h <- data.table(hits)
+    ho <- subset(h, isOg & blkAnchor)
+    cov1 <- rank(with(ho, tapply(ord1, chr1, median)))
+    if(reorderChrs){
+      cov2 <- rank(with(ho, tapply(ord1, chr2, median)))
+    }else{
+      cov2 <- rank(with(ho, tapply(ord2, chr2, median)))
+    }
+    h[,`:=`(chrOrd1 = cov1[chr1],
+            chrOrd2 = cov2[chr2])]
+
+    if(useOrder){
+      gap <- gapProp * max(c(h$ord1, h$ord2), na.rm = T)
+      h[,`:=`(sclGap1 = gap * (chrOrd1 - 1),
+              sclGap2 = gap * (chrOrd2 - 1))]
+      setkey(h, chrOrd1, ord1)
+      h[,x := 1:.N + sclGap1]
+      setkey(h, chrOrd2, ord2)
+      h[,y := 1:.N + sclGap2]
+    }else{
+      gap <- gapProp * max(c(h$end1, h$end2), na.rm = T)
+      mxv1 <- cumsum(with(h, tapply(end1, chrOrd1, max))) + gap
+      mxv2 <- cumsum(with(h, tapply(end2, chrOrd2, max))) + gap
+      mxv1 <- c(0, mxv1[1:(length(mxv1) - 1)])
+      names(mxv1) <- 1:length(mxv1)
+      mxv2 <- c(0, mxv2[1:(length(mxv2) - 1)])
+      names(mxv2) <- 1:length(mxv2)
+      h[,`:=`(sclGap1 = mxv1[as.character(chrOrd1)],
+              sclGap2 = mxv2[as.character(chrOrd2)])]
+      h[,x := start1 + sclGap1]
+      h[,y := start2 + sclGap2]
+    }
+    return(h)
+  }
+
   condense_hits <- function(hits, round2){
     h <- data.table(hits)
     if(round2 > 0){
@@ -145,7 +184,6 @@ plot_hits <- function(hits,
     hits = tp, lightChrFill = lightChrFill,
     darkChrFill = darkChrFill, emptyChrFill = emptyChrFill)
 
-  print(tp)
   # make plot window
   par(mar = c(2,2,1,1))
   xoffset <- min(tp$x) - (diff(range(tp$x))/20)
@@ -201,44 +239,4 @@ plot_hits <- function(hits,
   }
   if(returnSourceData)
     return(tp)
-}
-
-
-add_linCoords2hits <- function(hits,
-                               gapProp,
-                               useOrder,
-                               reorderChrs){
-  h <- data.table(hits)
-  ho <- subset(h, isOg & blkAnchor)
-  cov1 <- rank(with(ho, tapply(ord1, chr1, median)))
-  if(reorderChrs){
-    cov2 <- rank(with(ho, tapply(ord1, chr2, median)))
-  }else{
-    cov2 <- rank(with(ho, tapply(ord2, chr2, median)))
-  }
-  h[,`:=`(chrOrd1 = cov1[chr1],
-          chrOrd2 = cov2[chr2])]
-
-  if(useOrder){
-    gap <- gapProp * max(c(h$ord1, h$ord2), na.rm = T)
-    h[,`:=`(sclGap1 = gap * (chrOrd1 - 1),
-               sclGap2 = gap * (chrOrd2 - 1))]
-    setkey(h, chrOrd1, ord1)
-    h[,x := 1:.N + sclGap1]
-    setkey(h, chrOrd2, ord2)
-    h[,y := 1:.N + sclGap2]
-  }else{
-    gap <- gapProp * max(c(h$end1, h$end2), na.rm = T)
-    mxv1 <- cumsum(with(h, tapply(end1, chrOrd1, max))) + gap
-    mxv2 <- cumsum(with(h, tapply(end2, chrOrd2, max))) + gap
-    mxv1 <- c(0, mxv1[1:(length(mxv1) - 1)])
-    names(mxv1) <- 1:length(mxv1)
-    mxv2 <- c(0, mxv2[1:(length(mxv2) - 1)])
-    names(mxv2) <- 1:length(mxv2)
-    h[,`:=`(sclGap1 = mxv1[as.character(chrOrd1)],
-               sclGap2 = mxv2[as.character(chrOrd2)])]
-    h[,x := start1 + sclGap1]
-    h[,y := start2 + sclGap2]
-  }
-  return(h)
 }
