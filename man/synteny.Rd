@@ -4,9 +4,6 @@
 \alias{synteny}
 \alias{set_syntenyParams}
 \alias{run_mcscanx}
-\alias{pull_synOGs}
-\alias{add_arrayReps2gff}
-\alias{flag_synteny}
 \alias{annotate_gff}
 \alias{pipe_synteny}
 \title{Parsing of pairwise hits into synteny}
@@ -32,28 +29,12 @@ set_syntenyParams(
 
 run_mcscanx(hits, blkSize, nGaps, gsParam, path2mcscanx)
 
-pull_synOGs(gsParam, genomeIDs = NULL)
-
-add_arrayReps2gff(gff, synBuff, ogColumn, verbose)
-
-flag_synteny(
-  hits,
-  gff,
-  blkSize,
-  nGaps,
-  synBuff,
-  nhits1,
-  nhits2,
-  selfOnly = NULL,
-  onlyOgAnchors,
-  twoStep = F
-)
-
 annotate_gff(gsParam, genomeIDs)
 
 pipe_synteny(
   gsParam,
   gff,
+  ogColumn = "globOG",
   nCores = NULL,
   verbose = TRUE,
   overwrite = FALSE,
@@ -135,12 +116,6 @@ Other synteny functions require this as input.
 
 \code{run_mcscanx} Internal GENESPACE function to run MCScanX on hits when
 searching for synteny.
-
-\code{pull_synOGs} pull_synOGs
-
-\code{add_arrayReps2gff} add_arrayReps2gff
-
-\code{flag_synteny} flag_synteny
 
 \code{annotate_gff} annotate_gff
 

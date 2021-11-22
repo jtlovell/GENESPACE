@@ -2,6 +2,8 @@
 % Please edit documentation in R/plot_riparian.R
 \name{plot_riparian}
 \alias{plot_riparian}
+\alias{calc_curvePolygon}
+\alias{round_rect}
 \title{Genespace plotting routines}
 \usage{
 plot_riparian(
@@ -39,6 +41,10 @@ plot_riparian(
   annotatePlot = TRUE,
   add2plot = FALSE
 )
+
+calc_curvePolygon(start1, end1 = NULL, start2, end2 = NULL, y1, y2)
+
+round_rect(xleft, ybottom, xright, ytop)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -124,6 +130,10 @@ specified, taken from gsParam.}
 }
 \description{
 \code{plot_riparian} Genespace plotting routines
+
+\code{calc_curvePolygon} from 2d coordinates, make a curve
+
+\code{round_rect} from x-y coordinates, make a rounded rectangle
 }
 \details{
 ...

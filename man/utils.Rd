@@ -23,7 +23,8 @@
 \alias{find_orthofinderResults}
 \alias{calc_blkCoords}
 \alias{clus_dbscan}
-\alias{pull_nonSynOrthologs}
+\alias{are_colors}
+\alias{add_alpha}
 \title{Generic internal functions used by genespace}
 \usage{
 order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
@@ -76,7 +77,9 @@ calc_blkCoords(hits)
 
 clus_dbscan(hits, radius, blkSize)
 
-pull_nonSynOrthologs(gsParam, gff)
+are_colors(col)
+
+add_alpha(col, alpha = 1)
 }
 \arguments{
 \item{path}{file path character string}
@@ -132,8 +135,6 @@ search radius within which to count clustered density-based xy points.}
 \item{blkSize}{integer of length 1 specifying the minimum size for a syntenic
 block and the -s 'size' MCScanX parameter}
 
-\item{gff}{annotated gff with orthogroups included, see read_gff}
-
 \item{byGrpCol}{column which serves as the by factor}
 
 \item{windowSize}{integer specifying the window size}
@@ -154,6 +155,8 @@ specified (default) taken from gsParam$genomeIDs$genomeIDs}
 \item{genome1}{character string specifying first of two genomeIDs}
 
 \item{genome2}{character string specifying second of two genomeIDs}
+
+\item{gff}{annotated gff with orthogroups included, see read_gff}
 
 \item{synBuff}{integer of length 1 specifying the maximum euclidean distance
 from an 'anchor' so that it can be considered syntenic}
@@ -247,5 +250,7 @@ file
 
 \code{clus_dbscan} clus_dbscan
 
-\code{pull_nonSynOrthologs} pull_nonSynOrthologs
+\code{are_colors} check if a vector is coercible to R colors
+
+\code{add_alpha} add transparency to a color
 }
