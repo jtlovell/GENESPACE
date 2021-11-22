@@ -54,6 +54,38 @@ plot_hits <- function(hits,
                       chrLabFun = function(x)
                         gsub("^0","",gsub("^chr|^scaffold|^lg|_","",tolower(x)))){
 
+  ##############################################################################
+  # -- ad hoc function to find and code chromosome bounds by hit number
+  color_chrBounds <- function(hits, lightChrFill, darkChrFill, emptyChrFill){
+    x <- y <- n <- chr1 <- chr2 <- max1 <- percMax1 <- NULL
+    setkey(hits, x)
+    hits[,`:=`(chr1 = factor(chr1, levels = unique(chr1)),
+               chr2 = factor(chr2, levels = unique(chr2)))]
+    eg <- hits[,list(CJ(levels(chr1), levels(chr2)))]
+    setnames(eg, c("chr1", "chr2"))
+    chrBx <- hits[, list(x0 = min(x), x1 = max(x), x12 = mean(range(x))),
+                  by = c("chr1")]
+    chrBy <- hits[, list(y0 = min(y), y1 = max(y), y12 = mean(range(y))),
+                  by = c("chr2")]
+    chrBnd <- merge(chrBx, merge(chrBy, eg, by = "chr2"), by = "chr1")
+    chrN <- hits[,list(n = .N),
+                 by = c("chr1", "chr2")]
+    chrBnd <- merge(chrBnd, chrN, by = c("chr1", "chr2"), all.x = T)
+    chrBnd$n[is.na(chrBnd$n)] <- 0
+    chrBnd[,n := n - min(n), by = "chr1"]
+    chrBnd[,max1 := max(n), by = "chr1"]
+    cb0 <- subset(chrBnd, n == 0)
+    cb0[,col := emptyChrFill]
+    cb1 <- subset(chrBnd, n > 0)
+    cb1[,percMax1 := ceiling((n / max1)*100)]
+    cscl <- colorRampPalette(c(lightChrFill, darkChrFill))(100)
+    cb1[,col := cscl[percMax1]]
+    cb <- rbind(cb0, cb1, fill = T)[,c(colnames(chrBnd), "col"), with = F]
+    return(cb)
+  }
+
+  ##############################################################################
+  # -- ad hoc function to add linear coordinates to the hits
   add_linCoords2hits <- function(hits,
                                  gapProp,
                                  useOrder,
@@ -93,6 +125,8 @@ plot_hits <- function(hits,
     return(h)
   }
 
+  ##############################################################################
+  # -- ad hoc function to condense hits rounded to positions and count them
   condense_hits <- function(hits, round2){
     h <- data.table(hits)
     if(round2 > 0){

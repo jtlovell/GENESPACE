@@ -2,6 +2,8 @@
 #' @description
 #' \code{plot_riparian} Genespace plotting routines
 #'
+#' @name plot_riparian
+#'
 #' @param gsParam A list of genespace parameters. This should be created
 #' by setup_genespace, but can be built manually. Must have the following
 #' elements: blast (file.path to the original orthofinder run), synteny (
@@ -56,6 +58,8 @@
 #'
 #' @details ...
 #'
+#'
+#'
 #' @examples
 #' \dontrun{
 #' # see vignette dedicated to plot_riparian
@@ -99,6 +103,208 @@ plot_riparian <- function(gsParam,
                             gsub("^0","",gsub("chr|scaf","", gsub("chr|chromosome|scaffold|^lg|_","",tolower(x)))),
                           annotatePlot = TRUE,
                           add2plot = FALSE){
+
+  ##############################################################################
+  # -- ad hoc function to make cosine points for the plot
+
+
+  ##############################################################################
+  # -- ad hoc function to draw scale bar on the riparian plot
+  draw_scaleBar <- function(x, y, yspan, xspan, label, lwd, cex){
+    xstart <- x - (xspan / 2)
+    xend <- x + (xspan / 2)
+    ytop <- y + (yspan / 2)
+    ybottom <- y - (yspan / 2)
+    segments(x0 = xstart, x1 = xend, y0 = y, y1 = y, lwd = lwd)
+    segments(x0 = xstart, x1 = xstart, y0 = ytop, y1 = ybottom, lwd = lwd)
+    segments(x0 = xend, x1 = xend, y0 = ytop, y1 = ybottom, lwd = lwd)
+    text(x = xstart + (xspan / 2), y = ytop + (yspan / 2), labels = label, adj = c(.5,0), cex = cex)
+  }
+
+  ##############################################################################
+  # -- ad hoc function to
+  calc_refChrByGene <- function(gff,
+                                refGenome,
+                                blkSize,
+                                nCores){
+    refChr <- chr <- genome <- rl <- ofID <- NULL
+    # -- if a  has a ref chr in it, populate gff
+    gff2 <- data.table(gff)
+    linOrd <- NULL
+    setkey(gff2, linOrd)
+    gff2[,refChr := chr[genome == refGenome][1], by = "og"]
+    gr <- subset(gff2, !is.na(refChr))
+
+    # -- for these seed ref chrs, ensure that runs > blkSize
+    for(i in 2:blkSize){
+      gr[,rl := add_rle(refChr), by = c("genome","chr")]
+      gr <- subset(gr, rl >= i)
+    }
+    grv <- gr$refChr;  names(grv) <- gr$ofID
+    gff2[,`:=`(refChr = grv[ofID])]
+
+    # -- populate NAs by chr and genome
+    spl <- split(gff2, by = c("genome","chr"))
+    gff2 <- rbindlist(mclapply(spl, mc.cores = nCores, function(x){
+
+      # -- pull genes with no refChr specificatin
+      whna <- which(is.na(x$refChr))
+      if(length(whna) > 0){
+
+        # -- pull genes without NA ref Chrs
+        whnona <- which(!is.na(x$refChr))
+
+        # -- find gene too left and right
+        suppressWarnings(nal <- sapply(whna, function(y)
+          whnona[which(whnona < y & whnona == max(whnona[whnona < y]))[1]]))
+        suppressWarnings(nar <- sapply(whna, function(y)
+          whnona[which(whnona > y & whnona == min(whnona[whnona > y]))[1]]))
+
+        # -- fill split gff with these values
+        x[,`:=`(chrl = refChr, chrr = refChr)]
+        x$chrl[whna] <- x$chrl[nal]
+        x$chrr[whna] <- x$chrr[nar]
+
+        # -- fill refChr with agreeing right and left values
+        whmv <- with(x, which(!is.na(chrl) & !is.na(chrr) & chrl == chrr & is.na(refChr)))
+        x$refChr[whmv] <- x$chrl[whmv]
+        x[,`:=`(chrl = NULL, chrr = NULL)]
+      }
+      return(x)
+    }))
+
+    # -- return the vector of reference chrs
+    rcv <- gff2$refChr; names(rcv) <- gff2$ofID
+    return(rcv)
+  }
+
+  ##############################################################################
+  # -- ad hoc function to read riparian path hits
+  read_ripHits <- function(gsParam, genomeIDs, useBlks){
+    og <- regAnchor <- regID <- blkAnchor <- blkID <- NULL
+    genomeOrd <- data.table(
+      gen1 = genomeIDs[-length(genomeIDs)],
+      gen2 = genomeIDs[-1],
+      y = 1:length(genomeIDs[-1]))
+
+    fs <- with(genomeOrd, file.path(gsParam$paths$results,
+                                    sprintf("%s_%s_synHits.txt.gz",
+                                            c(gen1, gen2),
+                                            c(gen2, gen1))))
+    fs <- fs[file.exists(fs)]
+    hitsRip <- rbindlist(lapply(fs, function(i){
+      if(useBlks){
+        x <- subset(fread(
+          i, select = c("ofID1","ofID2","gen1","gen2","blkID","blkAnchor","og"),
+          na.strings = c("NA","")),
+          blkAnchor & !is.na(blkID) & !is.na(og))
+      }else{
+        x <- subset(fread(
+          i, select = c("ofID1","ofID2","gen1","gen2","regID","regAnchor","og"),
+          na.strings = c("NA","")),
+          regAnchor & !is.na(regID) & !is.na(og))
+        setnames(x, c("regID", "regAnchor"), c("blkID", "blkAnchor"))
+      }
+
+      if(!paste(x$gen1[1], x$gen2[1]) %in% paste(genomeOrd$gen1, genomeOrd$gen2))
+        setnames(x, c(1,2), c("ofID2","ofID1"))
+
+      return(x[,c("ofID1","ofID2","blkID")])
+    }))
+    return(hitsRip)
+  }
+
+  ##############################################################################
+  # -- ad hoc function to add syntenic chrs to gff
+  add_synChr2gff <- function(gff, refHits, genomeIDs, gapProp, refGenome){
+    ord1 <- ord <- gen2 <- genome <- refOrd <- chrOrd <- chr <- end <- gap <- NULL
+    start <- linOrd <- linBp <- NULL
+
+    synChrs <- refHits[,list(refOrd = median(ord1, na.rm = T)), by = c("gen2", "chr2")]
+    synChrs <- subset(synChrs, complete.cases(synChrs))
+    synChrs[,`:=`(genome = factor(gen2, levels = genomeIDs), gen2 = NULL)]
+    setkey(synChrs, genome, refOrd)
+    synChrs[,chrOrd := 1:.N, by = "genome"]
+    ugcSyn <- synChrs$chrOrd; names(ugcSyn) <- with(synChrs, paste(genome, chr2))
+    tmp <- subset(subset(gff, genome == refGenome), !duplicated(chr))
+    rv <- tmp$chrNameOrd; names(rv) <- with(tmp, paste(refGenome, chr))
+    ugcSyn <- c(rv, ugcSyn)
+    gff[,chrOrd := ugcSyn[paste(genome, chr)]]
+    setkey(gff, genome, chrOrd, ord)
+    gff[,ord := 1:.N, by = "genome"]
+
+    nbp <- gff[,list(nbp = max(end)), by = c("chr","genome","chrOrd")]
+    setkey(nbp, genome, chrOrd)
+    gps <- with(nbp, tapply(nbp, genome, sum))
+    gps <- max(gps) * ((max(gps) * gapProp)/gps)
+    nbp[,gap := gps[genome]]
+    nbp[,start := c(0, cumsum(nbp[-.N] + gap[-.N])), by = "genome"]
+    lbpv <- nbp$start; names(lbpv) <- with(nbp, paste(genome, chr))
+    gff[,`:=`(linBp = start + lbpv[paste(genome, chr)])]
+
+    gps <- with(gff, tapply(ord, genome, max))
+    gps <- max(gps) * ((max(gps) * gapProp)/gps)
+    gff[,linOrd := ord + (gps[genome] * (chrOrd - 1))]
+    gff[,`:=`(linBp = linBp - mean(range(linBp, na.rm = T)),
+              linOrd = linOrd - mean(range(linOrd, na.rm = T))),
+        by = "genome"]
+    return(gff)
+  }
+
+  ##############################################################################
+  # -- ad hoc function to load reference hits
+  load_refHits <- function(gsParam, genomeIDs, refGenome, plotRegions){
+    regID <- og <- blkAnchor <- blkID <- regAnchor <- NULL
+    nonRefGen <- genomeIDs[genomeIDs != refGenome]
+    fs <- file.path(gsParam$paths$results,
+                    sprintf("%s_%s_synHits.txt.gz",
+                            c(rep(refGenome, length(nonRefGen)), nonRefGen),
+                            c(nonRefGen, rep(refGenome, length(nonRefGen)))))
+    fs <- fs[file.exists(fs)]
+    hitsRef <- rbindlist(lapply(fs, function(i){
+      if(plotRegions){
+        x <- subset(fread(
+          i, select = c("gen1","ofID1","ofID2","regAnchor","regID","og"),
+          na.strings = c("NA","")),
+          regAnchor & !is.na(regID) & !is.na(og))
+        setnames(x, c("regID", "regAnchor"), c("blkID", "blkAnchor"))
+      }else{
+        x <- subset(fread(
+          i, select = c("gen1","ofID1","ofID2","blkAnchor","blkID","og"),
+          na.strings = c("NA","")),
+          blkAnchor & !is.na(blkID) & !is.na(og))
+      }
+      if(x$gen1[1] != refGenome)
+        setnames(x, c("ofID1","ofID2"), c("ofID2","ofID1"))
+      x <- x[,c("ofID1","ofID2","blkID","og")]
+
+      return(x)
+    }))
+    return(hitsRef)
+  }
+
+  ##############################################################################
+  # -- ad hoc function to reorder the gff
+  reorder_gff <- function(gff, genomeIDs, minGenesOnChr, refGenome){
+    genome <- ord <- n <- chr <- chrn <- medPos <- chrNameOrd <- og <- NULL
+    gff <- subset(gff, genome %in% genomeIDs)
+    gff[,genome := factor(genome, levels = genomeIDs)]
+    setkey(gff, genome, ord)
+    nGenes <- gff[,list(n = .N, medPos = median(ord)), by = c("genome","chr")]
+    nGenes <- subset(nGenes, n > minGenesOnChr)
+    nGenes[,chrn := as.numeric(gsub("[^0-9]", "", chr))]
+    setorder(nGenes, genome, chrn, chr, medPos, -n)
+    refChrs <- nGenes$chr[nGenes$genome == refGenome]
+    ugc <- with(nGenes, paste(genome, chr))
+    gff[,chrNameOrd := as.numeric(factor(paste(genome, chr), levels = ugc))]
+    if(!"og" %in% colnames(gff))
+      gff[,og := NA]
+    gff <- subset(gff, !is.na(chrNameOrd))[,c("genome","chr","chrNameOrd","ofID","ord","start","end","og")]
+    setkey(gff, genome, chrNameOrd, ord)
+
+    gff[,ord := 1:.N, by = "genome"]
+    return(gff)
+  }
 
   arrayID <- og <- synOG <- globOG <- inBlkOG <- ord <- NULL
   genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1 <- ord1 <- ofID <- NULL
@@ -172,16 +378,6 @@ plot_riparian <- function(gsParam,
 
   if("refGenome" %in% colnames(gff))
     gff[,refGenome:=NULL]
-
-#   if(!any(is.na(gff$inBlkOG))){
-#     gff[,og := inBlkOG]
-#   }else{
-#     if(!any(is.na(gff$synOG))){
-#       gff[,og := synOG]
-#     }else{
-#       gff[,og := globOG]
-#     }
-#   }
 
   if(!is.null(invChrs)){
     invChrs <- invChrs[invChrs %in% paste(gff$genome, gff$chr)]
@@ -538,4 +734,113 @@ plot_riparian <- function(gsParam,
       chrLabCex = chrLabCex,
       chrRectBuffer = chrRectBuffer))
 }
+
+#' @title convert cosine points to polygon
+#' @description
+#' \code{calc_curvePolygon} from 2d coordinates, make a curve
+#' @rdname plot_riparian
+#' @export
+calc_curvePolygon <- function(start1,
+                              end1 = NULL,
+                              start2,
+                              end2 = NULL,
+                              y1,
+                              y2){
+  cosine_points <- function(){
+    npts = 1e4 # initial number of points
+    keepat = round(npts / 20) # grid to keep always
+    grid <- seq(from = 0, to = pi, length.out = npts) # grid
+    x <- (1 - cos(grid)) / max((1 - cos(grid))) # scaled cosine
+    y <- grid / max(grid) # scaled grid
+    # calculate slope for each point
+    x1 <- x[-1];  y1 <- y[-1]
+    x2 <- x[-length(x)];  y2 <- y[-length(y)]
+    s <-  (y1 - y2) / (x1 - x2)
+    # choose points that capture changes in slope
+    ds <- cumsum(abs(diff(s)))*5
+    wh <- c(1,which(!duplicated(round(ds))), length(x))
+    wh2 <- c(wh, seq(from = 0, to = length(x), by = round(keepat)))
+    wh <- c(wh, wh2)[!duplicated(c(wh, wh2))]
+    wh <- wh[order(wh)]
+    return(cbind(x[wh], y[wh]))
+  }
+
+  scaledCurve <- cosine_points()
+  if (!is.null(end1) | !is.null(end2)) {
+    tp <- rbind(
+      start1 = data.table(
+        x = start1, y = y1),
+      poly1 = data.table(
+        x = scale_between(x = scaledCurve[,1], min = start1, max = start2),
+        y = scale_between(x = scaledCurve[,2], min = y1, max = y2)),
+      start2 = data.table(x = start2, y = y2),
+      end2 = data.table(
+        x = end2, y = y2),
+      poly2 = data.table(
+        x = scale_between(x = scaledCurve[,1], min = end2, max = end1),
+        y = scale_between(x = scaledCurve[,2], min = y2, max = y1)),
+      end1 = data.table(
+        x = end1, y = y1))
+  }else{
+    tp <- data.table(
+      x = scale_between(x = scaledCurve[,1], min = start1, max = start2),
+      y = scale_between(x = scaledCurve[,2], min = y1, max = y2))
+  }
+  return(tp)
+}
+
+#' @title calculate coordinates for rounded rectange polygons
+#' @description
+#' \code{round_rect} from x-y coordinates, make a rounded rectangle
+#' @rdname plot_riparian
+#' @importFrom graphics par
+#' @importFrom grDevices dev.size
+#' @export
+round_rect <- function(xleft, ybottom, xright, ytop){
+
+  if (ytop <= ybottom)
+    stop("ytop must be > ybottom")
+  if (xleft >= xright)
+    stop("xleft must be < xright")
+
+  # measure graphics device
+  asp <- diff(par("usr")[3:4]) / diff(par("usr")[1:2])
+  dev <- dev.size()[1] / dev.size()[2]
+
+  # make a curve and split into left and right
+  radius <- (ytop - ybottom) / 2
+  centerY <- ytop - radius
+  centerX <- mean(c(xleft, xright))
+  theta <- seq(0, 2 * pi, length = 200)
+  circX <- cos(theta)
+  circY <- sin(theta)
+  leftC <- which(circX <= 0)
+  rightC <- which(circX >= 0)
+
+  xR <- circX[rightC]
+  yR <- circY[rightC]
+  ordYR <- rev(order(yR))
+  xR <- xR[ordYR]
+  yR <- yR[ordYR]
+
+  xL <- circX[leftC]
+  yL <- circY[leftC]
+  ordYL <- order(yL)
+  xL <- xL[ordYL]
+  yL <- yL[ordYL]
+
+  # project onto graphics device and scale
+  xRightS <- xright - (radius / asp / dev)
+  xLeftS <- xleft + (radius / asp / dev)
+  if (centerX < xLeftS)
+    xLeftS <- centerX
+  if (centerX > xRightS)
+    xRightS <- centerX
+  xLS <- scale_between(xL, xleft, xLeftS)
+  xRS <- scale_between(xR, xRightS, xright)
+  yLS <- scale_between(yL, ybottom, ytop)
+  yRS <- scale_between(yR, ybottom, ytop)
+  return(data.table(x = c(xRS,xLS), y = c(yRS, yLS)))
+}
+
 

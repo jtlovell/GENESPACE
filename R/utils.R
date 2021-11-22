@@ -559,28 +559,37 @@ clus_dbscan <- function(hits,
   return(x)
 }
 
-#' @title pull_nonSynOrthologs
+#' @title check if a vector is coercible to R colors
 #' @description
-#' \code{pull_nonSynOrthologs} pull_nonSynOrthologs
+#' \code{are_colors} check if a vector is coercible to R colors
 #' @rdname utils
-#' @import data.table
+#' @importFrom grDevices col2rgb
 #' @export
-pull_nonSynOrthologs <- function(gsParam,
-                                 gff){
+are_colors <- function(col) {
+  sapply(col, function(X) {
+    tryCatch(is.matrix(col2rgb(X)),
+             error = function(e) FALSE)
+  })
+}
 
-  gen1 <- og2 <- og1 <- orthIDs <- ofID <- id2 <- gen2 <- id1 <- NULL
-  idv <- gff$ofID; names(idv) <- with(gff, paste(genome, id))
-  ogv <- gff$og; names(ogv) <- gff$ofID
+#' @title add transparency to a color
+#' @description
+#' \code{add_alpha} add transparency to a color
+#' @rdname utils
+#' @importFrom grDevices col2rgb rgb
+#' @export
+add_alpha <- function(col,
+                      alpha = 1){
 
-  orths <- rbindlist(lapply(unique(gff$genome), function(i){
-    x <- parse_orthologues(
-      gsParam = gsParam,
-      refGenome = i,
-      nCores = gsParam$params$nCores)
-    x[,`:=`(ofID = idv[paste(gen1, id1)], orthIDs = idv[paste(gen2, id2)])]
-    x[,`:=`(og1 = ogv[ofID], og2 = ogv[orthIDs])]
-    x <- subset(x, og1 != og2)
-    return(x)
-  }))
-  return(orths[,c("ofID", "orthIDs", "orthID")])
+  if (missing(col))
+    stop("Please provide a vector of colors.")
+  if (!all(are_colors(col)))
+    stop("Please provide a vector of colors.")
+
+  apply(sapply(col, col2rgb)/255, 2,
+        function(x)
+          rgb(x[1],
+              x[2],
+              x[3],
+              alpha = alpha))
 }
