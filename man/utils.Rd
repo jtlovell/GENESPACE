@@ -61,7 +61,7 @@ choose_mostRecentOF(path)
 
 parse_ogs(gsParam)
 
-parse_orthologues(gsParam, refGenome, nCores = 1)
+parse_orthologues(gsParam, refGenome)
 
 read_blast(
   blFile = NULL,
@@ -114,9 +114,6 @@ add_alpha(col, alpha = 1)
 
 \item{refGenome}{character string specifying which genome is the reference}
 
-\item{nCores}{integer of length 1 specifying the number of parallel processes
-to run}
-
 \item{blFile}{file path to the blast-like text file}
 
 \item{ofID1}{orthofinder ID of the first gene}
@@ -149,6 +146,9 @@ block and the -s 'size' MCScanX parameter}
 
 \item{genomeIDs}{an optional vector of genomeIDs to consider. If not
 specified (default) taken from gsParam$genomeIDs$genomeIDs}
+
+\item{nCores}{integer of length 1 specifying the number of parallel processes
+to run}
 
 \item{minRbhScore}{integer of length 1, see set_syntenyParams}
 

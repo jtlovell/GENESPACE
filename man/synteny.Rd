@@ -2,13 +2,24 @@
 % Please edit documentation in R/synteny.R
 \name{synteny}
 \alias{synteny}
+\alias{pipe_synteny}
 \alias{set_syntenyParams}
 \alias{run_mcscanx}
 \alias{annotate_gff}
-\alias{pipe_synteny}
+\alias{flag_synteny}
 \title{Parsing of pairwise hits into synteny}
 \usage{
 synteny(gsParam, genomeIDs = NULL, overwrite = F, ...)
+
+pipe_synteny(
+  gsParam,
+  gff,
+  ogColumn = "globOG",
+  nCores = NULL,
+  verbose = TRUE,
+  overwrite = FALSE,
+  useExistingSynHits = overwrite
+)
 
 set_syntenyParams(
   gsParam,
@@ -31,14 +42,18 @@ run_mcscanx(hits, blkSize, nGaps, gsParam, path2mcscanx)
 
 annotate_gff(gsParam, genomeIDs)
 
-pipe_synteny(
+flag_synteny(
+  hits,
   gsParam,
-  gff,
-  ogColumn = "globOG",
-  nCores = NULL,
-  verbose = TRUE,
-  overwrite = FALSE,
-  useExistingSynHits = overwrite
+  blkSize,
+  radius,
+  synBuff,
+  nhits1,
+  nhits2,
+  nGaps,
+  selfOnly,
+  maskTheseHits = NULL,
+  onlyOgAnchors
 )
 }
 \arguments{
@@ -111,6 +126,8 @@ If called, \code{synteny} returns its own arguments.
 \code{synteny} The main GENESPACE engine to constrain genome-wide homology
 hits to synteny.
 
+\code{pipe_synteny} pipe_synteny
+
 \code{set_syntenyParams} Calculate paramters for pairwise synteny search.
 Other synteny functions require this as input.
 
@@ -119,7 +136,7 @@ searching for synteny.
 
 \code{annotate_gff} annotate_gff
 
-\code{pipe_synteny} pipe_synteny
+\code{flag_synteny} flag_synteny
 }
 \details{
 The main engine for GENESPACE synteny searching. This

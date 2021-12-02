@@ -352,14 +352,13 @@ parse_ogs <- function(gsParam){
 #' \code{parse_orthologues} parse_orthologues
 #' @rdname utils
 #' @import data.table
-#' @importFrom parallel mclapply
 #' @export
-parse_orthologues <- function(gsParam, refGenome, nCores = 1){
+parse_orthologues <- function(gsParam, refGenome){
   id1 <- id2 <- orthID <- NULL
   od <- file.path(gsParam$paths$orthologuesDir,
                   sprintf("Orthologues_%s", refGenome))
   odf <- list.files(od, full.names = T, pattern = "__v__")
-  ogo <- rbindlist(mclapply(odf, mc.cores = nCores, function(i){
+  ogo <- rbindlist(lapply(odf, function(i){
     x <- fread(i, showProgress = F)
     refID <- colnames(x)[2]; altID <- colnames(x)[3]
     setnames(x, c("og", "id1", "id2"))

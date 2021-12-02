@@ -591,7 +591,7 @@ blkwise_orthofinder <- function(gsParam,
         names(uv) <- uo
         ogv <- c(ogv, uv)
         out[,isInblkOg := ogv[ofID1] == ogv[ofID2]]
-
+        unlink(tmpDir, recursive = T)
         return(out[,c(1:2,6)])
       }))
 
