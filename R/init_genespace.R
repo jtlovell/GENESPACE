@@ -131,15 +131,15 @@ init_genespace <- function(genomeIDs,
                            rawGenomeDir,
                            ploidy,
                            diamondMode = "more-sensitive",
-                           orthofinderMethod = ifelse(any(ploidy > 1), "fast", "default"),
+                           orthofinderMethod = "default",
                            orthofinderInBlk = any(ploidy > 1),
                            nCores = detectCores()/2,
                            minPepLen = 20,
-                           overwrite = FALSE,
+                           overwrite = T,
                            path2orthofinder = "orthofinder",
                            path2mcscanx = "MCScanX",
                            path2diamond = "diamond",
-                           gffString = "gene.gff",
+                           gffString = "gff",
                            pepString = "pep|prot",
                            verbose = TRUE){
 
@@ -148,14 +148,28 @@ init_genespace <- function(genomeIDs,
   skeleton_params <- function(){
     list(
       genomes = list(
-        genomeIDs = NULL, outgroup = NULL, ploidy = NULL),
+        genomeIDs = NULL,
+        outgroup = NULL,
+        ploidy = NULL),
       params = list(
-        wd = NULL, orthofinderMethod = NULL, nCores = NULL,
-        verbose = NULL, synteny = NULL),
+        wd = NULL,
+        orthofinderMethod = NULL,
+        nCores = NULL,
+        verbose = NULL,
+        synteny = NULL),
       paths = list(
-        rawGff = NULL, rawPeptide = NULL, gff = NULL, peptide = NULL,
-        orthofinder = NULL, results = NULL,
-        orthofinderCall = NULL, mcscanxCall = NULL))
+        rawGff = NULL,
+        rawPeptide = NULL,
+        gff = NULL,
+        peptide = NULL,
+        orthofinder = NULL,
+        results = NULL,
+        orthofinderCall = NULL,
+        mcscanxCall = NULL,
+        annotGff = NULL,
+        synHits = NULL,
+        blkCoords = NULL,
+        pangenomes = NULL))
   }
 
   ##############################################################################

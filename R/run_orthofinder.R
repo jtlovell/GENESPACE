@@ -339,11 +339,6 @@ blkwise_orthofinder <- function(gsParam,
   genome <- chr <- start <- end <- NULL
   setkey(gff, genome, chr, start, end)
 
-  ofSpId <- read_orthofinderSpeciesIDs(gsParam$paths$blastDir)
-  pepspl <- sapply(genomeIDs, USE.NAMES = T, simplify = F, function(i)
-    readAAStringSet(file.path(gsParam$paths$blastDir,
-                              sprintf("Species%s.fa", ofSpId[i]))))
-
   arrep <- with(subset(gff, isArrayRep), split(ofID, genome))
 
   synOgInBlkHits <- rbindlist(lapply(1:nrow(synp), function(i){

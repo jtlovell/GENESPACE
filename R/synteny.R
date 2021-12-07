@@ -1013,7 +1013,8 @@ flag_synteny <- function(hits,
                 arrayID1 == arrayID2,
               blkID = as.numeric(as.factor(chr1)),
               regID = as.numeric(as.factor(chr1)))]
-
+    raw$blkID[with(raw, !inBuffer | chr1 != chr2)] <- NA
+    raw$regID[with(raw, !inBuffer | chr1 != chr2)] <- NA
   }else{
 
     ############################################################################
@@ -1052,13 +1053,17 @@ flag_synteny <- function(hits,
       # this is so that, if ploidy is miss-specified, the blocks don't get
       # chopped up
 
-      # -- pull hits proximate to the anchors
-      anchs[,isAnchor := u %in% names(anchu)]
-      a <- find_hitsInBuff(hits = anchs, synBuff = synBuff)
+      # -- keep only chrs with synteny
+      uchrs <- with(subset(a, u %in% names(anchu)), unique(paste(chr1, chr2)))
+      a <- subset(anchs, paste(chr1, chr2) %in% uchrs)
 
       # -- optionally drop non-OG hits
       if(onlyOgAnchors)
-        a <- subset(a, isOg)
+        a <- subset(anchs, isOg)
+
+      # -- pull hits proximate to the anchors
+      anchs[,isAnchor := u %in% names(anchu)]
+      a <- find_hitsInBuff(hits = a, synBuff = synBuff)
 
       # -- mcscan pruning to anchors
       anchu <- run_mcscanx(
@@ -1067,7 +1072,6 @@ flag_synteny <- function(hits,
         blkSize = blkSize,
         hits = a,
         path2mcscanx = gsParam$paths$mcscanxCall)
-      a[,isAnchor := u %in% names(anchu)]
 
       if(is.null(anchu)){
         raw[,`:=`(blkID = NA, inBuffer = FALSE, isAnchor = FALSE, regID = NA)]
@@ -1075,6 +1079,7 @@ flag_synteny <- function(hits,
         ########################################################################
         # 4. If there is synteny, conduct anchor clustering
         # -- round 1 - large radius
+        a[,isAnchor := u %in% names(anchu)]
         a <- subset(a, isAnchor)
         a[,`:=`(ord1 = frank(arrayOrd1, ties.method = "dense"),
                 ord2 = frank(arrayOrd2, ties.method = "dense"))]
@@ -1134,7 +1139,8 @@ flag_synteny <- function(hits,
         a[,`:=`(ord1 = frank(arrayOrd1, ties.method = "dense"),
                 ord2 = frank(arrayOrd2, ties.method = "dense"))]
         b <- split_blks(hits = a, blkSize = blkSize, maxIter = 5)
-
+        b[,`:=`(ord1 = frank(arrayOrd1, ties.method = "dense"),
+                ord2 = frank(arrayOrd2, ties.method = "dense"))]
         ########################################################################
         # 5. Add all block and buffer information back into the hits object
 
@@ -1176,16 +1182,17 @@ flag_synteny <- function(hits,
         bc <- calc_blkCoords(subset(tmp, !is.na(blkID)))
         tmp <- get_hitsInBlks(blks = bc, hits = tmp)
         tmp <- find_hitsInBuff(hits = tmp, synBuff = synBuff)
-        raw[,inBuffer := u %in% tmp$u]
+        blkv <- tmp$blkID; names(blkv) <- tmp$u
+        raw[,`:=`(regID = blkv[u], inBuffer = u %in% tmp$u)]
       }
     }
   }
   return(raw)
 }
 
-#' @title flag_synteny
+#' @title add_arrayReps2gff
 #' @description
-#' \code{flag_synteny} flag_synteny
+#' \code{add_arrayReps2gff} add_arrayReps2gff
 #' @rdname synteny
 #' @export
 add_arrayReps2gff <- function(gff,
