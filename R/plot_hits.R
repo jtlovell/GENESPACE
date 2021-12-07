@@ -182,7 +182,10 @@ plot_hits <- function(hits,
                   "#A6761D", "#666666", "darkred","darkblue")
     }
   }
-
+  tp[,regAnchor := isAnchor & !is.na(regID)]
+  tp[,regBuffer := inBuffer & !is.na(regID)]
+  tp[,blkAnchor := isAnchor & !is.na(blkID)]
+  tp[,blkBuffer := inBuffer & !is.na(blkID)]
   if(p == "regAnchor") tp <- subset(tp, regAnchor)
   if(p == "regBuffer") tp <- subset(tp, regBuffer)
   if(p == "blkAnchor") tp <- subset(tp, blkAnchor)

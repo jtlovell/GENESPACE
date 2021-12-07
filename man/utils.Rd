@@ -22,9 +22,9 @@
 \alias{read_blast}
 \alias{find_orthofinderResults}
 \alias{calc_blkCoords}
-\alias{clus_dbscan}
 \alias{are_colors}
 \alias{add_alpha}
+\alias{interp_linear}
 \title{Generic internal functions used by genespace}
 \usage{
 order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
@@ -75,11 +75,11 @@ find_orthofinderResults(gsParam, onlyCheckRun = F)
 
 calc_blkCoords(hits)
 
-clus_dbscan(hits, radius, blkSize)
-
 are_colors(col)
 
 add_alpha(col, alpha = 1)
+
+interp_linear(x, y, interpTails = TRUE)
 }
 \arguments{
 \item{path}{file path character string}
@@ -126,12 +126,6 @@ add_alpha(col, alpha = 1)
 
 \item{hits}{data.table containing annotated blast-format pairwise hits}
 
-\item{radius}{numeric of length 1 specifying the eps dbscan parameter; the
-search radius within which to count clustered density-based xy points.}
-
-\item{blkSize}{integer of length 1 specifying the minimum size for a syntenic
-block and the -s 'size' MCScanX parameter}
-
 \item{byGrpCol}{column which serves as the by factor}
 
 \item{windowSize}{integer specifying the window size}
@@ -146,6 +140,12 @@ block and the -s 'size' MCScanX parameter}
 
 \item{genomeIDs}{an optional vector of genomeIDs to consider. If not
 specified (default) taken from gsParam$genomeIDs$genomeIDs}
+
+\item{radius}{numeric of length 1 specifying the eps dbscan parameter; the
+search radius within which to count clustered density-based xy points.}
+
+\item{blkSize}{integer of length 1 specifying the minimum size for a syntenic
+block and the -s 'size' MCScanX parameter}
 
 \item{nCores}{integer of length 1 specifying the number of parallel processes
 to run}
@@ -248,9 +248,9 @@ file
 
 \code{calc_blkCoords} calc_blkCoords
 
-\code{clus_dbscan} clus_dbscan
-
 \code{are_colors} check if a vector is coercible to R colors
 
 \code{add_alpha} add transparency to a color
+
+\code{interp_linear} linear interpolation of missing values in x
 }

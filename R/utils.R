@@ -538,7 +538,7 @@ calc_blkCoords <- function(hits){
 #' @title clus_dbscan
 #' @description
 #' \code{clus_dbscan} clus_dbscan
-#' @rdname utils
+#' @rdname synteny
 #' @import data.table
 #' @importFrom dbscan dbscan frNN
 #' @export
@@ -591,4 +591,76 @@ add_alpha <- function(col,
               x[2],
               x[3],
               alpha = alpha))
+}
+
+#' @title linear interpolation of missing values
+#' @description
+#' \code{interp_linear} linear interpolation of missing values in x
+#' @rdname utils
+#' @import data.table
+#' @export
+interp_linear <- function(x,
+                          y,
+                          interpTails = TRUE){
+  rl <- ip <- NULL
+  if(length(x) != length(y) || !is.numeric(x) || !is.numeric(y)){
+    warning("x and y must be numeric/integer vectors of equal length\n")
+  }else{
+
+    # -- convert to data table
+    z <- subset(data.table(x = x, y = y, i = 1:length(x)), !is.na(x))
+    if(nrow(z) < 1 || all(is.na(y))){
+      warning("no non-missing values in x or y\n")
+    }else{
+
+      # -- subset to complete cases in x and order by x
+      z <- subset(z, !is.na(x))
+      setkey(z, x)
+
+      # -- find runs of NAs in y
+      z[,rl := add_rle(is.na(y), which = "id")]
+
+      # -- pull runs to infer (not first and last if they are NAs)
+      if(interpTails){
+        if(is.na(z$y[1])){
+          z[,rl := rl + 1]
+          z <- rbind(data.table(
+            x = min(z$x, na.rm = T) - .5,
+            y = min(z$y, na.rm = T) - .5,
+            i = 0, rl = 1),
+            z)
+        }
+        if(is.na(z$y[nrow(z)])){
+          print(z)
+          z <- rbind(z, data.table(
+            x = max(z$x, na.rm = T) + .5,
+            y = max(z$y, na.rm = T) + .5,
+            i = max(z$i, na.rm = T) + 1,
+            rl = max(z$rl, na.rm = T) + 1))
+        }
+        toinf <- subset(z, is.na(y))
+      }else{
+        toinf <- subset(z, is.na(y) & !rl %in% c(1, max(rl)))
+      }
+
+      if(nrow(toinf) < 1){
+        warning("no missing values of y to interpolate")
+      }else{
+        # -- get max right and min left values for each non-missing run
+        minr <- with(subset(z, !is.na(y)), tapply(y, rl, min))
+        maxl <- with(subset(z, !is.na(y)), tapply(y, rl, max))
+
+        # -- linear interpolation of runs of NAs from bounding values
+        toinf[,ip := seq(from = maxl[as.character(rl-1)],
+                         to = minr[as.character(rl+1)],
+                         length.out = .N+2)[-c(1, .N+2)],
+              by = "rl"]
+
+        # -- fill NAs and return
+        y[toinf$i] <- toinf$ip
+      }
+    }
+  }
+
+  return(y)
 }
