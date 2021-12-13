@@ -375,6 +375,18 @@ pangenome <- function(gsParam,
     if(verbose)
       cat("\tAdding non-syntenic orthologs ...")
     nso <- pull_nonSynOrthologs(gsParam = gsParam, gff = gf)
+    gv <- gf$genome; names(gv) <- gf$ofID
+    nso <- with(subset(nso, ofID %in% pg$repID), data.table(
+      repID = ofID, ofID = orthIDs, genome = gv[orthIDs]))
+    nso[,genome := gv[ofID]]
+    tmp <- pg[,!colnames(pg) %in% c("genome", "ofID"), with = F]
+    tmp <- subset(tmp, !duplicated(tmp) & !is.na(pgOrd))
+    nso <- merge(tmp, nso, by = "repID")
+    nso[,`:=`(isNSortho = TRUE, isArrayRep = FALSE)]
+    setcolorder(nso, colnames(pg))
+    pg <- rbind(pg, nso)
+    if(verbose)
+      cat(sprintf("Found %s\n", nrow(nso)))
   }
 
   gfm <- subset(gf, !og %in% unique(pgm$og))
