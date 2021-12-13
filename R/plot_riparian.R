@@ -180,30 +180,30 @@ plot_riparian <- function(gsParam,
 
   ##############################################################################
   # -- ad hoc function to read riparian path hits
-  read_ripHits <- function(gsParam, genomeIDs, useBlks){
-    og <- regAnchor <- regID <- blkAnchor <- blkID <- NULL
+  read_ripHits <- function(gsParam, genomeIDs, useBlks, gff){
+    og <-regID <- blkID <- NULL
     genomeOrd <- data.table(
       gen1 = genomeIDs[-length(genomeIDs)],
       gen2 = genomeIDs[-1],
       y = 1:length(genomeIDs[-1]))
 
-    fs <- with(genomeOrd, file.path(gsParam$paths$results,
-                                    sprintf("%s_%s_synHits.txt.gz",
-                                            c(gen1, gen2),
-                                            c(gen2, gen1))))
+    fs <- with(genomeOrd, file.path(gsParam$paths$results, sprintf(
+      "%s_%s_synHits.txt.gz",
+      c(gen1, gen2), c(gen2, gen1))))
+
     fs <- fs[file.exists(fs)]
     hitsRip <- rbindlist(lapply(fs, function(i){
       if(useBlks){
         x <- subset(fread(
-          i, select = c("ofID1","ofID2","gen1","gen2","blkID","blkAnchor","og"),
+          i, select = c("ofID1","ofID2","gen1","gen2","blkID","isAnchor"),
           na.strings = c("NA","")),
-          blkAnchor & !is.na(blkID) & !is.na(og))
+          isAnchor & !is.na(blkID))
       }else{
         x <- subset(fread(
-          i, select = c("ofID1","ofID2","gen1","gen2","regID","regAnchor","og"),
+          i, select = c("ofID1","ofID2","gen1","gen2","regID","isAnchor"),
           na.strings = c("NA","")),
-          regAnchor & !is.na(regID) & !is.na(og))
-        setnames(x, c("regID", "regAnchor"), c("blkID", "blkAnchor"))
+          isAnchor & !is.na(regID))
+        setnames(x, "regID", "blkID")
       }
 
       if(!paste(x$gen1[1], x$gen2[1]) %in% paste(genomeOrd$gen1, genomeOrd$gen2))
@@ -211,6 +211,9 @@ plot_riparian <- function(gsParam,
 
       return(x[,c("ofID1","ofID2","blkID")])
     }))
+    ogv <- gff$og; names(ogv) <- gff$ofID
+    hitsRip <- subset(hitsRip, ogv[ofID1] == ogv[ofID2])
+    hitsRip[,og := ogv[ofID1]]
     return(hitsRip)
   }
 
@@ -253,8 +256,8 @@ plot_riparian <- function(gsParam,
 
   ##############################################################################
   # -- ad hoc function to load reference hits
-  load_refHits <- function(gsParam, genomeIDs, refGenome, plotRegions){
-    regID <- og <- blkAnchor <- blkID <- regAnchor <- NULL
+  load_refHits <- function(gsParam, genomeIDs, refGenome, plotRegions, gff){
+    regID <- og <- blkID <- NULL
     nonRefGen <- genomeIDs[genomeIDs != refGenome]
     fs <- file.path(gsParam$paths$results,
                     sprintf("%s_%s_synHits.txt.gz",
@@ -264,22 +267,25 @@ plot_riparian <- function(gsParam,
     hitsRef <- rbindlist(lapply(fs, function(i){
       if(plotRegions){
         x <- subset(fread(
-          i, select = c("gen1","ofID1","ofID2","regAnchor","regID","og"),
+          i, select = c("gen1","ofID1","ofID2","isAnchor","regID"),
           na.strings = c("NA","")),
-          regAnchor & !is.na(regID) & !is.na(og))
-        setnames(x, c("regID", "regAnchor"), c("blkID", "blkAnchor"))
+          isAnchor & !is.na(regID))
+        setnames(x, "regID", "blkID")
       }else{
         x <- subset(fread(
-          i, select = c("gen1","ofID1","ofID2","blkAnchor","blkID","og"),
+          i, select = c("gen1","ofID1","ofID2","isAnchor","blkID"),
           na.strings = c("NA","")),
-          blkAnchor & !is.na(blkID) & !is.na(og))
+          isAnchor & !is.na(blkID))
       }
       if(x$gen1[1] != refGenome)
         setnames(x, c("ofID1","ofID2"), c("ofID2","ofID1"))
-      x <- x[,c("ofID1","ofID2","blkID","og")]
+      x <- x[,c("ofID1","ofID2","blkID")]
 
       return(x)
     }))
+    ogv <- gff$og; names(ogv) <- gff$ofID
+    hitsRef <- subset(hitsRef, ogv[ofID1] == ogv[ofID2])
+    hitsRef[,og := ogv[ofID1]]
     return(hitsRef)
   }
 
@@ -311,10 +317,12 @@ plot_riparian <- function(gsParam,
   rl <- refChr <- blkID <- gen2 <- startOrd1 <- endOrd1 <- end <- n <- NULL
   startOrd2 <- endOrd2 <- startBp1 <- endBp1 <- startBp2 <- NULL
   endBp2 <- firstGene1 <- x <- linBp <- linOrd <- y <- start <- NULL
+
+
   ##############################################################################
   # 1. rename a few things, check parameters, read in hits/gff
   ##############################################################################
-  # -- specify all the genomes
+  # -- choose the colors
   highlightRef <- highlightRef[1]
   if(!are_colors(highlightRef) || is.null(highlightRef))
     highlightRef <- "white"
@@ -332,12 +340,14 @@ plot_riparian <- function(gsParam,
         "#C054F9","#E6BDFC")
   }
 
+  # -- logical verbose checking
   if(is.null(verbose) || !is.logical(verbose[1])){
     verbose <- gsParam$params$verbose
   }else{
     verbose <- verbose[1]
   }
 
+  # -- genomeID checking
   if(is.null(genomeIDs)){
     genomeIDs <- gsParam$genomes$genomeIDs
     genomeIDs <- genomeIDs[!genomeIDs %in% gsParam$genomes$outgroup]
@@ -346,12 +356,15 @@ plot_riparian <- function(gsParam,
     tmp <- tmp[!tmp %in% gsParam$genomes$outgroup]
     genomeIDs <- genomeIDs[genomeIDs %in% tmp]
   }
+
+  # -- get the number of characters to use as the genome labels
   nGenomeLabChar <- min(max(nchar(genomeIDs)), nGenomeLabChar)
 
   # -- specify the ref genome
   if(is.null(refGenome) || !refGenome %in% genomeIDs || length(refGenome) > 1)
     refGenome <- genomeIDs[1]
 
+  # -- choose which genomes chrs will be labeled
   if(is.null(labelTheseGenomes))
     labelTheseGenomes <- genomeIDs
   labelTheseGenomes <- labelTheseGenomes[!duplicated(labelTheseGenomes)]
@@ -359,6 +372,7 @@ plot_riparian <- function(gsParam,
   if(length(genomeIDs) < 1)
     labelTheseGenomes <- genomeIDs
 
+  # -- choose which chromosomes will be inverted
   invChrs <- invertTheseChrs
   if(!is.data.frame(invChrs))
     invChrs <- NULL
@@ -377,8 +391,9 @@ plot_riparian <- function(gsParam,
   gff <- fread(gffFile, showProgress = F, na.strings = c("", "NA"))
 
   if("refGenome" %in% colnames(gff))
-    gff[,refGenome:=NULL]
+    gff[,refGenome := NULL]
 
+  # invert chromosomes if necessary
   if(!is.null(invChrs)){
     invChrs <- invChrs[invChrs %in% paste(gff$genome, gff$chr)]
     gi <- subset(gff, paste(genome, chr) %in% invChrs)
@@ -397,6 +412,7 @@ plot_riparian <- function(gsParam,
     }
   }
 
+  # -- get chromosome and genome vectors from gff
   gv <- gff$genome; cv <- gff$chr
   names(gv) <- names(cv) <- gff$ofID
 
@@ -405,6 +421,7 @@ plot_riparian <- function(gsParam,
     cat(sprintf("Done!\n\tMapping genes against %s chromosomes ... ", refGenome))
   refh <- load_refHits(
     gsParam = gsParam,
+    gff = gff,
     plotRegions = plotRegions,
     genomeIDs = genomeIDs,
     refGenome = refGenome)
@@ -413,6 +430,7 @@ plot_riparian <- function(gsParam,
   refh[,n := .N, by = c("gen1","gen2","chr1","chr2")]
   refh <- subset(refh, n >= minGenes2plot)
 
+  # -- subset to only the chromosomes that will be plotted
   if(!is.null(onlyTheseChrs)){
     if(all(onlyTheseChrs %in% refh$chr1)){
       refh <- subset(refh, chr1 %in% onlyTheseChrs)
@@ -421,6 +439,7 @@ plot_riparian <- function(gsParam,
     }
   }
 
+  # -- extend graph to include regions syntenic to onlyTheseChrs
   genesInReg <- unique(gff$ofID)
   if(!is.null(onlyTheseRegions) & excludeChrOutOfRegion){
     setkey(gff, genome, chr, start, end)
@@ -431,39 +450,47 @@ plot_riparian <- function(gsParam,
     gff <- subset(gff, ofID %in% genesInReg)
   }
 
-  # -- get the colors
+  # -- reorder the gff by the chromosomes/genomes to be plotted
+  # -- this is just to get the colors nailed down
   rg <- reorder_gff(
     gff = subset(gff, genome == refGenome),
     minGenesOnChr = minGenes2plot,
     genomeIDs = genomeIDs,
     refGenome = refGenome)
+
+  # -- get the colors
   if(length(colByChrs) != uniqueN(rg$chr)){
     cols <- colorRampPalette(colByChrs)(uniqueN(rg$chr))
   }else{
     cols <- colByChrs
   }
-
   names(cols) <- unique(rg$chr)
 
+  # -- reorder the gff again
   if(verbose)
     cat("Done!\n\tProjecting linear coordinate system ... ")
-  # -- load the gff
   gff <- reorder_gff(
     gff = gff,
     minGenesOnChr = minGenes2plot,
     genomeIDs = genomeIDs,
     refGenome = refGenome)
+
+  # -- pull vectors for plotting
   ov <- gff$ord; sv <- gff$start; ev <- gff$end
   names(ov) <- names(sv) <- names(ev) <- gff$ofID
 
+  # -- add vectors to reference hits
   refh[,`:=`(ord1 = ov[ofID1], ord2 = ov[ofID2])]
 
+  # -- get syntenic chromosomes to reference figured out
   gff <- add_synChr2gff(
     gff = data.table(gff),
     refHits = refh,
     refGenome = refGenome,
     genomeIDs = genomeIDs,
     gapProp = gapProp)
+
+  # -- get vectors of syntenic positions
   gv <- gff$genome; cv <- gff$chr; ov <- gff$linOrd; sv <- gff$linBp
   names(gv) <- names(cv) <- names(ov) <- names(sv) <- gff$ofID
 
@@ -479,9 +506,14 @@ plot_riparian <- function(gsParam,
     cat("Done!\n\tGenerating block coordinates ... ")
   riph <- read_ripHits(
     gsParam = gsParam,
+    gff = gff,
     genomeIDs = genomeIDs,
     useBlks = !plotRegions)
+
+  # -- subset those to the hits in the regions of interest
   riph <- subset(riph, ofID1 %in% genesInReg & ofID2 %in% genesInReg)
+
+  # -- add position vectors
   riph[,`:=`(
     gen1 = gv[ofID1], gen2 = gv[ofID2],chr1 = cv[ofID1], chr2 = cv[ofID2],
     refChr = rcv[ofID1], ord1 = ov[ofID1], ord2 = ov[ofID2],
@@ -500,7 +532,6 @@ plot_riparian <- function(gsParam,
     genesInReg <- gff$ofID[gff$og %in% unique(fo$og)]
     ogInReg <- lapply(split(fo, by = "regID"), function(x) unique(x$og))
     genesInRegList <- lapply(ogInReg, function(x) subset(gff, og %in% x))
-
     radius <- max(gsParam$params$synteny$synBuff)
     blkSize <- max(gsParam$params$synteny$blkSize)
     if(!is.finite(radius))
@@ -516,6 +547,7 @@ plot_riparian <- function(gsParam,
       return(riphl[[i]])
     }))
 
+    # -- secondary clustering if needed
     riph[,rl := dbscan(frNN(cbind(ord1, ord2), eps = radius),
                         minPts = blkSize)$cluster,
          by = c("gen1", "gen2","chr1", "chr2", "refChr")]
