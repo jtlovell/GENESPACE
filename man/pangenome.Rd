@@ -7,8 +7,8 @@
 pangenome(
   gsParam,
   genomeIDs = NULL,
-  refGenome = NULL,
-  maxGapsBetweenEntries = NULL
+  noSecondaryAnchors = TRUE,
+  refGenome = NULL
 )
 }
 \arguments{

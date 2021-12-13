@@ -183,7 +183,7 @@ searching for synteny.
 
 \code{flag_synteny} flag_synteny
 
-\code{flag_synteny} flag_synteny
+\code{add_arrayReps2gff} add_arrayReps2gff
 
 \code{combine_inblkSynOG} add synteny-constrained orthogroups to gff
 
@@ -206,27 +206,16 @@ both analyze syntenic duplicates (e.g. tandem arrays) and have high
 confidence that only the desired types of hits (orthologs, homoeologs, etc.)
 are considered.
 
-The basic premise is that we can find synteny in haploid genome comparisons (most
-diploid species have haploid genome representations) best by first
-constraining the initial search to the single best scoring pairwise hits for
-each gene. Then, if desired further subsetting this set to only gene pairs
-that fall into the same orthogroups. This approach effectively removes
-relic syntenic regions from ancient whole genome duplications and produces
-a set of high-confidence synteny "anchors" which serve as known positions of
-syntenic (ortho/para/homeolo)gous regions. We then search in a fixed-radius
-for nearest neighbors within a gene-rank order buffer around the anchors. For
-intra-genomic hits, the self hits are the anchors and a buffer is calculated
-via euclidean distance. For intra-genomic hits in polyploids, the self-hit
-regions are masked and the synteny search is re-run to more effectively find
-homeologs.
+Synteny produces two measures of collinearity between pairs of genomes:
+the collinear block, flagged as "blkID" and the large syntenic region,
+flagged as "regID". The syntenic anchors for each of these types of synteny
+are flagged in the logical "isAnchor" column (TRUE). Hits within the syntenic
+buffer that are not anchors are flagged with the appropriate regID and blkID.
+Both anchors and those in the syntenic buffer are flagges in the logical
+column "inBuffer" (TRUE).
+both blkIDs and regIDs and
 
-It is important to note that this does NOT produce finalized block
-coordinates, but only large-scale regions that are syntenic. These results
-are usually passed to an additional orthofinder run, either globally, or for
-polyploids or searches with paralogs, within-block pairwise runs. See
-rerun_orthofinder.
-
-Parameterization of this function is complex and varies by the type of
+Parameterization of synteny is complex and varies by the type of
 contrast desired. To simplify parameterization, we have build a convenience
 function that infers various parameters based on basic
 genespace parameters and ploidy. Set set_syntenyParams for more information

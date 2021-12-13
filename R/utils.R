@@ -140,7 +140,6 @@ add_rle <- function(x, which = "n"){
 #' @description
 #' \code{clus_igraph} Clus_igraph
 #' @rdname utils
-#' @import data.table
 #' @importFrom igraph graph_from_data_frame clusters
 #' @export
 clus_igraph <- function(id1, id2){
@@ -161,6 +160,7 @@ clus_igraph <- function(id1, id2){
 #' @importFrom Biostrings readAAStringSet
 #' @export
 get_nAA <- function(path, raw = FALSE){
+  setDTthreads(1)
   if(!raw){
     pepF <- list.files(path, pattern = "^Species", full.names = T)
     pepF <- pepF[grep(".fa$", pepF)]
@@ -194,28 +194,6 @@ find_modalValue <- function(x){
 #' @export
 scale_between <- function(x, min, max){
   (x - min(x)) / (max(x) - min(x)) * (max - min) + min
-}
-
-#' @title complete subgraphs
-#' @description
-#' \code{complete_subgraph} given a hits data.table, expand unique orthofinder
-#' IDs among all unique elements in a subgraph
-#' @rdname utils
-#' @export
-complete_subgraph <- function(dt){
-  clusters <- clusters(graph_from_data_frame(
-    dt,
-    directed = F))
-  clusters <- with(clusters, data.table(
-    id = names(membership),
-    group = membership))
-  out <- data.table(merge(
-    clusters,
-    clusters,
-    by = "group",
-    allow.cartesian = T))
-  setnames(out, c("cluster", "x", "y"))
-  return(out)
 }
 
 #' @title flatten a list
@@ -275,6 +253,7 @@ round_toInteger <- function(x, to){
 #' @import data.table
 #' @export
 read_orthofinderSpeciesIDs <- function(path){
+  setDTthreads(1)
   genome <- NULL
   si <- fread(
     file.path(path, "SpeciesIDs.txt"),
@@ -295,6 +274,7 @@ read_orthofinderSpeciesIDs <- function(path){
 #' @import data.table
 #' @export
 read_orthofinderSequenceIDs <- function(path){
+  setDTthreads(1)
   ofID <- NULL
   gi <- fread(
     file.path(path, "SequenceIDs.txt"),
@@ -313,6 +293,7 @@ read_orthofinderSequenceIDs <- function(path){
 #' @import data.table
 #' @export
 choose_mostRecentOF <- function(path){
+  setDTthreads(1)
   p <- file.path(path, "Orthofinder")
   ps <- order_filesByMtime(p)
   pschk <- lapply(ps, function(x){
@@ -336,6 +317,7 @@ choose_mostRecentOF <- function(path){
 #' @rdname utils
 #' @export
 parse_ogs <- function(gsParam){
+  setDTthreads(1)
   id <- genome <- Orthogroup <- NULL
   ogtsv <- file.path(gsParam$paths$orthogroupsDir, "Orthogroups.tsv")
   og <- fread(ogtsv, showProgress = F, verbose = F)
@@ -354,14 +336,16 @@ parse_ogs <- function(gsParam){
 #' @import data.table
 #' @export
 parse_orthologues <- function(gsParam, refGenome){
-  id1 <- id2 <- orthID <- NULL
+  setDTthreads(1)
   od <- file.path(gsParam$paths$orthologuesDir,
                   sprintf("Orthologues_%s", refGenome))
   odf <- list.files(od, full.names = T, pattern = "__v__")
   ogo <- rbindlist(lapply(odf, function(i){
     x <- fread(i, showProgress = F)
-    refID <- colnames(x)[2]; altID <- colnames(x)[3]
+    refID <- colnames(x)[2]
+    altID <- colnames(x)[3]
     setnames(x, c("og", "id1", "id2"))
+    id1 <- id2 <- NULL
     x1 <- subset(x, !grepl(",", paste(id1, id2)))
     x2 <- subset(x, grepl(",", paste(id1, id2)))
     x2[,orthID := 1:.N]
@@ -391,9 +375,9 @@ read_blast <- function(blFile = NULL,
                        ofID2 = NULL,
                        path = NULL,
                        onlyIDScore = TRUE){
-  V12 <- score <- NULL
+  setDTthreads(1)
   if(is.null(blFile)){
-    blFile <- file.path(path, paste0("Blast", ofID1, "_", ofID2,".txt.gz"))
+    blFile <- file.path(path, sprintf("Blast%s_%s.txt.gz", ofID1, ofID2))
   }
   if(!file.exists(blFile))
     stop("cannot find ", blFile, "\n")
@@ -407,12 +391,13 @@ read_blast <- function(blFile = NULL,
     g2 <- strsplit(bl$V2[1], "_")[[1]][1]
 
     if(g1 == g2){
-      tmp <- data.table(bl[,c(2,1,3:6,8,7,10,9,11,12)])
+      tmp <- data.table(bl[, c(2, 1, 3:6, 8, 7, 10, 9, 11, 12)])
       setnames(tmp, colnames(bl))
-      tmp <- tmp[,colnames(bl),with = F]
+      tmp <- tmp[,colnames(bl), with = F]
       bl <- rbind(bl, tmp)
+      V12 <- NULL
       setorder(bl, -V12)
-      bl <- subset(bl, !duplicated(bl[,c(1:2)]))
+      bl <- subset(bl, !duplicated(bl[, c(1:2)]))
     }
   }else{
     bl <-  fread(
@@ -420,17 +405,18 @@ read_blast <- function(blFile = NULL,
       showProgress = FALSE,
       verbose = FALSE,
       select = c(1,2,12),
-      col.names = c("ofID1","ofID2","score"))
+      col.names = c("ofID1", "ofID2", "score"))
     g1 <- strsplit(bl$ofID1[1], "_")[[1]][1]
     g2 <- strsplit(bl$ofID2[1], "_")[[1]][1]
 
     if(g1 == g2){
       tmp <- data.table(bl[,c(2,1,3)])
       setnames(tmp, colnames(bl))
-      tmp <- tmp[,colnames(bl),with = F]
+      tmp <- tmp[, colnames(bl), with = F]
       bl <- rbind(bl, tmp)
+      score <- NULL
       setorder(bl, -score)
-      bl <- subset(bl, !duplicated(bl[,c(1:2)]))
+      bl <- subset(bl, !duplicated(bl[, c(1:2)]))
     }
   }
 
@@ -497,13 +483,15 @@ find_orthofinderResults <- function(gsParam, onlyCheckRun = F){
 #' @importFrom stats cor
 #' @export
 calc_blkCoords <- function(hits){
-  ord1 <- ord2 <- start1 <- start2 <- end1 <- end2 <- ofID1 <- ofID2 <- NULL
-  minBp2 <- minGene2 <-NULL
-  blkID <- orient <- maxBp2 <- maxBp1 <- maxOrd2 <- minOrd2 <-maxGene2 <-  NULL
+  setDTthreads(1)
 
+  # -- get the columns and complete observations for these
   hcols <- c("blkID", "start1", "start2", "end1", "end2", "ord1", "ord2",
              "chr1", "chr2", "gen1", "gen2", "ofID1", "ofID2")
   bhits <- subset(hits, complete.cases(hits[,hcols, with = F]))
+
+  # -- get the genome1 coordinates
+  ofID1 <- start1 <- end1 <- ofID1 <- ord1 <- NULL
   setkey(bhits, ord1)
   blks1 <- bhits[,list(
     startBp1 = min(start1), endBp1 = max(end1),
@@ -511,6 +499,9 @@ calc_blkCoords <- function(hits){
     firstGene1 = first(ofID1), lastGene1 = last(ofID1),
     nHits1 = uniqueN(ofID1)),
     by = c("blkID", "gen1","gen2", "chr1", "chr2")]
+
+  # -- get the genome2 coordinates
+  ofID2 <- start2 <- end2 <- ofID2 <- ord2 <- NULL
   setkey(bhits, ord2)
   blks2 <- bhits[,list(
     minBp2 = min(start2), maxBp2 = max(end2),
@@ -520,11 +511,17 @@ calc_blkCoords <- function(hits){
     orient = ifelse(length(ord1) <= 1, "+",
                     ifelse(cor(jitter(ord1),
                                jitter(ord2)) > 0,"+", "-"))),
-    by = c("blkID")]
-  blks <- merge(blks1, blks2, by = "blkID")
+    by = c("blkID", "gen1","gen2", "chr1", "chr2")]
 
+  # -- merge the two coordinates
+  blks <- merge(blks1, blks2, by = c("gen1","gen2","chr1","chr2","blkID"))
+
+  # -- fix the coordinates for inverted blocks
+  orient <- NULL
   bgfor <- subset(blks, orient == "+")
   bgrev <- subset(blks, orient == "-")
+
+  maxBp2 <- minBp2 <- maxOrd2 <- minOrd2 <- maxGene2 <- minGene2 <- NULL
   bgrev[,`:=`(startBp2 = maxBp2, endBp2 = minBp2,
               startOrd2 = maxOrd2, endOrd2 = minOrd2,
               firstGene2 = maxGene2, lastGene2 = minGene2)]
@@ -545,16 +542,23 @@ calc_blkCoords <- function(hits){
 clus_dbscan <- function(hits,
                         radius,
                         blkSize){
-  blkID <- ord1 <- ord2 <- chr1 <- chr2 <- NULL
+  setDTthreads(1)
 
+  # -- split up the hits
   x <- split(hits, by = c("gen1","gen2","chr1","chr2"))
+
+  ord1 <- ord2 <- chr1 <- chr2 <- NULL
   x <- rbindlist(lapply(x,  function(y){
     y[,blkID := dbscan(frNN(cbind(ord1, ord2), eps = radius),
                        minPts = blkSize)$cluster]
     return(y)
   }))
+
+  # -- subset the blocks, then add unique IDs
+  blkID <- NULL
   x <- subset(x, blkID > 0)
   x[,blkID := sprintf("blk_%s_%s_%s", chr1, chr2, blkID)]
+
   return(x)
 }
 
@@ -580,17 +584,13 @@ are_colors <- function(col) {
 add_alpha <- function(col,
                       alpha = 1){
 
-  if (missing(col))
-    stop("Please provide a vector of colors.")
-  if (!all(are_colors(col)))
-    stop("Please provide a vector of colors.")
+  if(missing(col) || !all(are_colors(col)))
+    stop("Colors are misspecified\n")
+  if(length(alpha) != 1 || alpha > 1 || alpha < 0)
+    stop("alpha is misspecified\n")
 
-  apply(sapply(col, col2rgb)/255, 2,
-        function(x)
-          rgb(x[1],
-              x[2],
-              x[3],
-              alpha = alpha))
+  return(apply(sapply(col, col2rgb)/255, 2, function(x)
+    rgb(x[1], x[2], x[3], alpha = alpha)))
 }
 
 #' @title linear interpolation of missing values
@@ -602,6 +602,7 @@ add_alpha <- function(col,
 interp_linear <- function(x,
                           y,
                           interpTails = TRUE){
+  setDTthreads(1)
   rl <- ip <- NULL
   if(length(x) != length(y) || !is.numeric(x) || !is.numeric(y)){
     warning("x and y must be numeric/integer vectors of equal length\n")
@@ -663,4 +664,20 @@ interp_linear <- function(x,
   }
 
   return(y)
+}
+
+#' @title drop_unusedPeptides
+#' @description
+#' \code{drop_unusedPeptides} drop_unusedPeptides
+#' @rdname utils
+#' @import data.table
+#' @export
+drop_unusedPeptides <- function(gsParam){
+  f <- list.files(path = dirname(gsParam$paths$peptide[1]), full.names = F)
+  fi <- basename(gsParam$paths$peptide)
+  if(any(!f %in% fi)){
+    fo <- f[!f %in% fi]
+    for(i in fo)
+      file.remove(file.path(dirname(gsParam$paths$peptide[1]), i))
+  }
 }

@@ -10,7 +10,6 @@
 \alias{get_nAA}
 \alias{find_modalValue}
 \alias{scale_between}
-\alias{complete_subgraph}
 \alias{flatten_list}
 \alias{pull_strWidth}
 \alias{round_toInteger}
@@ -25,6 +24,7 @@
 \alias{are_colors}
 \alias{add_alpha}
 \alias{interp_linear}
+\alias{drop_unusedPeptides}
 \title{Generic internal functions used by genespace}
 \usage{
 order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
@@ -42,8 +42,6 @@ get_nAA(path, raw = FALSE)
 find_modalValue(x)
 
 scale_between(x, min, max, scale1toMean = TRUE)
-
-complete_subgraph(dt)
 
 flatten_list(x)
 
@@ -80,6 +78,8 @@ are_colors(col)
 add_alpha(col, alpha = 1)
 
 interp_linear(x, y, interpTails = TRUE)
+
+drop_unusedPeptides(gsParam)
 }
 \arguments{
 \item{path}{file path character string}
@@ -104,8 +104,6 @@ interp_linear(x, y, interpTails = TRUE)
 
 \item{scale1toMean}{logical, if single value, should it be the mean?}
 
-\item{dt}{data.table with the first two columns as id1, id2.}
-
 \item{width}{integer, the number of characters to return in string.}
 
 \item{to}{what should the value be rounded to?}
@@ -125,6 +123,8 @@ interp_linear(x, y, interpTails = TRUE)
 \item{onlyCheckRun}{logical, should the run just be checked?}
 
 \item{hits}{data.table containing annotated blast-format pairwise hits}
+
+\item{dt}{data.table with the first two columns as id1, id2.}
 
 \item{byGrpCol}{column which serves as the by factor}
 
@@ -218,9 +218,6 @@ correctly. If cannot be coerced, return error.
 
 \code{scale_between} scale a vector between a range
 
-\code{complete_subgraph} given a hits data.table, expand unique orthofinder
-IDs among all unique elements in a subgraph
-
 \code{flatten_list} convert a list into a vector while keeping names
 
 \code{scale_between} ...
@@ -253,4 +250,6 @@ file
 \code{add_alpha} add transparency to a color
 
 \code{interp_linear} linear interpolation of missing values in x
+
+\code{drop_unusedPeptides} drop_unusedPeptides
 }

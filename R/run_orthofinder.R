@@ -335,7 +335,7 @@ blkwise_orthofinder <- function(gsParam,
 
   # -- run orthofinder within each region
   if(verbose)
-    cat("Running orthofinder by region ... n.genes, nOGs global/syntenic/inblk\n")
+    cat("Running orthofinder by region ... \n\tgenome combinat. : n. non-self genes, nOGs global/syntenic/inblk\n")
   genome <- chr <- start <- end <- NULL
   setkey(gff, genome, chr, start, end)
 
@@ -368,9 +368,6 @@ blkwise_orthofinder <- function(gsParam,
     hits <- subset(hits, n1 >= minGenes4of & n2 >= minGenes4of)
 
     g <- subset(gff, genome %in% c(geno1, geno2))
-    if(verbose)
-      with(g, cat(sprintf("%s genes, %s / %s ",
-                          uniqueN(ofID), uniqueN(globOG), uniqueN(synOG))))
 
     if(nrow(hits) < minGenes4of){
       if(verbose)
@@ -431,6 +428,11 @@ blkwise_orthofinder <- function(gsParam,
       ic <- ic[!duplicated(names(ic))]
       uc <- with(hits, unique(c(ofID1, ofID2)))
       uc <- uc[!uc %in% names(ic)]
+
+      if(verbose)
+        with(subset(g, ofID %in% c(inblkOgDt$ofID1, inblkOgDt$ofID2)), cat(
+          sprintf("%s genes, %s / %s ",
+                  uniqueN(ofID), uniqueN(globOG), uniqueN(synOG))))
       if(verbose)
         cat(sprintf("/ %s\n", uniqueN(ic) + length(uc)))
 

@@ -13,15 +13,15 @@ init_genespace(
   rawGenomeDir,
   ploidy,
   diamondMode = "more-sensitive",
-  orthofinderMethod = ifelse(any(ploidy > 1), "fast", "default"),
+  orthofinderMethod = "default",
   orthofinderInBlk = any(ploidy > 1),
   nCores = detectCores()/2,
   minPepLen = 20,
-  overwrite = FALSE,
+  overwrite = T,
   path2orthofinder = "orthofinder",
   path2mcscanx = "MCScanX",
   path2diamond = "diamond",
-  gffString = "gene.gff",
+  gffString = "gff",
   pepString = "pep|prot",
   verbose = TRUE
 )

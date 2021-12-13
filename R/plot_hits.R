@@ -57,6 +57,7 @@ plot_hits <- function(hits,
   ##############################################################################
   # -- ad hoc function to find and code chromosome bounds by hit number
   color_chrBounds <- function(hits, lightChrFill, darkChrFill, emptyChrFill){
+    setDTthreads(1)
     x <- y <- n <- chr1 <- chr2 <- max1 <- percMax1 <- NULL
     setkey(hits, x)
     hits[,`:=`(chr1 = factor(chr1, levels = unique(chr1)),
@@ -90,6 +91,7 @@ plot_hits <- function(hits,
                                  gapProp,
                                  useOrder,
                                  reorderChrs){
+    setDTthreads(1)
     h <- data.table(hits)
     ho <- subset(h, isOg & blkAnchor)
     cov1 <- rank(with(ho, tapply(ord1, chr1, median)))
@@ -128,6 +130,8 @@ plot_hits <- function(hits,
   ##############################################################################
   # -- ad hoc function to condense hits rounded to positions and count them
   condense_hits <- function(hits, round2){
+    setDTthreads(1)
+
     h <- data.table(hits)
     if(round2 > 0){
       h[,`:=`(x = round_toInteger(x, round2),
@@ -148,6 +152,8 @@ plot_hits <- function(hits,
     h <- subset(h, !duplicated(paste(x, y)))
     return(h)
   }
+
+  setDTthreads(1)
 
   ofID1 <- ofID2 <- x <- y <- isOg <- n <- genome <- gen2 <- ref <- chr1 <- NULL
   regBuffer <- blkBuffer <- regAnchor <- blkAnchor <- og <- colGrp <- NULL
@@ -222,7 +228,7 @@ plot_hits <- function(hits,
     darkChrFill = darkChrFill, emptyChrFill = emptyChrFill)
 
   # make plot window
-  par(mar = c(2,2,1,1))
+  # par(mar = c(2,2,1,1))
   xoffset <- min(tp$x) - (diff(range(tp$x))/20)
   yoffset <- min(tp$y) - (diff(range(tp$y))/20)
   plot(
