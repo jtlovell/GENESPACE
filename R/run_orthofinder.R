@@ -369,11 +369,11 @@ blkwise_orthofinder <- function(gsParam,
 
     # -- drop self region hits
     isSelf <- ofID1 <- ofID2 <- NULL
-    hits[,isSelf := any(ofID1 == ofID1), by = "regID"]
+    hits[,isSelf := any(ofID1 == ofID2), by = "regID"]
     hits <- subset(hits, !isSelf)
 
     # --  subset hits to array Reps and drop regions smaller than min genes
-    ofID1 <- arrep <- ofID2 <- n1 <- n2 <- genome <- NULL
+    ofID1 <- ofID2 <- n1 <- n2 <- genome <- NULL
     hits <- subset(hits, ofID1 %in% arrep[[geno1]] & ofID2 %in% arrep[[geno2]])
 
     hits[,`:=`(n1 = uniqueN(ofID1), n2 = uniqueN(ofID2)), by = "regID"]

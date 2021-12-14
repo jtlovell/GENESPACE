@@ -277,8 +277,8 @@ synteny <- function(gsParam,
 
   ##############################################################################
   # 5. If runOrthofinderInBlk, do so here:
-  synOG <- inblkOG <- isArrayRep <- arrayID <- NULL
   if(!gp$params$orthofinderInBlk){
+    synOG <- inblkOG <- NULL
     gf[,`:=`(inblkOG = synOG, og = synOG)]
   }else{
     gf <- blkwise_orthofinder(
@@ -292,6 +292,7 @@ synteny <- function(gsParam,
       genomeIDs = genomeIDs,
       gff = gf,
       gsParam = gp)
+    isArrayRep <- arrayID <- NULL
     gf[,`:=`(isArrayRep = NULL, arrayID = NULL)]
 
     # -- re-call arrays with the new og column
