@@ -44,6 +44,25 @@
 #' directory for the MCScanX program. In particular, there must be an
 #' executable in this directory for MCScanX_h.
 #' @param overwrite logical, should existing directories be overwritten?
+#' @param minGenes4of integer of length 1, specifying the minimum number of
+#' unique genes on each sequence for orthofinder to be run
+#' @param gff data.table containing the gff-like annotatin information
+#' @param ogColumn character length 1, specifying the column in the gff
+#' data.table to use as the orthogroup vector
+#' @param nCores integer of length 1, specifying the number of parallel
+#' processes to run
+#' @param verbose logical, should updates be printed to the console
+#' @param nhits1 integer of length 1, specifying the top n hits to retain for
+#' each gene on genome 1
+#' @param nhits2 integer of length 1, specifying the top n hits to retain for
+#' each gene on genome 2
+#' @param selfOnly logical, should only self hits be used? This is much faster.
+#' @param maskTheseHits character vector paste of the pairwise blast orthofinder
+#' gene IDs. Used to mask hits in the hits object
+#' @param maxIter integer of length 1 specifying the maximum number of
+#' iterations
+#' @param blks data.table containing the block coordinates. See calc_blkCoords
+#' @param radius numeric of length 1 specifying the search radius.
 #' @param ... additional arguments passed to set_syntenyParam().
 #'
 #' @details The main engine for GENESPACE synteny searching. This
@@ -258,7 +277,7 @@ synteny <- function(gsParam,
 
   ##############################################################################
   # 5. If runOrthofinderInBlk, do so here:
-  synOG <- inblkOG <- NULL
+  synOG <- inblkOG <- isArrayRep <- arrayID <- NULL
   if(!gp$params$orthofinderInBlk){
     gf[,`:=`(inblkOG = synOG, og = synOG)]
   }else{
@@ -296,6 +315,7 @@ synteny <- function(gsParam,
   # 8. Calculate block coordinates
   if(verbose)
     cat("Calculating syntenic block breakpoints ... \n")
+  runBlast <- isAnchor <- blkID <- NULL
   synHitsFiles <- with(subset(gp$params$synteny, runBlast), file.path(
     writeTo,sprintf("%s_%s_synHits.txt.gz", genome1, genome2)))
 
@@ -318,6 +338,7 @@ synteny <- function(gsParam,
 #' @description
 #' \code{pipe_synteny} pipe_synteny
 #' @rdname synteny
+#' @importFrom grDevices pdf dev.off
 #' @export
 pipe_synteny <- function(gsParam,
                          gff,
@@ -333,11 +354,9 @@ pipe_synteny <- function(gsParam,
     genome1 <- hits$gen1[1]
     genome2 <- hits$gen2[1]
     hitsFile <- file.path(gsParam$paths$results, sprintf(
-      "%s_%s_synHits.txt.gz",
-      genome1, genome2))
+      "%s_%s_synHits.txt.gz",  genome1, genome2))
     fwrite(
-      hits, file = hitsFile,
-      quote = F, showProgress = F, sep = "\t")
+      hits, file = hitsFile, quote = F, showProgress = F, sep = "\t")
   }
 
   ##############################################################################
@@ -347,24 +366,15 @@ pipe_synteny <- function(gsParam,
     setDTthreads(1)
     tp <- data.table(hits)
 
-    # pm <- par()["mfrow"]
-    # par(mfrow = c(1,1))
-    # pmar <- par()["mar"]
-    # par(mar = c(3,2,2,2))
-
     pdf(file.path(gsParam$paths$results, sprintf(
       "%s_%s_dotplots.pdf",
       tp$gen1[1], tp$gen2[1])),
       height = 6, width = 6)
 
-    par(mfrow = c(1,1))
     plot_hits(hits = tp, plotType = "allOG",  cols = "blue2", round2 = 10)
     plot_hits(hits = tp, plotType = "regAnchor")
     plot_hits(hits = tp, plotType = "blkAnchor")
     dev.off()
-
-    # par(mfrow = pm)
-    # par(mar = pmar)
   }
 
   ##############################################################################
@@ -372,6 +382,8 @@ pipe_synteny <- function(gsParam,
   split_synParam2chunks <- function(gsParam,
                                     nCores = NULL,
                                     overwrite = FALSE){
+    runBlast <- synHitsFile <- wt <- nGenes2 <- nGenes2 <- chunk <- og4syn <-
+      u <- NULL
     setDTthreads(1)
     if(is.null(nCores))
       nCores <- gsParam$params$nCores
@@ -391,8 +403,8 @@ pipe_synteny <- function(gsParam,
     }
 
     if(nrow(synp) > 0){
-      nGenes1 <- genome1 <- genome2 <- NULL
-      nGenes1 <- ploidy2 <- ploidy1 <- nSecondHits2 <- nSecondHits1 <- NULL
+      nGenes1 <- genome1 <- genome2 <-  nGenes1 <- ploidy2 <- ploidy1 <-
+        nSecondHits2 <- nSecondHits1 <- wt <- chunk <- NULL
       synp[,wt := ifelse(
         genome1 == genome2 &
           (nSecondHits1 + nSecondHits2 + ploidy1 + ploidy2) == 1,
@@ -411,8 +423,8 @@ pipe_synteny <- function(gsParam,
                                   gff,
                                   ogColumn){
     setDTthreads(1)
-    score <- ofID1 <- ofID2 <- isOg <- og1 <- scrRank1 <- scrRank2 <- NULL
-    chr1 <- chr2 <- ord1 <- ord2 <- NULL
+    score <- ofID1 <- ofID2 <- isOg <- og1 <- scrRank1 <- scrRank2 <- chr1 <-
+      chr2 <- ord1 <- ord2 <- og4syn <- NULL
 
     genome1 <- genomeIDs[1]
     genome2 <- genomeIDs[2]
@@ -505,7 +517,7 @@ pipe_synteny <- function(gsParam,
   # -- split of the synteny parameters by chunks
   splSynp <- split_synParam2chunks(
     gsParam, nCores = nCores, overwrite = overwrite)
-
+  u <- NULL
   if(is.null(splSynp)){
     cat("All synHits results have been generated and !overwrite\n\tNot running initial synteny step\n")
   }else{
@@ -810,7 +822,7 @@ set_syntenyParams <- function(gsParam,
       by = "u"]
 
   # -- flag which combinations should be run for blast etc.
-  genome1 <- query <- target <- tiebreak <- NULL
+  genome1 <- query <- target <- tiebreak <- runBlast <- NULL
   cmb[,`:=`(runBlast = genome1 == query,
             mirrorBlast = genome1 == target & genome1 != query,
             tiebreak = NULL)]
@@ -868,6 +880,7 @@ run_mcscanx <- function(hits,
                         gsParam,
                         path2mcscanx){
   setDTthreads(1)
+  mcsID1 <- mcsID2 <- NULL
   ##############################################################################
   # parameter argument checking
   hitCols <- c("ofID1","ofID2","chr1","chr2","ord1","ord2","score")
@@ -1045,6 +1058,7 @@ annotate_gff <- function(gsParam, genomeIDs){
   add_pepLen2gff <- function(gff,
                              gsParam){
     setDTthreads(1)
+    id <- NULL
     spl <- split(gff, by = "genome")
     naa <- rbindlist(lapply(spl, function(x){
       x[,pepLen := get_nAA(gsParam$paths$peptide[x$genome[1]], raw = T)[id]]
@@ -1057,7 +1071,6 @@ annotate_gff <- function(gsParam, genomeIDs){
   }
 
   # -- read in the gff
-  setDTthreads(1)
   gff <- read_gff(gsParam$paths$gff)
 
   # -- add orthofinder ids
@@ -1098,6 +1111,7 @@ flag_synteny <- function(hits,
   # 1. subset the hits to those that could potentially be block anchors
   # -- "raw" will never be subset and gets columns added to it in situ
   raw <- data.table(hits)
+  isAnchor <- blkID <- inBuffer <- arrayID1 <- arrayID2 <- regID <- NULL
   suppressWarnings(raw[,`:=`(blkID = NULL, isAnchor = NULL, inBuffer = NULL)])
 
   # -- "anchs" is the initial dataset that contains hits to be used for anchors
@@ -1126,7 +1140,8 @@ flag_synteny <- function(hits,
   # 2. If self only, just return the vectors of anchors, buffer and blks based
   # on the chromosomes
   if(selfOnly & a$gen1[1] == a$gen2[1]){
-    ofID1 <- ofID2 <- arrayOrd1 <- arrayOrd2 <- chr1 <- inBuffer <- NULL
+    ofID1 <- ofID2 <- arrayOrd1 <- arrayOrd2 <- chr1 <- inBuffer <-
+      isAnchor <- NULL
     raw[,`:=`(isAnchor = ofID1 == ofID2,
               inBuffer = abs(arrayOrd1 - arrayOrd2) <= synBuff |
                 arrayID1 == arrayID2,
@@ -1336,6 +1351,7 @@ add_arrayReps2gff <- function(gff,
                               ogColumn,
                               verbose){
   pull_synArray <- function(gff, synBuff, ogColumn){
+    rng <- NULL
     setDTthreads(1)
     # -- make global arrays from orthogroups
     gff[,arrayID := gff[[ogColumn]]]
@@ -1372,6 +1388,7 @@ add_arrayReps2gff <- function(gff,
   }
 
   pull_arrayRep <- function(gff){
+    med <- medbp <- rnk <- NULL
     setDTthreads(1)
     if(!"arrayID" %in% colnames(gff))
       stop("Cannot find a column named arrayID ... can't add arrayReps\n")
@@ -1413,6 +1430,7 @@ add_arrayReps2gff <- function(gff,
 
   # -- get collinear array IDs
   setDTthreads(1)
+  arrayOrd <- NULL
   ovf <- gff$ord; names(ovf) <- gff$ofID
   gff <- data.table(gff)
   gff <- pull_synArray(
@@ -1578,6 +1596,8 @@ split_blks <- function(hits, blkSize, verbose = F, maxIter = 5){
   setDTthreads(1)
   # -- function to count the overlapping hits
   count_ovlHits <- function(hits, maxDup){
+    blkID <- i.blkID <- blk1 <- blk2 <- r1 <- r2 <- nOvlp <- totHits <- n1 <-
+      n2 <- NULL
     bc <- calc_blkCoords(hits)
     bc1 <- with(bc, data.table(
       blkID = blkID, chr = chr1, start = startOrd1, end = endOrd1,
@@ -1625,6 +1645,7 @@ split_blks <- function(hits, blkSize, verbose = F, maxIter = 5){
   }
 
   spl_ovlblks <- function(blk1, blk2, hits, blkSize){
+    blkID <- isAnchor <- arrayOrd1 <- arrayOrd2 <- tmpb <- ord1 <- ord2 <- NULL
     tmp <- subset(hits, blkID %in% c(blk1, blk2) & isAnchor)
     tmp[,`:=`(ord1 = frank(arrayOrd1, ties.method = "dense"),
               ord2 = frank(arrayOrd2, ties.method = "dense"))]
@@ -1635,6 +1656,7 @@ split_blks <- function(hits, blkSize, verbose = F, maxIter = 5){
     return(tmp)
   }
 
+  isAnchor <- blk1 <- blk2 <- blkID <- NULL
   tmp <- subset(hits, isAnchor)
   runit <- T
   niter <- 1

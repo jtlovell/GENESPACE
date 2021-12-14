@@ -96,7 +96,7 @@ positions?}
 
 \item{chrLabCex}{character expansion for the chromosome labels}
 
-\item{nGenomeLabChar}{number of characters for genome labes}
+\item{nGenomeLabChar}{number of characters for genome label}
 
 \item{genomeLabCex}{chracter expansion of the genome labels}
 
@@ -127,6 +127,30 @@ be returned?}
 specified, taken from gsParam.}
 
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
+
+\item{annotatePlot}{logical, should names be printed on the plot}
+
+\item{add2plot}{logical, should plotting use existing graphics device?}
+
+\item{start1}{numeric of length 1, specifying the start coordinate on genome1}
+
+\item{end1}{numeric of length 1, specifying the end coordinate on genome1}
+
+\item{start2}{numeric of length 1, specifying the start coordinate on genome2}
+
+\item{end2}{numeric of length 1, specifying the end coordinate on genome2}
+
+\item{y1}{numeric of length 1, specifying the y position of genome1}
+
+\item{y2}{numeric of length 1, specifying the y position of genome2}
+
+\item{xleft}{numeric of length 1, specifying the left x coordinate}
+
+\item{ybottom}{numeric of length 1, specifying the bottom y coordinate}
+
+\item{xright}{numeric of length 1, specifying the right x coordinate}
+
+\item{ytop}{numeric of length 1, specifying the top y coordinate}
 }
 \description{
 \code{plot_riparian} Genespace plotting routines

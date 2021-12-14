@@ -77,7 +77,7 @@ are_colors(col)
 
 add_alpha(col, alpha = 1)
 
-interp_linear(x, y, interpTails = TRUE)
+interp_linear(x, y)
 
 drop_unusedPeptides(gsParam)
 }
@@ -88,7 +88,7 @@ drop_unusedPeptides(gsParam)
 
 \item{recursive}{logical, should the search be recursive}
 
-\item{x}{x position of the scale bar}
+\item{x}{vector of observations}
 
 \item{which}{character specifying which method to use}
 
@@ -122,79 +122,15 @@ drop_unusedPeptides(gsParam)
 
 \item{onlyCheckRun}{logical, should the run just be checked?}
 
-\item{hits}{data.table containing annotated blast-format pairwise hits}
-
-\item{dt}{data.table with the first two columns as id1, id2.}
-
-\item{byGrpCol}{column which serves as the by factor}
-
-\item{windowSize}{integer specifying the window size}
-
-\item{yCol}{character specifying the column name containing the y values}
-
-\item{fun}{function to pass to sliding window}
-
-\item{gffFiles}{vector of file paths pointing to the gff files}
-
-\item{blastDir}{file.path to the location of the blast results.}
-
-\item{genomeIDs}{an optional vector of genomeIDs to consider. If not
-specified (default) taken from gsParam$genomeIDs$genomeIDs}
-
-\item{radius}{numeric of length 1 specifying the eps dbscan parameter; the
-search radius within which to count clustered density-based xy points.}
-
-\item{blkSize}{integer of length 1 specifying the minimum size for a syntenic
-block and the -s 'size' MCScanX parameter}
-
-\item{nCores}{integer of length 1 specifying the number of parallel processes
-to run}
-
-\item{minRbhScore}{integer of length 1, see set_syntenyParams}
-
-\item{genome1}{character string specifying first of two genomeIDs}
-
-\item{genome2}{character string specifying second of two genomeIDs}
-
-\item{gff}{annotated gff with orthogroups included, see read_gff}
-
-\item{synBuff}{integer of length 1 specifying the maximum euclidean distance
-from an 'anchor' so that it can be considered syntenic}
-
-\item{selfOnly}{logical, should only self hits be considered}
-
-\item{overwrite}{logical, should the results be overwrittem?}
-
-\item{maskHits}{data.table of hits that should be excluded}
-
-\item{synParam}{data.table with synteny parameters. See set_syntenyParams.}
-
-\item{selfRegionMask}{integer, the radius around self hits that should be
-masked}
-
-\item{type}{either 'primary' or 'secondary' depending on the scale of
-inference}
-
-\item{dropInterleavesSmallerThan}{integer, the minimum block size to retain
-after splitting overlapping blocks}
-
-\item{minPropDup}{numeric (0-1) specifying the minimum proportion of
-duplicated hits to allow two overlapping blocks to not be split}
-
-\item{maxIter}{integer, the maximum number of block splitting interations}
-
-\item{nhits}{integer, the number of hits to retain}
-
-\item{blks}{data.table containing the block coordinates}
-
-\item{useBlks}{logical, for cross compatibility with plot_hits}
-
-\item{allowRBHinOg}{logical, should reciprocal best blast hits be used when
-finalizing block coordinates?}
-
-\item{verbose}{logical, should updates be printed to the console?
+\item{hits}{data.table containing annotated blast-format pairwise hits
 \cr
 If called, \code{utils} returns its own arguments.}
+
+\item{col}{character or integer specifying a color}
+
+\item{alpha}{numeric (0-1) specifying the transparency}
+
+\item{y}{vector of observations}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called

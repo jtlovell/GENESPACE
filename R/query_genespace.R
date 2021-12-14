@@ -33,7 +33,9 @@
 #' pangenome entries complete across the three genomes.
 #' @param useGlobalPgOrder logical, should the start/endOrder be calculated
 #' within the specified refChrom or should the global pangenome order be used?
-#'
+#' @param refGenome character string specifying which genome is the reference
+#' @param intervals data.table containing the intervals to extract
+#' @param genomeGenes data.table with the genome and genes
 #' @details ...
 #'
 #' @return ...
@@ -303,6 +305,7 @@ pull_pgIntervals <- function(gsParam,
                              genomeIDs = NULL,
                              intervals){
 
+  genome <- chr <- intID <- start <- end <- ofID <- pgID <- id <- ord <- NULL
   # -- pull the gff file
   if(is.null(genomeIDs))
     genomeIDs <- gsParam$genomes$genomeIDs
@@ -401,6 +404,7 @@ pull_pgGenes <- function(gsParam,
                          refGenome = NULL,
                          genomeGenes){
 
+  genome <- id <- ofID <- pgID <- ord <- NULL
   # -- pull the gff file
   wd <- gsParam$paths$results
   path2gff <- file.path(wd, "gffWithOgs.txt.gz")

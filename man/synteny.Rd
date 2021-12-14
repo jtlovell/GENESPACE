@@ -84,7 +84,20 @@ specified (default) taken from gsParam$genomeIDs$genomeIDs}
 
 \item{overwrite}{logical, should existing directories be overwritten?}
 
+\item{minGenes4of}{integer of length 1, specifying the minimum number of
+unique genes on each sequence for orthofinder to be run}
+
 \item{...}{additional arguments passed to set_syntenyParam().}
+
+\item{gff}{data.table containing the gff-like annotatin information}
+
+\item{ogColumn}{character length 1, specifying the column in the gff
+data.table to use as the orthogroup vector}
+
+\item{nCores}{integer of length 1, specifying the number of parallel
+processes to run}
+
+\item{verbose}{logical, should updates be printed to the console}
 
 \item{onlyOgAnchors}{logical, should only hits in orthogroups be considered
 for anchors?}
@@ -134,6 +147,24 @@ if not specified.}
 \item{path2mcscanx}{character string file.path pointing to the install
 directory for the MCScanX program. In particular, there must be an
 executable in this directory for MCScanX_h.}
+
+\item{nhits1}{integer of length 1, specifying the top n hits to retain for
+each gene on genome 1}
+
+\item{nhits2}{integer of length 1, specifying the top n hits to retain for
+each gene on genome 2}
+
+\item{selfOnly}{logical, should only self hits be used? This is much faster.}
+
+\item{maskTheseHits}{character vector paste of the pairwise blast orthofinder
+gene IDs. Used to mask hits in the hits object}
+
+\item{maxIter}{integer of length 1 specifying the maximum number of
+iterations}
+
+\item{blks}{data.table containing the block coordinates. See calc_blkCoords}
+
+\item{radius}{numeric of length 1 specifying the search radius.}
 }
 \value{
 Synteny functions produce three types of outputs: (1) a 'hits'

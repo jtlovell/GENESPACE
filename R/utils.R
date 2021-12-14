@@ -7,68 +7,28 @@
 #'
 #' @param gsParam list of genespace parameters
 #' @param path file path character string
+#' @param col character or integer specifying a color
+#' @param alpha numeric (0-1) specifying the transparency
 #' @param pattern regular expression to search for
 #' @param recursive logical, should the search be recursive
 #' @param which character specifying which method to use
 #' @param x vector of observations
+#' @param y vector of observations
 #' @param id1 character vector of ids with length matching id2
 #' @param id2 character vector of ids with length matching id1
 #' @param min numeric, length 1 specifying the minumum value in the scaled data
 #' @param max numeric, length 1 specifying the maximum value in the scaled data
-#' @param dt data.table with the first two columns as id1, id2.
 #' @param raw logical, should a raw vector of peptide widths be returned?
 #' @param scale1toMean logical, if single value, should it be the mean?
 #' @param width integer, the number of characters to return in string.
-#' @param x x position of the scale bar
 #' @param to what should the value be rounded to?
-#' @param byGrpCol column which serves as the by factor
-#' @param windowSize integer specifying the window size
-#' @param yCol character specifying the column name containing the y values
-#' @param fun function to pass to sliding window
-#' @param gffFiles vector of file paths pointing to the gff files
 #' @param refGenome character string specifying which genome is the reference
-#' @param nCores integer, the number of parallel processes to run
 #' @param blFile file path to the blast-like text file
 #' @param ofID1 orthofinder ID of the first gene
 #' @param ofID2 orthofinder ID of the second gene
 #' @param onlyIDScore logical, should only the geneIDs and score be returned?
-#' @param gff annotated gff with orthogroups included, see read_gff
-#' @param blastDir file.path to the location of the blast results.
 #' @param onlyCheckRun logical, should the run just be checked?
-#' @param genomeIDs an optional vector of genomeIDs to consider. If not
-#' specified (default) taken from gsParam$genomeIDs$genomeIDs
 #' @param hits data.table containing annotated blast-format pairwise hits
-#' @param radius numeric of length 1 specifying the eps dbscan parameter; the
-#' search radius within which to count clustered density-based xy points.
-#' @param blkSize integer of length 1 specifying the minimum size for a syntenic
-#' block and the -s 'size' MCScanX parameter
-#' @param nCores integer of length 1 specifying the number of parallel processes
-#' to run
-#' @param minRbhScore integer of length 1, see set_syntenyParams
-#' @param genome1 character string specifying first of two genomeIDs
-#' @param genome2 character string specifying second of two genomeIDs
-#' @param gff annotated gff with orthogroups included, see read_gff
-#' @param synBuff integer of length 1 specifying the maximum euclidean distance
-#' from an 'anchor' so that it can be considered syntenic
-#' @param selfOnly logical, should only self hits be considered
-#' @param overwrite logical, should the results be overwrittem?
-#' @param maskHits data.table of hits that should be excluded
-#' @param synParam data.table with synteny parameters. See set_syntenyParams.
-#' @param selfRegionMask integer, the radius around self hits that should be
-#' masked
-#' @param type either 'primary' or 'secondary' depending on the scale of
-#' inference
-#' @param dropInterleavesSmallerThan integer, the minimum block size to retain
-#' after splitting overlapping blocks
-#' @param minPropDup numeric (0-1) specifying the minimum proportion of
-#' duplicated hits to allow two overlapping blocks to not be split
-#' @param maxIter integer, the maximum number of block splitting interations
-#' @param nhits integer, the number of hits to retain
-#' @param blks data.table containing the block coordinates
-#' @param useBlks logical, for cross compatibility with plot_hits
-#' @param allowRBHinOg logical, should reciprocal best blast hits be used when
-#' finalizing block coordinates?
-#' @param verbose logical, should updates be printed to the console?
 #' \cr
 #' If called, \code{utils} returns its own arguments.
 #'
@@ -336,6 +296,7 @@ parse_ogs <- function(gsParam){
 #' @import data.table
 #' @export
 parse_orthologues <- function(gsParam, refGenome){
+  orthID <- NULL
   setDTthreads(1)
   od <- file.path(gsParam$paths$orthologuesDir,
                   sprintf("Orthologues_%s", refGenome))
@@ -600,8 +561,7 @@ add_alpha <- function(col,
 #' @import data.table
 #' @export
 interp_linear <- function(x,
-                          y,
-                          interpTails = TRUE){
+                          y){
   setDTthreads(1)
   rl <- ip <- NULL
   if(length(x) != length(y) || !is.numeric(x) || !is.numeric(y)){
@@ -622,27 +582,7 @@ interp_linear <- function(x,
       z[,rl := add_rle(is.na(y), which = "id")]
 
       # -- pull runs to infer (not first and last if they are NAs)
-      if(interpTails){
-        if(is.na(z$y[1])){
-          z[,rl := rl + 1]
-          z <- rbind(data.table(
-            x = min(z$x, na.rm = T) - .5,
-            y = min(z$y, na.rm = T) - .5,
-            i = 0, rl = 1),
-            z)
-        }
-        if(is.na(z$y[nrow(z)])){
-          print(z)
-          z <- rbind(z, data.table(
-            x = max(z$x, na.rm = T) + .5,
-            y = max(z$y, na.rm = T) + .5,
-            i = max(z$i, na.rm = T) + 1,
-            rl = max(z$rl, na.rm = T) + 1))
-        }
-        toinf <- subset(z, is.na(y))
-      }else{
-        toinf <- subset(z, is.na(y) & !rl %in% c(1, max(rl)))
-      }
+      toinf <- subset(z, is.na(y) & !rl %in% c(1, max(rl)))
 
       if(nrow(toinf) < 1){
         warning("no missing values of y to interpolate")

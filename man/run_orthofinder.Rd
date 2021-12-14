@@ -33,6 +33,24 @@ printed ot the console?}
 
 \item{minGenes4of}{integer specifying the minimum number of genes needed to
 run orthofinder.}
+
+\item{blast00}{data.table containing the blast hits of genome1 to genome1}
+
+\item{blast01}{data.table containing the blast hits of genome1 to genome2}
+
+\item{blast10}{data.table containing the blast hits of genome2 to genome1}
+
+\item{blast11}{data.table containing the blast hits of genome2 to genome2}
+
+\item{pep0}{aastringset containing peptides for genome1}
+
+\item{pep1}{aastringset containing peptides for genome2}
+
+\item{writeDir}{file path pointing to a directory within which to run f}
+
+\item{genome1}{character string specifying genome1}
+
+\item{genome2}{character string specifying genome2}
 }
 \value{
 ...

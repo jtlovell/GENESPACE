@@ -50,7 +50,19 @@
 #' be constrained to just those in synteny with the rest of the graph?
 #' @param findRegHitsRecursive logical, should regional hit discovery be
 #' recursive?
-#' @param nGenomeLabChar number of characters for genome labes
+#' @param nGenomeLabChar number of characters for genome label
+#' @param annotatePlot logical, should names be printed on the plot
+#' @param add2plot logical, should plotting use existing graphics device?
+#' @param start1 numeric of length 1, specifying the start coordinate on genome1
+#' @param end1 numeric of length 1, specifying the end coordinate on genome1
+#' @param start2 numeric of length 1, specifying the start coordinate on genome2
+#' @param end2 numeric of length 1, specifying the end coordinate on genome2
+#' @param y1 numeric of length 1, specifying the y position of genome1
+#' @param y2 numeric of length 1, specifying the y position of genome2
+#' @param xleft numeric of length 1, specifying the left x coordinate
+#' @param xright numeric of length 1, specifying the right x coordinate
+#' @param ybottom numeric of length 1, specifying the bottom y coordinate
+#' @param ytop numeric of length 1, specifying the top y coordinate
 #' @param verbose should progress updates be printed to the console? If not
 #' specified, taken from gsParam.
 #' @param returnSourceData logical, should the source data to build the plot
@@ -66,7 +78,7 @@
 #' }
 #'
 #' @import data.table
-#' @importFrom graphics strheight polygon text
+#' @importFrom graphics strheight polygon text segments
 #' @importFrom stats quantile
 #' @importFrom dbscan dbscan frNN
 #' @export
@@ -181,7 +193,7 @@ plot_riparian <- function(gsParam,
   ##############################################################################
   # -- ad hoc function to read riparian path hits
   read_ripHits <- function(gsParam, genomeIDs, useBlks, gff){
-    og <-regID <- blkID <- NULL
+    og <-regID <- blkID <- isAnchor <- NULL
     genomeOrd <- data.table(
       gen1 = genomeIDs[-length(genomeIDs)],
       gen2 = genomeIDs[-1],
@@ -257,7 +269,7 @@ plot_riparian <- function(gsParam,
   ##############################################################################
   # -- ad hoc function to load reference hits
   load_refHits <- function(gsParam, genomeIDs, refGenome, plotRegions, gff){
-    regID <- og <- blkID <- NULL
+    regID <- og <- blkID <- isAnchor <- NULL
     nonRefGen <- genomeIDs[genomeIDs != refGenome]
     fs <- file.path(gsParam$paths$results,
                     sprintf("%s_%s_synHits.txt.gz",
@@ -312,11 +324,11 @@ plot_riparian <- function(gsParam,
     return(gff)
   }
 
-  arrayID <- og <- synOG <- globOG <- inBlkOG <- ord <- NULL
-  genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1 <- ord1 <- ofID <- NULL
-  rl <- refChr <- blkID <- gen2 <- startOrd1 <- endOrd1 <- end <- n <- NULL
-  startOrd2 <- endOrd2 <- startBp1 <- endBp1 <- startBp2 <- NULL
-  endBp2 <- firstGene1 <- x <- linBp <- linOrd <- y <- start <- NULL
+  arrayID <- og <- synOG <- globOG <- inBlkOG <- ord <- ord2 <-
+    genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1 <- ord1 <- ofID <-
+    rl <- refChr <- blkID <- gen2 <- startOrd1 <- endOrd1 <- end <- n <-
+    startOrd2 <- endOrd2 <- startBp1 <- endBp1 <- startBp2 <- regID <-
+    endBp2 <- firstGene1 <- x <- linBp <- linOrd <- y <- start <- NULL
 
 
   ##############################################################################
@@ -383,7 +395,6 @@ plot_riparian <- function(gsParam,
       invChrs <- with(invChrs, paste(genome, chr))
     }
   }
-
   # -- read the gff
   if(verbose)
     cat("\tLoading the gff ... ")
@@ -395,7 +406,8 @@ plot_riparian <- function(gsParam,
 
   # invert chromosomes if necessary
   if(!is.null(invChrs)){
-    invChrs <- invChrs[invChrs %in% paste(gff$genome, gff$chr)]
+    u <- with(gff, unique(paste(genome, chr)))
+    invChrs <- invChrs[invChrs %in% u]
     gi <- subset(gff, paste(genome, chr) %in% invChrs)
     if(nrow(gi) > 0){
       ga <- subset(gff, !paste(genome, chr) %in% invChrs)
@@ -403,7 +415,6 @@ plot_riparian <- function(gsParam,
       gi[,`:=`(ord = 1:.N,
                start = max(start) - start,
                end = max(end - end)), by = c("genome", "chr")]
-
       gff <- rbind(gi, ga)
       setkey(gff, genome, chr, ord)
       gff[,ord := 1:.N, by = "genome"]

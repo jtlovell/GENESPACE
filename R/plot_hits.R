@@ -3,9 +3,9 @@
 #' \code{plot_hits} Genespace plotting routines
 #'
 #' @param hits data.table of hits
-#' @param plotRegions logical, should regions be plotted (instead of blocks)?
-#' @param bufferOnly logical, should only hits in buffers be plotted?
-#' @param anchorOnly logical, should only hits that are anchors be plotted?
+#' @param plotType character string specifying the plot type
+#' @param reorderChrs logical, should the chromosomes be re-ordered based on
+#' synteny?
 #' @param round2 integer, specifying the rounding of gene rank order positions
 #' to reduce the total number of points. 1 = don't round
 #' @param alpha numeric (0-1) specifying transparency of the points
@@ -16,15 +16,14 @@
 #' positions?
 #' @param axisTitleCex character expansion for the axes and genome labels
 #' @param chrLabCex character expansion for the chromosome labels
-#' @param gff annotated gff-like data.table
 #' @param darkChrFill color of the most dense chr backgrounds
 #' @param lightChrFill color of the least populated chr backgrounds
 #' @param emptyChrFill color of the empty chr backgrounds
 #' @param minGenes2plot integer specifying the minimum number of genes on a
 #' chr to plot
-#' @param onlyOg logical, should only og hits be plotted?
 #' @param cols vector of colors to use for points
-#' @param plotTitle character string specifying the title of the plot
+#' @param returnSourceData logical, should the source data to build the plot
+#' be returned?
 #'
 #' @details ...
 #'
@@ -35,6 +34,7 @@
 #'
 #' @import data.table
 #' @importFrom graphics title
+#' @importFrom grDevices colorRampPalette
 #' @export
 plot_hits <- function(hits,
                       plotType = c("allHits", "allOG", "regAnchor", "regBuffer", "blkAnchor", "blkBuffer"),
@@ -91,6 +91,8 @@ plot_hits <- function(hits,
                                  gapProp,
                                  useOrder,
                                  reorderChrs){
+    ord1 <- chr1 <- ord2 <- chr2 <- isOg <- blkAnchor <- sclGap1 <- sclGap2 <-
+      ord2 <- x <- y <- chrOrd2 <- chrOrd1 <- end1 <- end2 <- start1 <- start2 <- NULL
     setDTthreads(1)
     h <- data.table(hits)
     ho <- subset(h, isOg & blkAnchor)
@@ -131,7 +133,7 @@ plot_hits <- function(hits,
   # -- ad hoc function to condense hits rounded to positions and count them
   condense_hits <- function(hits, round2){
     setDTthreads(1)
-
+    n <- x <- y <- col <- NULL
     h <- data.table(hits)
     if(round2 > 0){
       h[,`:=`(x = round_toInteger(x, round2),
@@ -142,7 +144,6 @@ plot_hits <- function(hits,
       h[,n := frank(n, ties.method = "dense")]
       h[,n := frank(round_toInteger(n, 5), ties.method = "dense")]
       h[,n := scale_between(n, min = .25, max = 1)]
-      col <- n <- NULL
       h[,col := sapply(1:nrow(h), function(i)
         add_alpha(h$col[i], alpha = h$n[i]))]
       setkey(h, n)
@@ -155,12 +156,9 @@ plot_hits <- function(hits,
 
   setDTthreads(1)
 
-  ofID1 <- ofID2 <- x <- y <- isOg <- n <- genome <- gen2 <- ref <- chr1 <- NULL
-  regBuffer <- blkBuffer <- regAnchor <- blkAnchor <- og <- colGrp <- NULL
-  blkID <- regID <- chr2 <- bSize <- NULL
-
   # -- subset hits to right stuff
   pltTypes <- c("allHits", "allOG", "regAnchor", "regBuffer", "blkAnchor", "blkBuffer")
+  isOg <- NULL
   if(!plotType %in% pltTypes)
     plotType <- "allOG"
   p <- plotType[1]
@@ -188,6 +186,8 @@ plot_hits <- function(hits,
                   "#A6761D", "#666666", "darkred","darkblue")
     }
   }
+  regAnchor <- regID <- isAnchor <- regBuffer <- inBuffer <- blkID <-
+    blkAnchor <- blkBuffer <- colGrp <- nu1 <- nu2 <- ofID1 <- ofID2 <- NULL
   tp[,regAnchor := isAnchor & !is.na(regID)]
   tp[,regBuffer := inBuffer & !is.na(regID)]
   tp[,blkAnchor := isAnchor & !is.na(blkID)]
@@ -205,6 +205,7 @@ plot_hits <- function(hits,
   tp <- subset(tp, nu1 >= minGenes2plot & nu2 >= minGenes2plot)
 
   # -- color hits
+  col <- NULL
   if(length(cols) == 1){
     tp[,col := cols]
   }else{
@@ -254,6 +255,7 @@ plot_hits <- function(hits,
   }
 
   # plot chrs and label
+  x1 <- x0 <- y0 <- y1 <- col <- x12 <- chr1<- chr2 <- y12 <- NULL
   with(cb, rect(
     xleft = x0, xright = x1,
     ybottom = y0, ytop = y1,
@@ -269,6 +271,7 @@ plot_hits <- function(hits,
          y = y12,  adj = c(1.05,.5)))
 
   # -- plot points
+  col <- n <- x <- y <- NULL
   setkey(tp, col, n)
   if(uniqueN(cols) > 1){
     with(tp, points(x, y, col = "white", pch = 16, cex= .4))

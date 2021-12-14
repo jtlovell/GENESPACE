@@ -19,6 +19,15 @@
 #' run orthofinder.
 #' @param quietOrthofinder logical, should orthofinder-generated output be
 #' printed ot the console?
+#' @param blast00 data.table containing the blast hits of genome1 to genome1
+#' @param blast01 data.table containing the blast hits of genome1 to genome2
+#' @param blast10 data.table containing the blast hits of genome2 to genome1
+#' @param blast11 data.table containing the blast hits of genome2 to genome2
+#' @param pep0 aastringset containing peptides for genome1
+#' @param pep1 aastringset containing peptides for genome2
+#' @param writeDir file path pointing to a directory within which to run f
+#' @param genome1 character string specifying genome1
+#' @param genome2 character string specifying genome2
 #' @details ...
 #' @return ...
 #'
@@ -156,6 +165,7 @@ run_orthofinder <- function(gsParam,
   ##############################################################################
   # -- add blast metadata / calls
   add_blastInfo2syn <- function(gsParam){
+    genome1 <- genome2 <- db2 <- fa1 <- blFile <- NULL
     si <- read_orthofinderSpeciesIDs(gsParam$paths$orthofinder)
     p <- data.table(gsParam$params$synteny)
     diamondMode <- gsParam$params$diamondMode
@@ -299,7 +309,7 @@ blkwise_orthofinder <- function(gsParam,
                                 gff,
                                 genomeIDs = NULL,
                                 minGenes4of = 40){
-
+  inblkOG <- NULL
   ##############################################################################
   # 1.Checking
   ##############################################################################
@@ -336,7 +346,7 @@ blkwise_orthofinder <- function(gsParam,
   # -- run orthofinder within each region
   if(verbose)
     cat("Running orthofinder by region ... \n\tgenome combinat. : n. non-self genes, nOGs global/syntenic/inblk\n")
-  genome <- chr <- start <- end <- NULL
+  genome <- chr <- start <- end <- isArrayRep <- ofID <- genome <- NULL
   setkey(gff, genome, chr, start, end)
 
   arrep <- with(subset(gff, isArrayRep), split(ofID, genome))
@@ -354,16 +364,18 @@ blkwise_orthofinder <- function(gsParam,
                   select = c("ofID1","ofID2", "regID","inBuffer"))
 
     # -- subset to hits in the large regions
+    regID <- inBuffer <- NULL
     hits <- subset(hits, !is.na(regID) & inBuffer)
 
     # -- drop self region hits
-    hits[,isSelf := any(ofID1 == ofID2), by = "regID"]
+    isSelf <- ofID1 <- ofID2 <- NULL
+    hits[,isSelf := any(ofID1 == ofID1), by = "regID"]
     hits <- subset(hits, !isSelf)
 
-    # --  subset hits to array Reps
+    # --  subset hits to array Reps and drop regions smaller than min genes
+    ofID1 <- arrep <- ofID2 <- n1 <- n2 <- genome <- NULL
     hits <- subset(hits, ofID1 %in% arrep[[geno1]] & ofID2 %in% arrep[[geno2]])
 
-    # -- drop regions smaller than min genes
     hits[,`:=`(n1 = uniqueN(ofID1), n2 = uniqueN(ofID2)), by = "regID"]
     hits <- subset(hits, n1 >= minGenes4of & n2 >= minGenes4of)
 
@@ -375,7 +387,8 @@ blkwise_orthofinder <- function(gsParam,
       return(NULL)
     }else{
       # -- subset to the genomes of interest and report updates
-      genome <- ofID <- synOG <- globOG <- NULL
+      ofID1 <- ofID2 <- arrep <- V1 <- V2 <- genome <- ofID <- synOG <-
+        globOG <- NULL
 
       # -- read in the hits
       h <- read_hits4of(
@@ -402,7 +415,7 @@ blkwise_orthofinder <- function(gsParam,
         u2 <- unique(out$ofID2)
 
         # -- run orthofinder from these hits
-        V1 <- V2 <- regID <- NULL
+        V1 <- V2 <- regID <- og <- isInblkOg <- ofID1 <- ofID2 <- NULL
         ogdt <- run_ofFromObj(
           blast00 = subset(h00, V1 %in% u1 & V2 %in% u1),
           blast01 = subset(h01, V1 %in% u1 & V2 %in% u2),
@@ -413,7 +426,7 @@ blkwise_orthofinder <- function(gsParam,
           writeDir = tmpDir)
         ogdt[,og := as.numeric(as.factor(og))]
         ogv <- ogdt$og; names(ogv) <- ogdt$ofID
-        u <- unique(c(u1,u2))
+        u <- unique(c(u1, u2))
         uo <- u[!u %in% names(ogv)]
         uv <- (max(ogv) + 1):(max(ogv) + length(uo))
         names(uv) <- uo
@@ -423,6 +436,7 @@ blkwise_orthofinder <- function(gsParam,
         return(out[,c(1:2,8)])
       }))
 
+      ofID1 <- ofID2 <- ofID <- NULL
       ic <- with(subset(inblkOgDt, isInblkOg), clus_igraph(
         id1 = c(ofID1, ofID2), id2 = c(ofID2, ofID1)))
       ic <- ic[!duplicated(names(ic))]
@@ -439,6 +453,8 @@ blkwise_orthofinder <- function(gsParam,
       return(inblkOgDt)
     }
   }))
+
+  isInblkOg <- arrayID <- a1 <- a2 <- ofID1 <- ofID2 <- inBlkOG <- arrv <- NULL
   ib <- subset(synOgInBlkHits, isInblkOg)
   gff[,arrv := as.character(as.numeric(as.factor(arrayID)))]
   av <- gff$arrv; names(av) <- gff$ofID
@@ -470,6 +486,7 @@ run_ofFromObj <- function(blast00,
                           pep1,
                           writeDir){
 
+  id <- Orthogroup <- ofID <- og <- NULL
   if(dir.exists(writeDir))
     stop(sprintf("%s exists. Specify non-existing directory\n",
                  writeDir))

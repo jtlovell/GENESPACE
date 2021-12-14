@@ -26,6 +26,11 @@ plot_hits(
 \arguments{
 \item{hits}{data.table of hits}
 
+\item{plotType}{character string specifying the plot type}
+
+\item{reorderChrs}{logical, should the chromosomes be re-ordered based on
+synteny?}
+
 \item{minGenes2plot}{integer specifying the minimum number of genes on a
 chr to plot}
 
@@ -52,19 +57,10 @@ to reduce the total number of points. 1 = don't round}
 
 \item{chrLabCex}{character expansion for the chromosome labels}
 
+\item{returnSourceData}{logical, should the source data to build the plot
+be returned?}
+
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
-
-\item{plotRegions}{logical, should regions be plotted (instead of blocks)?}
-
-\item{bufferOnly}{logical, should only hits in buffers be plotted?}
-
-\item{anchorOnly}{logical, should only hits that are anchors be plotted?}
-
-\item{gff}{annotated gff-like data.table}
-
-\item{onlyOg}{logical, should only og hits be plotted?}
-
-\item{plotTitle}{character string specifying the title of the plot}
 }
 \description{
 \code{plot_hits} Genespace plotting routines

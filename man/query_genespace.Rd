@@ -66,6 +66,12 @@ by setup_genespace, but can be built manually. Must have the following
 elements: blast (file.path to the original orthofinder run), synteny (
 file.path to the directory where syntenic results are stored), genomeIDs (
 character vector of genomeIDs).}
+
+\item{refGenome}{character string specifying which genome is the reference}
+
+\item{intervals}{data.table containing the intervals to extract}
+
+\item{genomeGenomes}{data.table with the genome and genes}
 }
 \value{
 ...

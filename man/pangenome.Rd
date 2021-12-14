@@ -21,13 +21,11 @@ character vector of genomeIDs).}
 \item{genomeIDs}{character vector, specifying which genomes to use. Defaults
 to all genomeIDs specification in gsParam.}
 
-\item{refGenome}{character string matching one of the genomeIDs in gsParam}
+\item{noSecondaryAnchors}{logical, should "secondary" (see synteny) hits be
+used as pangenome position anchors? If so, like with polyploids, gene
+positions may be duplicated}
 
-\item{maxGapsBetweenEntries}{numeric of length 1, giving the maximum number
-of pangenome entries between two unique orthogroup-prediction positions to
-merge those positions. This cannot be smaller than the synteny buffer
-in gsParam$params$synteny$synBuff and will be set to 2x that number if not specified
-(default) or smaller than the synBuff maximum value.}
+\item{refGenome}{character string matching one of the genomeIDs in gsParam}
 }
 \value{
 a data.table with lists of gene ids for each genome. Each row
