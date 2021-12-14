@@ -260,7 +260,7 @@ synteny <- function(gsParam,
   gp <- pipe_synteny(
     gsParam = gp,
     gff = gf,
-    overwrite = T)
+    overwrite = overwrite)
 
   ##############################################################################
   # 4. Build syntenic orthogroups from syntenic hits
@@ -547,6 +547,7 @@ pipe_synteny <- function(gsParam,
         synHitsFile <- with(x, file.path(
           gsParam$paths$results,
           sprintf("%s_%s_synHits.txt.gz", g1, g2)))
+
         allHits <- parse_blast4synteny(
           gsParam = gsParam,
           genomeIDs = c(g1, g2),
@@ -1490,7 +1491,7 @@ add_arrayReps2gff <- function(gff,
 
 #' @title add synteny-constrained orthogroups to gff
 #' @description
-#' \code{combine_inblkSynOG} add synteny-constrained orthogroups to gff
+#' \code{add_synOg2gff} add synteny-constrained orthogroups to gff
 #' @rdname synteny
 #' @importFrom parallel mclapply
 #' @export
