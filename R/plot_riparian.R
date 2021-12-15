@@ -117,10 +117,6 @@ plot_riparian <- function(gsParam,
                           add2plot = FALSE){
 
   ##############################################################################
-  # -- ad hoc function to make cosine points for the plot
-
-
-  ##############################################################################
   # -- ad hoc function to draw scale bar on the riparian plot
   draw_scaleBar <- function(x, y, yspan, xspan, label, lwd, cex){
     xstart <- x - (xspan / 2)
@@ -334,6 +330,42 @@ plot_riparian <- function(gsParam,
   ##############################################################################
   # 1. rename a few things, check parameters, read in hits/gff
   ##############################################################################
+  # -- specify the ref genome
+  if(is.null(refGenome) || !refGenome %in% genomeIDs || length(refGenome) > 1)
+    refGenome <- genomeIDs[1]
+
+  # -- genomeID checking
+  if(is.null(genomeIDs)){
+    genomeIDs <- gsParam$genomes$genomeIDs
+    genomeIDs <- genomeIDs[!genomeIDs %in% gsParam$genomes$outgroup]
+  }else{
+    tmp <- gsParam$genomes$genomeIDs
+    tmp <- tmp[!tmp %in% gsParam$genomes$outgroup]
+    genomeIDs <- genomeIDs[genomeIDs %in% tmp]
+  }
+
+  # -- check that the refgenome and genomeIDs are OK
+  gparIDs <- gpar$genomes$genomeIDs
+  if(!refGenome %in% gparIDs)
+    stop(sprintf("The reference genome %s is not in the gsParam genomes\n",
+                 refGenome))
+  if(!all(genomeIDs %in% gparIDs))
+    stop(sprintf("Specified genomeIDs: %s are not in the gsParam genomes\n",
+                 paste(genomeIDs[!genomeIDs %in% gparIDs], collapse = ", ")))
+
+  # -- check that all genomeIDs have synHits
+  allHits <- sapply(genomeIDs, function(i){
+    hi1 <- file.path(gsParam$paths$results,
+                    sprintf("%s_%s_synHits.txt.gz", i, genomeIDs))
+    hi2 <- file.path(gsParam$paths$results,
+                     sprintf("%s_%s_synHits.txt.gz", genomeIDs, i))
+    return(all(apply(cbind(hi1, hi2), 1, function(x) any(file.exists(x)))))
+  })
+
+  if(!all(allHits))
+    stop("Some genomes do not have syntenic hits\n\tdid you use all specified genomeIDs in synteny?\n")
+
+
   # -- choose the colors
   highlightRef <- highlightRef[1]
   if(!are_colors(highlightRef) || is.null(highlightRef))
@@ -359,22 +391,8 @@ plot_riparian <- function(gsParam,
     verbose <- verbose[1]
   }
 
-  # -- genomeID checking
-  if(is.null(genomeIDs)){
-    genomeIDs <- gsParam$genomes$genomeIDs
-    genomeIDs <- genomeIDs[!genomeIDs %in% gsParam$genomes$outgroup]
-  }else{
-    tmp <- gsParam$genomes$genomeIDs
-    tmp <- tmp[!tmp %in% gsParam$genomes$outgroup]
-    genomeIDs <- genomeIDs[genomeIDs %in% tmp]
-  }
-
   # -- get the number of characters to use as the genome labels
   nGenomeLabChar <- min(max(nchar(genomeIDs)), nGenomeLabChar)
-
-  # -- specify the ref genome
-  if(is.null(refGenome) || !refGenome %in% genomeIDs || length(refGenome) > 1)
-    refGenome <- genomeIDs[1]
 
   # -- choose which genomes chrs will be labeled
   if(is.null(labelTheseGenomes))
