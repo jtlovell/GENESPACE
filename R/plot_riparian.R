@@ -231,7 +231,7 @@ plot_riparian <- function(gsParam,
     ord1 <- ord <- gen2 <- genome <- refOrd <- chrOrd <- chr <- end <- gap <- NULL
     start <- linOrd <- linBp <- NULL
 
-    synChrs <- refHits[,list(refOrd = median(ord1, na.rm = T)), by = c("gen2", "chr2")]
+    synChrs <- refHits[,list(refOrd = mean(ord1, na.rm = T)), by = c("gen2", "chr2")]
     synChrs <- subset(synChrs, complete.cases(synChrs))
     synChrs[,`:=`(genome = factor(gen2, levels = genomeIDs), gen2 = NULL)]
     setkey(synChrs, genome, refOrd)
@@ -304,7 +304,7 @@ plot_riparian <- function(gsParam,
     gff <- subset(gff, genome %in% genomeIDs)
     gff[,genome := factor(genome, levels = genomeIDs)]
     setkey(gff, genome, ord)
-    nGenes <- gff[,list(n = .N, medPos = median(ord)), by = c("genome","chr")]
+    nGenes <- gff[,list(n = .N, medPos = mean(ord)), by = c("genome","chr")]
     nGenes <- subset(nGenes, n > minGenesOnChr)
     nGenes[,chrn := as.numeric(gsub("[^0-9]", "", chr))]
     setorder(nGenes, genome, chrn, chr, medPos, -n)
@@ -561,12 +561,14 @@ plot_riparian <- function(gsParam,
     genesInReg <- gff$ofID[gff$og %in% unique(fo$og)]
     ogInReg <- lapply(split(fo, by = "regID"), function(x) unique(x$og))
     genesInRegList <- lapply(ogInReg, function(x) subset(gff, og %in% x))
-    radius <- max(gsParam$params$synteny$synBuff)
-    blkSize <- max(gsParam$params$synteny$blkSize)
-    if(!is.finite(radius))
+    if(is.null(gsParam$params$synteny$synBuff)){
+      warning("can't find synteny parameters in the gsParam object\n\t using radius = 100 and blkSize = 5")
       radius <- 100
-    if(!is.finite(blkSize))
       blkSize <- 5
+    }else{
+      radius <- max(gsParam$params$synteny$synBuff)
+      blkSize <- max(gsParam$params$synteny$blkSize)
+    }
 
     # -- assign regIDs to these
     riphl <- lapply(genesInRegList, function(x)

@@ -622,7 +622,6 @@ pipe_synteny <- function(gsParam,
           ######################################################################
           # 6. if intergenomics get synteny
           onlyOgAnchors <- NULL
-          cat("flag\n")
           nGaps <- nhits2 <- nhits1 <- synBuff <- blkSize <- NULL
           synHits <- with(x, flag_synteny(
             hits = allHits,
