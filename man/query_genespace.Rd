@@ -71,7 +71,7 @@ character vector of genomeIDs).}
 
 \item{intervals}{data.table containing the intervals to extract}
 
-\item{genomeGenomes}{data.table with the genome and genes}
+\item{genomeGenes}{data.table with the genome and genes}
 }
 \value{
 ...

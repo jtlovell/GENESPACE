@@ -593,7 +593,6 @@ pipe_synteny <- function(gsParam,
           ######################################################################
           # 5. if polyploid, get homeologs and add to region hits
           if(x$ploidy1 > 1){
-            cat("homeosyn\n")
             onlyOgAnchors <- inBuffer <- NULL
             nGaps <- nhits2 <- nhits1 <- synBuff <- blkSize <- NULL
             homeoReg <- with(x, flag_synteny(
@@ -607,7 +606,6 @@ pipe_synteny <- function(gsParam,
               selfOnly = FALSE,
               maskTheseHits = subset(selfMask, inBuffer),
               onlyOgAnchors = onlyOgAnchors))
-            cat("done\n")
             inBuffer <- blkID <- regID <- NULL
             homeoReg <- subset(homeoReg, inBuffer)
             homeoReg[,`:=`(
@@ -634,7 +632,6 @@ pipe_synteny <- function(gsParam,
             selfOnly = FALSE,
             maskTheseHits = NULL,
             onlyOgAnchors = onlyOgAnchors))
-          cat("done\n")
           blkID <- regID <- NULL
           synHits[,`:=`(
             blkID = ifelse(!is.na(blkID), paste0("prim_", blkID), NA),
@@ -648,7 +645,6 @@ pipe_synteny <- function(gsParam,
           msk <- subset(synHits, inBuffer)
           blkID <- onlyOgAnchorsSecond <- NULL
           nGapsSecond <- nSecondHits <- synBuffSecond <- blkSizeSecond <- NULL
-          cat("secondsyn\n")
           secondReg <- with(x, flag_synteny(
             hits = allHits,
             gsParam = gsParam,

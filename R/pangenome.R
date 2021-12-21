@@ -241,8 +241,11 @@ pangenome <- function(gsParam,
   # -- 1. Choose the representatives from the reference genome and build scaff.
   # -- Check if there are any syntenic blocks within the reference genome that
   # hit the same chromosome twice
-  gen1 <- gen2 <- chr1 <- chr2 <- blkID <- NULL
+  gen1 <- gen2 <- chr1 <- chr2 <- blkID <- isSelf <- firstGene1 <-
+    firstGene2 <- lastGene2 <- lastGene1 <- NULL
   blks <- fread("results/syntenicBlocks.txt.gz", showProgress = F)
+  blks <- subset(blks, !grepl("^NA_", blkID))
+  blks[,isSelf := firstGene1 == firstGene2 | firstGene1 == lastGene2 | firstGene2 == lastGene1]
   tmp <- data.table(blks)
   setnames(tmp, gsub("1$","3",colnames(tmp)))
   setnames(tmp, gsub("2$","1",colnames(tmp)))
@@ -251,8 +254,8 @@ pangenome <- function(gsParam,
                 tmp[,colnames(tmp) %in% colnames(blks), with = F], use.names = T)
   blks <- subset(blks, !duplicated(blks))
   refBlks <- subset(blks, gen1 == refGenome & gen1 == gen2)
-  nflag <- nrow(subset(refBlks, !grepl("self", blkID) & chr1 == chr2))
-  refBlks <- subset(refBlks, chr1 != chr2 | grepl("self", blkID))
+  nflag <- nrow(subset(refBlks, !isSelf & chr1 == chr2))
+  refBlks <- subset(refBlks, chr1 != chr2 | isSelf)
   if(noSecondaryAnchors)
     refBlks <- subset(refBlks, !grepl("second", blkID))
   if(nflag > 0)
@@ -418,6 +421,7 @@ pangenome <- function(gsParam,
   og <- repID <- tmp <- ofID <- isArrayRep <- genome <- pgID <- pgChr <-
     pgOrd <- isBottomDrawer <- isNSortho <- NULL
   gfm <- subset(gf, !og %in% unique(pgm$og))
+
   if(nrow(gfm) > 0){
     if(verbose)
       cat("\tAdding bottom-drawer non-syntenic orthogroups ...")
@@ -430,7 +434,8 @@ pangenome <- function(gsParam,
     gfm[,pgID := (m + 1):(nrow(gfm) + m)]
     pgm <- melt(
       gfm, id.vars = c("pgID", "og", "repID", "isArrayRep"),
-      measure.vars = genomeIDs, value.name = "ofID", variable.name = "genome")
+      measure.vars = genomeIDs[genomeIDs %in% colnames(gfm)],
+      value.name = "ofID", variable.name = "genome")
     pgm[,`:=`(pgChr = NA, pgOrd = NA)]
     pgm <- pgm[,list(ofID = unlist(ofID)),
                by = c("pgID", "pgChr", "pgOrd", "og", "repID", "genome", "isArrayRep")]

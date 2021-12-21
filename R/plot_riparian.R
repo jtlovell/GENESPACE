@@ -345,7 +345,7 @@ plot_riparian <- function(gsParam,
   }
 
   # -- check that the refgenome and genomeIDs are OK
-  gparIDs <- gpar$genomes$genomeIDs
+  gparIDs <- gsParam$genomes$genomeIDs
   if(!refGenome %in% gparIDs)
     stop(sprintf("The reference genome %s is not in the gsParam genomes\n",
                  refGenome))

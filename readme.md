@@ -1,13 +1,10 @@
-NOTE: **Significant updates to beta v0.9.1 (at /dev as of 12:09MT 13-Dec 2021).**
-Preparing source code at /dev for release as v0.9.1. Updates here will be documented upon final release by 16-Dec 2021
-
-NOTE: **Significant updates to beta v0.8.6b (pushed 8:00pm USA MT 23-November 2021).** *If you are running within-block orthofinder, please feel free to test out v0.8.6b. If you find problems, please open an issue on github. Either way, we highly suggest re-running after upgrading to v0.8.6 once the stable version is released in early December 2021.* Updates include:
+NOTE: **Significant updates to v0.9.1 (at /dev as of 14:25MT 21-Dec 2021).**
+Preparing source code at /dev for release as v0.9.1. Updates include:
 
 1. Iterative array parsing - eliminates nearly-syntenic duplicates in the pangenome and improves synteny-constrained and within-block orthogroup assignment.
 2. Batch parallelization of synteny. Modest improvement of speed in single threaded mode. Significant and linear improvement in speed with multi-threaded mode. 
 3. Smaller file size and clearer dotplot graphics
 4. More streamlined functions: easier to follow help files and documentation. 
-
 
 
 For a full tutorial, see: https://github.com/jtlovell/GENESPACE/blob/dev/doc/genespaceOverview.pdf

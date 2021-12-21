@@ -216,7 +216,7 @@ searching for synteny.
 
 \code{add_arrayReps2gff} add_arrayReps2gff
 
-\code{combine_inblkSynOG} add synteny-constrained orthogroups to gff
+\code{add_synOg2gff} add synteny-constrained orthogroups to gff
 
 \code{combine_inblkSynOG} combine inblk and syn OGs
 
