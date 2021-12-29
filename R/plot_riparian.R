@@ -330,9 +330,6 @@ plot_riparian <- function(gsParam,
   ##############################################################################
   # 1. rename a few things, check parameters, read in hits/gff
   ##############################################################################
-  # -- specify the ref genome
-  if(is.null(refGenome) || !refGenome %in% genomeIDs || length(refGenome) > 1)
-    refGenome <- genomeIDs[1]
 
   # -- genomeID checking
   if(is.null(genomeIDs)){
@@ -343,6 +340,10 @@ plot_riparian <- function(gsParam,
     tmp <- tmp[!tmp %in% gsParam$genomes$outgroup]
     genomeIDs <- genomeIDs[genomeIDs %in% tmp]
   }
+
+  # -- specify the ref genome
+  if(is.null(refGenome) || !refGenome %in% genomeIDs || length(refGenome) > 1)
+    refGenome <- genomeIDs[1]
 
   # -- check that the refgenome and genomeIDs are OK
   gparIDs <- gsParam$genomes$genomeIDs
