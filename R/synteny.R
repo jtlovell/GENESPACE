@@ -791,7 +791,7 @@ set_syntenyParams <- function(gsParam,
     genome1 = names(ploidy),
     genome2 = names(ploidy))
   cmb <- cmb[,CJ(genome1, genome2)]
-
+  setnames(cmb, c("genome1", "genome2"))
   # -- add ploidy, orthofinder IDs, n genes
   genome1 <- genome2 <- NULL
   speciesIDs <- (1:length(genomeIDs))-1
