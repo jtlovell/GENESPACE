@@ -170,13 +170,17 @@ run_orthofinder <- function(gsParam,
     p <- data.table(gsParam$params$synteny)
     diamondMode <- gsParam$params$diamondMode
     ofd <- gsParam$paths$orthofinder
-    p[,`:=`(db1 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd",si[genome1])),
-            db2 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd",si[genome2])),
-            fa1 = file.path(ofd, sprintf("Species%s.fa",si[genome1])),
-            fa2 = file.path(ofd, sprintf("Species%s.fa",si[genome2])),
-            blFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome1], si[genome2])),
-            invertFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",si[genome2], si[genome1])))]
-    dm <- ifelse(gsParam$params$diamondMode == "--fast", "", gsParam$params$diamondMode)
+    p[,`:=`(
+      db1 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd", si[genome1])),
+      db2 = file.path(ofd, sprintf("diamondDBSpecies%s.dmnd", si[genome2])),
+      fa1 = file.path(ofd, sprintf("Species%s.fa", si[genome1])),
+      fa2 = file.path(ofd, sprintf("Species%s.fa", si[genome2])),
+      blFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",
+                                      si[genome1], si[genome2])),
+      invertFile = file.path(ofd, sprintf("Blast%s_%s.txt.gz",
+                                          si[genome2], si[genome1])))]
+    dm <- ifelse(
+      gsParam$params$diamondMode == "--fast", "", gsParam$params$diamondMode)
     p[,com := sprintf(
       "%s blastp %s --quiet -e %s -p %s --compress 1 -d %s -q %s -o %s",
       "diamond", dm, .1, gsParam$params$nCores, db2, fa1, blFile)]

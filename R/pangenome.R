@@ -181,13 +181,10 @@ pangenome <- function(gsParam,
               refOrd = ord1, ofID = ofID2, isAnchor = isAnchor,
               blkID = blkID[1], chr = chr1[1]))
             return(out)
-          }else{
-            return(NULL)
           }
         }))
-        return(interpos)
-      }else{
-        return(NULL)
+        if(nrow(interpos) > 0)
+          return(interpos)
       }
     }))
 
