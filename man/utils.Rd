@@ -71,7 +71,7 @@ read_blast(
 
 find_orthofinderResults(gsParam, onlyCheckRun = F)
 
-calc_blkCoords(hits)
+calc_blkCoords(hits, mirror = FALSE)
 
 are_colors(col)
 

@@ -13,6 +13,7 @@ plot_riparian(
   genomeIDs = NULL,
   onlyTheseChrs = NULL,
   onlyTheseRegions = NULL,
+  onlySameChrs = FALSE,
   excludeChrOutOfRegion = FALSE,
   findRegHitsRecursive = FALSE,
   invertTheseChrs = NULL,

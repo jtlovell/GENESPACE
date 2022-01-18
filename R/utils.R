@@ -443,13 +443,22 @@ find_orthofinderResults <- function(gsParam, onlyCheckRun = F){
 #' @import data.table
 #' @importFrom stats cor
 #' @export
-calc_blkCoords <- function(hits){
+calc_blkCoords <- function(hits, mirror = FALSE){
   setDTthreads(1)
 
   # -- get the columns and complete observations for these
   hcols <- c("blkID", "start1", "start2", "end1", "end2", "ord1", "ord2",
              "chr1", "chr2", "gen1", "gen2", "ofID1", "ofID2")
   bhits <- subset(hits, complete.cases(hits[,hcols, with = F]))
+
+  if(mirror){
+    tmp <- data.table(bhits)
+    setnames(tmp, gsub("2$", "3", colnames(tmp)))
+    setnames(tmp, gsub("1$", "2", colnames(tmp)))
+    setnames(tmp, gsub("3$", "1", colnames(tmp)))
+    bhits <- rbind(bhits, tmp[,colnames(bhits), with = F])
+    bhits <- subset(bhits, !duplicated(paste(gen1, gen2, blkID)))
+  }
 
   # -- get the genome1 coordinates
   ofID1 <- start1 <- end1 <- ofID1 <- ord1 <- NULL

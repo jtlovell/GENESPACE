@@ -88,6 +88,7 @@ plot_riparian <- function(gsParam,
                           genomeIDs = NULL,
                           onlyTheseChrs = NULL,
                           onlyTheseRegions = NULL,
+                          onlySameChrs = FALSE,
                           excludeChrOutOfRegion = FALSE,
                           findRegHitsRecursive = FALSE,
                           invertTheseChrs = NULL,
@@ -341,6 +342,10 @@ plot_riparian <- function(gsParam,
     genomeIDs <- genomeIDs[genomeIDs %in% tmp]
   }
 
+  if(uniqueN(genomeIDs) < 2)
+    stop(sprintf("specified %s genomeIDs ... need at least 2\n",
+                 uniqueN(genomeIDs)))
+
   # -- specify the ref genome
   if(is.null(refGenome) || !refGenome %in% genomeIDs || length(refGenome) > 1)
     refGenome <- genomeIDs[1]
@@ -442,6 +447,9 @@ plot_riparian <- function(gsParam,
     }
   }
 
+  if(onlySameChrs)
+    gff[,og := paste(og, chr)]
+
   # -- get chromosome and genome vectors from gff
   gv <- gff$genome; cv <- gff$chr
   names(gv) <- names(cv) <- gff$ofID
@@ -459,6 +467,9 @@ plot_riparian <- function(gsParam,
              chr1 = cv[ofID1], chr2 = cv[ofID2])]
   refh[,n := .N, by = c("gen1","gen2","chr1","chr2")]
   refh <- subset(refh, n >= minGenes2plot)
+
+  if(onlySameChrs)
+    refh <- subset(refh, chr1 == chr2)
 
   # -- subset to only the chromosomes that will be plotted
   if(!is.null(onlyTheseChrs)){
@@ -550,6 +561,9 @@ plot_riparian <- function(gsParam,
     start1 = sv[ofID1], start2 = sv[ofID2], end1 = sv[ofID1], end2 = sv[ofID2])]
   setkey(riph, gen1, chr1, ord1)
   riph <- subset(riph, complete.cases(riph))
+
+  if(onlySameChrs)
+    riph <- subset(riph, chr1 == chr2)
 
   # -- if only regions, give new colors and get coords
   if(!is.null(onlyTheseRegions)){

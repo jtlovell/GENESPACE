@@ -30,16 +30,15 @@ pipe_synteny(
 set_syntenyParams(
   gsParam,
   onlyOgAnchors = TRUE,
-  onlyOgAnchorsSecond = TRUE,
+  onlyOgAnchorsSecond = FALSE,
   blkSize = 5,
   blkSizeSecond = blkSize,
   nGaps = 5,
-  nGapsSecond = nGaps,
+  nGapsSecond = nGaps * 4,
   nSecondHits = 0,
   synBuff = 100,
   synBuffSecond = synBuff,
-  selfRegionMask = synBuff * 2,
-  dropInterleavesSmallerThan = 2,
+  selfRegionMask = synBuff * 5,
   minRbhScore = 50,
   arrayBuffer = sqrt(2 * (synBuff^2))
 )
@@ -130,9 +129,6 @@ construction of secondary hits.}
 
 \item{selfRegionMask}{integer specifying the size of the region (radius, gene
 rank order) surrounding self hits to mask for secondary/homeologous hits}
-
-\item{dropInterleavesSmallerThan}{integer specifying the smallest block to
-keep in the split interleaves synteny step}
 
 \item{minRbhScore}{integer specifying the minimum blast bit score to allow
 for a RBH to be included}
