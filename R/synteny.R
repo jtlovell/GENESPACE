@@ -309,6 +309,7 @@ synteny <- function(gsParam,
       gsParam = gp,
       gff = gf,
       genomeIDs = genomeIDs,
+      overwrite = overwrite,
       minGenes4of = minGenes4of)
 
     # -- make an new OG column with syntenic and inBlk orthogroups combined
@@ -327,7 +328,6 @@ synteny <- function(gsParam,
       verbose = verbose)
 
     # -- re-call syteny with the new og column
-
     gp <- pipe_synteny(
       gsParam = gp,
       gff = gf,
@@ -346,10 +346,8 @@ synteny <- function(gsParam,
       "Found %s OGs across %s genes. gff3-like text file written to:\n\t%s\n",
       uniqueN(gf$og), nrow(gf), gffFile))
 
-
-
   ##############################################################################
-  # 8. Calculate block coordinates
+  # 6. Calculate block coordinates
   if(verbose)
     cat("Calculating syntenic block breakpoints ... \n")
   runBlast <- isAnchor <- blkID <- NULL

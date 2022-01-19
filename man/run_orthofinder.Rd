@@ -9,7 +9,13 @@
 \usage{
 run_orthofinder(gsParam, overwrite = FALSE, quietOrthofinder = FALSE)
 
-blkwise_orthofinder(gsParam, gff, genomeIDs = NULL, minGenes4of = 40)
+blkwise_orthofinder(
+  gsParam,
+  gff,
+  overwrite = FALSE,
+  genomeIDs = NULL,
+  minGenes4of = 40
+)
 
 run_ofFromObj(blast00, blast01, blast10, blast11, pep0, pep1, writeDir)
 

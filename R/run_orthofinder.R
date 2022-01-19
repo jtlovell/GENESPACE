@@ -463,7 +463,7 @@ blkwise_orthofinder <- function(gsParam,
         uc <- with(hits, unique(c(ofID1, ofID2)))
         uc <- uc[!uc %in% names(ic)]
 
-        fwrite(outf, file = outf, sep = "\t",
+        fwrite(inblkOgDt, file = outf, sep = "\t",
                quote = FALSE, showProgress = FALSE)
       }
       if(verbose)

@@ -161,6 +161,10 @@ iterations}
 \item{blks}{data.table containing the block coordinates. See calc_blkCoords}
 
 \item{radius}{numeric of length 1 specifying the search radius.}
+
+\item{recallSynteny}{logical, should synteny be re-run after orthofinder
+inblk. If so, the synteny parameter onlyOgAnchors and onlyOgAnchorsSecond
+are both set to TRUE for the re-called iteration.}
 }
 \value{
 Synteny functions produce three types of outputs: (1) a 'hits'
