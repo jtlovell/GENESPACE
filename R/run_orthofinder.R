@@ -398,6 +398,11 @@ blkwise_orthofinder <- function(gsParam,
 
     if(file.exists(outf) && !overwrite){
       inblkOgDt <- fread(outf, showProgress = F, na.strings = c("NA", ""))
+      ic <- with(subset(inblkOgDt, isInblkOg), clus_igraph(
+        id1 = c(ofID1, ofID2), id2 = c(ofID2, ofID1)))
+      ic <- ic[!duplicated(names(ic))]
+      uc <- with(hits, unique(c(ofID1, ofID2)))
+      uc <- uc[!uc %in% names(ic)]
       if(verbose){
         cat("using pre-calc. data ... ")
         with(subset(g, ofID %in% c(inblkOgDt$ofID1, inblkOgDt$ofID2)), cat(
