@@ -398,8 +398,13 @@ blkwise_orthofinder <- function(gsParam,
 
     if(file.exists(outf) && !overwrite){
       inblkOgDt <- fread(outf, showProgress = F, na.strings = c("NA", ""))
-      if(verbose)
+      if(verbose){
         cat("using pre-calc. data ... ")
+        with(subset(g, ofID %in% c(inblkOgDt$ofID1, inblkOgDt$ofID2)), cat(
+          sprintf("%s genes, %s / %s ",
+                  uniqueN(ofID), uniqueN(globOG), uniqueN(synOG))))
+        cat(sprintf("/ %s\n", uniqueN(ic) + length(uc)))
+      }
     }else{
       if(nrow(hits) < minGenes4of){
         if(verbose)

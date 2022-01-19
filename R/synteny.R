@@ -255,8 +255,7 @@ synteny <- function(gsParam,
       "\t\t%s: %s/%s, %s/%s, %s/%s\n",
       genome, nchrPass, nchrFail, ngenePass, ngeneFail, nogPass, nogFail)))
   if(any(np$rat < 0.9)){
-    warning("Some genomes have a large number of genes on scaffolds with < 5 genes
-            these may be problematic for synteny\n")
+    cat("\tSome genomes have many scafs with < 5 genes -- could be a problem\n")
   }else{
     cat("\tAll look good!\n")
   }
@@ -327,7 +326,10 @@ synteny <- function(gsParam,
       ogColumn = "og",
       verbose = verbose)
 
-    # -- re-call syteny with the new og column
+    # -- re-call syteny with the new og column (set og anchors to true)
+    synSv <- data.table(gp$params$synteny)
+    gp$params$synteny$onlyOgAnchorsSecond <- TRUE
+    gp$params$synteny$onlyOgAnchors <- TRUE
     gp <- pipe_synteny(
       gsParam = gp,
       gff = gf,
@@ -335,6 +337,8 @@ synteny <- function(gsParam,
       verbose = verbose,
       ogColumn = "og",
       overwrite = TRUE)
+    gp$params$synteny <- data.table(synSv)
+    synSv <- NULL
   }
 
   # -- write the final gff
