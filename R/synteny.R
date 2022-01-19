@@ -182,6 +182,7 @@ synteny <- function(gsParam,
                     genomeIDs = NULL,
                     overwrite = F,
                     minGenes4of = 40,
+                    recallSynteny = TRUE,
                     ...){
 
   ##############################################################################
@@ -327,18 +328,20 @@ synteny <- function(gsParam,
       verbose = verbose)
 
     # -- re-call syteny with the new og column (set og anchors to true)
-    synSv <- data.table(gp$params$synteny)
-    gp$params$synteny$onlyOgAnchorsSecond <- TRUE
-    gp$params$synteny$onlyOgAnchors <- TRUE
-    gp <- pipe_synteny(
-      gsParam = gp,
-      gff = gf,
-      nCores = nCores,
-      verbose = verbose,
-      ogColumn = "og",
-      overwrite = TRUE)
-    gp$params$synteny <- data.table(synSv)
-    synSv <- NULL
+    if(recallSynteny){
+      synSv <- data.table(gp$params$synteny)
+      gp$params$synteny$onlyOgAnchorsSecond <- TRUE
+      gp$params$synteny$onlyOgAnchors <- TRUE
+      gp <- pipe_synteny(
+        gsParam = gp,
+        gff = gf,
+        nCores = nCores,
+        verbose = verbose,
+        ogColumn = "og",
+        overwrite = TRUE)
+      gp$params$synteny <- data.table(synSv)
+      synSv <- NULL
+    }
   }
 
   # -- write the final gff
@@ -411,8 +414,7 @@ pipe_synteny <- function(gsParam,
       tp$gen1[1], tp$gen2[1])),
       height = 6, width = 6)
 
-    plot_hits(hits = tp, plotType = "allOG",  cols = "blue2", round2 = 50)
-    plot_hits(hits = tp, plotType = "regAnchor", useOrder = F)
+    plot_hits(hits = tp, plotType = "allOG", cols = "blue2", round2 = 50)
     plot_hits(hits = tp, plotType = "blkAnchor")
     dev.off()
   }

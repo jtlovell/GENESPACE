@@ -16,7 +16,14 @@
 \alias{clus_dbscan}
 \title{Parsing of pairwise hits into synteny}
 \usage{
-synteny(gsParam, genomeIDs = NULL, overwrite = F, minGenes4of = 40, ...)
+synteny(
+  gsParam,
+  genomeIDs = NULL,
+  overwrite = F,
+  minGenes4of = 40,
+  recallSynteny = TRUE,
+  ...
+)
 
 pipe_synteny(
   gsParam,
@@ -85,6 +92,10 @@ specified (default) taken from gsParam$genomeIDs$genomeIDs}
 
 \item{minGenes4of}{integer of length 1, specifying the minimum number of
 unique genes on each sequence for orthofinder to be run}
+
+\item{recallSynteny}{logical, should synteny be re-run after orthofinder
+inblk. If so, the synteny parameter onlyOgAnchors and onlyOgAnchorsSecond
+are both set to TRUE for the re-called iteration.}
 
 \item{...}{additional arguments passed to set_syntenyParam().}
 
@@ -161,10 +172,6 @@ iterations}
 \item{blks}{data.table containing the block coordinates. See calc_blkCoords}
 
 \item{radius}{numeric of length 1 specifying the search radius.}
-
-\item{recallSynteny}{logical, should synteny be re-run after orthofinder
-inblk. If so, the synteny parameter onlyOgAnchors and onlyOgAnchorsSecond
-are both set to TRUE for the re-called iteration.}
 }
 \value{
 Synteny functions produce three types of outputs: (1) a 'hits'
