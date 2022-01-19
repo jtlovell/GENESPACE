@@ -1,13 +1,30 @@
-NOTE: **Significant updates to v0.9.1 (at /dev as of 14:25MT 21-Dec 2021).**
-Preparing source code at /dev for release as v0.9.1. Updates include:
-
-1. Iterative array parsing - eliminates nearly-syntenic duplicates in the pangenome and improves synteny-constrained and within-block orthogroup assignment.
-2. Batch parallelization of synteny. Modest improvement of speed in single threaded mode. Significant and linear improvement in speed with multi-threaded mode. 
-3. Smaller file size and clearer dotplot graphics
-4. More streamlined functions: easier to follow help files and documentation. 
+This is v0.9.2 of the GENESPACE R package. 
 
 
-For a full tutorial, see: https://github.com/jtlovell/GENESPACE/blob/dev/doc/genespaceOverview.pdf
+An overview tutorial is available [here](https://github.com/jtlovell/GENESPACE/blob/dev/doc/genespaceOverview.pdf)
+
+Some specific things that GENESPACE can do (links to specific tutorial vignettes):
+
+#### Primary GENESPACE routines
+
+1. Pull primary syntenic regions across any number of haploid genomes: [synteny examples]().
+2. Separate primary orthologous regions from WGD-derived paralogs: [paralog examples]().
+3. Build a pan-genome annotation: [pangenome examples](). 
+
+
+
+#### Plotting routines
+
+1. Riparian (river/braid/ribbon) plots for:
+    - whole genome synteny: [general riparian examples]().
+    - highlighting specific regions: [regional exploration riparian examples]().
+2. Pairwise dotplots highlighting block breakpoints: [dotplot examples]().
+
+#### Other related functionality
+
+1. Convert ncbi-, phytozome- and other-formatted annotations to simpler formats and headers: [genome annotation conversion examples]().
+2. Find kmers in fasta files and slide genomic windows for density of regions: [sliding window examples]().
+
 
 ## Overview
 GENESPACE is a comparative genomics framework implemented in the R environment for statistical computing. The premise is that, when analyzing high-quality genome assemblies and annotations, we can improve the confidence of evolutionary inference by combining two sources of evidence for common ancestry: synteny (i.e. collinearity of gene order) and coding sequence similarity (homology). In addition to providing a second line of evidence beyond sequence similarity, combining synteny and homology have several benefits:

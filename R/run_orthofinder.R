@@ -311,8 +311,10 @@ run_orthofinder <- function(gsParam,
 #' @export
 blkwise_orthofinder <- function(gsParam,
                                 gff,
+                                overwrite = FALSE,
                                 genomeIDs = NULL,
                                 minGenes4of = 40){
+  setDTthreads(1)
   inblkOG <- NULL
   ##############################################################################
   # 1.Checking
@@ -356,9 +358,18 @@ blkwise_orthofinder <- function(gsParam,
   arrep <- with(subset(gff, isArrayRep), split(ofID, genome))
 
   synOgInBlkHits <- rbindlist(lapply(1:nrow(synp), function(i){
-    geno1 <- synp$genome1[i]; geno2 <- synp$genome2[i]
+
+    geno1 <- synp$genome1[i]
+    geno2 <- synp$genome2[i]
+
+    outf <- file.path(
+      gpar$paths$results,
+      sprintf("%s_%s_inblkOGs.txt.gz",  geno1, geno2))
+
     if(verbose)
-      cat(sprintf("\t%s-%s: ", pull_strWidth(geno1, 8),pull_strWidth(geno2, 8)))
+      cat(sprintf(
+        "\t%s-%s: ",
+        pull_strWidth(geno1, 8), pull_strWidth(geno2, 8)))
 
     # -- load the syntenic hits
     fs <- file.path(
@@ -385,75 +396,82 @@ blkwise_orthofinder <- function(gsParam,
 
     g <- subset(gff, genome %in% c(geno1, geno2))
 
-    if(nrow(hits) < minGenes4of){
+    if(file.exists(outf) && !overwrite){
+      inblkOgDt <- fread(outf, showProgress = F, na.strings = c("NA", ""))
       if(verbose)
-        cat("no non-self syn. regions\n")
-      return(NULL)
+        cat("using pre-calc. data ... ")
     }else{
-      # -- subset to the genomes of interest and report updates
-      ofID1 <- ofID2 <- arrep <- V1 <- V2 <- genome <- ofID <- synOG <-
-        globOG <- NULL
+      if(nrow(hits) < minGenes4of){
+        if(verbose)
+          cat("no non-self syn. regions\n")
+        return(NULL)
+      }else{
+        # -- subset to the genomes of interest and report updates
+        ofID1 <- ofID2 <- arrep <- V1 <- V2 <- genome <- ofID <- synOG <-
+          globOG <- NULL
 
-      # -- read in the hits
-      h <- read_hits4of(
-        gsParam = gsParam,
-        genome1 = geno1,
-        genome2 = geno2)
-      u12 <- with(hits, paste(ofID1, ofID2))
-      u21 <- with(hits, paste(ofID2, ofID1))
-      h00 <- subset(h, V1 %in% arrep[[geno1]] & V1 == V2)
-      h11 <- subset(h, V1 %in% arrep[[geno2]] & V1 == V2)
-      h01 <- subset(h, paste(V1, V2) %in% u12)
-      h10 <- subset(h, paste(V1, V2) %in% u21)
-      hspl <- split(hits, by = "regID")
+        # -- read in the hits
+        h <- read_hits4of(
+          gsParam = gsParam,
+          genome1 = geno1,
+          genome2 = geno2)
+        u12 <- with(hits, paste(ofID1, ofID2))
+        u21 <- with(hits, paste(ofID2, ofID1))
+        h00 <- subset(h, V1 %in% arrep[[geno1]] & V1 == V2)
+        h11 <- subset(h, V1 %in% arrep[[geno2]] & V1 == V2)
+        h01 <- subset(h, paste(V1, V2) %in% u12)
+        h10 <- subset(h, paste(V1, V2) %in% u21)
+        hspl <- split(hits, by = "regID")
 
-      # -- split hits by lgRegs
-      inblkOgDt <- rbindlist(mclapply(names(hspl), mc.cores = nCores, mc.preschedule = F, function(j){
-        tmpDir <- file.path(gsParam$params$wd, sprintf("%s_og4inBlkTMPdir", j))
-        if(dir.exists(tmpDir))
+        # -- split hits by lgRegs
+        inblkOgDt <- rbindlist(mclapply(names(hspl), mc.cores = nCores, mc.preschedule = F, function(j){
+          tmpDir <- file.path(gsParam$params$wd, sprintf("%s_og4inBlkTMPdir", j))
+          if(dir.exists(tmpDir))
+            unlink(tmpDir, recursive = T)
+          on.exit(expr = unlink(tmpDir, recursive = T))
+
+          out <- data.table(hspl[[j]])
+          u1 <- unique(out$ofID1)
+          u2 <- unique(out$ofID2)
+
+          # -- run orthofinder from these hits
+          V1 <- V2 <- regID <- og <- isInblkOg <- ofID1 <- ofID2 <- NULL
+          ogdt <- run_ofFromObj(
+            blast00 = subset(h00, V1 %in% u1 & V2 %in% u1),
+            blast01 = subset(h01, V1 %in% u1 & V2 %in% u2),
+            blast10 = subset(h10, V1 %in% u2 & V2 %in% u1),
+            blast11 = subset(h11, V1 %in% u2 & V2 %in% u2),
+            pep0 = pepspl[[geno1]],
+            pep1 = pepspl[[geno2]],
+            writeDir = tmpDir)
+          ogdt[,og := as.numeric(as.factor(og))]
+          ogv <- ogdt$og; names(ogv) <- ogdt$ofID
+          u <- unique(c(u1, u2))
+          uo <- u[!u %in% names(ogv)]
+          uv <- (max(ogv) + 1):(max(ogv) + length(uo))
+          names(uv) <- uo
+          ogv <- c(ogv, uv)
+          out[,isInblkOg := ogv[ofID1] == ogv[ofID2]]
           unlink(tmpDir, recursive = T)
-        on.exit(expr = unlink(tmpDir, recursive = T))
+          return(out[,c(1:2,8)])
+        }))
 
-        out <- data.table(hspl[[j]])
-        u1 <- unique(out$ofID1)
-        u2 <- unique(out$ofID2)
+        ofID1 <- ofID2 <- ofID <- NULL
+        ic <- with(subset(inblkOgDt, isInblkOg), clus_igraph(
+          id1 = c(ofID1, ofID2), id2 = c(ofID2, ofID1)))
+        ic <- ic[!duplicated(names(ic))]
+        uc <- with(hits, unique(c(ofID1, ofID2)))
+        uc <- uc[!uc %in% names(ic)]
 
-        # -- run orthofinder from these hits
-        V1 <- V2 <- regID <- og <- isInblkOg <- ofID1 <- ofID2 <- NULL
-        ogdt <- run_ofFromObj(
-          blast00 = subset(h00, V1 %in% u1 & V2 %in% u1),
-          blast01 = subset(h01, V1 %in% u1 & V2 %in% u2),
-          blast10 = subset(h10, V1 %in% u2 & V2 %in% u1),
-          blast11 = subset(h11, V1 %in% u2 & V2 %in% u2),
-          pep0 = pepspl[[geno1]],
-          pep1 = pepspl[[geno2]],
-          writeDir = tmpDir)
-        ogdt[,og := as.numeric(as.factor(og))]
-        ogv <- ogdt$og; names(ogv) <- ogdt$ofID
-        u <- unique(c(u1, u2))
-        uo <- u[!u %in% names(ogv)]
-        uv <- (max(ogv) + 1):(max(ogv) + length(uo))
-        names(uv) <- uo
-        ogv <- c(ogv, uv)
-        out[,isInblkOg := ogv[ofID1] == ogv[ofID2]]
-        unlink(tmpDir, recursive = T)
-        return(out[,c(1:2,8)])
-      }))
-
-      ofID1 <- ofID2 <- ofID <- NULL
-      ic <- with(subset(inblkOgDt, isInblkOg), clus_igraph(
-        id1 = c(ofID1, ofID2), id2 = c(ofID2, ofID1)))
-      ic <- ic[!duplicated(names(ic))]
-      uc <- with(hits, unique(c(ofID1, ofID2)))
-      uc <- uc[!uc %in% names(ic)]
-
+        fwrite(outf, file = outf, sep = "\t",
+               quote = FALSE, showProgress = FALSE)
+      }
       if(verbose)
         with(subset(g, ofID %in% c(inblkOgDt$ofID1, inblkOgDt$ofID2)), cat(
           sprintf("%s genes, %s / %s ",
                   uniqueN(ofID), uniqueN(globOG), uniqueN(synOG))))
       if(verbose)
         cat(sprintf("/ %s\n", uniqueN(ic) + length(uc)))
-
       return(inblkOgDt)
     }
   }))

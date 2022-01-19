@@ -61,6 +61,9 @@
 #' iterations
 #' @param blks data.table containing the block coordinates. See calc_blkCoords
 #' @param radius numeric of length 1 specifying the search radius.
+#' @param recallSynteny logical, should synteny be re-run after orthofinder
+#' inblk. If so, the synteny parameter onlyOgAnchors and onlyOgAnchorsSecond
+#' are both set to TRUE for the re-called iteration.
 #' @param ... additional arguments passed to set_syntenyParam().
 #'
 #' @details The main engine for GENESPACE synteny searching. This
@@ -278,6 +281,9 @@ synteny <- function(gsParam,
   gp <- pipe_synteny(
     gsParam = gp,
     gff = gf,
+    nCores = nCores,
+    verbose = verbose,
+    ogColumn = "globOG",
     overwrite = overwrite)
 
   ##############################################################################
@@ -319,6 +325,16 @@ synteny <- function(gsParam,
       synBuff = max(gp$params$synteny$synBuff)+1,
       ogColumn = "og",
       verbose = verbose)
+
+    # -- re-call syteny with the new og column
+
+    gp <- pipe_synteny(
+      gsParam = gp,
+      gff = gf,
+      nCores = nCores,
+      verbose = verbose,
+      ogColumn = "og",
+      overwrite = TRUE)
   }
 
   # -- write the final gff
@@ -329,6 +345,8 @@ synteny <- function(gsParam,
     cat(sprintf(
       "Found %s OGs across %s genes. gff3-like text file written to:\n\t%s\n",
       uniqueN(gf$og), nrow(gf), gffFile))
+
+
 
   ##############################################################################
   # 8. Calculate block coordinates
