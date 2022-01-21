@@ -180,7 +180,10 @@
 #' @export
 synteny <- function(gsParam,
                     genomeIDs = NULL,
-                    overwrite = F,
+                    overwrite = FALSE,
+                    overwriteHits = overwrite,
+                    overwriteGff = overwrite,
+                    overwriteBlks = overwrite,
                     minGenes4of = 40,
                     recallSynteny = TRUE,
                     ...){
@@ -197,14 +200,12 @@ synteny <- function(gsParam,
   if(is.null(genomeIDs))
     genomeIDs <- gp$genomes$genomeIDs
   if(!any(genomeIDs %in% gp$genomes$genomeIDs))
-    stop("specified genomeIDs dont look right\n")
+      stop("specified genomeIDs dont look right\n")
 
   # -- shortcuts and output files
   verbose <- gp$params$verbose
   writeTo <- gp$paths$results
   nCores <- gp$params$nCores
-  gffFile <- file.path(writeTo, "gffWithOgs.txt.gz")
-  blksFile <- file.path(writeTo, "syntenicBlocks.txt.gz")
 
   # -- set the synteny parameters
   if(is.data.table(gp$params$synteny))
@@ -219,6 +220,7 @@ synteny <- function(gsParam,
       gp$params$synteny <- gp$params$synteny
     }
   }
+  synp <- subset(gp$params$synteny, genome1 %in% genomeIDs & genome2 %in% genomeIDs)
 
   # -- find the orthogroups
   if(is.na(gp$paths$orthogroupsDir)){
@@ -230,14 +232,78 @@ synteny <- function(gsParam,
   }
 
   ##############################################################################
+  # 2. Check overwrite and underlying files
+
+  # -- annotated gff
+  gffFile <- file.path(writeTo, "gffWithOgs.txt.gz")
+  hasGff <- file.exists(gffFile)
+  gffCols <- c(
+    "genome", "id", "chr", "start", "end", "strand", "ord", "ofID", "pepLen",
+    "globOG", "arrayID", "isArrayRep", "arrayOrd", "synOG", "inblkOG", "og" )
+  if(hasGff){
+    gf <- fread(gffFile, showProgress = F)
+    hasGff <- all(genomeIDs %in% gf$genome & all(gffCols %in% colnames(gf)))
+  }
+
+  # -- hits
+  synHitsFiles <- with(subset(synp, runBlast), file.path(
+    writeTo, sprintf("%s_%s_synHits.txt.gz", genome1, genome2)))
+  hasHits <- all(file.exists(synHitsFiles))
+  hitCols <- c(
+    "ofID1", "ofID2", "score", "gen1", "gen2", "start1", "start2", "end1",
+    "end2", "chr1", "chr2" , "ord1", "ord2", "scrRank1", "scrRank2", "arrayID1",
+    "arrayID2", "arrayOrd1", "arrayOrd2", "isRep1", "isRep2", "isOg", "nChr1",
+    "blkID", "regID", "isAnchor", "inBuffer")
+  if(hasHits){
+    hasHits <- all(sapply(synHitsFiles, function(i){
+      tmp <- readLines(gzfile(i), 5)
+      cn <- strsplit(tmp[1], "\t")[[1]]
+      return(length(tmp) == 5 && all(hitCols %in% cn))
+    }))
+  }
+
+  # -- syntenic blocks
+  blksFile <- file.path(writeTo, "syntenicBlocks.txt.gz")
+  hasBlks <- file.exists(blksFile)
+  blkCols <- c(
+    "gen1", "gen2", "chr1", "chr2", "blkID", "startBp1", "endBp1", "startOrd1",
+    "endOrd1", "firstGene1", "lastGene1", "nHits1", "minBp2", "maxBp2",
+    "minOrd2", "maxOrd2", "minGene2", "maxGene2", "nHits2", "orient",
+    "startBp2", "endBp2", "startOrd2", "endOrd2", "firstGene2", "lastGene2")
+  if(hasBlks){
+    tmp <- fread(blksFile, showProgress = F)
+    hasBlks <- all(genomeIDs %in% tmp$gen1) & all(genomeIDs %in% tmp$gen2) &
+      all(blkCols %in% colnames(tmp))
+  }
+
+  # -- if overwriting, print updates here
+  if(hasGff & overwriteGff & verbose)
+    cat("NOTE: overwrite = T and marked-up gff-like file exists; overwriting\n")
+  if(hasHits & overwriteHits & verbose)
+    cat("NOTE: overwrite = T and all annotated synHits files exist; overwriting\n")
+  if(hasBlks & overwriteBlks & verbose)
+    cat("NOTE: overwrite = T and block coordinate file exists; overwriting\n")
+
+  if(!hasGff & !overwriteGff){
+    if(verbose)
+      cat("Can't find gff-like file, but overwriteGff = TRUE, setting to FALSE\n")
+    overwriteGff <- FALSE
+  }
+  if(!hasHits & !overwriteHits){
+    if(verbose)
+      cat("Can't find all synhits files, but overwriteHits = TRUE, setting to FALSE\n")
+    overwriteHits <- FALSE
+  }
+  if(!hasBlks & !overwriteBlks){
+    if(verbose)
+      cat("Can't find blk coords, but overwriteBlks = TRUE, setting to FALSE\n")
+    overwriteBlks <- FALSE
+  }
+
+  ##############################################################################
   # 2. load and parse the gff
   # -- add in global syntenic orthogroup arrays, orthofinder IDs, etc
-  if(file.exists(gffFile) & !overwrite){
-    cat("Annotated gff-like annotation exists & !overwrite - reusing\n")
-    gffSv <- fread(gffFile, showProgress = F)
-    gf <- data.table(gffSv)
-    gf[,globOG := og]
-  }else{
+  if(!hasGff){
     if(verbose)
       cat("Parsing the gff files ... \n\tReading the gffs and adding orthofinder IDs ... ")
     gf <- annotate_gff(
@@ -248,7 +314,6 @@ synteny <- function(gsParam,
         "Done!\n\tFound %s global OGs for %s genes\n",
         uniqueN(gf$globOG), nrow(gf)))
 
-    # -- QC gff
     ng <- gf[,list(n = .N, nog = uniqueN(globOG)), by = c("genome", "chr")]
     np <- ng[,list(nchrPass = sum(nog >= 5), nogPass = sum(nog[nog >= 5]),
                    nchrFail = sum(nog < 5), nogFail = sum(nog[nog < 5]),
@@ -267,18 +332,12 @@ synteny <- function(gsParam,
       cat("\tAll look good!\n")
     }
 
-    ##############################################################################
-    # -- add arrays. This takes the specifed column in the gff and parses array
-    # and array representatives. We do this again below if inblk OG is used.
-    # With verbose = T, prints the counts of reps and total members / genome.
-    if(verbose)
+    if (verbose)
       cat("\tDefining collinear orthogroup arrays ... \n")
     gf <- add_arrayReps2gff(
       gff = gf,
-      synBuff = max(gp$params$synteny$synBuff)+1,
-      ogColumn = "globOG",
-      verbose = verbose)
-    gffSv <- data.table(gf)
+      synBuff = max(gp$params$synteny$synBuff) + 1,
+      ogColumn = "globOG", verbose = verbose)
   }
 
 
@@ -287,17 +346,18 @@ synteny <- function(gsParam,
   # -- This is the full pipeline: split up synParams into chunks each with
   # nCores entries, read in blast results, parse to collinear hits, cull to
   # syntenic regions, form large regions, build syntenic blocks within regions.
-  gp <- pipe_synteny(
-    gsParam = gp,
-    gff = gf,
-    nCores = nCores,
-    verbose = verbose,
-    ogColumn = "globOG",
-    overwrite = overwrite)
+  if(overwriteHits | !hasHits)
+    gp <- pipe_synteny(
+      gsParam = gp,
+      gff = gf,
+      nCores = nCores,
+      verbose = verbose,
+      ogColumn = "globOG",
+      overwrite = overwrite)
 
   ##############################################################################
   # 4. Build syntenic orthogroups from syntenic hits
-  if(!file.exists(gffFile) | overwrite){
+  if(overwriteGff | !hasGff){
     if(verbose)
       cat("Defining synteny-constrained orthogroups ... \n")
     gf <- add_synOg2gff(
@@ -308,11 +368,9 @@ synteny <- function(gsParam,
       cat(sprintf(
         "\tFound %s synteny-split OGs for %s genes\n",
         uniqueN(gf$synOG), nrow(gf)))
-  }
 
-  ##############################################################################
-  # 5. If runOrthofinderInBlk, do so here:
-  if(file.exists(gffFile) & !overwrite){
+    ##############################################################################
+    # 5. If runOrthofinderInBlk, do so here:
     if(!gp$params$orthofinderInBlk){
       synOG <- inblkOG <- NULL
       gf[,`:=`(inblkOG = synOG, og = synOG)]
@@ -355,39 +413,39 @@ synteny <- function(gsParam,
         synSv <- NULL
       }
     }
+
     # -- write the final gff
-    svog <- gffSv$globOG; names(svog) <- gffSv$ofID
-    gf[,globOG := svog[ofID]]
     fwrite(
       gf, file = gffFile, sep = "\t",
       quote = FALSE, showProgress = FALSE)
+    if(verbose)
+      cat(sprintf(
+        "Found %s OGs across %s genes. gff3-like text file written to:\n\t%s\n",
+        uniqueN(gf$og), nrow(gf), gffFile))
   }
-
-  if(verbose)
-    cat(sprintf(
-      "Found %s OGs across %s genes. gff3-like text file written to:\n\t%s\n",
-      uniqueN(gf$og), nrow(gf), gffFile))
 
   ##############################################################################
   # 6. Calculate block coordinates
-  if(verbose)
-    cat("Calculating syntenic block breakpoints ... \n")
-  runBlast <- isAnchor <- blkID <- NULL
-  synHitsFiles <- with(subset(gp$params$synteny, runBlast), file.path(
-    writeTo, sprintf("%s_%s_synHits.txt.gz", genome1, genome2)))
+  if(overwriteBlks | !hasBlks){
+    if(verbose)
+      cat("Calculating syntenic block breakpoints ... \n")
+    runBlast <- isAnchor <- blkID <- NULL
+    synHitsFiles <- with(subset(gp$params$synteny, runBlast), file.path(
+      writeTo, sprintf("%s_%s_synHits.txt.gz", genome1, genome2)))
 
-  blks <- rbindlist(mclapply(synHitsFiles, mc.cores = nCores, function(i)
-    calc_blkCoords(subset(
-      fread(i, sep = "\t", na.strings = c("NA", ""), showProgress = F),
-      isAnchor & !is.na(blkID)), mirror = T)))
+    blks <- rbindlist(mclapply(synHitsFiles, mc.cores = nCores, function(i)
+      calc_blkCoords(subset(
+        fread(i, sep = "\t", na.strings = c("NA", ""), showProgress = F),
+        isAnchor & !is.na(blkID)), mirror = T)))
 
-  fwrite(
-    blks, file = blksFile, sep = "\t",
-    quote = F, showProgress = F)
-  if(verbose)
-    cat(sprintf(
-      "\tFound %s blocks. Text file written to:\n\t%s:\n",
-      nrow(blks), blksFile))
+    fwrite(
+      blks, file = blksFile, sep = "\t",
+      quote = F, showProgress = F)
+    if(verbose)
+      cat(sprintf(
+        "\tFound %s blocks. Text file written to:\n\t%s:\n",
+        nrow(blks), blksFile))
+  }
 
   return(gp)
 }
@@ -714,8 +772,8 @@ pipe_synteny <- function(gsParam,
             blkID = ifelse(!is.na(blkID), paste0("primary_", blkID), NA),
             regID = ifelse(!is.na(regID), paste0("primary_", regID), NA))]
 
-          ########################################################################
-          # 8. if second hits, mask and rerun
+        ########################################################################
+        # 8. if second hits, mask and rerun
           if(x$nSecondHits > 0){
             nGaps <- nhits2 <- nhits1 <- synBuff <- blkSize <-
               blkID <- regID <- inBuffer <- NULL
@@ -1395,7 +1453,7 @@ flag_synteny <- function(hits,
         tmp[,`:=`(ord1 = frank(arrayOrd1, ties.method = "dense"),
                   ord2 = frank(arrayOrd2, ties.method = "dense"))]
         tmp[,blkID := dbscan(frNN(cbind(ord1, ord2), eps = synBuff),
-                             minPts = blkSize)$cluster, by = c("chr1", "chr2")]
+                           minPts = blkSize)$cluster, by = c("chr1", "chr2")]
         tmp <- subset(tmp, blkID > 0)
         tmp[,blkID := as.numeric(as.factor(paste(chr1, chr2, blkID)))]
         blkv <- tmp$blkID; names(blkv) <- tmp$u
