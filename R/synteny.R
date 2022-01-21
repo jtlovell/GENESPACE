@@ -256,7 +256,9 @@ synteny <- function(gsParam,
     "blkID", "regID", "isAnchor", "inBuffer")
   if(hasHits){
     hasHits <- all(sapply(synHitsFiles, function(i){
-      tmp <- readLines(gzfile(i), 5)
+      gzi <- gzfile(i)
+      tmp <- readLines(gzi, 5)
+      close(gzi)
       cn <- strsplit(tmp[1], "\t")[[1]]
       return(length(tmp) == 5 && all(hitCols %in% cn))
     }))

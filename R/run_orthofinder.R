@@ -410,6 +410,7 @@ blkwise_orthofinder <- function(gsParam,
                   uniqueN(ofID), uniqueN(globOG), uniqueN(synOG))))
         cat(sprintf("/ %s\n", uniqueN(ic) + length(uc)))
       }
+      return(inblkOgDt)
     }else{
       if(nrow(hits) < minGenes4of){
         if(verbose)
