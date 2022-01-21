@@ -197,7 +197,7 @@ synteny <- function(gsParam,
   if(is.null(genomeIDs))
     genomeIDs <- gp$genomes$genomeIDs
   if(!any(genomeIDs %in% gp$genomes$genomeIDs))
-      stop("specified genomeIDs dont look right\n")
+    stop("specified genomeIDs dont look right\n")
 
   # -- shortcuts and output files
   verbose <- gp$params$verbose
@@ -232,46 +232,55 @@ synteny <- function(gsParam,
   ##############################################################################
   # 2. load and parse the gff
   # -- add in global syntenic orthogroup arrays, orthofinder IDs, etc
-  if(verbose)
-    cat("Parsing the gff files ... \n\tReading the gffs and adding orthofinder IDs ... ")
-  gf <- annotate_gff(
-    gsParam = gp,
-    genomeIDs = genomeIDs)
-  if(verbose)
-    cat(sprintf(
-      "Done!\n\tFound %s global OGs for %s genes\n",
-      uniqueN(gf$globOG), nrow(gf)))
-
-  # -- QC gff
-  ng <- gf[,list(n = .N, nog = uniqueN(globOG)), by = c("genome", "chr")]
-  np <- ng[,list(nchrPass = sum(nog >= 5), nogPass = sum(nog[nog >= 5]),
-                 nchrFail = sum(nog < 5), nogFail = sum(nog[nog < 5]),
-                 ngenePass = sum(n[nog >= 5]), ngeneFail = sum(n[nog < 5])),
-           by = "genome"]
-  np[,rat := nogPass/(nogPass + nogFail)]
-  cat("\tQC-ing genome to ensure chromosomes/scaffolds are big enough...
-      \t\tGenome: n. chrs PASS/FAIL, n. genes PASS/FAIL, n. OGs PASS/FAIL\n")
-  for(i in 1:nrow(np))
-    with(np[i,], cat(sprintf(
-      "\t\t%s: %s/%s, %s/%s, %s/%s\n",
-      genome, nchrPass, nchrFail, ngenePass, ngeneFail, nogPass, nogFail)))
-  if(any(np$rat < 0.9)){
-    cat("\tSome genomes have many scafs with < 5 genes -- could be a problem\n")
+  if(file.exists(gffFile) & !overwrite){
+    cat("Annotated gff-like annotation exists & !overwrite - reusing\n")
+    gffSv <- fread(gffFile, showProgress = F)
+    gf <- data.table(gffSv)
+    gf[,globOG := og]
   }else{
-    cat("\tAll look good!\n")
+    if(verbose)
+      cat("Parsing the gff files ... \n\tReading the gffs and adding orthofinder IDs ... ")
+    gf <- annotate_gff(
+      gsParam = gp,
+      genomeIDs = genomeIDs)
+    if(verbose)
+      cat(sprintf(
+        "Done!\n\tFound %s global OGs for %s genes\n",
+        uniqueN(gf$globOG), nrow(gf)))
+
+    # -- QC gff
+    ng <- gf[,list(n = .N, nog = uniqueN(globOG)), by = c("genome", "chr")]
+    np <- ng[,list(nchrPass = sum(nog >= 5), nogPass = sum(nog[nog >= 5]),
+                   nchrFail = sum(nog < 5), nogFail = sum(nog[nog < 5]),
+                   ngenePass = sum(n[nog >= 5]), ngeneFail = sum(n[nog < 5])),
+             by = "genome"]
+    np[,rat := nogPass/(nogPass + nogFail)]
+    cat("\tQC-ing genome to ensure chromosomes/scaffolds are big enough...
+      \t\tGenome: n. chrs PASS/FAIL, n. genes PASS/FAIL, n. OGs PASS/FAIL\n")
+    for(i in 1:nrow(np))
+      with(np[i,], cat(sprintf(
+        "\t\t%s: %s/%s, %s/%s, %s/%s\n",
+        genome, nchrPass, nchrFail, ngenePass, ngeneFail, nogPass, nogFail)))
+    if(any(np$rat < 0.9)){
+      cat("\tSome genomes have many scafs with < 5 genes -- could be a problem\n")
+    }else{
+      cat("\tAll look good!\n")
+    }
+
+    ##############################################################################
+    # -- add arrays. This takes the specifed column in the gff and parses array
+    # and array representatives. We do this again below if inblk OG is used.
+    # With verbose = T, prints the counts of reps and total members / genome.
+    if(verbose)
+      cat("\tDefining collinear orthogroup arrays ... \n")
+    gf <- add_arrayReps2gff(
+      gff = gf,
+      synBuff = max(gp$params$synteny$synBuff)+1,
+      ogColumn = "globOG",
+      verbose = verbose)
+    gffSv <- data.table(gf)
   }
 
-  ##############################################################################
-  # -- add arrays. This takes the specifed column in the gff and parses array
-  # and array representatives. We do this again below if inblk OG is used.
-  # With verbose = T, prints the counts of reps and total members / genome.
-  if(verbose)
-    cat("\tDefining collinear orthogroup arrays ... \n")
-  gf <- add_arrayReps2gff(
-    gff = gf,
-    synBuff = max(gp$params$synteny$synBuff)+1,
-    ogColumn = "globOG",
-    verbose = verbose)
 
   ##############################################################################
   # 3. Run the initial synteny builder
@@ -288,66 +297,72 @@ synteny <- function(gsParam,
 
   ##############################################################################
   # 4. Build syntenic orthogroups from syntenic hits
-  if(verbose)
-    cat("Defining synteny-constrained orthogroups ... \n")
-  gf <- add_synOg2gff(
-    gff = gf,
-    gsParam = gp,
-    genomeIDs = genomeIDs)
-  if(verbose)
-    cat(sprintf(
-      "\tFound %s synteny-split OGs for %s genes\n",
-      uniqueN(gf$synOG), nrow(gf)))
+  if(!file.exists(gffFile) | overwrite){
+    if(verbose)
+      cat("Defining synteny-constrained orthogroups ... \n")
+    gf <- add_synOg2gff(
+      gff = gf,
+      gsParam = gp,
+      genomeIDs = genomeIDs)
+    if(verbose)
+      cat(sprintf(
+        "\tFound %s synteny-split OGs for %s genes\n",
+        uniqueN(gf$synOG), nrow(gf)))
+  }
 
   ##############################################################################
   # 5. If runOrthofinderInBlk, do so here:
-  if(!gp$params$orthofinderInBlk){
-    synOG <- inblkOG <- NULL
-    gf[,`:=`(inblkOG = synOG, og = synOG)]
-  }else{
-    gf <- blkwise_orthofinder(
-      gsParam = gp,
-      gff = gf,
-      genomeIDs = genomeIDs,
-      overwrite = overwrite,
-      minGenes4of = minGenes4of)
-
-    # -- make an new OG column with syntenic and inBlk orthogroups combined
-    gf <- combine_inblkSynOG(
-      genomeIDs = genomeIDs,
-      gff = gf,
-      gsParam = gp)
-    isArrayRep <- arrayID <- NULL
-    gf[,`:=`(isArrayRep = NULL, arrayID = NULL)]
-
-    # -- re-call arrays with the new og column
-    gf <- add_arrayReps2gff(
-      gff = gf,
-      synBuff = max(gp$params$synteny$synBuff)+1,
-      ogColumn = "og",
-      verbose = verbose)
-
-    # -- re-call syteny with the new og column (set og anchors to true)
-    if(recallSynteny){
-      synSv <- data.table(gp$params$synteny)
-      gp$params$synteny$onlyOgAnchorsSecond <- TRUE
-      gp$params$synteny$onlyOgAnchors <- TRUE
-      gp <- pipe_synteny(
+  if(file.exists(gffFile) & !overwrite){
+    if(!gp$params$orthofinderInBlk){
+      synOG <- inblkOG <- NULL
+      gf[,`:=`(inblkOG = synOG, og = synOG)]
+    }else{
+      gf <- blkwise_orthofinder(
         gsParam = gp,
         gff = gf,
-        nCores = nCores,
-        verbose = verbose,
+        genomeIDs = genomeIDs,
+        overwrite = overwrite,
+        minGenes4of = minGenes4of)
+
+      # -- make an new OG column with syntenic and inBlk orthogroups combined
+      gf <- combine_inblkSynOG(
+        genomeIDs = genomeIDs,
+        gff = gf,
+        gsParam = gp)
+      isArrayRep <- arrayID <- NULL
+      gf[,`:=`(isArrayRep = NULL, arrayID = NULL)]
+
+      # -- re-call arrays with the new og column
+      gf <- add_arrayReps2gff(
+        gff = gf,
+        synBuff = max(gp$params$synteny$synBuff)+1,
         ogColumn = "og",
-        overwrite = TRUE)
-      gp$params$synteny <- data.table(synSv)
-      synSv <- NULL
+        verbose = verbose)
+
+      # -- re-call syteny with the new og column (set og anchors to true)
+      if(recallSynteny){
+        synSv <- data.table(gp$params$synteny)
+        gp$params$synteny$onlyOgAnchorsSecond <- TRUE
+        gp$params$synteny$onlyOgAnchors <- TRUE
+        gp <- pipe_synteny(
+          gsParam = gp,
+          gff = gf,
+          nCores = nCores,
+          verbose = verbose,
+          ogColumn = "og",
+          overwrite = TRUE)
+        gp$params$synteny <- data.table(synSv)
+        synSv <- NULL
+      }
     }
+    # -- write the final gff
+    svog <- gffSv$globOG; names(svog) <- gffSv$ofID
+    gf[,globOG := svog[ofID]]
+    fwrite(
+      gf, file = gffFile, sep = "\t",
+      quote = FALSE, showProgress = FALSE)
   }
 
-  # -- write the final gff
-  fwrite(
-    gf, file = gffFile, sep = "\t",
-    quote = FALSE, showProgress = FALSE)
   if(verbose)
     cat(sprintf(
       "Found %s OGs across %s genes. gff3-like text file written to:\n\t%s\n",
@@ -699,8 +714,8 @@ pipe_synteny <- function(gsParam,
             blkID = ifelse(!is.na(blkID), paste0("primary_", blkID), NA),
             regID = ifelse(!is.na(regID), paste0("primary_", regID), NA))]
 
-        ########################################################################
-        # 8. if second hits, mask and rerun
+          ########################################################################
+          # 8. if second hits, mask and rerun
           if(x$nSecondHits > 0){
             nGaps <- nhits2 <- nhits1 <- synBuff <- blkSize <-
               blkID <- regID <- inBuffer <- NULL
@@ -1380,7 +1395,7 @@ flag_synteny <- function(hits,
         tmp[,`:=`(ord1 = frank(arrayOrd1, ties.method = "dense"),
                   ord2 = frank(arrayOrd2, ties.method = "dense"))]
         tmp[,blkID := dbscan(frNN(cbind(ord1, ord2), eps = synBuff),
-                           minPts = blkSize)$cluster, by = c("chr1", "chr2")]
+                             minPts = blkSize)$cluster, by = c("chr1", "chr2")]
         tmp <- subset(tmp, blkID > 0)
         tmp[,blkID := as.numeric(as.factor(paste(chr1, chr2, blkID)))]
         blkv <- tmp$blkID; names(blkv) <- tmp$u
