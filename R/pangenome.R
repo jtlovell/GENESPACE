@@ -398,6 +398,7 @@ pangenome <- function(gsParam,
   if(!is.na(ogdir) && dir.exists(ogdir)){
     if(verbose)
       cat("\tAdding non-syntenic orthologs ...")
+    nso <- NULL; tmp <- NULL
     nso <- pull_nonSynOrthologs(gsParam = gsParam, gff = gf)
     gv <- gf$genome; names(gv) <- gf$ofID
     nso <- with(subset(nso, ofID %in% pg$repID), data.table(
@@ -405,14 +406,13 @@ pangenome <- function(gsParam,
     nso[,genome := gv[ofID]]
     tmp <- pg[,!colnames(pg) %in% c("genome", "ofID"), with = F]
     tmp <- subset(tmp, !duplicated(tmp) & !is.na(pgOrd))
-    nso <- merge(tmp, nso, by = "repID")
+    nso <- merge(tmp, nso, by = "repID", allow.cartesian = T)
     nso[,`:=`(isNSortho = TRUE, isArrayRep = FALSE)]
     setcolorder(nso, colnames(pg))
     pg <- rbind(pg, nso)
     if(verbose)
-      cat(sprintf("Found %s\n", nrow(nso)))
+      cat(sprintf("Found %s instances\n", uniqueN(nso$pgID)))
   }
-
 
   # -- add in unplaced bottom drawer orthologs
   og <- repID <- tmp <- ofID <- isArrayRep <- genome <- pgID <- pgChr <-
