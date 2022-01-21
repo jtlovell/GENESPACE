@@ -400,7 +400,7 @@ synteny <- function(gsParam,
         verbose = verbose)
 
       # -- re-call syteny with the new og column (set og anchors to true)
-      if(recallSynteny){
+      if((recallSynteny &overwriteHits & hasHits) | (recallSynteny & !hasHits)){
         synSv <- data.table(gp$params$synteny)
         gp$params$synteny$onlyOgAnchorsSecond <- TRUE
         gp$params$synteny$onlyOgAnchors <- TRUE
