@@ -457,7 +457,7 @@ calc_blkCoords <- function(hits, mirror = FALSE){
     setnames(tmp, gsub("1$", "2", colnames(tmp)))
     setnames(tmp, gsub("3$", "1", colnames(tmp)))
     bhits <- rbind(bhits, tmp[,colnames(bhits), with = F])
-    bhits <- subset(bhits, !duplicated(paste(gen1, gen2, blkID)))
+    bhits <- subset(bhits, !duplicated(paste(ofID1, ofID2, blkID)))
   }
 
   # -- get the genome1 coordinates
