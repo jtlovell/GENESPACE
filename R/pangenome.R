@@ -240,7 +240,10 @@ pangenome <- function(gsParam,
   # hit the same chromosome twice
   gen1 <- gen2 <- chr1 <- chr2 <- blkID <- isSelf <- firstGene1 <-
     firstGene2 <- lastGene2 <- lastGene1 <- NULL
-  blks <- fread("results/syntenicBlocks.txt.gz", showProgress = F)
+  blksFile <- file.path(gsParam$paths$results, "syntenicBlocks.txt.gz")
+  if(!file.exists(blksFile))
+    stop("can't find the syntenic block coordinates file. Has synteny been run yet?\n")
+  blks <- fread(blksFile, showProgress = F, na.strings = c("NA", ""))
   blks <- subset(blks, !grepl("^NA_", blkID))
   blks[,isSelf := firstGene1 == firstGene2 | firstGene1 == lastGene2 | firstGene2 == lastGene1]
   tmp <- data.table(blks)
@@ -309,17 +312,18 @@ pangenome <- function(gsParam,
     pgi <- subset(pg, pgChr == i)
     msk <- subset(gfrep, genome == refGenome & chr == i)
     ordi <- subset(pgord, chr == i & !og %in% pgi$og)
-    ordi <- subset(ordi, !ofID %in% msk$ofID)
-    setkey(ordi, og, refOrd)
-    ordi[,med := median(refOrd), by = "og"]
-    ordi[,d2m := abs(refOrd - med)]
-    ordi <- subset(ordi, !duplicated(og))
-    out <- rbind(pgi, with(ordi, data.table(
-      pgChr = i, pgOrd = refOrd, og = og, repID = ofID)))
-    out <- subset(out, !duplicated(og))
-    return(out)
+    if(nrow(ordi) > 0){
+      ordi <- subset(ordi, !ofID %in% msk$ofID)
+      setkey(ordi, og, refOrd)
+      ordi[,med := median(refOrd), by = "og"]
+      ordi[,d2m := abs(refOrd - med)]
+      ordi <- subset(ordi, !duplicated(og))
+      out <- rbind(pgi, with(ordi, data.table(
+        pgChr = i, pgOrd = refOrd, og = og, repID = ofID)))
+      ot <- subset(out, !duplicated(og))
+      return(ot)
+    }
   }))
-
   # -- drop unlikely mapped positions
   og <- n <- prop <- keep <- pgChr <- og <- NULL
   for(k in 1:2){
