@@ -363,7 +363,7 @@ blkwise_orthofinder <- function(gsParam,
     geno2 <- synp$genome2[i]
 
     outf <- file.path(
-      gpar$paths$results,
+      gsParam$paths$results,
       sprintf("%s_%s_inblkOGs.txt.gz",  geno1, geno2))
 
     if(verbose)
