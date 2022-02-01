@@ -17,8 +17,6 @@
 #' @param genomeIDs character vector with the genomes to include in the run
 #' @param minGenes4of integer specifying the minimum number of genes needed to
 #' run orthofinder.
-#' @param quietOrthofinder logical, should orthofinder-generated output be
-#' printed ot the console?
 #' @param blast00 data.table containing the blast hits of genome1 to genome1
 #' @param blast01 data.table containing the blast hits of genome1 to genome2
 #' @param blast10 data.table containing the blast hits of genome2 to genome1
@@ -76,13 +74,12 @@
 #' @import data.table
 #' @export
 run_orthofinder <- function(gsParam,
-                            overwrite = FALSE,
-                            quietOrthofinder = FALSE){
+                            overwrite = FALSE){
 
   ##############################################################################
   ##############################################################################
   ##############################################################################
-  default_ofDb <- function(gsParam, quietOrthofinder){
+  default_ofDb <- function(gsParam){
     if(all(is.na(gsParam$params$synteny)))
       stop("must run set_syntenyParams first\n")
 
@@ -111,13 +108,11 @@ run_orthofinder <- function(gsParam,
       cat("\tRunning full orthofinder on pre-computed blast",
           "\n\t##################################################",
           "\n\t##################################################\n")
-    quiet <- ifelse(quietOrthofinder, "1>/dev/null 2>&1", "")
     com <- sprintf(
       "-f %s -t %s -a 1 -X -o %s %s",
       dirname(gsParam$paths$peptide[1]),
       gsParam$params$nCores,
-      gsParam$paths$orthofinder,
-      quiet)
+      gsParam$paths$orthofinder)
 
     ############################################################################
     # 4. run it
@@ -188,7 +183,7 @@ run_orthofinder <- function(gsParam,
 
   ##############################################################################
   # -- fast pairwise (non-reciprocal) blast hits
-  fast_ofDb <- function(gsParam, quietOrthofinder){
+  fast_ofDb <- function(gsParam){
 
     # -- Remove existing orthofinder directory if it exists
     if(dir.exists(gsParam$paths$orthofinder))
@@ -230,12 +225,10 @@ run_orthofinder <- function(gsParam,
     # -- Run orthofinder
     if(gsParam$params$verbose)
       cat("Done!\n\tRunning orthofinder -og on pre-computed blast:\n")
-    quiet <- ifelse(quietOrthofinder, "1>/dev/null 2>&1", "")
     com <- with(gsParam, sprintf(
-      "-b %s -t %s -a 1 -X -og %s",
+      "-b %s -t %s -a 1 -X -og",
       paths$orthofinder,
-      params$nCores,
-      quiet))
+      params$nCores))
     system2(gsParam$paths$orthofinderCall, com, stdout = TRUE, stderr = TRUE)
     return(com)
   }
@@ -263,8 +256,7 @@ run_orthofinder <- function(gsParam,
   }else{
     if(is.na(gsParam$paths$orthofinderCall)){
       com <- default_ofDb(
-        gsParam,
-        quietOrthofinder = quietOrthofinder)
+        gsParam)
     }else{
       if(gsParam$params$orthofinderMethod == "fast"){
         if(gsParam$params$verbose & gsParam$params$diamondMode == "fast")
@@ -283,16 +275,12 @@ run_orthofinder <- function(gsParam,
               "\n\t\t(2) visualization/genome QC purposes, or",
               "\n\t\t(3) inferring orthogroups WITHIN syntenic regions",
               "\n\t############################################################\n")
-        com <- fast_ofDb(
-          gsParam,
-          quietOrthofinder = quietOrthofinder)
+        com <- fast_ofDb(gsParam)
       }else{
         if(gsParam$params$verbose)
           cat("\tRunning 'defualt' genespace orthofinder method",
               "\n\t############################################################\n")
-        com <- default_ofDb(
-          gsParam,
-          quietOrthofinder = quietOrthofinder)
+        com <- default_ofDb(gsParam)
       }
     }
   }
