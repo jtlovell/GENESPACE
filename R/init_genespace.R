@@ -334,9 +334,9 @@ init_genespace <- function(genomeIDs,
       stop("path to MCScanX is not valid, check that its specified correctly\n")
     if(!file.exists(pth))
       stop("found MCScanX folder, but not executable. Has it been installed with make?\n")
-    chk <- suppressWarnings(grepl("prefix_fn",
-                                  system(paste(pth, "-h"),
-                                         intern = T,ignore.stderr = T)[1]))
+    chk <- suppressWarnings(grepl(
+      "prefix_fn",
+      system2(pth, "-h", stdout = TRUE, stderr = FALSE)[1]))
     if(!chk)
       stop("cannot find MCScanX_h in", path,"\n")
     return(path)
@@ -346,8 +346,8 @@ init_genespace <- function(genomeIDs,
   check_diamondInstall <- function(path){
     chk <- tryCatch(
       {
-        system(paste(path, "help"),
-               intern = T,ignore.stderr = T, ignore.stdout=TRUE)
+        system2(path, "help",
+                stdout = FALSE, stderr = FALSE)
       },
       error=function(err) {
         warning("cannot call diamond from ", path)
@@ -364,8 +364,7 @@ init_genespace <- function(genomeIDs,
     wh <- Sys.which(as.character(path))
     chk <- FALSE
     if(basename(wh) == "orthofinder"){
-      ver <- system(paste(path, "-h"),
-                    intern = T)[2]
+      ver <- system2(path, "-h", stdout = TRUE)[2]
       if(grepl("OrthoFinder", ver)){
         ver <- strsplit(ver, " ")[[1]][3]
         vern <- strsplit(ver, ".", fixed = T)[[1]]

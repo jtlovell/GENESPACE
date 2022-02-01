@@ -63,8 +63,7 @@ order_filesByMtime <- function(path = getwd(),
 #' @export
 check_orthofinderInstall <- function(path){
   grepl("OrthoFinder",
-        system(paste(path, "-h"),
-               intern = T)[2])
+        system2(path, "-h", stdout = TRUE)[2])
 }
 
 #' @title Check logical argument
