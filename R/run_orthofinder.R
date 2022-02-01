@@ -109,7 +109,7 @@ run_orthofinder <- function(gsParam,
           "\n\t##################################################",
           "\n\t##################################################\n")
     com <- sprintf(
-      "-f %s -t %s -a 1 -X -o %s %s",
+      "-f %s -t %s -a 1 -X -o %s",
       dirname(gsParam$paths$peptide[1]),
       gsParam$params$nCores,
       gsParam$paths$orthofinder)
@@ -125,7 +125,8 @@ run_orthofinder <- function(gsParam,
         com,
         "\n################\n", sep = "")
     }else{
-      system2(p2of, com, stdout = TRUE, stderr = TRUE)
+      outp <- system2(p2of, com, stdout = TRUE, stderr = TRUE)
+      cat(paste(c("\t", outp), collapse = "\n\t"))
     }
 
     return(com)
@@ -214,7 +215,7 @@ run_orthofinder <- function(gsParam,
         with(pwp[i,], cat(sprintf(
           "\t\tRunning %s/%s (%s vs. %s)\n",
           i, nrow(pwp), genome1, genome2)))
-      system2(gsParam$paths$diamondCall, pwp$com[i], stdout = TRUE, stderr = TRUE)
+      outp <- system2(gsParam$paths$diamondCall, pwp$com[i], stdout = TRUE, stderr = TRUE)
     }
 
     # -- Invert blasts if necessary
@@ -594,7 +595,7 @@ run_ofFromObj <- function(blast00,
 
   # -- run orthofinder
   com <- sprintf("-b %s -og -a 1 -t 1  1>/dev/null 2>&1", writeDir)
-  system2(path2orthofinder, com, stdout = TRUE, stderr = TRUE)
+  outp <- system2(path2orthofinder, com, stdout = TRUE, stderr = TRUE)
 
   # -- find the files
   ogf <- order_filesByMtime(
