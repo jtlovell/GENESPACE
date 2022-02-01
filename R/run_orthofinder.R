@@ -236,7 +236,7 @@ run_orthofinder <- function(gsParam,
       gsParam$paths$orthofinderCall,
       com,
       stdout = TRUE, stderr = TRUE)
-    print(outp)
+    cat(paste(c("\t", outp), collapse = "\n\t"))
     return(com)
   }
 
