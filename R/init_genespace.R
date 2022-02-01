@@ -354,6 +354,8 @@ init_genespace <- function(genomeIDs,
         return(NA)
       }
     )
+    if(!is.na(chk))
+      chk <- path
     return(chk)
   }
 
