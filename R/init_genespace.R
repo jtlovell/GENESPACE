@@ -489,7 +489,7 @@ init_genespace <- function(genomeIDs,
   # -- mcscanx
   p$paths$mcscanxCall <- check_MCScanXhInstall(path2mcscanx)
   # -- diamond
-  p$params$path2diamond <- check_diamondInstall(path2diamond)
+  p$paths$diamondCall <- check_diamondInstall(path2diamond)
 
   ##############################################################################
   # 3. make/check raw and parsed file paths
