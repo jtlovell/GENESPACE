@@ -195,7 +195,10 @@ run_orthofinder <- function(gsParam,
       dirname(gsParam$paths$peptide[1]),
       gsParam$params$nCores,
       gsParam$paths$orthofinder)
-    system2(gsParam$paths$orthofinderCall, com, stdout = TRUE, stderr = TRUE)
+    outp <- system2(
+      gsParam$paths$orthofinderCall,
+      com,
+      stdout = TRUE, stderr = TRUE)
 
     # -- place orthofinder input files in paths$orthofinder
     reorg_ofInput(gsParam$paths$orthofinder)
@@ -229,7 +232,11 @@ run_orthofinder <- function(gsParam,
       "-b %s -t %s -a 1 -X -og",
       paths$orthofinder,
       params$nCores))
-    system2(gsParam$paths$orthofinderCall, com, stdout = TRUE, stderr = TRUE)
+    outp <- system2(
+      gsParam$paths$orthofinderCall,
+      com,
+      stdout = TRUE, stderr = TRUE)
+    print(outp)
     return(com)
   }
 
