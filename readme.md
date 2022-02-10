@@ -1,23 +1,24 @@
-This is v0.9.2 of the GENESPACE R package. 
+This is v0.9.3 of the GENESPACE R package. 
 
 
-An overview tutorial is available [here](https://github.com/jtlovell/GENESPACE/blob/dev/doc/genespaceOverview.pdf)
+An overview tutorial is available [here](https://github.com/jtlovell/GENESPACE/blob/master/doc/genespaceOverview.pdf)
 
 Some specific things that GENESPACE can do (links to specific tutorial vignettes):
 
 #### Primary GENESPACE routines
+
+*NOTE* - Links below not active yet
 
 1. Pull primary syntenic regions across any number of haploid genomes: [synteny examples]().
 2. Separate primary orthologous regions from WGD-derived paralogs: [paralog examples]().
 3. Build a pan-genome annotation: [pangenome examples](). 
 
 
-
 #### Plotting routines
 
-1. Riparian (river/braid/ribbon) plots for:
-    - whole genome synteny: [general riparian examples]().
-    - highlighting specific regions: [regional exploration riparian examples]().
+1. Riparian (river/braid/ribbon [general riparian examples](https://github.com/jtlovell/GENESPACE/blob/dev/doc/riparianPlotGuide.pdf)) plots for:
+    - whole genome synteny
+    - highlighting specific regions
 2. Pairwise dotplots highlighting block breakpoints: [dotplot examples]().
 
 #### Other related functionality

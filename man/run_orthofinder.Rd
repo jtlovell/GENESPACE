@@ -7,7 +7,7 @@
 \alias{read_hits4of}
 \title{Build orthofinder database for GENESPACE}
 \usage{
-run_orthofinder(gsParam, overwrite = FALSE, quietOrthofinder = FALSE)
+run_orthofinder(gsParam, overwrite = FALSE)
 
 blkwise_orthofinder(
   gsParam,
@@ -17,7 +17,16 @@ blkwise_orthofinder(
   minGenes4of = 40
 )
 
-run_ofFromObj(blast00, blast01, blast10, blast11, pep0, pep1, writeDir)
+run_ofFromObj(
+  blast00,
+  blast01,
+  blast10,
+  blast11,
+  pep0,
+  pep1,
+  writeDir,
+  path2orthofinder
+)
 
 read_hits4of(gsParam, genome1, genome2)
 }
@@ -29,9 +38,6 @@ file.path to the directory where syntenic results are stored), genomeIDs (
 character vector of genomeIDs).}
 
 \item{overwrite}{logical, should results be overwritten?}
-
-\item{quietOrthofinder}{logical, should orthofinder-generated output be
-printed ot the console?}
 
 \item{gff}{annotated gff with orthogroups included, see read_gff}
 

@@ -7,8 +7,10 @@
 pangenome(
   gsParam,
   genomeIDs = NULL,
-  noSecondaryAnchors = TRUE,
-  refGenome = NULL
+  refGenome = NULL,
+  maxPlacementsPerRefChr = 2,
+  propAssignThresh = 0.5,
+  maxNonSynOrthos2keepPerGenome = 2
 )
 }
 \arguments{
@@ -21,11 +23,11 @@ character vector of genomeIDs).}
 \item{genomeIDs}{character vector, specifying which genomes to use. Defaults
 to all genomeIDs specification in gsParam.}
 
+\item{refGenome}{character string matching one of the genomeIDs in gsParam}
+
 \item{noSecondaryAnchors}{logical, should "secondary" (see synteny) hits be
 used as pangenome position anchors? If so, like with polyploids, gene
 positions may be duplicated}
-
-\item{refGenome}{character string matching one of the genomeIDs in gsParam}
 }
 \value{
 a data.table with lists of gene ids for each genome. Each row

@@ -23,8 +23,8 @@
 \alias{calc_blkCoords}
 \alias{are_colors}
 \alias{add_alpha}
-\alias{interp_linear}
 \alias{drop_unusedPeptides}
+\alias{interp_linear}
 \title{Generic internal functions used by genespace}
 \usage{
 order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
@@ -77,9 +77,9 @@ are_colors(col)
 
 add_alpha(col, alpha = 1)
 
-interp_linear(x, y)
-
 drop_unusedPeptides(gsParam)
+
+interp_linear(refOrd, toInterpOrd)
 }
 \arguments{
 \item{path}{file path character string}
@@ -185,7 +185,7 @@ file
 
 \code{add_alpha} add transparency to a color
 
-\code{interp_linear} linear interpolation of missing values in x
-
 \code{drop_unusedPeptides} drop_unusedPeptides
+
+\code{interp_linear} linear interpolation of missing values in x
 }

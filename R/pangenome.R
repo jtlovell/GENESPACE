@@ -51,151 +51,1022 @@
 #' @export
 pangenome <- function(gsParam,
                       genomeIDs = NULL,
-                      noSecondaryAnchors = TRUE,
-                      refGenome = NULL){
+                      refGenome = NULL,
+                      maxPlacementsPerRefChr = 2,
+                      propAssignThresh = 0.5,
+                      maxNonSynOrthos2keepPerGenome = 2){
 
-
+  ##############################################################################
   ##############################################################################
   # -- ad hoc function to pull non-syntenic orthologs
   pull_nonSynOrthologs <- function(gsParam,
-                                   gff){
+                                   synParamsDt,
+                                   nCores,
+                                   gff,
+                                   pangenomeDt,
+                                   maxNonSynOrthos2keepPerGenome){
 
-    gen1 <- og2 <- og1 <- orthIDs <- ofID <- id2 <- gen2 <- id1 <- NULL
-    idv <- gff$ofID; names(idv) <- with(gff, paste(genome, id))
-    ogv <- gff$og; names(ogv) <- gff$ofID
+    # -- make vector of gene OF IDs
+    idv <- gff$ofID
+    names(idv) <- with(gff, paste(genome, id))
 
-    orths <- rbindlist(lapply(unique(gff$genome), function(i){
+    pg1 <- with(pangenomeDt, data.table(ofID1 = ofID, pgID1 = pgID))
+    pg2 <- with(pangenomeDt, data.table(ofID2 = ofID, pgID2 = pgID))
+    pg1 <- subset(pg1, !duplicated(pg1))
+    pg2 <- subset(pg2, !duplicated(pg2))
+    # -- for each genomeID
+    orths <- rbindlist(lapply(genomeIDs, function(i){
+
+      # -- read in all orthologs
       x <- parse_orthologues(
         gsParam = gsParam,
         refGenome = i)
-      x[,`:=`(ofID = idv[paste(gen1, id1)],
-              orthIDs = idv[paste(gen2, id2)])]
-      x[,`:=`(og1 = ogv[ofID], og2 = ogv[orthIDs])]
-      x <- subset(x, og1 != og2)
+
+      # -- rename to unique orthofinderIDs
+      x[,`:=`(ofID1 = idv[paste(gen1, id1)],
+              ofID2 = idv[paste(gen2, id2)],
+              genome = gen2)]
+      x <- x[,c("ofID1", "ofID2", "genome")]
+      x <- subset(x, ofID1 %in% pangenomeDt$ofID[pangenomeDt$isRep])
+      x <- merge(pg1, x, by = "ofID1", allow.cartesian = T, all.y = T)
+      x <- subset(x, !duplicated(x))
+      x <- merge(pg2, x, by = "ofID2", allow.cartesian = T, all.y = T)
+      x <- subset(x, !duplicated(x))
+      x <- subset(x, pgID1 != pgID2 | is.na(pgID1) | is.na(pgID2))
+      x[,n := 1:.N, by = c("ofID1", "genome")]
+      x <- subset(x, n <= maxNonSynOrthos2keepPerGenome)
+      x <- with(x, data.table(pgID = pgID1, ofID = ofID2, genome = genome))
+      x <- subset(x, !duplicated(x))
+      # -- subset to only hits that are not in the pangenome
       return(x)
     }))
-    return(orths[,c("ofID", "orthIDs", "orthID")])
+    orths <- subset(orths, !duplicated(orths))
+    pg2fill <- subset(pangenomeDt, pgID %in% orths$pgID)
+    pg2fill <- pg2fill[,c("pgChr", "pgOrd", "pgID", "og")]
+    pg2fill <- subset(pg2fill, !duplicated(pg2fill))
+
+    pgns <- merge(pg2fill, orths, by = "pgID", allow.cartesian = T)
+
+    ov <- gff$ord; cv <- gff$chr; gv <- gff$genome
+    names(ov) <- names(cv) <- names(gv) <- gff$ofID
+
+    pgns[,`:=`(isRep = FALSE, chr = cv[ofID], ord = ov[ofID],
+               isDirectSyn = FALSE, isSynOgOnly = FALSE, isArrayRep = FALSE)]
+
+    pangenomeDt <- rbind(pangenomeDt, pgns[,colnames(pangenomeDt), with = F])
+    return(pangenomeDt)
   }
 
-  pull_arrayRep <- function(gff){
-    if(!"arrayID" %in% colnames(gff))
-      stop("Cannot find a column named arrayID ... can't add arrayReps\n")
+  ##############################################################################
+  ##############################################################################
+  # -- internal function to read in hits against a ref genome
+  read_hits4pg <- function(synParamsDt,
+                           pgRepOfIDs,
+                           refGenome,
+                           gff,
+                           nCores){
 
-    if(!all(c("start", "ord", "pepLen") %in% colnames(gff)))
-      stop("cannot find start, ord and/or pepLen in data.table columns\n")
+    # -- check that the hits files are in the synParam obj and keep only those
+    # that exist.
+    if(!"hitsFile" %in% colnames(synParamsDt))
+      stop("need to add hits file path to synParams\n")
+    synParamsDt <- subset(synParamsDt, file.exists(hitsFile))
+    if(nrow(synParamsDt) < 1)
+      stop("no synHits files exist\n")
 
-    # -- split single and multi-member arrays
-    n <- isArrayRep <- genome <- ord <- NULL
-    gff[,n := .N, by = "arrayID"]
-    out <- subset(gff, n == 1)
-    out[,isArrayRep := TRUE]
-    tmp <- subset(gff, n > 1)
-    if(nrow(tmp) > 1){
-      setkey(tmp, genome, ord)
+    # -- get vector of orthogroup IDs
+    ov <- gff$og; names(ov) <- gff$ofID
 
-      # -- calulate the distance to the median for each gene
-      med <- ord <- medbp <- start <- dist2med <- dist2bp <- NULL
-      tmp[,`:=`(med = as.numeric(median(ord)),
-                medbp = as.numeric(median(start)))]
-      tmp[,`:=`(dist2med = abs(med - ord),
-                dist2bp = abs(medbp - start))]
+    # -- split into two groups, one with the ref as genome1
+    altSyn1 <- subset(synParamsDt, genome1 == refGenome)
+    altSyn2 <- subset(synParamsDt, genome2 == refGenome & genome1 != refGenome)
+    cols <- c("gen1", "gen2", "ofID1", "ofID2", "chr1", "chr2", "ord1", "ord2",
+              "blkID", "regID", "isAnchor", "inBuffer")
 
-      # -- rank and choose representatives
-      pepLen <- dist2med <- dist2bp <- rnk <- isArrayRep <- med <- medbp <- NULL
-      setorder(tmp, dist2med, dist2bp, -pepLen)
-      tmp[,rnk := 1:.N, by = "arrayID"]
-      tmp[,`:=`(isArrayRep = rnk == 1, rnk = NULL, dist2med = NULL,
-                dist2bp = NULL, med = NULL, medbp = NULL)]
+    # -- for each group ...
+    if(nrow(altSyn1) > 0){
+      alt1 <- rbindlist(mclapply(altSyn1$hitsFile, mc.cores = nCores, function(i){
 
-      # -- combine and return
-      genome <- ord <- NULL
-      out <- rbind(out, tmp)
-      out[,n := NULL]
-      setkey(out, genome, ord)
+        # -- read in the synHits file
+        tmp <- fread(
+          i, showProgress = FALSE, na.strings = c("", "NA"),
+          select = c(cols, "isRep1", "isRep2"))
+
+        # -- keep only syntenic orthogroups and array reps
+        tmp <- subset(tmp, !is.na(regID) & isRep1 & isRep2)
+        tmp <- subset(tmp, ov[ofID1] == ov[ofID2])
+
+        # -- keep only hits in the pgRepOfIDs vector
+        tmp <- subset(tmp, ofID1 %in% pgRepOfIDs)
+        return(tmp[, cols, with = F])
+      }))
+    }else{
+      alt1 <- NULL
     }
+    if(nrow(altSyn2) > 0){
+      tmpCols <- c("gen2", "gen1", "ofID2", "ofID1", "chr2", "chr1", "ord2",
+                   "ord1", "blkID", "regID", "isAnchor", "inBuffer")
+      alt2 <- rbindlist(mclapply(altSyn2$hitsFile, mc.cores = nCores, function(i){
+        tmp <- fread(i, showProgress = FALSE, na.strings = c("", "NA"),
+                     select = c(cols, "isRep1", "isRep2"))
+        tmp <- subset(tmp, !is.na(regID) & isRep1 & isRep2)
+        tmp <- subset(tmp, ov[ofID1] == ov[ofID2])
+        tmp <- subset(tmp, ofID2 %in% pgRepOfIDs)[,tmpCols, with = F]
+        setnames(tmp, cols)
+        return(tmp)
+      }))
+    }else{
+      alt2 <- NULL
+    }
+
+    # -- combine the hits
+    hits <- rbind(alt1, alt2)
+
+    # -- change the names to match the pangenome
+    setnames(hits, c("ofID1", "chr1", "ord1"),
+             c("repOfID", "repChr", "repOrd"))
+    setnames(hits, c("ofID2", "chr2", "ord2", "gen2"),
+             c("ofID", "chr", "ord", "genome"))
+    hits[,gen1 := NULL]
+    return(hits)
+  }
+
+  ##############################################################################
+  ##############################################################################
+  # -- internal function to re-cluster syntenic anchors via micro collinearity
+  clus_synAnchorPos <- function(ord1, ord2, blkSize, include){
+    # -- convert to vectors
+    ord1 <- as.integer(ord1)
+    ord2 <- as.integer(ord2)
+
+    # -- check that orders are specified correctly
+    if(all(is.na(ord1)) || all(is.na(ord2)))
+      stop("only NA values found ... cannot conduct linear interpolation\n")
+    if(length(ord1) != length(ord2))
+      stop("order vectors must be of the same length\n")
+
+    # -- make a data table with these data and remove rows with NAs
+    ix <- data.table(index = 1:length(ord1))
+    dt <- data.table(index = 1:length(ord1), x = ord1, y = ord2)
+
+    if(length(include) != length(ord1) || !any(include))
+      stop("problem with include vector, which should be logical of the same length as ord1\n")
+    dt <- subset(dt, include)
+
+    # -- set the minimum retained block size and check that its ok
+    minJitBlk <- ceiling(blkSize/2)
+    if(is.na(minJitBlk) || minJitBlk < 1)
+      stop("blkSize must be posive and numeric\n")
+
+    # -- one last pruning and classify so that clus can be used
+    dt[,xc := frank(x, ties.method = "dense")]
+    dt[,yc := frank(y, ties.method = "dense")]
+
+    # -- if enough observations, do the clustering
+    if(nrow(dt) >= minJitBlk){
+      dt[,clus := dbscan(
+        frNN(cbind(xc, yc), eps = minJitBlk), minPts = minJitBlk)$cluster]
+    }else{
+      dt[,clus := 0]
+    }
+
+    # -- subset to hits in clusters
+    dt <- subset(dt, clus > 0)
+
+    # -- get the range of original index's in each cluster
+    rng <- dt[,list(index = min(index):max(index)), by = "clus"]
+
+    # -- subset to only unique entries and merge, keeping all in the original
+    rng <- subset(rng, !duplicated(index))
+    out <- merge(ix, rng, by = "index", all.x = T)
+    if(nrow(out) != length(ord1))
+      stop("problem matching input and output order string\n")
+    return(out$clus)
+  }
+
+  ##############################################################################
+  ##############################################################################
+  # -- internal function to make sure the syntenic anchors are in good order
+  check_synAnchorPos <- function(ord1, ord2, blkSize){
+    # -- convert to vectors
+    ord1 <- as.integer(ord1)
+    ord2 <- as.integer(ord2)
+    excl <- is.na(ord1) | is.na(ord2)
+
+    # -- check that orders are specified correctly
+    if(all(is.na(ord1)) || all(is.na(ord2)))
+      stop("only NA values found ... cannot conduct linear interpolation\n")
+    if(length(ord1) != length(ord2))
+      stop("order vectors must be of the same length\n")
+
+    # -- make a data table with these data and remove rows with NAs
+    ix <- data.table(index = 1:length(ord1))
+    dt <- data.table(index = 1:length(ord1), x = ord1, y = ord2)
+    dt <- subset(dt, complete.cases(dt))
+
+    # -- set the minimum retained block size and check that its ok
+    minJitBlk <- ceiling(blkSize/2)
+    if(is.na(minJitBlk) || minJitBlk < 1)
+      stop("blkSize must be posive and numeric\n")
+
+    # -- iteratively remove offending hits that are not in exact synteny
+    for(j in 1:minJitBlk){
+
+      # -- rank xy
+      dt[,xc := frank(x, ties.method = "dense")]
+      dt[,yc := frank(y, ties.method = "dense")]
+
+      # -- cluster
+      if(nrow(dt) >= j){
+        dt[,clus := dbscan(
+          frNN(cbind(xc, yc), eps = j), minPts = j)$cluster]
+      }else{
+        dt[,clus := 0]
+      }
+
+      # -- remove unclustered
+      dt <- subset(dt, clus != 0)
+    }
+
+    # -- re-rank if any clustered
+    if(nrow(dt) >= minJitBlk){
+      dt[,xc := frank(x, ties.method = "dense")]
+      dt[,yc := frank(y, ties.method = "dense")]
+
+      # -- recluster
+      dt[,clus := dbscan(
+        frNN(cbind(xc, yc), eps = minJitBlk), minPts = minJitBlk)$cluster]
+      dt <- subset(dt, clus != 0)
+    }else{
+      dt[,clus := NA]
+    }
+
+    # -- one last pruning and classify so that clus can be used
+    dt <- merge(ix, dt[,c("index", "clus")], by = "index", all.x = T)
+    setkey(dt, index)
+    if(nrow(dt) != length(ord1))
+      stop("problem matching input and output order string\n")
+    return(!is.na(dt$clus) & !excl)
+  }
+
+  ##############################################################################
+  ##############################################################################
+  # -- internal function to get reference positions.
+  # this function has ad hoc (non-standard) input: anchorHits
+  # due to this input, keeping function internal to pangenome to avoid confusion
+  # during documentation
+  interp_refPos <- function(gff,
+                            anchorHits,
+                            blkSize,
+                            refGenome,
+                            nCores,
+                            verbose){
+
+    # -- get indexed position of geneIDs
+    gff <- subset(gff, isArrayRep)
+    gff[,index := 1:.N]
+    indv <- gff$index; names(indv) <- gff$ofID
+    ah <- with(anchorHits, data.table(
+      gen1 = refGenome, gen2 = genome,
+      chr1 = repChr, chr2 = chr,
+      ord1 = repOrd, ord2 = ord,
+      ind1 = indv[repOfID], ind2 = indv[ofID],
+      ofID1 = repOfID, ofID2 = ofID,
+      blkID = sprintf("%s_%s", genome, blkID)))
+
+    # -- make block coords with index non self
+    ah[,isSelf := any(ind1 == ind2), by = "blkID"]
+    blkIndex <- subset(ah, !isSelf)[,list(
+      st1 = min(ind1), st2 = min(ind2), en1 = max(ind1), en2 = max(ind2)),
+      by = c("blkID", "chr1", "chr2", "gen1", "gen2")]
+
+    # -- for each block, get anchors, non-position anchors
+    gtmp1 <- gff[,c("index","ofID", "ord")]
+    gtmp2 <- gff[,c("index","ofID", "ord")]
+    setnames(gtmp1, c("ind1","ofID1", "ord1"))
+    setnames(gtmp2, c("ind2","ofID2", "ord2"))
+
+    splAnchs <- split(ah[,c("blkID", "ofID1", "ofID2", "ord1", "ord2")], by = "blkID")
+
+    # -- for each block, get the interpolated reference order
+    splH <- rbindlist(mclapply(1:nrow(blkIndex), mc.cores = nCores, function(i){
+      z <- blkIndex[i,]
+      x <- data.table(splAnchs[[z$blkID]][,c("ofID1", "ofID2", "ord1", "ord2")])
+      y2 <- subset(gtmp2[blkIndex$st2[i]:blkIndex$en2[i],], !ind2 %in% x$ind2)
+      y <- rbind(x, y2, fill = T)
+
+      if(all(complete.cases(y[,c("ord1", "ord2")]))){
+        y[,interpRefOrd := ord1]
+      }else{
+        # -- cluster and check the positions
+        # -- if not enough anchor regions, just use them all and one cluster
+        if(sum(!is.na(y$ord1)) < blkSize){
+          y[,`:=`(useAsAnch = !is.na(ord1), clus = 1)]
+        }else{
+          # -- re-cluster the anchors, make sure they are perfectly collinear
+          y[,useAsAnch := check_synAnchorPos(
+            ord1 = ord1, ord2 = ord2, blkSize = blkSize)]
+
+          # -- cluster the anchors into groups if multiple regions
+          if(any(y$useAsAnch)){
+            y[,clus := clus_synAnchorPos(
+              ord1 = ord1, ord2 = ord2, blkSize = blkSize, include = useAsAnch)]
+          }else{
+            y[,clus := NA]
+          }
+        }
+
+        # -- pull and split clustered hits
+        yclus <- subset(y, !is.na(clus) & !is.na(ord1) & !is.na(ord2))
+        spl <- split(yclus, by = "clus")
+        y2interp <- subset(y, !is.na(ord2))
+        setorder(y2interp, ord1, na.last = T)
+
+        # -- get hits within each new micro block and interpolate
+        y <- rbindlist(lapply(spl, function(cl){
+          tmp <- subset(y2interp, ord2 >= min(cl$ord2) & ord2 <= max(cl$ord2))
+          tmp <- subset(tmp, !duplicated(ofID2))
+          tmp[,interpRefOrd := interp_linear(refOrd = ord1, toInterpOrd = ord2)]
+          return(tmp)
+        }))
+      }
+
+      intp <- data.table(
+        blkID = z$blkID, ofID = y$ofID2,
+        refChr = z$chr1, interpRefOrd = y$interpRefOrd)
+      return(intp)
+    }), fill = T)
+    out <- subset(splH, complete.cases(splH))
+
+    # -- make sure we don't have duplicated NAs
+    out <- subset(out, !is.na(interpRefOrd))
+
+    # -- merge with gff
+    gfm <- merge(gff, out, by = "ofID", all = T, allow.cartesian = T)
+    setorder(gfm, interpRefOrd, na.last = T)
+    gfY <- subset(gfm, !is.na(interpRefOrd))
+    gfN <- subset(gfm, is.na(interpRefOrd))
+    gfN <- subset(gfN, !ofID %in% gfY$ofID)
+    tab <- table(gfY$ofID)
+    if(verbose)
+      cat(sprintf(
+        "n. genes mapped: 1x = %s, 2+x = %s, 0x = %s\n",
+        sum(tab == 1), sum(tab > 1), nrow(gfN)))
+    intPos <- rbind(gfY, gfN)
+    intPos <- with(subset(intPos, !is.na(refChr) & !is.na(interpRefOrd)),
+                   data.table(ofID = ofID, altChr = chr, altOrd = ord,
+                              interpRefChr = refChr, interpRefOrd = interpRefOrd))
+    return(intPos)
+  }
+
+
+  build_refPg <- function(refAnchorHits,
+                          interpolatedPositionDT,
+                          gff,
+                          genomeIDs,
+                          refGenome,
+                          propAssignThresh,
+                          maxPlacementsPerRefChr){
+
+    # -- get full set of positions
+    ipInterp <- with(interpolatedPositionDT, data.table(
+      ofID = ofID, chr = altChr, ord = altOrd,
+      interpRefChr = interpRefChr,  interpRefOrd = interpRefOrd))
+    ipGff <- with(subset(gff, genome == refGenome & isArrayRep), data.table(
+      ofID = ofID, chr = chr, ord = ord,
+      interpRefChr = chr, interpRefOrd = ord))
+    ip <- rbind(ipGff, ipInterp)
+    ip <- subset(ip, complete.cases(ip))
+
+    # -- get vector of position info
+    ov <- gff$ord; cv <- gff$chr; gv <- gff$genome
+    names(ov) <- names(cv) <- names(gv) <- gff$ofID
+
+    # -- get vector of orthogroups based on hits (more specific than global)
+    tmp <- with(refAnchorHits, data.table(
+      id1 = c(ofID, repOfID), id2 = c(repOfID, ofID)))
+    tmp <- subset(tmp, !duplicated(tmp))
+    tmp[,og := clus_igraph(id1, id2)]
+    ogv <- tmp$og; names(ogv) <- tmp$id1
+    ip[,og := ogv[ofID]]
+
+    # -- toss chromosomes that are rare (default < 25%)
+    ip[,clus := 1]
+    setorder(ip, interpRefChr, interpRefOrd, na.last = T)
+    tmp <- subset(ip, !is.na(interpRefChr))
+    tmp[,nInChr := uniqueN(ofID), by = c("interpRefChr", "og")]
+    tmp[,n := uniqueN(ofID), by = "og"]
+    tmp[,rat := nInChr / n]
+    tmp <- subset(tmp, rat >= propAssignThresh)[,colnames(ip), with = F]
+
+    # -- separate groups that need to be clustered from those that don't
+    tmp[,tmpi := round(interpRefOrd)]
+    tmp[,nPos := uniqueN(tmpi), by = c("og", "interpRefChr")]
+
+    pg1 <- subset(tmp, nPos == 1)[,colnames(ip), with = F]
+    pg2 <- subset(tmp, nPos > 1)[,colnames(ip), with = F]
+
+    # -- cluster multi-position groups
+    if(nrow(pg2) > 0){
+      pg2[,clusThis := max(diff(interpRefOrd)) > synBuff,
+          by = c("og", "interpRefChr")]
+      pg1 <- rbind(
+        pg1, subset(pg2, !clusThis)[,colnames(ip), with = F])
+      pg2 <- subset(pg2, clusThis)[,colnames(ip), with = F]
+
+      # -- cluster if needed
+      if(nrow(pg2)){
+        pg2[,clus := dbscan(frNN(cbind(interpRefOrd, interpRefOrd),
+                                 eps = synBuff), minPts = 1)$cluster,
+            by = c("og","interpRefChr")]
+        pg1 <- rbind(
+          pg1, pg2[,colnames(ip), with = F])
+      }
+    }
+
+    # -- again drop clusters without enough support
+    out <- data.table(pg1)
+    out[,nInChr := uniqueN(ofID), by = c("interpRefChr", "og", "clus")]
+    out[,n := uniqueN(ofID), by = "og"]
+    out[,rat := nInChr / n]
+    out <- subset(out, rat >= propAssignThresh)
+
+    # -- re-level the genomes by user specs
+    gord <- c(refGenome, genomeIDs[genomeIDs != refGenome])
+    out[,genome := gv[ofID]]
+    out[,lev := factor(genome, levels = gord)]
+
+    # -- get median position
+    out[,med := median(interpRefOrd), by = c("og", "interpRefChr", "clus")]
+    out[,dist2med := abs(interpRefOrd - med)]
+
+    # -- assign whether the placement is the true location, then rank
+    out[,isSameChr := genome == refGenome & chr == cv[ofID]]
+    setorder(out, -isSameChr, -rat, dist2med,  lev)
+
+    # -- subset to only the best n placement for each ref chrs
+    scaf <- subset(out, !duplicated(paste(og, interpRefChr, clus)))
+    setorder(scaf, -isSameChr, -rat, dist2med,  lev)
+    scaf[,nOnChr := 1:.N, by = c("interpRefChr", "og")]
+    scaf <- subset(scaf, nOnChr <= maxPlacementsPerRefChr)
+
+    # -- get pangenome IDs
+    setkey(scaf, interpRefChr, interpRefOrd)
+    scaf[,pgID := 1:.N]
+    scaf <- scaf[,c("ofID", "interpRefChr", "interpRefOrd", "pgID", "og")]
+
+    # -- merge with hits
+    tmp <- with(refAnchorHits, data.table(
+      ofID = c(repOfID, ofID), altID = c(ofID, repOfID)))
+    tmp <- subset(tmp, ofID %in% scaf$ofID)
+    tmp <- subset(tmp, !duplicated(tmp))
+    out <- merge(scaf, tmp, by = "ofID", allow.cartesian = T)
+    out[,`:=`(isRep = ofID == altID, ofID = NULL)]
+    out <- subset(out, !duplicated(out))
+    # -- rename and format
+    setnames(out, c("pgChr", "pgOrd", "pgID", "og", "ofID","isRep"))
+    out[,`:=`(genome = gv[ofID], chr = cv[ofID], ord = ov[ofID])]
+    out[,lev := factor(genome, levels = gord)]
+    setkey(out, pgID, lev)
+    out[,lev := NULL]
     return(out)
   }
 
-  interp_refPos <- function(gsParam,
-                            refGenome,
-                            nCores,
-                            gff,
-                            blkSize,
-                            noSecondaryAnchors){
 
-    ov <- gff$ord; ogv <- gff$og; names(ogv) <- names(ov) <- gff$ofID
+  ##############################################################################
+  # -- internal function to check if we need to use interpolated positions
+  drop_pgRepsAlreadyThere <- function(interpolatedPositionPg, refPg){
+    interpolatedPositionPg <- data.table(interpolatedPositionPg)
+    refPg <- data.table(refPg)
+    # -- get unique names of reference scaffold IDs
+    urep <- unique(interpolatedPositionPg$repOfID)
 
-    # -- find the syntenic hit files
-    genome1 <- genome2 <- NULL
-    writeTo <- gsParam$paths$results
-    sp <- subset(gsParam$params$synteny,
-                 genome1 == refGenome | genome2 == refGenome)
-    synHitsFiles <- with(sp, file.path(
-      writeTo, sprintf("%s_%s_synHits.txt.gz", genome1, genome2)))
-    synHitsFiles <- synHitsFiles[file.exists(synHitsFiles)]
+    # -- get position information for reference scaffold IDs
+    upos <- refPg$repOrd; names(upos) <- refPg$repOfID
+    uchr <- refPg$repChr; names(uchr) <- refPg$repOfID
 
-    # -- for each file, pull the hits
-    regID <- blkID <- isOg <- ofID1 <- ofID2 <- isAnchor <- ord1 <- ord2 <-
-      tmp1 <- tmp2 <- clus <- ofID <-
-    synpos <- rbindlist(mclapply(synHitsFiles, mc.cores = nCores, function(i){
-      syh <- fread(i, na.strings = c("", "NA"), showProgress = F)
-      syh <- subset(syh, !is.na(regID))
-      syh <- subset(syh, isOg & !grepl("self", blkID))
-      if(noSecondaryAnchors)
-        syh <- subset(syh, !grepl("second", blkID))
-      syb <- subset(
-        syh, !is.na(blkID) & ofID1 %in% names(ov) & ofID2 %in% names(ov))
-      if(nrow(syb) > blkSize){
-        if(syb$gen1[1] == refGenome){
-          hits <- syb[,c("chr1", "ofID1", "ofID2", "blkID", "isAnchor")]
-        }else{
-          hits <- syb[,c("chr2", "ofID2", "ofID1", "blkID", "isAnchor")]
-          setnames(hits, 1:3, c("chr1", "ofID1", "ofID2"))
-        }
-        anch <- subset(hits, isAnchor)
-        anch[,`:=`(ord1 = ov[ofID1], ord2 = ov[ofID2])]
-        anch[,`:=`(tmp1 = frank(ord1, ties.method = "dense"),
-                   tmp2 = frank(ord2, ties.method = "dense"))]
-        anch[,clus := dbscan(frNN(cbind(tmp1, tmp2), eps = blkSize*2),
-                             minPts = ceiling(blkSize/2))$cluster,
-             by = c("blkID")]
-        anch <- subset(anch, clus != 0)
-        anch[,`:=`(tmp1 = NULL, tmp2 = NULL, clus = NULL)]
-        spl <- split(anch, by = "blkID")
-        # -- pull gff for genes without anchor hits to the reference
-        interpos <- rbindlist(lapply(spl, function(x){
-          chri <- x$chr1[1]
-          blki <- x$blkID[1]
-          wh <- which(gff$ofID %in% x$ofID2)
-          tmp <- subset(gff[min(wh):max(wh),], !ofID %in% x$ofID2)
-          if(nrow(tmp) > 1){
-            y <- with(tmp, data.table(
-              chr1 = chri, ofID1 = NA, ofID2 = ofID, blkID = blki, isAnchor = TRUE,
-              ord1 = NA, ord2 = ord))
-            x <- rbind(x, y)
-            setkey(x, ord2)
-            if(any(is.na(x$ord1)) & any(!is.na(x$ord1)))
-              suppressWarnings(
-                x[,ord1 := interp_linear(x = ord2, y = ord1)])
-            out <- with(x, data.table(
-              refOrd = ord1, ofID = ofID2, isAnchor = isAnchor,
-              blkID = blkID[1], chr = chr1[1]))
-            return(out)
-          }
-        }))
-        if(nrow(interpos) > 0)
-          return(interpos)
+    # -- drop self maps
+    tmp <- subset(interpolatedPositionPg, ofID != repOfID)
+
+    # -- make vector of whether the ofID is a representative in the scaff
+    tmp[,hasAltRep := ofID %in% urep & repChr == refChr]
+
+    # -- check if each repOfID already has that chr and rep in the graph
+    tmp[,hasAltRep := any(hasAltRep), by = "repOfID"]
+
+    # -- just keep the ones that have this
+    toCheck <- subset(tmp, hasAltRep)
+
+    # -- add in the order and chr names for the interpolated positions
+    toCheck[,`:=`(tmpChr = uchr[ofID], tmpOrd = upos[ofID])]
+
+    # -- drop any with missing positions
+    toCheck <- subset(toCheck, !is.na(tmpChr))
+
+    # -- check if the same chromosome and synBuffer are matches
+    toCheck[,`:=`(sameChr = refChr == tmpChr)]
+
+    # -- if so, drop these entries, create vector of these to drop
+    toDrop <- subset(toCheck, sameChr)
+    ud <- with(toDrop, paste(repOfID, refChr))
+
+    # -- create index of whether it should be dropped and subset accordingly
+    interpolatedPositionPg[,hasPosAlready := paste(repOfID, refChr) %in% ud]
+    pgChkd <- subset(interpolatedPositionPg, !hasPosAlready)
+    pgChkd[,`:=`(hasPosAlready = NULL,
+                 refAnchExists = ofID == repOfID & repChr == refChr)]
+    pgChkd[,refAnchExists := any(refAnchExists), by = c("repOfID", "refChr")]
+    setnames(pgChkd, "refChr", "interpRefChr")
+    return(pgChkd)
+  }
+
+  ##############################################################################
+  # -- internal function to cluster interpolated positions.
+  cluster_refOrds <- function(pg2clus,
+                              synBuff,
+                              propAssignThresh,
+                              refGenome,
+                              genomeIDs){
+    pg2clus <- data.table(pg2clus)
+    pgClus1 <- pgClus2 <- NULL
+    # -- order interpolated positions
+    setkey(pg2clus, repChr, repOfID, interpRefOrd)
+
+    # -- count the number of placements (if 1, set aside)
+    pg2clus[,n := .N, by = c("repOfID","repChr")]
+    pg2clus[,`:=`(clusThis = FALSE, clus = 1)]
+    pgClus1 <- subset(pg2clus, n < 2)
+
+    # -- count the maximum difference within a chromosome
+    pgClus2 <- subset(pg2clus, n >= 2)
+    if(nrow(pgClus2) > 0){
+      pgClus2[,clusThis := max(diff(interpRefOrd)) > synBuff,
+              by = c("repOfID","repChr")]
+
+      # -- if < synBuff, set aside
+      pgClus1 <- rbind(pgClus1, subset(pgClus2, !clusThis))
+      pgClus2 <- subset(pgClus2, clusThis)
+
+      # -- cluster if needed
+      if(nrow(pgClus2)){
+        pgClus2[,clus := dbscan(frNN(cbind(interpRefOrd, interpRefOrd),
+                                     eps = synBuff), minPts = 1)$cluster,
+                by = c("repOfID","repChr")]
       }
-    }))
+    }
+    out <- rbind(pgClus1, pgClus2)
+    out[,clusThis := NULL]
 
-    og <- NULL
-    synpos[,og := ogv[ofID]]
-    return(subset(synpos, complete.cases(synpos)))
+    # -- get counts for total og members and within clus members
+    out[,ogSize := uniqueN(ofID), by = c("repOfID")]
+    out[,n := uniqueN(ofID), by = c("repOfID", "interpRefChr", "clus")]
+
+    # -- subset to only assignments representend by enough members
+    out[,propAssign := n / ogSize]
+    out <- subset(out, propAssign >= propAssignThresh)
+
+    # -- re order so that highest proportion is first, then genomeIDs
+    gord <- c(refGenome, genomeIDs[genomeIDs != refGenome])
+    out[,lev := factor(genome, levels = gord)]
+
+    # -- subset to only the best placement for each ref chrs
+    setorder(out, -propAssign, lev)
+    outs <- subset(out, !duplicated(paste(repOfID, interpRefChr)))
+    outs[,`:=`(n = NULL, clus = NULL, ogSize = NULL,
+               propAssign = NULL, lev = NULL)]
+    return(outs)
+  }
+
+  ##############################################################################
+  # -- internal function to build non-reference pangenome
+  build_nonRefPg <- function(missingHits,
+                             interpPos,
+                             refGenome,
+                             genomeIDs,
+                             synBuff,
+                             gff,
+                             propAssignThresh){
+
+    gff <- data.table(gff)
+    missingHits <- data.table(missingHits)
+    interpPos <- data.table(interpPos)
+
+    # -- merge with interpolated positions
+    hitsint <- merge(
+      subset(missingHits, !duplicated(missingHits)),
+      with(interpPos, data.table(
+        ofID1 = ofID, pgChr1 = refChr, pgOrd1 = interpRefOrd)),
+      allow.cartesian = T, by = "ofID1")
+    hitsint <- merge(
+      hitsint,
+      with(interpPos, data.table(
+        ofID2 = ofID, pgChr2 = refChr, pgOrd2 = interpRefOrd)),
+      allow.cartesian = T, by = "ofID2")
+
+    # -- subset to just hits that have similar interpolated syntenic positions
+    hitsint <- subset(hitsint, pgChr1 == pgChr2 & abs(pgOrd1 - pgOrd2) < synBuff)
+
+    # -- cluster these into syntenic orthogroups
+    hitsint[,clus := clus_igraph(ofID1, ofID2)]
+
+
+    # -- re-organize
+    hint <- with(hitsint, data.table(
+      ofID = c(ofID1, ofID2),
+      pgChr = c(pgChr1, pgChr2),
+      pgOrd = c(pgOrd1, pgOrd2),
+      og = c(clus, clus)))
+    hint <- subset(hint, !duplicated(hint))
+    setkey(hint, og)
+    gv <- gff$genome; names(gv) <- gff$ofID
+    levs <- c(refGenome, genomeIDs[genomeIDs!=refGenome])
+    hint[,genome := factor(gv[ofID], levels = levs)]
+    setkey(hint, og, pgChr, genome, pgOrd)
+
+    hint[,n := .N, by = c("pgChr","og")]
+    hint[,`:=`(clusThis = FALSE, clus = 1)]
+    hint1 <- subset(hint, n < 2)
+
+    hint2 <- subset(hint, n >= 2)
+    if(nrow(hint2) > 0){
+      hint2[,clusThis := max(diff(pgOrd) > synBuff),
+            by = c("og", "pgChr")]
+
+      # -- if < synBuff, set aside
+      hint1 <- rbind(hint1, subset(hint2, !clusThis))
+      hint2 <- subset(hint2, clusThis)
+
+      # -- cluster if needed
+      if(nrow(hint2)){
+        hint2[,clus := dbscan(frNN(cbind(pgOrd, pgOrd),
+                                   eps = synBuff), minPts = 1)$cluster,
+              by = c("og","pgChr")]
+      }
+    }
+    out <- rbind(hint1, hint2)
+    out[,clusThis := NULL]
+
+    # -- get counts for total og members and within clus members
+    out[,ogSize := uniqueN(ofID), by = c("og")]
+    out[,n := uniqueN(ofID), by = c("og", "pgChr", "clus")]
+
+    # -- subset to only assignments representend by enough members
+    out[,propAssign := n / ogSize]
+    out <- subset(out, propAssign >= propAssignThresh)
+
+    # -- drop non-best clusters
+    setorder(out, og, pgChr, -propAssign, genome, pgOrd)
+    og2keep <- subset(out, !duplicated(paste(og, pgChr)))
+    og2keep <- with(og2keep, paste(og, pgChr, clus))
+    out <- subset(out, paste(og, pgChr, clus) %in% og2keep)
+
+    # -- set representatives as the most central, closest genome
+    out[,`:=`(n = NULL, clus = NULL, ogSize = NULL, propAssign = NULL)]
+    out[,medPos := median(pgOrd), by = c("og", "pgChr")]
+    out[,dist2med := abs(pgOrd - medPos)]
+    setorder(out, og, pgChr, dist2med, genome)
+    out[,isRep := 1:.N == 1, by = c("og", "pgChr")]
+    out[,og := paste(og, pgChr)]
+
+    # -- merge representatives with all to mimic pangenome format
+    outrep <- with(subset(out, isRep), data.table(
+      repOfID = ofID, pgChr = pgChr, pgOrd = pgOrd, og = og))
+    pgm <- merge(
+      outrep,
+      with(out, data.table(og = og, genome = genome, ofID = ofID)),
+      by = "og",
+      allow.cartesian = T)
+
+    # -- add metadata and clean up
+    gv <- gff$genome; cv <- gff$chr; ov <- gff$ord
+    names(gv) <- names(cv) <- names(ov) <- gf$ofID
+    pgm[,`:=`(og = NULL, chr = cv[ofID], ord = ov[ofID], hasRefAnchor = FALSE)]
+    return(pgm)
+  }
+
+  ##############################################################################
+  # -- internal function to add array members
+  add_arrayMembers <- function(pangenomeDt, gff){
+
+    gff <- data.table(gff)
+    pangenomeDt <- data.table(pangenomeDt)
+
+    # -- pull non-array representative genes
+    gfnonrep <- subset(gff, !isArrayRep)
+    gfrep <- subset(gff, arrayID %in% gfnonrep$arrayID & isArrayRep)
+    gfr <- merge(
+      with(gfrep, data.table(ofID = ofID, arrayID = arrayID)),
+      with(gfnonrep, data.table(arrayMemID = ofID, arrayID = arrayID, genome, chr, ord)),
+      by = "arrayID", allow.cartesian = T)
+    pgr <- subset(pangenomeDt, ofID %in% gfrep$ofID)
+    pgr <- pgr[,c("pgChr", "pgOrd", "pgID", "og", "ofID",
+                  "isRep", "isDirectSyn", "isSynOgOnly")]
+    pgr <- subset(pgr, !duplicated(pgr))
+    gfr <- subset(gfr, ofID %in% pgr$ofID)
+    gfr[,arrayID := NULL]
+    gfr <- subset(gfr, !duplicated(gfr))
+    pgr <- merge(
+      pgr, gfr,
+      all.y = T,
+      by = "ofID",
+      allow.cartesian = T)
+    pgr[,ofID := arrayMemID]
+    pgr <- pgr[,colnames(pangenomeDt), with = F]
+    pangenomeDt[,isArrayRep := TRUE]
+    pgr[,isArrayRep := FALSE]
+    pangenomeDt <- rbind(pangenomeDt, pgr)
+    return(pangenomeDt)
+  }
+
+  ##############################################################################
+  # -- internal function to add and flag indirect syntenic edges
+  add_indirectEdges <- function(gff, pangenomeDt){
+    gff <- data.table(gff)
+    pangenomeDt <- data.table(pangenomeDt)
+    ogv <- gff$og; names(ogv) <- gff$ofID
+    pangenomeDt[,og := ogv[ofID]]
+    gfm <- subset(gff, og %in% unique(pangenomeDt$og) & !ofID %in% pangenomeDt$ofID)
+
+    pgtmp <- pangenomeDt[,c("repOfID", "pgChr", "pgOrd", "hasRefAnchor", "og")]
+    pgtmp <- subset(pgtmp, !duplicated(pgtmp))
+    pgis <- merge(
+      pgtmp,
+      gfm[,c("genome", "chr", "ord", "ofID", "isArrayRep", "og")],
+      by = "og", allow.cartesian = T)
+    pangenomeDt[,directSynEdge := TRUE]
+    pgis[,directSynEdge := FALSE]
+    pgis <- pgis[,colnames(pangenomeDt), with = F]
+    pangenomeDt <- rbind(pangenomeDt, pgis)
+    return(pangenomeDt)
+  }
+
+
+  pull_missingDirectEdges <- function(pangenomeDt,
+                                      synParamsDt,
+                                      nCores,
+                                      gff){
+    ofIDl <- split(pangenomeDt$ofID, pangenomeDt$genome)
+    hitsm <- rbindlist(lapply(names(ofIDl), function(i){
+      hitsi <- read_hits4pg(
+        synParamsDt = synParamsDt,
+        pgRepOfIDs = unique(ofIDl[[i]]),
+        refGenome = i,
+        nCores = nCores,
+        gff = gff)
+      tmp <- subset(hitsi, repOfID != ofID)[,c("ofID", "repOfID")]
+      ptmp1 <- with(subset(pangenomeDt, ofID %in% tmp$repOfID),
+                    data.table(repOfID = ofID, pgID1 = pgID))
+      ptmp2 <- with(subset(pangenomeDt, ofID %in% tmp$ofID),
+                    data.table(ofID = ofID, pgID2 = pgID))
+      tmp <- merge(tmp, ptmp1, by = "repOfID", allow.cartesian = T)
+      tmp <- merge(tmp, ptmp2, by = "ofID", allow.cartesian = T)
+      tmp <- with(tmp, paste(repOfID, ofID))
+      hitso <- subset(hitsi, !paste(repOfID, ofID) %in% tmp & repOfID != ofID)
+      return(hitso[,c("repOfID", "ofID")])
+    }))
+    hitsm <- rbind(hitsm, with(hitsm, data.table(repOfID = ofID, ofID = repOfID)))
+    hitsm <- subset(hitsm, !duplicated(hitsm))
+    ov <- gff$ord; cv <- gff$chr; gv <- gff$genome
+    names(ov) <- names(cv) <- names(gv) <- gff$ofID
+    hitsm[,`:=`(genome = gv[ofID], chr = cv[ofID], ord = ov[ofID])]
+
+    tmp <- pangenomeDt[,c("pgChr", "pgOrd","pgID", "og", "ofID")]
+    tmp[,`:=`(isRep = FALSE, isDirectSynOG = TRUE, repOfID = ofID, ofID = NULL)]
+    hmiss <- subset(hitsm, repOfID %in% pangenomeDt$ofID)
+    hmiss <- subset(hmiss, !ofID %in% pangenomeDt$ofID)
+    hmiss <- hmiss[,c("genome","repOfID", "ofID", "chr", "ord")]
+    tmp <- subset(tmp, repOfID %in% hmiss$repOfID)
+    hmiss <- subset(hmiss, !duplicated(hmiss))
+    tmp <- subset(tmp, !duplicated(tmp))
+    hmiss <- merge(tmp, hmiss, by = "repOfID", allow.cartesian = T)
+    hmiss <- hmiss[,colnames(pangenomeDt), with = F]
+    pangenomeDt <- rbind(pangenomeDt, hmiss)
+    return(pangenomeDt)
+  }
+
+  chk_missingEntries <- function(pangenomeDt,
+                                 refPgHits){
+    tmp <- pangenomeDt[,c("pgChr", "pgOrd","pgID", "og", "ofID")]
+    tmp[,`:=`(isRep = FALSE, isDirectSynOG = TRUE, repOfID = ofID, ofID = NULL)]
+    hmiss <- subset(refPgHits, repOfID %in% pangenomeDt$ofID)
+    hmiss <- subset(hmiss, !ofID %in% pangenomeDt$ofID)
+    hmiss <- hmiss[,c("genome","repOfID", "ofID", "chr", "ord")]
+    tmp <- subset(tmp, repOfID %in% hmiss$repOfID)
+    hmiss <- subset(hmiss, !duplicated(hmiss))
+    tmp <- subset(tmp, !duplicated(tmp))
+    hmiss <- merge(tmp, hmiss, by = "repOfID", allow.cartesian = T)
+    hmiss <- hmiss[,colnames(pangenomeDt), with = F]
+    out <- rbind(pangenomeDt, hmiss)
+    return(out)
+  }
+
+  pull_indirectEdges <- function(pangenomeDt,
+                                 synParamsDt,
+                                 nCores,
+                                 gff){
+    pgRef <- data.table(pangenomeDt)
+    ofIDl <- subset(gff, isArrayRep & genome != refGenome)
+    ofIDl <- split(ofIDl$ofID, ofIDl$genome)
+    hitsm <- rbindlist(lapply(names(ofIDl), function(i){
+      hitsi <- read_hits4pg(
+        synParamsDt = subset(synParamsDt,
+                             genome1 != refGenome & genome2 != refGenome),
+        pgRepOfIDs = unique(ofIDl[[i]]),
+        refGenome = i,
+        nCores = nCores,
+        gff = gff)
+      tmp <- subset(hitsi, repOfID != ofID)[,c("ofID", "repOfID")]
+      ptmp1 <- with(subset(pgRef, ofID %in% tmp$repOfID), data.table(repOfID = ofID, pgID1 = pgID))
+      ptmp2 <- with(subset(pgRef, ofID %in% tmp$ofID), data.table(ofID = ofID, pgID2 = pgID))
+      tmp <- merge(tmp, ptmp1, by = "repOfID", allow.cartesian = T)
+      tmp <- merge(tmp, ptmp2, by = "ofID", allow.cartesian = T)
+      tmp <- with(tmp, paste(repOfID, ofID))
+      hitsi[,u := paste(repOfID, ofID)]
+      hitso <- subset(hitsi, !u %in% tmp & !paste(ofID, repOfID) %in% tmp)
+      return(hitso[,c("repOfID", "ofID")])
+    }))
+    hitsOut <- data.table(hitsm)
+    hitso <- subset(hitsm, repOfID != ofID)
+    # -- pull out hits that are indirect syn OGs
+    hitsm <- rbind(hitsm, with(hitsm, data.table(repOfID = ofID, ofID = repOfID)))
+    hitsm <- subset(hitsm, !duplicated(hitsm))
+    indHits <- subset(hitsm, ofID %in% pgRef$ofID & ofID != repOfID)
+    pgInd <- subset(pgRef, ofID %in% indHits$ofID)
+    pgInd <- pgInd[,c("pgChr", "pgOrd", "pgID", "ofID", "og")]
+    pgInd <- merge(pgInd, indHits, allow.cartesian = T)
+    pgInd <- subset(pgInd, !duplicated(pgInd))
+
+    # -- add to the pangenome
+    ov <- gff$ord; cv <- gff$chr; gv <- gff$genome
+    names(ov) <- names(cv) <- names(gv) <- gff$ofID
+    pgInd[,`:=`(genome = gv[ofID], chr = cv[ofID], ord = ov[ofID], isRep = FALSE,
+                isDirectSynOG = FALSE, ofID = repOfID)]
+    pgInd <- pgInd[,colnames(pgRef), with = F]
+    pgInd <- subset(pgInd, !paste(ofID, pgID) %in% paste(pgRef$ofID, pgRef$pgID))
+    pgRef <- rbind(pgRef, pgInd)
+    return(list(pg = pgRef, missingHits = hitsOut))
+  }
+
+  pull_nonRefSynOgs <- function(pangenomeDt,
+                                synParamsDt,
+                                nCores,
+                                gff){
+    # -- invert and copy hits
+    u <- unique(pgInd$ofID)
+    ov <- gff$ord; cv <- gff$chr; gv <- gff$genome
+    names(ov) <- names(cv) <- names(gv) <- gff$ofID
+    tmp <- with(subset(hitsMissing, !ofID %in% u & !repOfID %in% u), data.table(
+      repOfID = c(repOfID, ofID), ofID = c(ofID, repOfID)))
+
+    levs <- genomeIDs[genomeIDs!=refGenome]
+    tmp[,genome := gv[repOfID]]
+    anch <- NULL
+
+    # -- hierarchical orthogroup assignment
+    for(i in levs){
+      anchi <- subset(tmp, genome == i)
+      anchi[,refg := i]
+      lefto <- subset(tmp, !ofID %in% anch$ofID & !repOfID %in% anch$ofID)
+      anchi[,og := as.numeric(factor(repOfID, levels = unique(repOfID)))]
+      anch <- rbind(anch, anchi)
+    }
+    anch[,og := as.numeric(as.factor(paste(refg, og)))]
+    anch[,refg := NULL]
+
+    # -- order by positions, genome and interpolated positions to choose reps
+    tmp <- data.table(anch)
+    levs <- c(refGenome, genomeIDs[genomeIDs!=refGenome])
+    tmp[,genome := factor(gv[repOfID], levels = levs)]
+    tmp[,genome2 := factor(gv[ofID], levels = levs)]
+    tmp[,ng := uniqueN(genome2), by = "repOfID"]
+    tmp <- subset(tmp, !duplicated(tmp))
+    tmp[,hasInterp := ofID %in% interp$ofID]
+    setorder(tmp, -hasInterp, -ng, genome)
+    tmp[,ni := 1:.N, by = "repOfID"]
+    tmp[,isRep := ni == 1 & repOfID == ofID]
+    reps <- tmp$repOfID[tmp$isRep]
+    tmp <- subset(tmp, repOfID %in% reps)
+    setkey(tmp, og)
+
+    synHits <- data.table(tmp)
+
+    tmp <- with(tmp, rbind(data.table(ofID = repOfID, og = og),
+                           data.table(ofID = ofID, og = og)))
+    tmp <- subset(tmp, !duplicated(tmp))
+    ip <- merge(tmp, interp, by = "ofID", allow.cartesian = T, all.x = T)
+
+    # -- toss chromosomes that are rare (default < 25%)
+    ip[,clus := 1]
+    setorder(ip, interpRefChr, interpRefOrd, na.last = T)
+    tmp <- subset(ip, !is.na(interpRefChr))
+    tmp[,nInChr := uniqueN(ofID), by = c("interpRefChr", "og")]
+    tmp[,n := uniqueN(ofID), by = "og"]
+    tmp[,rat := nInChr / n]
+    tmp <- subset(tmp, rat >= propAssignThresh)[,colnames(ip), with = F]
+
+    # -- separate groups that need to be clustered from those that don't
+    tmp[,tmpi := round(interpRefOrd)]
+    tmp[,nPos := uniqueN(tmpi), by = c("og", "interpRefChr")]
+
+    pg1 <- subset(tmp, nPos == 1)[,colnames(ip), with = F]
+    pg2 <- subset(tmp, nPos > 1)[,colnames(ip), with = F]
+
+    # -- cluster multi-position groups
+    if(nrow(pg2) > 0){
+      pg2[,clusThis := max(diff(interpRefOrd)) > synBuff,
+          by = c("og", "interpRefChr")]
+      pg1 <- rbind(
+        pg1, subset(pg2, !clusThis)[,colnames(ip), with = F])
+      pg2 <- subset(pg2, clusThis)[,colnames(ip), with = F]
+
+      # -- cluster if needed
+      if(nrow(pg2)){
+        pg2[,clus := dbscan(frNN(cbind(interpRefOrd, interpRefOrd),
+                                 eps = synBuff), minPts = 1)$cluster,
+            by = c("og","interpRefChr")]
+        pg1 <- rbind(
+          pg1, pg2[,colnames(ip), with = F])
+      }
+    }
+
+    # -- again drop clusters without enough support
+    out <- data.table(pg1)
+    out[,nInChr := uniqueN(ofID), by = c("interpRefChr", "og", "clus")]
+    out[,n := uniqueN(ofID), by = "og"]
+    out[,rat := nInChr / n]
+    out <- subset(out, rat >= propAssignThresh)
+
+    # -- re-level the genomes by user specs
+    gord <- c(refGenome, genomeIDs[genomeIDs != refGenome])
+    out[,genome := gv[ofID]]
+    out[,lev := factor(genome, levels = gord)]
+
+    # -- get median position
+    out[,med := median(interpRefOrd), by = c("og", "interpRefChr", "clus")]
+    out[,dist2med := abs(interpRefOrd - med)]
+
+    setorder(out, -rat, dist2med,  lev)
+
+    # -- subset to only the best n placement for each ref chrs
+    scaf <- subset(out, !duplicated(paste(og, interpRefChr, clus)))
+    setorder(scaf, -rat, dist2med,  lev)
+    scaf[,nOnChr := 1:.N, by = c("interpRefChr", "og")]
+    scaf <- subset(scaf, nOnChr <= maxPlacementsPerRefChr)
+    scaf <- scaf[,c("ofID", "interpRefChr", "interpRefOrd")]
+    scaf <- subset(scaf, !duplicated(scaf))
+    # -- get pangenome IDs
+    setkey(scaf, interpRefChr, interpRefOrd)
+    scaf[,pgID := 1:.N]
+
+    scaf <- subset(scaf, !duplicated(scaf))
+
+    # -- merge with hits
+    tmp <- with(synHits, data.table(
+      ofID = c(repOfID, ofID), altID = c(ofID, repOfID), og = og))
+    tmp <- subset(tmp, ofID %in% scaf$ofID)
+    tmp <- subset(tmp, !duplicated(tmp))
+    out <- merge(scaf, tmp, by = "ofID", allow.cartesian = T)
+    out[,`:=`(isRep = ofID == altID, ofID = NULL)]
+    out <- subset(out, !duplicated(out))
+    # -- rename and format
+    setnames(out, c("pgChr", "pgOrd", "pgID", "ofID", "og", "isRep"))
+    out[,`:=`(genome = gv[ofID], chr = cv[ofID], ord = ov[ofID])]
+    out[,lev := factor(genome, levels = gord)]
+    setkey(out, pgID, lev)
+    out[,lev := NULL]
+
+    pgMis <- out[,colnames(pangenomeDt), with = F]
+    pgMis <- subset(pgMis, !paste(ofID, pgID) %in% paste(pangenomeDt$ofID, pangenomeDt$pgID))
+    pgOut <- rbind(pangenomeDt, pgMis)
+    return(pgOut)
+  }
+
+  add_missingSynOgs <- function(pangenomeDt,
+                                gff){
+    gfmiss <- subset(gff, !ofID %in% pangenomeDt$ofID & isArrayRep)
+    gfin <- subset(gff, og %in% gfmiss$og & ofID %in% pangenomeDt$ofID)
+    synogv <- gff$og; names(synogv) <- gff$ofID
+    pgin <- subset(pangenomeDt,
+                   pgID %in% subset(pangenomeDt, ofID %in% gfin$ofID)$pgID)
+    pgin[,synog := synogv[ofID]]
+    pgin <- subset(pgin, !isRep)
+    pgin <- pgin[,c("pgChr", "pgOrd", "pgID", "og", "synog")]
+    pgin <- subset(pgin, !duplicated(pgin))
+    gfin <- with(gfmiss, data.table(
+      ofID = ofID, chr = chr, ord = ord,
+      genome = genome, isRep = FALSE, synog = og))
+    pgin <- merge(
+      subset(pgin, !duplicated(pgin)),
+      subset(gfin, !duplicated(gfin)),
+      by = "synog", allow.cartesian = T, all.y = T)
+    pgin <- pgin[,colnames(pangenomeDt), with = F]
+    return(rbind(pangenomeDt, pgin))
   }
   ##############################################################################
   # 1. check the basic parameters
   # -- genomeIDs
   nCores <- gsParam$params$nCores
+
   if(is.null(genomeIDs))
     genomeIDs <- gsParam$genomes$genomeIDs
   if(!all(genomeIDs %in% gsParam$genomes$genomeIDs))
@@ -211,270 +1082,271 @@ pangenome <- function(gsParam,
     stop(sprintf(
       "refGenome %s not one of the genomeIDs %s",
       refGenome, paste(genomeIDs, collapse = ",")))
+  if(gsParam$genomes$ploidy[refGenome] > 1)
+    cat(sprintf(
+      "*NOTE* RefGenome %s has >1x ploidy - this is fine, but will be slower.\n\tDepending on the size of your run, you may run into memory issues.\n",
+      refGenome))
 
-  if(!is.data.table(gsParam$params$synteny))
+  # -- check that synteny params exist
+  synp <- gsParam$params$synteny
+  if(!is.data.table(synp))
     stop("Must run set_syntenyParams first!\n")
-  blkSize <- max(gsParam$params$synteny$blkSize)
+  synp <- data.table(synp)
+  blkSize <- max(synp$blkSize)
+  synBuff <- max(synp$selfRegionMask)
 
+  # -- check the synhits exist
+  synp[, hitsFile := file.path(
+    gsParam$paths$results,
+    sprintf("%s_%s_synHits.txt.gz", genome1, genome2))]
+  synp <- subset(synp, file.exists(hitsFile))
+  if(nrow(synp) < 1)
+    stop("can't find synHits accompanying synParams ... has synteny been run?\n")
+
+  # -- get the orthofinder directory if needed
   if(is.na(gsParam$paths$orthogroupsDir))
     gsParam <- find_orthofinderResults(gsParam)
   verbose <- gsParam$params$verbose
 
-  ##############################################################################
-  # -- load synteny-constrained orthogroups
+  # -- check the gff file
   gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
   if(!file.exists(gffFile))
     stop("can't find the annotated gff-like text file\t\n ... have you run annotate_gff yet?\n")
-  if(verbose)
-    cat("Building reference pangenome source data ...\n")
   gf <- fread(gffFile, showProgress = F, na.strings = c("NA", ""))
   if(!"og" %in% colnames(gf))
     stop("can't find the og column name in the gff-like text file\n\tHas synteny been run yet?\n")
 
+  # -- check that the reference is in the gff
   if(!refGenome %in% gf$genome)
     stop(sprintf("%s (specified refGenome) not in the gff. Available genomes are: \n\t%s\n",
                  refGenome, paste(unique(gf$genome), collapse = ",")))
 
-  # -- 1. Choose the representatives from the reference genome and build scaff.
-  # -- Check if there are any syntenic blocks within the reference genome that
-  # hit the same chromosome twice
-  gen1 <- gen2 <- chr1 <- chr2 <- blkID <- isSelf <- firstGene1 <-
-    firstGene2 <- lastGene2 <- lastGene1 <- NULL
+  # -- check that the blocks look right
   blksFile <- file.path(gsParam$paths$results, "syntenicBlocks.txt.gz")
   if(!file.exists(blksFile))
     stop("can't find the syntenic block coordinates file. Has synteny been run yet?\n")
   blks <- fread(blksFile, showProgress = F, na.strings = c("NA", ""))
   blks <- subset(blks, !grepl("^NA_", blkID))
   blks[,isSelf := firstGene1 == firstGene2 | firstGene1 == lastGene2 | firstGene2 == lastGene1]
-  tmp <- data.table(blks)
-  setnames(tmp, gsub("1$","3",colnames(tmp)))
-  setnames(tmp, gsub("2$","1",colnames(tmp)))
-  setnames(tmp, gsub("3$","2",colnames(tmp)))
-  blks <- rbind(blks[,colnames(blks) %in% colnames(tmp), with = F],
-                tmp[,colnames(tmp) %in% colnames(blks), with = F], use.names = T)
-  blks <- subset(blks, !duplicated(blks))
-  refBlks <- subset(blks, gen1 == refGenome & gen1 == gen2)
-  nflag <- nrow(subset(refBlks, !isSelf & chr1 == chr2))
-  refBlks <- subset(refBlks, chr1 != chr2 | isSelf)
-  if(noSecondaryAnchors)
-    refBlks <- subset(refBlks, !grepl("second", blkID))
-  if(nflag > 0)
-    warning(sprintf("\tThe reference genome %s has multiple overlapping blocks \n\ton the same chr. This situation is not yet supported for pangenome \n\tconstruction. Dropping %s blocks from the pangenome\n",
-                    refGenome, nflag))
 
-  # -- subset the gff to chrs only in intergenic syntenic blocks
-  gen1 <- gen2 <- blkID <- chr1 <- chr2 <- NULL
+  # -- get a list of the chromosomes that are ever in synteny on refGenome
   genChr <- unlist(lapply(genomeIDs, function(i){
     b1 <- subset(blks, gen1 == i & !grepl("self", blkID) & gen2 != gen1)$chr1
     b2 <- subset(blks, gen2 == i & !grepl("self", blkID) & gen2 != gen1)$chr2
     return(paste(i, unique(c(b1, b2))))
   }))
-  refBlks <- subset(
-    refBlks, paste(gen1, chr1) %in% genChr & paste(gen2, chr2) %in% genChr)
-
-  # -- recalculate arrayReps
-  genome <- chr <- isArrayRep <- og <- arrayID <- NULL
-  gchr <- subset(gf, paste(genome, chr) %in% genChr)
-  gfrep <- subset(gchr, isArrayRep)
-  gfrep[,arrayID := sprintf("%s_%s_%s", genome, chr, og)]
-  gfrep <- pull_arrayRep(gfrep)
-  gfrep <- subset(gfrep, isArrayRep)
-  gref <- subset(gfrep, genome == refGenome)
-  ov <- gfrep$ord; names(ov) <- gfrep$ofID
-
-  # -- pull the self hits for the array reps and build a scaffold pg
-  pg <- gref[,c("chr","ord","og","ofID")]
-  setnames(pg, c("ofID", "ord","chr"), c("repID", "pgOrd", "pgChr"))
-
-  # -- pull other array reps and add to the pangenome
-  if(verbose)
-    cat(sprintf("\tBuilt the scaffold pangenome with %s entries\n", nrow(pg)))
 
   ##############################################################################
-  # -- 2. Build out a multi-genome pangenome
-  # -- Determine the position of all genes against the reference
+  # 1. use hits to build a reference scaffold
   if(verbose)
-    cat("\tInterpolating syntenic positions of genes against reference ...")
-  pgord <- interp_refPos(
-    gsParam = gsParam,
+    cat(sprintf("Building reference-anchored scaffold against %s\n", refGenome))
+
+  # -- pull all self hits that are array reps
+  refSynp <- subset(synp, genome1 == genome2 & genome1 == refGenome)
+  if(nrow(refSynp) != 1)
+    stop("not exactly 1 refgenome entry in synParams. something is wrong\n")
+
+  # -- convert to pangenome format
+  pgReps <- subset(gf, genome == refGenome & isArrayRep)$ofID
+  if(verbose)
+    cat(sprintf("\tn. ref positions = %s\n", length(pgReps)))
+
+  ##############################################################################
+  # 2. Interpolate reference positions
+  # -- read in all synOg hits against reference
+  if(verbose)
+    cat(sprintf("\tReading in hits against %s ... ", refGenome))
+  hits <- read_hits4pg(
+    synParamsDt = synp,
+    pgRepOfIDs = pgReps,
     refGenome = refGenome,
     nCores = nCores,
-    gff = gfrep,
+    gff = gf)
+
+  # -- interpolate reference position
+  if(verbose)
+    cat(sprintf(
+      "found %s\n\tInterpolating positions ... ",
+      nrow(hits)))
+  anch <- subset(hits, !is.na(blkID) & isAnchor)
+  interp <- interp_refPos(
+    gff = gf,
+    refGenome = refGenome,
+    anchorHits = anch,
     blkSize = blkSize,
-    noSecondaryAnchors = noSecondaryAnchors)
+    nCores = nCores, verbose = T)
 
-  # -- choose the anchors and positions for each chr/og combination
+
+  ##############################################################################
+  # 3. Build ref pangenome
+  # -- merge with the reference genes to build pan-genome scaffold
   if(verbose)
-    cat(" Done!\n\tChecking position accuracy ...")
-  genome <- chr <- og <- chr <- refOrd <- med <- d2m <- pgChr <- pgOrd <- repID <- NULL
-  uchr <- unique(pg$pgChr)
-  pgAnch <- rbindlist(lapply(uchr, function(i){
-    pgi <- subset(pg, pgChr == i)
-    msk <- subset(gfrep, genome == refGenome & chr == i)
-    ordi <- subset(pgord, chr == i & !og %in% pgi$og)
-    if(nrow(ordi) > 0){
-      ordi <- subset(ordi, !ofID %in% msk$ofID)
-      setkey(ordi, og, refOrd)
-      ordi[,med := median(refOrd), by = "og"]
-      ordi[,d2m := abs(refOrd - med)]
-      ordi <- subset(ordi, !duplicated(og))
-      out <- rbind(pgi, with(ordi, data.table(
-        pgChr = i, pgOrd = refOrd, og = og, repID = ofID)))
-      ot <- subset(out, !duplicated(og))
-      return(ot)
-    }
-  }))
-  # -- drop unlikely mapped positions
-  og <- n <- prop <- keep <- pgChr <- og <- NULL
-  for(k in 1:2){
-    for(i in unique(pgAnch$pgChr)){
-      ogs <- unique(pgAnch$og[pgAnch$pgChr == i])
-      tmp <- subset(pgAnch, og %in% ogs)
-      tmpn <- tmp[,list(n = uniqueN(og)), by = "pgChr"]
-      tmpn[,prop := n / (sum(n))]
-      tmpn[,keep := prop >= 0.05 | n > blkSize]
-      z <- subset(tmp, pgChr %in% tmpn$pgChr[!tmpn$keep])
-      pgAnch <- subset(pgAnch, !paste(pgChr, og) %in% paste(z$pgChr, z$og))
-    }
-  }
-
-  # -- clean up by dcast/melt/unlist
+    cat("\tForming ref.-anchored db ... ")
+  pgRef <- build_refPg(
+    refAnchorHits = anch,
+    interpolatedPositionDT = interp,
+    gff = gf,
+    genomeIDs = genomeIDs,
+    refGenome = refGenome,
+    propAssignThresh = propAssignThresh,
+    maxPlacementsPerRefChr = maxPlacementsPerRefChr)
   if(verbose)
-    cat(" Done!\nBuilding full pangenome source data ...\n")
-  og <- genome <- pgOrd <- pgID <- ofID <- NULL
-  tmp <- dcast(gfrep, og ~ genome, value.var = "ofID", fun.aggregate = list)
-  pg <- merge(pgAnch, tmp, by = "og", all = T, allow.cartesian = T)
-  setorder(pg, pgOrd, na.last = T)
-  pg[,pgID := 1:.N]
-  pgm <- melt(
-    pg, id.vars = c("pgID", "pgChr", "pgOrd", "og", "repID"),
-    measure.vars = genomeIDs, value.name = "ofID", variable.name = "genome")
-  pgm <- pgm[,list(ofID = unlist(ofID)),
-             by = c("pgID", "pgChr", "pgOrd", "og", "repID", "genome")]
+    cat(sprintf("found %s genes for %s placements\n",
+                uniqueN(pgRef$ofID), uniqueN(pgRef$pgID)))
 
-
-  # -- add in orthogroup reps for genes without placements
-  repID <- pgOrd <- pgID <- NULL
-  pgmis <- subset(pgm, is.na(repID))
-  pgmis[,repID := ofID[1], by = "og"]
-  pgm <- rbind(subset(pgm, !is.na(repID)), pgmis)
-  setorder(pgm, pgOrd, na.last = T)
-
-  if(verbose){
-    cat(sprintf("\tBuilt the pangenome scaffold with %s unique positions ...\n",
-                nrow(pg)))
-    pgc <- pgm[,list(nGenome = uniqueN(genome)), by = "pgID"]
-    cat(sprintf("\tn private entries = %s; all genomes = %s; PAV = %s\n",
-                sum(pgc$nGenome == 1),
-                sum(pgc$nGenome == length(genomeIDs)),
-                sum(pgc$nGenome > 1 & pgc$nGenome< length(genomeIDs))))
-
-    tmp <- subset(pgm, !duplicated(pgID))
-    nun <- sum(is.na(tmp$pgChr))
-    tab <- table(table(tmp$og))
-
-    cat(sprintf("\tn single-copy entries = %s; 2x = %s; 2+x = %s; unplaced = %s\n",
-                as.numeric(tab["1"]), as.numeric(tab["2"]),
-                sum(as.numeric(tab[!names(tab) %in% c("1","2")])),
-                sum(is.na(tmp$pgChr))))
-  }
-
-  # -- add in the array members
+  ##############################################################################
+  # 4. Completing pangenome
+  # -- go back into the hits, make sure they are all there
   if(verbose)
-    cat("Annotating the pangenome ...\n\tAdding collinear array members ...")
-  og <- ofID <- isArrayRep <- pgOrd <- NULL
-  gfm <- subset(gf, og %in% unique(pgm$og) & !ofID %in% pgm$ofID)
-  tmp <- pgm[,c("pgID", "pgChr", "pgOrd", "og", "repID")]
-  tmp <- subset(tmp, !duplicated(tmp))
-  pgarr <- merge(tmp, gfm[,c("og", "ofID", "genome")], by = "og")
+    cat("Completing the pan-genome annotation ...\n\tAdding non-anchor entries ... ")
+  pgChk <- chk_missingEntries(
+    pangenomeDt = pgRef,
+    refPgHits = hits)
+  pgAddedChk <- subset(pgChk, !paste(ofID, pgID) %in% paste(pgRef$ofID, pgRef$pgID))
   if(verbose)
-    cat(sprintf("found %s genes, %s OGs and %s entires\n",
-                uniqueN(pgarr$ofID), uniqueN(pgarr$og), uniqueN(pgarr$pgID)))
+    cat(sprintf("found %s genes and %s placements\n",
+                uniqueN(pgAddedChk$ofID), uniqueN(pgAddedChk$pgID)))
 
-  # -- add in non-syntenic orthologs
-  isNSortho <- ofID <- orthIDs <- pgOrd <- isArrayRep <- NULL
-  pgarr[,isArrayRep := FALSE]
-  pgm[,isArrayRep := TRUE]
-  pg <- rbind(pgm, pgarr, use.names = T)
-  setorder(pg, pgOrd, na.last = T)
+  # -- get all missing reference hits against the reference
+  if(verbose)
+    cat("\tChecking missing direct ref. syn. OGs ... ")
+  pgAdd <- pull_missingDirectEdges(
+    pangenomeDt = pgChk,
+    synParamsDt = synp,
+    nCores = nCores,
+    gff = gf)
+  pgAddedAdd <- subset(pgAdd, !paste(ofID, pgID) %in% paste(pgChk$ofID, pgChk$pgID))
+  if(verbose)
+    cat(sprintf("found %s genes and %s placements\n",
+                uniqueN(pgAddedAdd$ofID), uniqueN(pgAddedAdd$pgID)))
+
+  # get syn OGs that are part of the graph, but not anchored to the reference
+  if(verbose)
+    cat("\tAdding indirect syn. OGs ... ")
+  tmp <- pull_indirectEdges(
+    pangenomeDt = pgAdd,
+    synParamsDt = synp,
+    nCores = nCores,
+    gff = gf)
+  pgInd <- data.table(tmp$pg)
+  hitsMissing <- data.table(tmp$missingHits)
+  pgAddedInd <- subset(pgInd, !paste(ofID, pgID) %in% paste(pgAdd$ofID, pgAdd$pgID))
+  if(verbose)
+    cat(sprintf("found %s genes and %s placements\n",
+                uniqueN(pgAddedInd$ofID), uniqueN(pgAddedInd$pgID)))
+
+  # -- get synOGs that do not have reference genome in the graph
+  if(verbose)
+    cat("\tAdding syn. OGs without ref. anchor ... ")
+  pgNS <- pull_nonRefSynOgs(
+    pangenomeDt = pgInd,
+    synParamsDt = synp,
+    nCores = nCores,
+    gff = gf)
+  pgAddedNS <- subset(pgNS, !paste(ofID, pgID) %in% paste(pgInd$ofID, pgInd$pgID))
+  if(verbose)
+    cat(sprintf("found %s genes and %s placements\n",
+                uniqueN(pgAddedNS$ofID), uniqueN(pgAddedNS$pgID)))
+
+  # -- final check and adding by synOgs
+  if(verbose)
+    cat("\tAdding missing genes by synOG identity ... ")
+  pgOut <- add_missingSynOgs(pangenomeDt = pgNS, gff = gf)
+  pgAddedSynog <- subset(pgOut, !paste(ofID, pgID) %in% paste(pgNS$ofID, pgNS$pgID))
+  if(verbose)
+    cat(sprintf("found %s genes and %s placements\n",
+                uniqueN(pgAddedSynog$ofID), uniqueN(pgAddedSynog$pgID)))
+
+  ##############################################################################
+  # 5. Add in missing information
+  if(verbose)
+    cat("Annotating and formatting pan-genome\n\tAdding non-anchor entries ... ")
+
+  # -- classifiers
+  pgOut[,u := paste(pgID, ofID)]
+  genesInPgRef <- with(pgRef, unique(paste(pgID, ofID)))
+  genesInPgAddedChk <- with(pgAddedChk, unique(paste(pgID, ofID)))
+  genesInPgAddedAdd <- with(pgAddedAdd, unique(paste(pgID, ofID)))
+  genesInPgAddedInd <- with(pgAddedInd, unique(paste(pgID, ofID)))
+  genesInPgAddedNS <- with(pgAddedNS, unique(paste(pgID, ofID)))
+  genesInPgAddedSynog <- with(pgAddedSynog, unique(paste(pgID, ofID)))
+  pgOut[,`:=`(
+    isDirectSyn = u %in% c(genesInPgRef, genesInPgAddedChk, genesInPgAddedAdd),
+    isSynOgOnly = u %in% pgAddedSynog | is.na(pgOrd),
+    u = NULL)]
+
+  # -- array representatives
+  pgAll <- add_arrayMembers(pangenomeDt = pgOut, gff = gf)
+  pgMem <- subset(pgAll, !isArrayRep)
+  if(verbose)
+    cat(sprintf("found %s genes and %s placements\n",
+                uniqueN(pgMem$ofID), uniqueN(pgMem$pgID)))
+
+  # -- pull non-syntenic ortho
   ogdir <- gsParam$paths$orthologuesDir
-  pg[,isNSortho := FALSE]
   if(!is.na(ogdir) && dir.exists(ogdir)){
     if(verbose)
-      cat("\tAdding non-syntenic orthologs ...")
-    nso <- NULL; tmp <- NULL
-    nso <- pull_nonSynOrthologs(gsParam = gsParam, gff = gf)
-    gv <- gf$genome; names(gv) <- gf$ofID
-    nso <- with(subset(nso, ofID %in% pg$repID), data.table(
-      repID = ofID, ofID = orthIDs, genome = gv[orthIDs]))
-    nso[,genome := gv[ofID]]
-    tmp <- pg[,!colnames(pg) %in% c("genome", "ofID"), with = F]
-    tmp <- subset(tmp, !duplicated(tmp) & !is.na(pgOrd))
-    nso <- merge(tmp, nso, by = "repID", allow.cartesian = T)
-    nso[,`:=`(isNSortho = TRUE, isArrayRep = FALSE)]
-    setcolorder(nso, colnames(pg))
-    pg <- rbind(pg, nso)
+      cat("\tAdding non-syn. orthologs ... ")
+    pgNSog <- pull_nonSynOrthologs(
+      gsParam = gsParam,
+      synParamsDt = synp,
+      nCores = nCores,
+      gff = gf,
+      pangenomeDt = pgAll,
+      maxNonSynOrthos2keepPerGenome = maxNonSynOrthos2keepPerGenome)
+    pgAddedNSog <- subset(pgNSog, !paste(ofID, pgID) %in% paste(pgAll$ofID, pgAll$pgID))
     if(verbose)
-      cat(sprintf("Found %s instances\n", uniqueN(nso$pgID)))
-  }
-
-  # -- add in unplaced bottom drawer orthologs
-  og <- repID <- tmp <- ofID <- isArrayRep <- genome <- pgID <- pgChr <-
-    pgOrd <- isBottomDrawer <- isNSortho <- NULL
-  gfm <- subset(gf, !og %in% unique(pgm$og))
-
-  if(nrow(gfm) > 0){
+      cat(sprintf("found %s genes and %s placements\n",
+                  uniqueN(pgAddedNSog$ofID), uniqueN(pgAddedNSog$pgID)))
+    pgAll <- data.table(pgNSog)
+    pgAll[,isNSOrtho := paste(ofID, pgID) %in% paste(pgAddedNSog$ofID, pgAddedNSog$pgID)]
+  }else{
+    pgAll[,nonSynOrtho := FALSE]
     if(verbose)
-      cat("\tAdding bottom-drawer non-syntenic orthogroups ...")
-    gfm[,repID := ofID[isArrayRep][1], by = "og"]
-    gfm[,tmp := ofID[1], by = "og"]
-    gfm$repID[is.na(gfm$repID)] <- gfm$tmp[is.na(gfm$repID)]
-    gfm <- dcast(gfm, og + repID + isArrayRep ~ genome,
-                 value.var = "ofID", fun.aggregate = list)
-    m <- max(pg$pgID)
-    gfm[,pgID := (m + 1):(nrow(gfm) + m)]
-    pgm <- melt(
-      gfm, id.vars = c("pgID", "og", "repID", "isArrayRep"),
-      measure.vars = genomeIDs[genomeIDs %in% colnames(gfm)],
-      value.name = "ofID", variable.name = "genome")
-    pgm[,`:=`(pgChr = NA, pgOrd = NA)]
-    pgm <- pgm[,list(ofID = unlist(ofID)),
-               by = c("pgID", "pgChr", "pgOrd", "og", "repID", "genome", "isArrayRep")]
-    if(verbose)
-      cat(sprintf("found %s entries", uniqueN(pgm$pgID)))
-    pgm[,`:=`(isBottomDrawer = TRUE, isNSortho = FALSE)]
-    pg <- rbind(pg, pgm[,colnames(pg), with = F])
+      cat("\tNo orthologue file available. Will ignore\n")
   }
 
   ##############################################################################
   # -- output and write
   if(verbose)
-    cat("\n\tFormating and writing the pangenome ... ")
-  ofID <- genome <- id <- pgID <- pgChr <- pgOrd <- repID <- NULL
-  pgout <- subset(pg, !is.na(ofID))
-  setkey(pgout, pgID, genome)
+    cat(sprintf("\tWriting pangenome to results/%s_pangenomeDB.txt.gz\n", refGenome))
+  setorder(
+    pgAll, pgChr, pgOrd, -isRep, -isDirectSyn, -isSynOgOnly,
+    -isArrayRep, isNSOrtho, genome, chr, ord, na.last = T)
+  pgout <- data.table(pgAll)
 
   # -- give real names
   iv  <- gf$id; names(iv) <- gf$ofID
-  pgout[,id := iv[ofID]]
-
-  # -- flag non-syn orthos
-  pgout$id[pgout$isNSortho] <- paste0(pgout$id[pgout$isNSortho], "*")
-
-  # -- reshape to wide format
-  pgout <- dcast(pgout, pgID + pgChr + pgOrd + repID ~ genome,
-                 value.var = "id", fun.aggregate = function(x) list(x))
-
-  # -- order by pg position
-  setorder(pgout, pgOrd, na.last = T)
+  pgout[,`:=`(id = iv[ofID])]
 
   # -- write text file
   pgf <- file.path(
     gsParam$paths$results,
     sprintf("%s_pangenomeDB.txt.gz", refGenome))
-  fwrite(pg, file = pgf, sep = "\t", showProgress = F)
+  fwrite(pgout, file = pgf, sep = "\t", showProgress = F)
+
   if(verbose)
-    cat(sprintf("Done!\nPangenome written to results/%s_pangenomeDB.txt.gz\n", refGenome))
-  return(pgout)
+    cat("\tReturning wide-format with only syntenic array reps\n")
+  # -- flag non-syn orthos
+  wh <- which(pgout$isNSOrtho)
+  pgout$id[wh] <- paste0(pgout$id[wh], "*")
+
+  # -- flag array reps
+  wh <- which(!pgout$isArrayRep & !pgout$isNSOrtho)
+  pgout$id[wh] <- paste0(pgout$id[wh], "+")
+
+  # -- reshape to wide format
+  pgw <- dcast(
+    pgout,
+    pgID + pgChr + pgOrd ~ genome,
+    value.var = "id",
+    fun.aggregate = function(x) list(x))
+
+  # -- order by pg position
+  setorder(pgw, pgChr, pgOrd, na.last = T)
+
+  if(verbose)
+    cat("\tDone!\n")
+  return(pgw)
 }
 

@@ -329,6 +329,7 @@ init_genespace <- function(genomeIDs,
 
   ##############################################################################
   check_MCScanXhInstall <- function(path){
+    path <- path.expand(path)
     pth <- file.path(path, "MCScanX_h")
     if(!dir.exists(path))
       stop("path to MCScanX is not valid, check that its specified correctly\n")
@@ -344,6 +345,7 @@ init_genespace <- function(genomeIDs,
 
   ##############################################################################
   check_diamondInstall <- function(path){
+    path <- path.expand(path)
     chk <- tryCatch(
       {
         system2(path, "help",
@@ -361,6 +363,7 @@ init_genespace <- function(genomeIDs,
 
   ##############################################################################
   check_orthofinderInstall <- function(path, verbose = FALSE){
+    path <- path.expand(path)
     if(is.na(path))
       path <- "NA"
     wh <- Sys.which(as.character(path))

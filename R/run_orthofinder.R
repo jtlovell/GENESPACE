@@ -105,7 +105,7 @@ run_orthofinder <- function(gsParam,
       p2of <- gsParam$paths$orthofinderCall
     }
     if(gsParam$params$verbose & !dontRun)
-      cat("\tRunning full orthofinder on pre-computed blast",
+      cat("\tCalculating blast results and running OrthoFinder",
           "\n\t##################################################",
           "\n\t##################################################\n")
     com <- sprintf(

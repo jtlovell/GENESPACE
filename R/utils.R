@@ -562,58 +562,6 @@ add_alpha <- function(col,
     rgb(x[1], x[2], x[3], alpha = alpha)))
 }
 
-#' @title linear interpolation of missing values
-#' @description
-#' \code{interp_linear} linear interpolation of missing values in x
-#' @rdname utils
-#' @import data.table
-#' @export
-interp_linear <- function(x,
-                          y){
-  setDTthreads(1)
-  rl <- ip <- NULL
-  if(length(x) != length(y) || !is.numeric(x) || !is.numeric(y)){
-    warning("x and y must be numeric/integer vectors of equal length\n")
-  }else{
-
-    # -- convert to data table
-    z <- subset(data.table(x = x, y = y, i = 1:length(x)), !is.na(x))
-    if(nrow(z) < 1 || all(is.na(y))){
-      warning("no non-missing values in x or y\n")
-    }else{
-
-      # -- subset to complete cases in x and order by x
-      z <- subset(z, !is.na(x))
-      setkey(z, x)
-
-      # -- find runs of NAs in y
-      z[,rl := add_rle(is.na(y), which = "id")]
-
-      # -- pull runs to infer (not first and last if they are NAs)
-      toinf <- subset(z, is.na(y) & !rl %in% c(1, max(rl)))
-
-      if(nrow(toinf) < 1){
-        warning("no missing values of y to interpolate")
-      }else{
-        # -- get max right and min left values for each non-missing run
-        minr <- with(subset(z, !is.na(y)), tapply(y, rl, min))
-        maxl <- with(subset(z, !is.na(y)), tapply(y, rl, max))
-
-        # -- linear interpolation of runs of NAs from bounding values
-        toinf[,ip := seq(from = maxl[as.character(rl-1)],
-                         to = minr[as.character(rl+1)],
-                         length.out = .N+2)[-c(1, .N+2)],
-              by = "rl"]
-
-        # -- fill NAs and return
-        y[toinf$i] <- toinf$ip
-      }
-    }
-  }
-
-  return(y)
-}
-
 #' @title drop_unusedPeptides
 #' @description
 #' \code{drop_unusedPeptides} drop_unusedPeptides
@@ -627,5 +575,63 @@ drop_unusedPeptides <- function(gsParam){
     fo <- f[!f %in% fi]
     for(i in fo)
       file.remove(file.path(dirname(gsParam$paths$peptide[1]), i))
+  }
+}
+
+#' @title linear interpolation of missing values
+#' @description
+#' \code{interp_linear} linear interpolation of missing values in x
+#' @rdname utils
+#' @import data.table
+#' @export
+interp_linear <- function(refOrd,
+                          toInterpOrd){
+
+  # -- convert to numeric, to ensure that NAs are correctly specified
+  dt <- x <- y <- NULL
+  ord1 <- as.numeric(refOrd)
+  ord2 <- as.numeric(toInterpOrd)
+  if(all(is.na(ord1)))
+    stop("refOrd (achors) is all NAs. Can't proceed\n")
+  if(any(is.na(ord2)))
+    stop("found NAs in toInterpOrd (hits to interpolate) - not permitted\n")
+
+  # -- if no NAs, just spit back ord2
+  if(all(!is.na(ord1))){
+    return(ord1)
+  }else{
+    # make into a data table with index and whether or not to interpolate
+    dt <- data.table(
+      x = ord1, y = ord2, index = 1:length(ord1), toInterp = is.na(ord1))
+    dto <- data.table(dt)
+    # order by anchor positions (ord1, x)
+    setkey(dt, y)
+
+    # -- find runs of NAs in y
+    dt[,rl := add_rle(toInterp, which = "id")]
+
+    # -- pull runs to infer (not first and last if they are NAs)
+    interpThis <- subset(dt, !(toInterp & rl %in% c(1, max(rl))))
+
+    # -- return original data if no bounding non-na runs and no internal NAs
+    if(uniqueN(interpThis$rl[interpThis$toInterp]) < 1){
+      return(ord1)
+    }else{
+      # -- get max right and min left values for each non-missing run
+      minr <- with(subset(interpThis, !toInterp), tapply(x, rl, min))
+      maxl <- with(subset(interpThis, !toInterp), tapply(x, rl, max))
+
+      # -- linear interpolation of runs of NAs from bounding values
+      out <- subset(interpThis, toInterp)
+      out[,ip := seq(from = maxl[as.character(rl-1)],
+                     to = minr[as.character(rl+1)],
+                     length.out = .N+2)[-c(1, .N+2)],
+          by = "rl"]
+
+      # -- fill NAs and return
+      dto$x <- as.numeric(dto$x)
+      dto$x[out$index] <- out$ip
+      return(dto$x)
+    }
   }
 }

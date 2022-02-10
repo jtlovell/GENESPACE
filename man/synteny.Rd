@@ -19,7 +19,10 @@
 synteny(
   gsParam,
   genomeIDs = NULL,
-  overwrite = F,
+  overwrite = FALSE,
+  overwriteHits = overwrite,
+  overwriteGff = overwrite,
+  overwriteBlks = overwrite,
   minGenes4of = 40,
   recallSynteny = TRUE,
   ...
