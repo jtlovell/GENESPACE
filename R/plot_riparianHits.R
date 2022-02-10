@@ -82,6 +82,7 @@ plot_riparianHits <- function(gsParam,
                               onlySameChrs = FALSE,
                               invertTheseChrs = NULL,
                               reorderChrs = TRUE,
+                              maxSyntenyFun = function(x) median(x),
                               refChrCols = NULL,
 
                               minGenes2plot = 50,
@@ -416,6 +417,18 @@ plot_riparianHits <- function(gsParam,
     }
   }
 
+  # -- make index of genomes
+  genomeOrd <- data.table(
+    gen1 = genomeIDs[-length(genomeIDs)],
+    gen2 = genomeIDs[-1],
+    y = 1:length(genomeIDs[-1]))
+
+  # -- determine if we are coloring by a reference
+  colorByRefChr <- !(length(refChrCols) == 1 &&
+    !is.null(refChrCols[1]) &&
+    are_colors(refChrCols[1]) &&
+      is.null(onlyTheseRegions))
+
   ##############################################################################
   # 1. Read in the hits
   # -- read reference hits
@@ -430,14 +443,8 @@ plot_riparianHits <- function(gsParam,
     minGenes = minGenes2plot,
     nCores = nCores), gen1 != gen2)
 
-  # -- make index of genomes
-  genomeOrd <- data.table(
-    gen1 = genomeIDs[-length(genomeIDs)],
-    gen2 = genomeIDs[-1],
-    y = 1:length(genomeIDs[-1]))
-
   # -- read hits for each set of riparian links
-  ripHits <- lapply(1:nrow(genomeOrd), function(i)
+  ripHits <- rbindlist(lapply(1:nrow(genomeOrd), function(i)
     subset(read_refHits(
       synParamsDt = synp,
       refGenome = genomeOrd$gen1[i],
@@ -445,8 +452,7 @@ plot_riparianHits <- function(gsParam,
       gff = gf,
       minGenes = minGenes2plot,
       plotRegions = !useBlks,
-      nCores = nCores), gen1 != gen2))
-  ripHits <- rbindlist(ripHits)
+      nCores = nCores), gen1 != gen2)))
   if(verbose)
     cat("Done!\n")
 
@@ -456,8 +462,11 @@ plot_riparianHits <- function(gsParam,
     if(verbose)
       cat(sprintf("\tBuilding database of hits in %s regions ... ", nrow(regs)))
     regHits <- pull_regHits(
-      onlyTheseRegions = regs, gff = gf, synParamsDt = synp,
-      plotRegions = !useBlks, minGenes2plot = minGenes2plot,nCores = nCores)
+      onlyTheseRegions = regs,
+      gff = gf, synParamsDt = synp,
+      plotRegions = !useBlks,
+      minGenes2plot = minGenes2plot,
+      nCores = nCores)
     u <- with(regHits, unique(c(ofID1, ofID2)))
     if(verbose)
       cat("Done!\n")
@@ -466,7 +475,7 @@ plot_riparianHits <- function(gsParam,
   }
 
   if(verbose)
-    cat("\Generating plot coordinates ... ")
+    cat("\tGenerating plot coordinates ... ")
 
   # -- if excluding chrs out of the region, do that here
   if(excludeNoRegChr){
@@ -489,10 +498,23 @@ plot_riparianHits <- function(gsParam,
   ##############################################################################
   # 2. get linear positions of all genes
   # -- median position of each genome/chr against the reference
+  gf[,genome := factor(genome, levels = genomeIDs)]
+  setkey(gf, genome, ord)
+  nGenes <- gf[,list(n = .N, medPos = mean(ord)), by = c("genome","chr")]
+  nGenes[,chrn := as.numeric(gsub("[^0-9]", "", chr))]
+  nGenes$chrn[is.na(nGenes$chrn)] <- 0
+  setorder(nGenes, genome, chrn, -n, chr, medPos)
+  chrord <- with(nGenes, paste(genome, chr))
+  gf[,u := factor(paste(genome, chr), levels = chrord)]
+  setkey(gf, genome, u, ord)
+  gf[,ord := 1:.N, by = "genome"]
+  ov <- gf$ord; names(ov) <- gf$ofID
+  refHits[,`:=`(ord1 = ov[ofID1], ord2 = ov[ofID2])]
+  ripHits[,`:=`(ord1 = ov[ofID1], ord2 = ov[ofID2])]
   if(reorderChrs){
-    medChr <- refHits[,list(med = median(ord1)), by = c("gen2", "chr2")]
+    medChr <- refHits[,list(med = maxSyntenyFun(as.numeric(ord1))), by = c("gen2", "chr2")]
   }else{
-    medChr <- refHits[,list(med = median(ord2)), by = c("gen2", "chr2")]
+    medChr <- refHits[,list(med = maxSyntenyFun(as.numeric(ord2))), by = c("gen2", "chr2")]
   }
   setnames(medChr, c("genome", "chr", "medOrd"))
   refChr <- refHits[,list(med = median(ord1)), by = c("gen1", "chr1")]
@@ -510,13 +532,12 @@ plot_riparianHits <- function(gsParam,
     genomeIDs = genomeIDs,
     gapProp = gapProp)
   pv <- gf$x; names(pv) <- gf$ofID
+
   if(!is.null(regs)){
     u <- with(regHits, unique(c(ofID1, ofID2)))
     ripHits <- subset(ripHits, ofID1 %in% u & ofID2 %in% u)
     refHits <- subset(refHits, ofID1 %in% u & ofID2 %in% u)
   }
-  ripHits[,`:=`(x1 = pv[ofID1], x2 = pv[ofID2], ord1 = NULL, ord2 = NULL)]
-  ripHits <- subset(ripHits, complete.cases(ripHits))
 
   # -- add in reference chromosome mapping to the hits
   if(!is.null(regs)){
@@ -531,21 +552,30 @@ plot_riparianHits <- function(gsParam,
       ofID2 = c(ofID1, ofID2), refChr2 = c(chr1, chr1)))
   }
 
-  tmp1 <- subset(tmp1, !duplicated(tmp1))
-  tmp2 <- subset(tmp2, !duplicated(tmp2))
-  ripHits <- merge(ripHits, tmp1, by = "ofID1", allow.cartesian = T)
-  ripHits <- subset(ripHits, !duplicated(ripHits))
-  ripHits <- merge(ripHits, tmp2, by = "ofID2", allow.cartesian = T)
-  ripHits <- subset(ripHits, !duplicated(ripHits))
-  ripHits <- subset(ripHits, refChr1 == refChr2)
-  ripHits[,`:=`(refChr = refChr1, refChr1 = NULL, refChr2 = NULL)]
+  if(colorByRefChr){
+    tmp1 <- subset(tmp1, !duplicated(tmp1))
+    tmp2 <- subset(tmp2, !duplicated(tmp2))
+    ripHits <- merge(ripHits, tmp1, by = "ofID1", allow.cartesian = T)
+    ripHits <- subset(ripHits, !duplicated(ripHits))
+    ripHits <- merge(ripHits, tmp2, by = "ofID2", allow.cartesian = T)
+    ripHits <- subset(ripHits, !duplicated(ripHits))
+    ripHits <- subset(ripHits, refChr1 == refChr2)
+    ripHits[,`:=`(refChr = refChr1, refChr1 = NULL, refChr2 = NULL)]
+    ripHits <- subset(ripHits, complete.cases(ripHits))
+    setkey(ripHits, gen1, ord1)
+    ripHits[,rl := add_rle(refChr, which = "id"), by = c("gen1", "chr1", "blkID")]
+    ripHits[,blkID := as.numeric(as.factor(paste(gen1, gen2, chr1, chr2, rl, refChr, blkID)))]
+    ripHits[,rl := NULL]
+  }else{
+    ripHits[,refChr := 1]
+    ripHits[,blkID := as.numeric(as.factor(paste(gen1, gen2, chr1, chr2, refChr, blkID)))]
+  }
 
+  ripHits[,`:=`(x1 = pv[ofID1], x2 = pv[ofID2], ord1 = NULL, ord2 = NULL)]
   ripHits[,`:=`(start1 = x1, start2 = x2, end1 = x1, end2 = x2, ord1 = x1,
             ord2 = x2, isAnchor = TRUE, arrayOrd1 = x1, arrayOrd2 = x2)]
-  ripHits <- rbindlist(lapply(split(ripHits, by = "gen1"), function(x)
-    split_blks(hits = x, blkSize = blkSize, maxIter = 5)))
-  ripHits[,blkID := as.numeric(as.factor(paste(gen1, gen2, chr1, chr2, blkID, refChr)))]
   ripHits[,blkID := sprintf("%s_%s", refChr, blkID)]
+
   ##############################################################################
   # 3. make plotting data
   # -- make block coordinates
@@ -578,28 +608,33 @@ plot_riparianHits <- function(gsParam,
   if(all(are_colors(regs$col)) && !is.null(regs)){
     regs[,regID := paste0("reg", regID)]
     cols <- regs$col; names(cols) <- regs$regID
+    bc[,col := cols[refChr]]
   }else{
-    if(!all(are_colors(refChrCols)) || any(is.null(refChrCols))){
-      if(blackBg)
-        refChrCols <- c("#C4645C", "#F5915C", "#FFC765", "#FCF8D5","#BEF3F9",
-                       "#66B8FF", "#6666FF", "#9C63E1", "#F4BDFF")
-      if(!blackBg)
-        refChrCols <- c("#62322E", "#C60000", "#FF7500", "#FEDF99", "#BEF3F9",
-                       "#43B8FF", "#204DBF", "#9C63E1", "#F4BDFF")
-    }
-
-    urchr <- unique(gf$chr[gf$genome == refGenome])
-    bc[,refChr := factor(refChr, levels = urchr)]
-    refChrs <- unique(bc$refChr)
-    if(length(refChrCols) != length(refChrs)){
-      cols <- colorRampPalette(refChrCols)(length(refChrs))
+    if(!colorByRefChr){
+      bc[,col := refChrCols]
     }else{
-      cols <- refChrCols
+      if(!all(are_colors(refChrCols)) || any(is.null(refChrCols))){
+        if(blackBg)
+          refChrCols <- c("#C4645C", "#F5915C", "#FFC765", "#FCF8D5","#BEF3F9",
+                          "#66B8FF", "#6666FF", "#9C63E1", "#F4BDFF")
+        if(!blackBg)
+          refChrCols <- c("#62322E", "#C60000", "#FF7500", "#FEDF99", "#BEF3F9",
+                          "#43B8FF", "#204DBF", "#9C63E1", "#F4BDFF")
+      }
+
+      urchr <- unique(gf$chr[gf$genome == refGenome])
+      bc[,refChr := factor(refChr, levels = urchr)]
+      refChrs <- unique(bc$refChr)
+      if(length(refChrCols) != length(refChrs)){
+        cols <- colorRampPalette(refChrCols)(length(refChrs))
+      }else{
+        cols <- refChrCols
+      }
+      names(cols) <- refChrs
+      bc[,col := cols[refChr]]
     }
-    names(cols) <- refChrs
   }
 
-  bc[,col := cols[refChr]]
   bc <- subset(bc, complete.cases(bc))
   bc <- subset(bc, !duplicated(bc))
   ##############################################################################
