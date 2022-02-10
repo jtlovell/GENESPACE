@@ -16,6 +16,7 @@ plot_riparianHits(
   onlySameChrs = FALSE,
   invertTheseChrs = NULL,
   reorderChrs = TRUE,
+  maxSyntenyFun = function(x) median(x),
   refChrCols = NULL,
   minGenes2plot = 50,
   gapProp = ifelse(useOrder, 0.01, 0.05),
