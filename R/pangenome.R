@@ -1301,7 +1301,7 @@ pangenome <- function(gsParam,
     pgAll <- data.table(pgNSog)
     pgAll[,isNSOrtho := paste(ofID, pgID) %in% paste(pgAddedNSog$ofID, pgAddedNSog$pgID)]
   }else{
-    pgAll[,nonSynOrtho := FALSE]
+    pgAll[,isNSOrtho := FALSE]
     if(verbose)
       cat("\tNo orthologue file available. Will ignore\n")
   }

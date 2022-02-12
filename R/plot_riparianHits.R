@@ -327,7 +327,7 @@ plot_riparianHits <- function(gsParam,
   if(!file.exists(gffFile))
     stop("can't find the annotated gff-like text file\t\n ... have you run annotate_gff yet?\n")
   gf <- fread(gffFile, showProgress = F, na.strings = c("NA", ""))
-
+  genomeIDs <- genomeIDs[genomeIDs %in% gf$genome]
   # -- check that the reference is in the gff
   if(!refGenome %in% gf$genome)
     stop(sprintf("%s (specified refGenome) not in the gff. Available genomes are: \n\t%s\n",
@@ -701,7 +701,6 @@ plot_riparianHits <- function(gsParam,
                                       ifelse(mo > 1e5, 5e4,
                                              ifelse(mo > 1e4, 5e3,
                                                     ifelse(mo > 1e3, 500, 50)))))))
-    gf <<- data.table(gf)
     if(mo >= 1e3 & useOrder)
       mol <- sprintf("%sk genes", mo/1e3)
     if(mo < 1e3 & useOrder)
