@@ -93,7 +93,7 @@ plot_hits <- function(hits,
 
   # -- subset hits to right stuff
   tp <- data.table(hits)
-  if(onlyOg)
+  if(onlyOG)
     tp <- subset(tp, isOg)
   if(onlyAnchors)
     tp <- subset(tp, isAnchor)
