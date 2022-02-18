@@ -37,18 +37,21 @@
 #' @importFrom grDevices colorRampPalette
 #' @export
 plot_hits <- function(hits,
-                      plotType = c("allHits", "allOG", "regAnchor", "regBuffer", "blkAnchor", "blkBuffer"),
+                      onlyOG = TRUE,
+                      onlyAnchors = TRUE,
+                      useBlks = TRUE,
+                      onlyArrayReps = TRUE,
+                      onlyBuffer = FALSE,
                       reorderChrs = TRUE,
                       minGenes2plot = 10,
-                      gapProp = .005,
-                      useOrder = TRUE,
-                      round2 = ifelse(useOrder, 10, 5e4),
+                      gapProp = .01,
                       cols = NULL,
                       alpha = 1,
                       axisTitleCex = .6,
                       darkChrFill = "grey60",
                       lightChrFill = "grey85",
                       emptyChrFill = "grey97",
+                      missingHitCol = "grey40",
                       chrLabCex = .4,
                       returnSourceData = F,
                       chrLabFun = function(x)
@@ -85,145 +88,59 @@ plot_hits <- function(hits,
     return(cb)
   }
 
-  ##############################################################################
-  # -- ad hoc function to add linear coordinates to the hits
-  add_linCoords2hits <- function(hits,
-                                 gapProp,
-                                 useOrder,
-                                 reorderChrs){
-    ord1 <- chr1 <- ord2 <- chr2 <- isOg <- blkAnchor <- sclGap1 <- sclGap2 <-
-      ord2 <- x <- y <- chrOrd2 <- chrOrd1 <- end1 <- end2 <- start1 <- start2 <- NULL
-    setDTthreads(1)
-    h <- data.table(hits)
-    ho <- subset(h, isOg & blkAnchor)
-    cov1 <- rank(with(ho, tapply(ord1, chr1, median)))
-    if(reorderChrs){
-      cov2 <- rank(with(ho, tapply(ord1, chr2, median)))
-    }else{
-      cov2 <- rank(with(ho, tapply(ord2, chr2, median)))
-    }
-    h[,`:=`(chrOrd1 = cov1[chr1],
-            chrOrd2 = cov2[chr2])]
-
-    if(useOrder){
-      gap <- gapProp * max(c(h$ord1, h$ord2), na.rm = T)
-      h[,`:=`(sclGap1 = gap * (chrOrd1 - 1),
-              sclGap2 = gap * (chrOrd2 - 1))]
-      setkey(h, chrOrd1, ord1)
-      h[,x := 1:.N + sclGap1]
-      setkey(h, chrOrd2, ord2)
-      h[,y := 1:.N + sclGap2]
-    }else{
-      gap <- gapProp * max(c(h$end1, h$end2), na.rm = T)
-      mxv1 <- cumsum(with(h, tapply(end1, chrOrd1, max))) + gap
-      mxv2 <- cumsum(with(h, tapply(end2, chrOrd2, max))) + gap
-      mxv1 <- c(0, mxv1[1:(length(mxv1) - 1)])
-      names(mxv1) <- 1:length(mxv1)
-      mxv2 <- c(0, mxv2[1:(length(mxv2) - 1)])
-      names(mxv2) <- 1:length(mxv2)
-      h[,`:=`(sclGap1 = mxv1[as.character(chrOrd1)],
-              sclGap2 = mxv2[as.character(chrOrd2)])]
-      h[,x := start1 + sclGap1]
-      h[,y := start2 + sclGap2]
-    }
-    return(h)
-  }
-
-  ##############################################################################
-  # -- ad hoc function to condense hits rounded to positions and count them
-  condense_hits <- function(hits, round2){
-    setDTthreads(1)
-    n <- x <- y <- col <- NULL
-    h <- data.table(hits)
-    if(round2 > 0){
-      h[,`:=`(x = round_toInteger(x, round2),
-               y = round_toInteger(y, round2))]
-      h <- h[,list(n = .N),
-               by = c("chr1","chr2","x","y","col")]
-      h <- subset(h, n > 0)
-      h[,n := frank(n, ties.method = "dense")]
-      h[,n := frank(round_toInteger(n, 5), ties.method = "dense")]
-      h[,n := scale_between(n, min = .25, max = 1)]
-      h[,col := sapply(1:nrow(h), function(i)
-        add_alpha(h$col[i], alpha = h$n[i]))]
-      setkey(h, n)
-    }else{
-      h <- h[,c("chr1","chr2","x","y","col")]
-    }
-    h <- subset(h, !duplicated(paste(x, y)))
-    return(h)
-  }
 
   setDTthreads(1)
 
   # -- subset hits to right stuff
-  pltTypes <- c("allHits", "allOG", "regAnchor", "regBuffer", "blkAnchor", "blkBuffer")
-  isOg <- NULL
-  if(!plotType %in% pltTypes)
-    plotType <- "allOG"
-  p <- plotType[1]
-  if(p == "allOG"){
-    tp <- subset(hits, isOg)
-  }else{
-    tp <- data.table(hits)
+  tp <- data.table(hits)
+  if(onlyOg)
+    tp <- subset(tp, isOg)
+  if(onlyAnchors)
+    tp <- subset(tp, isAnchor)
+  if(!useBlks)
+    tp[,blkID := regID]
+  if(onlyBuffer)
+    tp <- subset(tp, inBuffer)
+  if(onlyArrayReps){
+    tp <- subset(tp, isRep1 & isRep2)
   }
-  plotTitle <- ifelse(
-    p == "allHits", "all hits",
-    ifelse(p == "allOG", "Orthogroup constained hits",
-           ifelse(p == "blkAnchor", "syntenic block anchors",
-                  ifelse(p == "regAnchor", "syntenic region anchors",
-                         ifelse(p == "regBuffer", "syntenic region buffers",
-                                "syntenic block buffers")))))
-
-  if(p %in% c("allHits", "allOG") & length(cols) == 0){
-    cols <- "blue2"
-  }else{
-    if(p %in% c("allHits", "allOG") & length(cols) >= 1){
-      cols <- cols[1]
-    }else{
-      if(is.null(cols) || length(cols) != 1)
-        cols <- c("#1B9E77", "#D95F02", "#7570B3", "#E7298A","#66A61E", "#E6AB02",
-                  "#A6761D", "#666666", "darkred","darkblue")
-    }
-  }
-  regAnchor <- regID <- isAnchor <- regBuffer <- inBuffer <- blkID <-
-    blkAnchor <- blkBuffer <- colGrp <- nu1 <- nu2 <- ofID1 <- ofID2 <- NULL
-  tp[,regAnchor := isAnchor & !is.na(regID)]
-  tp[,regBuffer := inBuffer & !is.na(regID)]
-  tp[,blkAnchor := isAnchor & !is.na(blkID)]
-  tp[,blkBuffer := inBuffer & !is.na(blkID)]
-  if(p == "regAnchor") tp <- subset(tp, regAnchor)
-  if(p == "regBuffer") tp <- subset(tp, regBuffer)
-  if(p == "blkAnchor") tp <- subset(tp, blkAnchor)
-  if(p == "blkBuffer") tp <- subset(tp, blkBuffer)
-  tp[,colGrp := 1]
-  if(p %in% c("regAnchor", "regBuffer")) tp[,colGrp := regID]
-  if(p %in% c("blkAnchor", "blkBuffer")) tp[,colGrp := blkID]
+  tp[,ord1 := frank(ord1, ties.method = "dense")]
+  tp[,ord2 := frank(ord2, ties.method = "dense")]
 
   tp[,nu1 := uniqueN(ofID1), by = "chr1"]
   tp[,nu2 := uniqueN(ofID2), by = "chr2"]
   tp <- subset(tp, nu1 >= minGenes2plot & nu2 >= minGenes2plot)
 
-  # -- color hits
-  col <- NULL
-  if(length(cols) == 1){
-    tp[,col := cols]
-  }else{
-    colScale <- colorRampPalette(cols)
-    cols <- sample(colScale(uniqueN(tp$colGrp)))
-    names(cols) <- as.character(unique(tp$colGrp))
-    tp[,col := cols[as.character(colGrp)]]
-  }
+  cols <- c("#1B9E77", "#D95F02", "#7570B3", "#E7298A","#66A61E", "#E6AB02",
+            "#A6761D", "#666666", "darkred","darkblue")
+  uniqBlks <- unique(tp$blkID)
+  colScale <- colorRampPalette(cols)
+  cols <- sample(colScale(uniqueN(uniqBlks)))
+  names(cols) <- as.character(uniqBlks)
+  tp[,col := cols[as.character(blkID)]]
+  tp$col[is.na(tp$col)] <- missingHitCol
+
+  plotTitle <- sprintf(
+    "%s: %s",
+    ifelse(onlyOG & onlyArrayReps, "only array rep OGs",
+           ifelse(onlyOG, "only OGs",
+                  ifelse(onlyArrayReps, "only array reps","all hits"))),
+    ifelse(onlyAnchors, "constrained to anchors",
+           ifelse(onlyBuffer, "in synteny buffer", "not synteny constrained")))
 
   # -- order chromosomes and add linear x/y positions
-  tp <- add_linCoords2hits(
-    hits = tp, gapProp = gapProp,
-    useOrder = useOrder, reorderChrs = reorderChrs)
+  gps <- max(unique(tp[,c("ord1", "ord2")]))
+  setkey(tp, ord1)
+  tp[,n := (as.numeric(factor(chr1, levels = unique(chr1)))-1)]
+  tp[,x := ord1 + (gps * gapProp * n)]
+  setkey(tp, ord2)
+  tp[,n := (as.numeric(factor(chr2, levels = unique(chr2)))-1)]
+  tp[,y := ord2 + (gps * gapProp * n)]
 
-  # -- round to nearest position
-  tp <- condense_hits(hits = tp, round2 = round2)
-  tp <- subset(tp, complete.cases(tp))
-  # calculate chr bounds / membership
+
+  tp <- subset(tp, complete.cases(tp[,c("chr1", "chr2", "x", "y")]))
+
+    # calculate chr bounds / membership
   cb <- color_chrBounds(
     hits = tp, lightChrFill = lightChrFill,
     darkChrFill = darkChrFill, emptyChrFill = emptyChrFill)
@@ -232,6 +149,7 @@ plot_hits <- function(hits,
   # par(mar = c(2,2,1,1))
   xoffset <- min(tp$x) - (diff(range(tp$x))/20)
   yoffset <- min(tp$y) - (diff(range(tp$y))/20)
+
   plot(
     NA, NA,
     xlim = c(xoffset, max(tp$x)),
@@ -240,19 +158,11 @@ plot_hits <- function(hits,
     xlab = "", ylab = "",
     asp = 1)
 
-  if(useOrder){
-    title(
-      xlab = paste(hits$gen1[1], "chromosomes (gene rank order)"),
-      ylab = paste(hits$gen2[1], "chromosomes (gene rank order)"),
-      line = 0, cex.lab = axisTitleCex,
-      main = plotTitle)
-  }else{
-    title(
-      xlab = paste(hits$gen1[1], "chromosomes (physical gene position)"),
-      ylab = paste(hits$gen2[1], "chromosomes (physical gene position)"),
-      line = 0, cex.lab = axisTitleCex,
-      main = plotTitle)
-  }
+  title(
+    xlab = paste(hits$gen1[1], "chromosomes (gene rank order)"),
+    ylab = paste(hits$gen2[1], "chromosomes (gene rank order)"),
+    line = 0, cex.lab = axisTitleCex,
+    main = plotTitle)
 
   # plot chrs and label
   x1 <- x0 <- y0 <- y1 <- col <- x12 <- chr1<- chr2 <- y12 <- NULL
@@ -273,15 +183,12 @@ plot_hits <- function(hits,
   # -- plot points
   col <- n <- x <- y <- NULL
   setkey(tp, col, n)
-  if(uniqueN(cols) > 1){
-    with(tp, points(x, y, col = "white", pch = 16, cex= .4))
-    with(tp, points(x, y, col = col, pch = 16, cex= .25))
+  if(nrow(tp) > 20e3){
+    with(tp, points(x, y, col = "white", pch = 16, cex = .2))
+    with(tp, points(x, y, col = add_alpha(col, alpha = alpha), pch = "."))
   }else{
-    if(nrow(tp) > 10e3){
-      with(tp, points(x, y, col = col, pch = "."))
-    }else{
-      with(tp, points(x, y, col = col, pch = 16, cex= .25))
-    }
+    with(tp, points(x, y, col = "white", pch = 16, cex = .4))
+    with(tp, points(x, y, col = add_alpha(col, alpha = alpha), pch = 16, cex = .25))
   }
   if(returnSourceData)
     return(tp)

@@ -489,8 +489,12 @@ pipe_synteny <- function(gsParam,
       tp$gen1[1], tp$gen2[1])),
       height = 6, width = 6)
 
-    plot_hits(hits = tp, plotType = "allOG", cols = "blue2", round2 = 50)
-    plot_hits(hits = tp, plotType = "blkAnchor")
+    plot_hits(
+      hits = tp, onlyArrayReps = F, onlyOG = T,onlyBuffer = F,
+      onlyAnchors = F, useBlks = F, alpha = .5)
+    plot_hits(
+      hits = tp, onlyArrayReps = T, onlyOG = T, onlyBuffer = T,
+      onlyAnchors = T, useBlks = T, alpha = .8)
     dev.off()
   }
 
