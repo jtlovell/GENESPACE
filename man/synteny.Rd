@@ -31,6 +31,7 @@ synteny(
 pipe_synteny(
   gsParam,
   gff,
+  genomeIDs = unique(gff$genome),
   ogColumn = "globOG",
   nCores = NULL,
   verbose = TRUE,

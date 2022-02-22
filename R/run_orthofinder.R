@@ -314,7 +314,7 @@ blkwise_orthofinder <- function(gsParam,
   ##############################################################################
   # -- get various parameters
   if(is.null(genomeIDs))
-    genomeIDs <- gsParam$genomes$genomeIDs
+    genomeIDs <- unique(gff$genome)
   verbose <- gsParam$params$verbose
   nCores <- gsParam$params$nCores
 
@@ -322,7 +322,7 @@ blkwise_orthofinder <- function(gsParam,
   if(is.na(gsParam$paths$blastDir))
     gsParam <- find_orthofinderResults(gsParam)
 
-  # -- read in gff
+  # -- get gff positions
   ov <- gff$ord; sv <- gff$start; ev <- gff$end
   names(ov) <- names(sv) <- names(ev) <- gff$ofID
 

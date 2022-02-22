@@ -193,14 +193,21 @@ synteny <- function(gsParam,
   gp <- gsParam
   gsParam <- NULL
 
+  gids <- genomeIDs
+  genomeIDs <- NULL
+
   # -- set data.table threads to 1
   setDTthreads(1)
 
-  # -- genome IDs
-  if(is.null(genomeIDs))
-    genomeIDs <- gp$genomes$genomeIDs
-  if(!any(genomeIDs %in% gp$genomes$genomeIDs))
-      stop("specified genomeIDs dont look right\n")
+  # -- set and check the genome IDs
+  if(is.null(gids))
+    gids <- gp$genomes$genomeIDs
+
+  if(!any(gids %in% gp$genomes$genomeIDs))
+    stop("specified genomeIDs dont look right\n")
+
+  if(!is.na(gp$genomes$outgroup))
+    gids <- gids[!gids %in% gp$genomes$outgroup]
 
   # -- shortcuts and output files
   verbose <- gp$params$verbose
@@ -209,7 +216,7 @@ synteny <- function(gsParam,
 
   # -- set the synteny parameters
   if(is.data.table(gp$params$synteny))
-    if(!all(genomeIDs %in% gp$params$synteny$genome1))
+    if(!all(gids %in% gp$params$synteny$genome1))
       gp$params$synteny <- NULL
   if(!is.data.table(gp$params$synteny)){
     gp <- set_syntenyParams(gp, ...)
@@ -220,7 +227,7 @@ synteny <- function(gsParam,
       gp$params$synteny <- gp$params$synteny
     }
   }
-  synp <- subset(gp$params$synteny, genome1 %in% genomeIDs & genome2 %in% genomeIDs)
+  synp <- subset(gp$params$synteny, genome1 %in% gids & genome2 %in% gids)
 
   # -- find the orthogroups
   if(is.na(gp$paths$orthogroupsDir)){
@@ -242,7 +249,7 @@ synteny <- function(gsParam,
     "globOG", "arrayID", "isArrayRep", "arrayOrd", "synOG", "inblkOG", "og" )
   if(hasGff){
     gf <- fread(gffFile, showProgress = F)
-    hasGff <- all(genomeIDs %in% gf$genome & all(gffCols %in% colnames(gf)))
+    hasGff <- all(gids %in% gf$genome & all(gffCols %in% colnames(gf)))
   }
 
   # -- hits
@@ -274,7 +281,7 @@ synteny <- function(gsParam,
     "startBp2", "endBp2", "startOrd2", "endOrd2", "firstGene2", "lastGene2")
   if(hasBlks){
     tmp <- fread(blksFile, showProgress = F)
-    hasBlks <- all(genomeIDs %in% tmp$gen1) & all(genomeIDs %in% tmp$gen2) &
+    hasBlks <- all(gids %in% tmp$gen1) & all(gids %in% tmp$gen2) &
       all(blkCols %in% colnames(tmp))
   }
 
@@ -286,17 +293,17 @@ synteny <- function(gsParam,
   if(hasBlks & overwriteBlks & verbose)
     cat("NOTE: overwrite = T and block coordinate file exists; overwriting\n")
 
-  if(!hasGff & !overwriteGff){
+  if(!hasGff & overwriteGff){
     if(verbose)
       cat("Can't find gff-like file, but overwriteGff = TRUE, setting to FALSE\n")
     overwriteGff <- FALSE
   }
-  if(!hasHits & !overwriteHits){
+  if(!hasHits & overwriteHits){
     if(verbose)
       cat("Can't find all synhits files, but overwriteHits = TRUE, setting to FALSE\n")
     overwriteHits <- FALSE
   }
-  if(!hasBlks & !overwriteBlks){
+  if(!hasBlks & overwriteBlks){
     if(verbose)
       cat("Can't find blk coords, but overwriteBlks = TRUE, setting to FALSE\n")
     overwriteBlks <- FALSE
@@ -305,12 +312,12 @@ synteny <- function(gsParam,
   ##############################################################################
   # 2. load and parse the gff
   # -- add in global syntenic orthogroup arrays, orthofinder IDs, etc
-  if(!hasGff){
+  if(!hasGff | overwriteGff){
     if(verbose)
       cat("Parsing the gff files ... \n\tReading the gffs and adding orthofinder IDs ... ")
     gf <- annotate_gff(
       gsParam = gp,
-      genomeIDs = genomeIDs)
+      genomeIDs = gids)
     if(verbose)
       cat(sprintf(
         "Done!\n\tFound %s global OGs for %s genes\n",
@@ -342,7 +349,6 @@ synteny <- function(gsParam,
       ogColumn = "globOG", verbose = verbose)
   }
 
-
   ##############################################################################
   # 3. Run the initial synteny builder
   # -- This is the full pipeline: split up synParams into chunks each with
@@ -365,7 +371,7 @@ synteny <- function(gsParam,
     gf <- add_synOg2gff(
       gff = gf,
       gsParam = gp,
-      genomeIDs = genomeIDs)
+      genomeIDs = gids)
     if(verbose)
       cat(sprintf(
         "\tFound %s synteny-split OGs for %s genes\n",
@@ -380,13 +386,13 @@ synteny <- function(gsParam,
       gf <- blkwise_orthofinder(
         gsParam = gp,
         gff = gf,
-        genomeIDs = genomeIDs,
+        genomeIDs = gids,
         overwrite = overwrite,
         minGenes4of = minGenes4of)
 
       # -- make an new OG column with syntenic and inBlk orthogroups combined
       gf <- combine_inblkSynOG(
-        genomeIDs = genomeIDs,
+        genomeIDs = gids,
         gff = gf,
         gsParam = gp)
       isArrayRep <- arrayID <- NULL
@@ -460,6 +466,7 @@ synteny <- function(gsParam,
 #' @export
 pipe_synteny <- function(gsParam,
                          gff,
+                         genomeIDs = unique(gff$genome),
                          ogColumn = "globOG",
                          nCores = NULL,
                          verbose = TRUE,
@@ -501,6 +508,7 @@ pipe_synteny <- function(gsParam,
   ##############################################################################
   # -- Function to split up the synParam for chunk-wise parallelization
   split_synParam2chunks <- function(gsParam,
+                                    genomeIDs,
                                     nCores = NULL,
                                     overwrite = FALSE){
     runBlast <- synHitsFile <- wt <- nGenes2 <- nGenes2 <- chunk <- og4syn <-
@@ -508,7 +516,10 @@ pipe_synteny <- function(gsParam,
     setDTthreads(1)
     if(is.null(nCores))
       nCores <- gsParam$params$nCores
+
+    # -- subset to synparams with blast and in genomeIDs
     synp <- subset(data.table(gsParam$params$synteny), runBlast)
+    synp <- subset(synp, genome1 %in% genomeIDs & genome2 %in% genomeIDs)
 
     # -- check if the synHits files are there
     genome1 <- genome2 <- NULL
@@ -523,6 +534,7 @@ pipe_synteny <- function(gsParam,
       chunks <- NULL
     }
 
+    # -- order by size of run, then split into chunks
     if(nrow(synp) > 0){
       nGenes1 <- genome1 <- genome2 <-  nGenes1 <- ploidy2 <- ploidy1 <-
         nSecondHits2 <- nSecondHits1 <- wt <- chunk <- NULL
@@ -530,8 +542,10 @@ pipe_synteny <- function(gsParam,
         genome1 == genome2 &
           (nSecondHits1 + nSecondHits2 + ploidy1 + ploidy2) == 1,
         nGenes1, nGenes1 + nGenes2)]
-      setorder(synp, -wt)
+      synp[,isSelfHap := ploidy1 == 1 & ploidy2 == 1 & genome1 == genome2]
+      setorder(synp, isSelfHap, -wt)
       synp[,chunk := rep(1:nrow(synp), each = nCores)[1:.N]]
+      synp[,`:=`(wt = NULL, isSelfHap = NULL)]
       chunks <- split(synp, by = "chunk")
     }
     return(chunks)
@@ -637,7 +651,7 @@ pipe_synteny <- function(gsParam,
 
   # -- split of the synteny parameters by chunks
   splSynp <- split_synParam2chunks(
-    gsParam, nCores = nCores, overwrite = overwrite)
+    gsParam, genomeIDs = genomeIDs, nCores = nCores, overwrite = overwrite)
   u <- NULL
   if(is.null(splSynp)){
     cat("All synHits results have been generated and !overwrite\n\tNot running initial synteny step\n")
@@ -1215,7 +1229,7 @@ annotate_gff <- function(gsParam, genomeIDs){
   }
 
   # -- read in the gff
-  gff <- read_gff(gsParam$paths$gff)
+  gff <- read_gff(gsParam$paths$gff[genomeIDs])
 
   # -- add orthofinder ids
   gff <- add_ofID2gff(gff, gsParam$paths$blastDir)
@@ -1692,6 +1706,7 @@ combine_inblkSynOG <- function(genomeIDs,
                                gff,
                                gsParam){
   setDTthreads(1)
+  gff <- subset(gff, genome %in% genomeIDs)
   if(gsParam$params$verbose)
     cat("Combining synteny-constrained and inblock orthogroups ...\n")
 

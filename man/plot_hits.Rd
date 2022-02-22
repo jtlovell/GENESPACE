@@ -6,18 +6,21 @@
 \usage{
 plot_hits(
   hits,
-  plotType = c("allHits", "allOG", "regAnchor", "regBuffer", "blkAnchor", "blkBuffer"),
+  onlyOG = TRUE,
+  onlyAnchors = TRUE,
+  useBlks = TRUE,
+  onlyArrayReps = TRUE,
+  onlyBuffer = FALSE,
   reorderChrs = TRUE,
   minGenes2plot = 10,
-  gapProp = 0.005,
-  useOrder = TRUE,
-  round2 = ifelse(useOrder, 10, 50000),
+  gapProp = 0.01,
   cols = NULL,
   alpha = 1,
   axisTitleCex = 0.6,
   darkChrFill = "grey60",
   lightChrFill = "grey85",
   emptyChrFill = "grey97",
+  missingHitCol = "grey40",
   chrLabCex = 0.4,
   returnSourceData = F,
   chrLabFun = function(x) gsub("^0", "", gsub("^chr|^scaffold|^lg|_", "", tolower(x)))
@@ -25,8 +28,6 @@ plot_hits(
 }
 \arguments{
 \item{hits}{data.table of hits}
-
-\item{plotType}{character string specifying the plot type}
 
 \item{reorderChrs}{logical, should the chromosomes be re-ordered based on
 synteny?}
@@ -36,12 +37,6 @@ chr to plot}
 
 \item{gapProp}{numeric (0-1) specifying the proportional size of gaps
 relative to the length of the largest genome}
-
-\item{useOrder}{logical, should gene rank order be used in lieu of physical
-positions?}
-
-\item{round2}{integer, specifying the rounding of gene rank order positions
-to reduce the total number of points. 1 = don't round}
 
 \item{cols}{vector of colors to use for points}
 
@@ -61,6 +56,14 @@ to reduce the total number of points. 1 = don't round}
 be returned?}
 
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
+
+\item{plotType}{character string specifying the plot type}
+
+\item{round2}{integer, specifying the rounding of gene rank order positions
+to reduce the total number of points. 1 = don't round}
+
+\item{useOrder}{logical, should gene rank order be used in lieu of physical
+positions?}
 }
 \description{
 \code{plot_hits} Genespace plotting routines
