@@ -293,21 +293,21 @@ synteny <- function(gsParam,
   if(hasBlks & overwriteBlks & verbose)
     cat("NOTE: overwrite = T and block coordinate file exists; overwriting\n")
 
-  if(!hasGff & overwriteGff){
-    if(verbose)
-      cat("Can't find gff-like file, but overwriteGff = TRUE, setting to FALSE\n")
-    overwriteGff <- FALSE
-  }
-  if(!hasHits & overwriteHits){
-    if(verbose)
-      cat("Can't find all synhits files, but overwriteHits = TRUE, setting to FALSE\n")
-    overwriteHits <- FALSE
-  }
-  if(!hasBlks & overwriteBlks){
-    if(verbose)
-      cat("Can't find blk coords, but overwriteBlks = TRUE, setting to FALSE\n")
-    overwriteBlks <- FALSE
-  }
+  # if(!hasGff & overwriteGff){
+  #   if(verbose)
+  #     cat("Can't find gff-like file, but overwriteGff = TRUE, setting to FALSE\n")
+  #   overwriteGff <- FALSE
+  # }
+  # if(!hasHits & overwriteHits){
+  #   if(verbose)
+  #     cat("Can't find all synhits files, but overwriteHits = TRUE, setting to FALSE\n")
+  #   overwriteHits <- FALSE
+  # }
+  # if(!hasBlks & overwriteBlks){
+  #   if(verbose)
+  #     cat("Can't find blk coords, but overwriteBlks = TRUE, setting to FALSE\n")
+  #   overwriteBlks <- FALSE
+  # }
 
   ##############################################################################
   # 2. load and parse the gff
@@ -406,7 +406,7 @@ synteny <- function(gsParam,
         verbose = verbose)
 
       # -- re-call syteny with the new og column (set og anchors to true)
-      if((recallSynteny &overwriteHits & hasHits) | (recallSynteny & !hasHits)){
+      if((recallSynteny & overwriteHits & hasHits) | (recallSynteny & !hasHits)){
         synSv <- data.table(gp$params$synteny)
         gp$params$synteny$onlyOgAnchorsSecond <- TRUE
         gp$params$synteny$onlyOgAnchors <- TRUE
@@ -438,8 +438,6 @@ synteny <- function(gsParam,
     if(verbose)
       cat("Calculating syntenic block breakpoints ... \n")
     runBlast <- isAnchor <- blkID <- NULL
-    synHitsFiles <- with(subset(gp$params$synteny, runBlast), file.path(
-      writeTo, sprintf("%s_%s_synHits.txt.gz", genome1, genome2)))
 
     blks <- rbindlist(mclapply(synHitsFiles, mc.cores = nCores, function(i)
       calc_blkCoords(subset(
@@ -662,7 +660,7 @@ pipe_synteny <- function(gsParam,
       cat(sprintf("Pulling synteny for %s unique pairwise combinations of genomes\n",
                   sum(sapply(splSynp, nrow))))
     if(verbose)
-      cat(sprintf("\tRunning %s chunks of %s combinations each:\n",
+      cat(sprintf("\tRunning %s chunks of up to %s combinations each:\n",
                   length(splSynp), nCores))
     blks <- lapply(1:length(splSynp), function(i){
       setDTthreads(1)
