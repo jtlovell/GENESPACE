@@ -332,6 +332,7 @@ blkwise_orthofinder <- function(gsParam,
   synp[,`:=`(gnum1 = match(genome1, genomeIDs),
              gnum2 = match(genome2, genomeIDs))]
   synp <- subset(synp, runBlast)
+  synp <- subset(synp, gen1 %in% genomeIDs & gen2 %in% genomeIDs)
   setkey(synp, gnum1, gnum2)
 
   # -- get orthofinder species IDs
