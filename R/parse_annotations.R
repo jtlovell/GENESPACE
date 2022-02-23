@@ -450,6 +450,15 @@ parse_annotations <- function(
           pep,
           filepath = gsParam$paths$peptide[i])
 
+        setkey(gff, ord)
+        gff <- with(gff, data.table(
+          chr = chr,
+          start = start,
+          end = end,
+          id = id,
+          strand = strand,
+          ord = 1:length(id)))
+
         fwrite(
           gff,
           file = gsParam$paths$gff[i],
