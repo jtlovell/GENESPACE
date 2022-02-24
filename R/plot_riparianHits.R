@@ -213,7 +213,7 @@ plot_riparianHits <- function(gsParam,
 
     # -- add gap sizes
     gff[,`:=`(genome = as.character(genome), chr = as.character(chr))]
-    gff[,gapSize := gapProp * max(pos), by = "genome"]
+    gff[,gapSize := gapProp * max(pos)]
 
     # -- flag first gene on each chr and add in gap size
     gff[,isFirstGeneChr := c(FALSE, chr[-length(chr)] != chr[-1]), by = "genome"]
@@ -274,7 +274,7 @@ plot_riparianHits <- function(gsParam,
       x <- subset(x, chr1 == onlyTheseRegions$chr[i])
       x <- subset(x, ev[ofID1] >= onlyTheseRegions$start[i])
       x <- subset(x, sv[ofID1] <= onlyTheseRegions$end[i])
-      x[,regID := paste0("reg", i)]
+      x[,regID := onlyTheseRegions$regID[i]]
       return(x)
     }))
     return(regHits)
@@ -336,7 +336,7 @@ plot_riparianHits <- function(gsParam,
   # -- check and get the regions in order
   if(!is.null(onlyTheseRegions)){
     regs <- data.table(onlyTheseRegions)
-    regs[,regID := 1:.N]
+    regs[,regID := paste0("reg", 1:.N)]
     if(!"genome" %in% colnames(regs))
       regs[,genome := NA]
     if(!"chr" %in% colnames(regs))
@@ -349,6 +349,15 @@ plot_riparianHits <- function(gsParam,
       regs[,col := NA]
     if(any(!are_colors(regs$col)))
       regs[,col := NA]
+    if(any(is.na(regs$col))){
+      if(blackBg)
+        tmp <- c("#C4645C", "#F5915C", "#FFC765", "#FCF8D5","#BEF3F9",
+                 "#66B8FF", "#6666FF", "#9C63E1", "#F4BDFF")
+      if(!blackBg)
+        tmp <- c("#62322E", "#C60000", "#FF7500", "#FEDF99", "#BEF3F9",
+                 "#43B8FF", "#204DBF", "#9C63E1", "#F4BDFF")
+      regs[,col := colorRampPalette(tmp)(nrow(regs))]
+    }
     regs <- subset(regs, complete.cases(regs[,c("genome", "chr", "start", "end")]))
     uchr <- with(gf, unique(paste(genome, chr)))
     if(!all(paste(regs$genome, regs$chr) %in% uchr))
@@ -423,11 +432,24 @@ plot_riparianHits <- function(gsParam,
     gen2 = genomeIDs[-1],
     y = 1:length(genomeIDs[-1]))
 
+
+  # -- get reference genome colors in order
+  if(!is.null(refChrCols) & is.null(regs)){
+    refChrCols <- refChrCols[are_colors(refChrCols)]
+    if(length(refChrCols) == 0)
+      refChrCols <- NULL
+  }
+  if(is.null(refChrCols) & is.null(regs)){
+    if(blackBg)
+      refChrCols <- c("#C4645C", "#F5915C", "#FFC765", "#FCF8D5","#BEF3F9",
+                      "#66B8FF", "#6666FF", "#9C63E1", "#F4BDFF")
+    if(!blackBg)
+      refChrCols <- c("#62322E", "#C60000", "#FF7500", "#FEDF99", "#BEF3F9",
+                      "#43B8FF", "#204DBF", "#9C63E1", "#F4BDFF")
+  }
+
   # -- determine if we are coloring by a reference
-  colorByRefChr <- !(length(refChrCols) == 1 &&
-    !is.null(refChrCols[1]) &&
-    are_colors(refChrCols[1]) &&
-      is.null(onlyTheseRegions))
+  colorByRefChr <- !is.null(regs) & length(refChrCols) > 1
 
   ##############################################################################
   # 1. Read in the hits
@@ -463,7 +485,8 @@ plot_riparianHits <- function(gsParam,
       cat(sprintf("\tBuilding database of hits in %s regions ... ", nrow(regs)))
     regHits <- pull_regHits(
       onlyTheseRegions = regs,
-      gff = gf, synParamsDt = synp,
+      gff = gf,
+      synParamsDt = synp,
       plotRegions = !useBlks,
       minGenes2plot = minGenes2plot,
       nCores = nCores)
@@ -533,94 +556,39 @@ plot_riparianHits <- function(gsParam,
     gapProp = gapProp)
   pv <- gf$x; names(pv) <- gf$ofID
 
-  if(!is.null(regs)){
-    u <- with(regHits, unique(c(ofID1, ofID2)))
-    ripHits <- subset(ripHits, ofID1 %in% u & ofID2 %in% u)
-    refHits <- subset(refHits, ofID1 %in% u & ofID2 %in% u)
-  }
+  ripHits[,`:=`(x1 = pv[ofID1], x2 = pv[ofID2], ord1 = NULL, ord2 = NULL)]
+  ripHits[,`:=`(start1 = x1, start2 = x2, end1 = x1, end2 = x2, ord1 = x1,
+                ord2 = x2, isAnchor = TRUE, arrayOrd1 = x1, arrayOrd2 = x2)]
 
-  # -- add in reference chromosome mapping to the hits
   if(!is.null(regs)){
-    tmp1 <- with(regHits, data.table(
-      ofID1 = c(ofID1, ofID2), refChr1 = c(regID, regID)))
-    tmp2 <- with(regHits, data.table(
-      ofID2 = c(ofID1, ofID2), refChr2 = c(regID, regID)))
+    bc <- rbindlist(lapply(1:nrow(regs), function(i){
+      tmp <- subset(regHits, regID == regs$regID[i])
+      tmp <- unique(c(tmp$ofID1, tmp$ofID2))
+      ripreg <- subset(ripHits, ofID1 %in% tmp & ofID2 %in% tmp)
+      xbc <- calc_blkCoords(ripreg)
+      xbc[,regID := regs$regID[i]]
+      xbc[,col := regs$col[i]]
+      return(xbc)
+    }))
   }else{
     tmp1 <- with(refHits, data.table(
       ofID1 = c(ofID1, ofID2), refChr1 = c(chr1, chr1)))
     tmp2 <- with(refHits, data.table(
       ofID2 = c(ofID1, ofID2), refChr2 = c(chr1, chr1)))
-  }
-
-  if(colorByRefChr){
-    tmp1 <- subset(tmp1, !duplicated(tmp1))
-    tmp2 <- subset(tmp2, !duplicated(tmp2))
-    ripHits <- merge(ripHits, tmp1, by = "ofID1", allow.cartesian = T)
-    ripHits <- subset(ripHits, !duplicated(ripHits))
-    ripHits <- merge(ripHits, tmp2, by = "ofID2", allow.cartesian = T)
-    ripHits <- subset(ripHits, !duplicated(ripHits))
-    ripHits <- subset(ripHits, refChr1 == refChr2)
-    ripHits[,`:=`(refChr = refChr1, refChr1 = NULL, refChr2 = NULL)]
-    ripHits <- subset(ripHits, complete.cases(ripHits))
-    setkey(ripHits, gen1, ord1)
-    ripHits[,rl := add_rle(refChr, which = "id"), by = c("gen1", "chr1", "blkID")]
-    ripHits[,blkID := as.numeric(as.factor(paste(gen1, gen2, chr1, chr2, rl, refChr, blkID)))]
-    ripHits[,rl := NULL]
-  }else{
-    ripHits[,refChr := 1]
-    ripHits[,blkID := as.numeric(as.factor(paste(gen1, gen2, chr1, chr2, refChr, blkID)))]
-  }
-
-  ripHits[,`:=`(x1 = pv[ofID1], x2 = pv[ofID2], ord1 = NULL, ord2 = NULL)]
-  ripHits[,`:=`(start1 = x1, start2 = x2, end1 = x1, end2 = x2, ord1 = x1,
-            ord2 = x2, isAnchor = TRUE, arrayOrd1 = x1, arrayOrd2 = x2)]
-  ripHits[,blkID := sprintf("%s_%s", refChr, blkID)]
-
-  ##############################################################################
-  # 3. make plotting data
-  # -- make block coordinates
-  if(onlySameChrs){
-    ripHits <- subset(ripHits, chr1 == chr2)
-    warning(sprintf("\nsubsetting to only the same chrs resulted in %s hits\n\t",
-                    nrow(ripHits)))
-  }
-
-  bc <- calc_blkCoords(ripHits)
-
-  bc[,c("refChr", "blkID") := tstrsplit(blkID, "_")]
-  bc <- with(bc, data.table(
-    xstart1 = startBp1, xend1 = endBp1, xstart2 = startBp2, xend2 = endBp2,
-    gen1 = gen1, gen2 = gen2, chr1 = chr1, chr2 = chr2,
-    blkID = blkID, refChr = refChr))
-
-  bc[,`:=`(y1 = as.numeric(factor(gen1, levels = genomeIDs)),
-           y2 = as.numeric(factor(gen2, levels = genomeIDs)))]
-
-  # -- get chromosome coordinates
-  chrPos <- gf[,list(xstart = min(x), xend = max(x)),
-                by = c("genome", "chr", "y")]
-
-  # -- get the colors
-  highlightRef <- highlightRef[1]
-  if(!are_colors(highlightRef) || is.null(highlightRef))
-    highlightRef <- "white"
-
-  if(all(are_colors(regs$col)) && !is.null(regs)){
-    regs[,regID := paste0("reg", regID)]
-    cols <- regs$col; names(cols) <- regs$regID
-    bc[,col := cols[refChr]]
-  }else{
-    if(!colorByRefChr){
-      bc[,col := refChrCols]
-    }else{
-      if(!all(are_colors(refChrCols)) || any(is.null(refChrCols))){
-        if(blackBg)
-          refChrCols <- c("#C4645C", "#F5915C", "#FFC765", "#FCF8D5","#BEF3F9",
-                          "#66B8FF", "#6666FF", "#9C63E1", "#F4BDFF")
-        if(!blackBg)
-          refChrCols <- c("#62322E", "#C60000", "#FF7500", "#FEDF99", "#BEF3F9",
-                          "#43B8FF", "#204DBF", "#9C63E1", "#F4BDFF")
-      }
+    if(colorByRefChr){
+      tmp1 <- subset(tmp1, !duplicated(tmp1))
+      tmp2 <- subset(tmp2, !duplicated(tmp2))
+      ripHits <- merge(ripHits, tmp1, by = "ofID1", allow.cartesian = T)
+      ripHits <- subset(ripHits, !duplicated(ripHits))
+      ripHits <- merge(ripHits, tmp2, by = "ofID2", allow.cartesian = T)
+      ripHits <- subset(ripHits, !duplicated(ripHits))
+      ripHits <- subset(ripHits, refChr1 == refChr2)
+      ripHits[,`:=`(refChr = refChr1, refChr1 = NULL, refChr2 = NULL)]
+      ripHits <- subset(ripHits, complete.cases(ripHits))
+      setkey(ripHits, gen1, ord1)
+      ripHits[,rl := add_rle(refChr, which = "id"), by = c("gen1", "chr1", "blkID")]
+      ripHits[,blkID := as.numeric(as.factor(paste(gen1, gen2, chr1, chr2, rl, refChr, blkID)))]
+      ripHits[,rl := NULL]
 
       urchr <- unique(gf$chr[gf$genome == refGenome])
       bc[,refChr := factor(refChr, levels = urchr)]
@@ -631,9 +599,44 @@ plot_riparianHits <- function(gsParam,
         cols <- refChrCols
       }
       names(cols) <- refChrs
-      bc[,col := cols[refChr]]
+    }else{
+      ripHits[,refChr := 1]
+      ripHits[,blkID := as.numeric(as.factor(paste(gen1, gen2, chr1, chr2, refChr, blkID)))]
+      ripHits[,blkID := sprintf("%s_%s", refChr, blkID)]
+      cols <- refChrCols[1]
+      names(cols) <- "1"
     }
+
+    bc <- calc_blkCoords(ripHits)
+    bc[,c("refChr", "blkID") := tstrsplit(blkID, "_")]
+    bc[,col := cols[refChr]]
   }
+
+  bc <- with(bc, data.table(
+    xstart1 = startBp1, xend1 = endBp1, xstart2 = startBp2, xend2 = endBp2,
+    gen1 = gen1, gen2 = gen2, chr1 = chr1, chr2 = chr2,
+    blkID = blkID, col = col))
+
+  bc[,`:=`(y1 = as.numeric(factor(gen1, levels = genomeIDs)),
+           y2 = as.numeric(factor(gen2, levels = genomeIDs)))]
+
+  ##############################################################################
+  # 3. make plotting data
+  # -- make block coordinates
+  if(onlySameChrs){
+    ripHits <- subset(ripHits, chr1 == chr2)
+    warning(sprintf("\nsubsetting to only the same chrs resulted in %s hits\n\t",
+                    nrow(ripHits)))
+  }
+
+  # -- get chromosome coordinates
+  chrPos <- gf[,list(xstart = min(x), xend = max(x)),
+                by = c("genome", "chr", "y")]
+
+  # -- get the colors
+  highlightRef <- highlightRef[1]
+  if(!are_colors(highlightRef) || is.null(highlightRef))
+    highlightRef <- "white"
 
   bc <- subset(bc, complete.cases(bc))
   bc <- subset(bc, !duplicated(bc))
@@ -690,17 +693,26 @@ plot_riparianHits <- function(gsParam,
         border = NULL, col = "grey15"))
   }
 
-
   # -- make the scale bar
   if(annotatePlot){
-    mo <- with(subset(gf, genome == refGenome), max(linPos))*2
-    mo <- ifelse(mo > 1e9, 5e8,
-                 ifelse(mo > 1e8, 5e7,
-                        ifelse(mo > 1e7, 5e6,
-                               ifelse(mo > 1e6, 5e5,
-                                      ifelse(mo > 1e5, 5e4,
-                                             ifelse(mo > 1e4, 5e3,
-                                                    ifelse(mo > 1e3, 500, 50)))))))
+    if(useOrder){
+      n <- max(gf$pos)
+      mo <- ifelse(n > 1e5, 20e3,
+                   ifelse(n > 50e3, 10e3,
+                          ifelse(n > 20e3, 5e3,
+                                 ifelse(n > 8e3, 2e3,
+                                        ifelse(n > 2e3, 500,
+                                               ifelse(n > 500, 100,
+                                                      ifelse(n > 100, 50, 10)))))))
+    }else{
+      n <- max(gf$pos)
+      mo <- ifelse(n > 1e9, 5e8,
+                   ifelse(n > 1e8, 5e7,
+                          ifelse(n > 1e7, 5e6,
+                                 ifelse(n > 1e6, 5e5,
+                                        ifelse(n > 1e5, 5e4, 5e3)))))
+    }
+
     if(mo >= 1e3 & useOrder)
       mol <- sprintf("%sk genes", mo/1e3)
     if(mo < 1e3 & useOrder)
