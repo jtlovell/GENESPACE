@@ -94,6 +94,12 @@ specified (default) taken from gsParam$genomeIDs$genomeIDs}
 
 \item{overwrite}{logical, should existing directories be overwritten?}
 
+\item{overwriteHits}{logical, should existing hits be overwritten?}
+
+\item{overwriteGff}{logical, should existing gff be overwritten?}
+
+\item{overwriteBlks}{logical, should existing blocks be overwritten?}
+
 \item{minGenes4of}{integer of length 1, specifying the minimum number of
 unique genes on each sequence for orthofinder to be run}
 

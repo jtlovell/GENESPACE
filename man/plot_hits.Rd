@@ -29,6 +29,16 @@ plot_hits(
 \arguments{
 \item{hits}{data.table of hits}
 
+\item{onlyOG}{logical, should the plot only show orthogroup-constrained hits?}
+
+\item{onlyAnchors}{logical, should the plot only show syntenic anchors?}
+
+\item{useBlks}{logical, should the plot only show hits in blocks?}
+
+\item{onlyArrayReps}{logical, should the plot only show only array reps?}
+
+\item{onlyBuffer}{logical, should the plot only show hits in buffers?}
+
 \item{reorderChrs}{logical, should the chromosomes be re-ordered based on
 synteny?}
 
@@ -50,20 +60,15 @@ relative to the length of the largest genome}
 
 \item{emptyChrFill}{color of the empty chr backgrounds}
 
+\item{missingHitCol}{character string or number coercible to an R color. The
+point color of hits that are not in blocks}
+
 \item{chrLabCex}{character expansion for the chromosome labels}
 
 \item{returnSourceData}{logical, should the source data to build the plot
 be returned?}
 
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
-
-\item{plotType}{character string specifying the plot type}
-
-\item{round2}{integer, specifying the rounding of gene rank order positions
-to reduce the total number of points. 1 = don't round}
-
-\item{useOrder}{logical, should gene rank order be used in lieu of physical
-positions?}
 }
 \description{
 \code{plot_hits} Genespace plotting routines

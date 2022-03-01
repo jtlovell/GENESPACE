@@ -9,6 +9,10 @@
 #' init_genespace
 #' @param genomeIDs an optional vector of genomeIDs to consider. If not
 #' specified (default) taken from gsParam$genomeIDs$genomeIDs
+#' @param overwrite logical, should existing directories be overwritten?
+#' @param overwriteHits logical, should existing hits be overwritten?
+#' @param overwriteGff logical, should existing gff be overwritten?
+#' @param overwriteBlks logical, should existing blocks be overwritten?
 #' @param hits data.table of hits
 #' @param nGaps integer of length 1, specifying the -m param to mcscanx
 #' for the primary MCScanX run. This acts on the results from the initial
@@ -41,7 +45,6 @@
 #' @param path2mcscanx character string file.path pointing to the install
 #' directory for the MCScanX program. In particular, there must be an
 #' executable in this directory for MCScanX_h.
-#' @param overwrite logical, should existing directories be overwritten?
 #' @param minGenes4of integer of length 1, specifying the minimum number of
 #' unique genes on each sequence for orthofinder to be run
 #' @param gff data.table containing the gff-like annotatin information
@@ -187,6 +190,8 @@ synteny <- function(gsParam,
                     minGenes4of = 40,
                     recallSynteny = TRUE,
                     ...){
+
+  genome1 <- genome2 <- globOG <- nog <- n <- rat <- nogPass <- nogFail <- NULL
 
   ##############################################################################
   # 1. Set up the environment and parameter checking
@@ -510,7 +515,7 @@ pipe_synteny <- function(gsParam,
                                     nCores = NULL,
                                     overwrite = FALSE){
     runBlast <- synHitsFile <- wt <- nGenes2 <- nGenes2 <- chunk <- og4syn <-
-      u <- NULL
+      u <- isSelfHap <- NULL
     setDTthreads(1)
     if(is.null(nCores))
       nCores <- gsParam$params$nCores
@@ -1704,6 +1709,7 @@ combine_inblkSynOG <- function(genomeIDs,
                                gff,
                                gsParam){
   setDTthreads(1)
+  genome <- NULL
   gff <- subset(gff, genome %in% genomeIDs)
   if(gsParam$params$verbose)
     cat("Combining synteny-constrained and inblock orthogroups ...\n")
@@ -1714,7 +1720,8 @@ combine_inblkSynOG <- function(genomeIDs,
                 uniqueN(gff$inblkOG, na.rm = T)))
   noInBlk <- all(is.na(gff$inblkOG))
 
-  synOG <- NULL
+  inblkOG <- synOG <- NULL
+
   if(noInBlk)
     gff[,inblkOG := synOG]
 

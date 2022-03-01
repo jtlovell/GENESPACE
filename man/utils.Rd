@@ -2,6 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{utils}
 \alias{utils}
+\alias{.onAttach}
 \alias{order_filesByMtime}
 \alias{check_orthofinderInstall}
 \alias{check_logicalArg}
@@ -27,6 +28,8 @@
 \alias{interp_linear}
 \title{Generic internal functions used by genespace}
 \usage{
+.onAttach(...)
+
 order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
 
 check_orthofinderInstall(path)
@@ -82,6 +85,10 @@ drop_unusedPeptides(gsParam)
 interp_linear(refOrd, toInterpOrd)
 }
 \arguments{
+\item{...}{additional arguments passed to other functions
+\cr
+If called, \code{utils} returns its own arguments.}
+
 \item{path}{file path character string}
 
 \item{pattern}{regular expression to search for}
@@ -122,20 +129,24 @@ interp_linear(refOrd, toInterpOrd)
 
 \item{onlyCheckRun}{logical, should the run just be checked?}
 
-\item{hits}{data.table containing annotated blast-format pairwise hits
-\cr
-If called, \code{utils} returns its own arguments.}
+\item{hits}{data.table containing annotated blast-format pairwise hits}
+
+\item{mirror}{logical, should hits be mirrored prior to block calculation?}
 
 \item{col}{character or integer specifying a color}
 
 \item{alpha}{numeric (0-1) specifying the transparency}
 
-\item{y}{vector of observations}
+\item{refOrd}{numeric, the order of anchor hits to interpolate}
+
+\item{toInterpOrd}{numeric, the order of alt genes to interpolate}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called
 directly by the user. Little documentation support provided, use at your own
 risk.
+
+\code{.onAttach} startup messages
 
 \code{order_filesByMtime} Order files by date of last modification
 

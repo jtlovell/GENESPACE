@@ -69,7 +69,8 @@ kmerize_fa <- function(path2fasta, kmerSize){
 #' @rdname analyze_genome
 #' @import data.table
 #' @importFrom parallel mclapply
-#' @importFrom Biostrings DNAString reverseComplement PDict matchPDict readDNAStringSet
+#' @importFrom stats start end
+#' @importFrom Biostrings DNAString DNAStringSet reverseComplement PDict matchPDict readDNAStringSet vmatchPattern
 #' @export
 find_kmer <- function(path2fasta,
                       kmers,
@@ -99,6 +100,7 @@ find_kmer <- function(path2fasta,
       o <- rbindlist(lapply(names(m), function(i)
         if(nrow(as.data.table(m[[i]])) > 0)
           data.table(chr = i, start = start(m[[i]]), end = end(m[[i]]))))
+      kmer <- NULL
       o[,kmer := as.character(x)]
       if(verbose)
         cat(sprintf("found %s hits on %s sequences\n",
@@ -191,6 +193,8 @@ slide_genome <- function(path2fasta,
                          step,
                          size,
                          nCores = 1){
+
+  chr <- i.end <- i.start <- prop <- nbp  <- NULL
 
   # -- calculate chr sizes
   dnass <- readDNAStringSet(path2fasta)

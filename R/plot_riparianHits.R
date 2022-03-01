@@ -21,8 +21,6 @@
 #' @param blackBg logical, should the background be dark?
 #' @param refGenome single character string specifying which genome is the ref
 #' @param reorderChrs logical, should chromosomes be re-ordered by synteny?
-#' @param minGenes integer specifying the minimum number of genes on a chr to
-#' plot
 #' @param gapProp numeric (0-1) specifying the proportional size of gaps
 #' relative to the length of the largest genome
 #' @param useOrder logical, should gene rank order be used in lieu of physical
@@ -43,6 +41,10 @@
 #' @param chrLabFun function to parse chr IDs to make them more readible
 #' @param minGenes2plot integer specifying the minimum number of genes on a
 #' chr to plot
+#' @param onlySameChrs logical, should only chromosomes with the same names
+#' be shown?
+#' @param maxSyntenyFun function, how synteny is calculated relative to the
+#' reference chromosome order.
 #' @param onlyTheseRegions data.table with genome, chr, start and end columns
 #' @param excludeNoRegChr logical, should chromosome representations
 #' be constrained to just those in synteny with the rest of the graph?
@@ -115,6 +117,9 @@ plot_riparianHits <- function(gsParam,
                            nCores,
                            minGenes,
                            plotRegions){
+
+    hitsFile <- genome1 <- genome2 <- regID <- isRep1 <- isRep2 <- isAnchor <-
+      ofID1 <- ofID2 <- regID <- blkID <- n1 <- ofID1 <- n2 <- ofID2 <- NULL
 
     # -- check that the hits files are in the synParam obj and keep only those
     # that exist.
@@ -191,6 +196,11 @@ plot_riparianHits <- function(gsParam,
                            genomeIDs,
                            chrOrd,
                            gapProp){
+
+
+    isArrayRep <- pos <- linPos <- minChr <- maxChr <- genome <- chr <-
+      gapSize <- isFirstGeneChr <- gap <- x <- maxPos <- y <- NULL
+
     # -- merge with the gff
     if(useOrder){
       gff <- with(subset(gff, isArrayRep), data.table(
@@ -254,6 +264,9 @@ plot_riparianHits <- function(gsParam,
                            plotRegions,
                            minGenes2plot,
                            nCores){
+
+    gen1 <- gen2 <- chr1 <- ofID1 <- regID <- NULL
+
     u <- unique(paste(onlyTheseRegions$genome, onlyTheseRegions$chr))
     ug <- unique(onlyTheseRegions$genome)
     sv <- gff$start; names(sv) <- gff$ofID
@@ -283,6 +296,12 @@ plot_riparianHits <- function(gsParam,
   ##############################################################################
   # 1. check the basic parameters
   # -- genomeIDs
+
+  hitsFile <- genome1 <- genome2 <- regID <- genome <- chr <- ord <- gen1 <-
+    gen2 <- gen1 <- gen2 <- ofID1 <- ofID2 <- ofID <- chrn <- medPos <- ord1 <-
+    ord2 <- medOrd <- x1 <- x2 <- regID <- ofID1 <- ofID2 <- refChr1 <-
+    refChr2 <- rl <- blkID <- chr1 <- chr2 <- x <- xstart <- NULL
+
   nCores <- gsParam$params$nCores
 
   if(is.null(genomeIDs))
@@ -449,7 +468,7 @@ plot_riparianHits <- function(gsParam,
   }
 
   # -- determine if we are coloring by a reference
-  colorByRefChr <- !is.null(regs) & length(refChrCols) > 1
+  colorByRefChr <- is.null(regs) & length(refChrCols) > 1
 
   ##############################################################################
   # 1. Read in the hits
@@ -589,10 +608,13 @@ plot_riparianHits <- function(gsParam,
       ripHits[,rl := add_rle(refChr, which = "id"), by = c("gen1", "chr1", "blkID")]
       ripHits[,blkID := as.numeric(as.factor(paste(gen1, gen2, chr1, chr2, rl, refChr, blkID)))]
       ripHits[,rl := NULL]
+      ripHits[,blkID := sprintf("%s_%s", refChr, blkID)]
 
+      tmp <- subset(gf, genome == refGenome & chr %in% ripHits$refChr)
+      refChrs <- unique(tmp$chr)
+
+      print(refChrs)
       urchr <- unique(gf$chr[gf$genome == refGenome])
-      bc[,refChr := factor(refChr, levels = urchr)]
-      refChrs <- unique(bc$refChr)
       if(length(refChrCols) != length(refChrs)){
         cols <- colorRampPalette(refChrCols)(length(refChrs))
       }else{

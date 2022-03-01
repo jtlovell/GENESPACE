@@ -13,9 +13,13 @@
 #' @param refGenome character string matching one of the genomeIDs in gsParam
 #' @param genomeIDs character vector, specifying which genomes to use. Defaults
 #' to all genomeIDs specification in gsParam.
-#' @param noSecondaryAnchors logical, should "secondary" (see synteny) hits be
-#' used as pangenome position anchors? If so, like with polyploids, gene
-#' positions may be duplicated
+#' @param propAssignThresh numeric of length 1, the minimum proportion of genes
+#' in a pangenome entry needed to anchor the physical position to a new location
+#' @param maxPlacementsPerRefChr integer of length 1, specifying the maximum
+#' number of pan-genome entries that a gene can belong to on a single
+#' reference chromosome.
+#' @param maxNonSynOrthos2keepPerGenome integer of length 1 specifying the
+#' number of non-syntenic orthologs to include in the pan-genome annotation.
 #'
 #' @details The pangenome annotation is a projection of syntenic orthogroups
 #' on the physical coordinate system of a reference genome. The pangenome
@@ -54,7 +58,7 @@ pangenome <- function(gsParam,
                       refGenome = NULL,
                       maxPlacementsPerRefChr = 2,
                       propAssignThresh = 0.5,
-                      maxNonSynOrthos2keepPerGenome = 2){
+                      maxNonSynOrthos2keepPerGenome = 5){
 
   ##############################################################################
   ##############################################################################
@@ -65,6 +69,9 @@ pangenome <- function(gsParam,
                                    gff,
                                    pangenomeDt,
                                    maxNonSynOrthos2keepPerGenome){
+
+   gen1 <- id1 <- gen2 <- id2 <- ofID1 <- pgID1 <- pgID2 <- n <- pgID <-
+     ofID <- NULL
 
     # -- make vector of gene OF IDs
     idv <- gff$ofID
@@ -125,6 +132,9 @@ pangenome <- function(gsParam,
                            refGenome,
                            gff,
                            nCores){
+
+    hitsFile <- genome1 <- genome2 <- regID <- isRep1 <- isRep2 <- ofID1 <-
+      ofID2 <- gen1 <- NULL
 
     # -- check that the hits files are in the synParam obj and keep only those
     # that exist.
@@ -195,6 +205,10 @@ pangenome <- function(gsParam,
   ##############################################################################
   # -- internal function to re-cluster syntenic anchors via micro collinearity
   clus_synAnchorPos <- function(ord1, ord2, blkSize, include){
+
+    xc <- x <- yc <- y <- clus <- index <- NULL
+
+
     # -- convert to vectors
     ord1 <- as.integer(ord1)
     ord2 <- as.integer(ord2)
@@ -248,6 +262,9 @@ pangenome <- function(gsParam,
   ##############################################################################
   # -- internal function to make sure the syntenic anchors are in good order
   check_synAnchorPos <- function(ord1, ord2, blkSize){
+
+    xc <- x <- yc <- y <- clus <- index <- NULL
+
     # -- convert to vectors
     ord1 <- as.integer(ord1)
     ord2 <- as.integer(ord2)
@@ -321,6 +338,10 @@ pangenome <- function(gsParam,
                             refGenome,
                             nCores,
                             verbose){
+
+    isArrayRep <- index <- isSelf <- ind1 <- ind2 <- ind2 <- interpRefOrd <-
+      ord1 <- useAsAnch <- ord2 <- clus <- ord2 <- ofID2 <- interpRefOrd <-
+      ord1 <- interpRefOrd <- ofID <- refChr <- NULL
 
     # -- get indexed position of geneIDs
     gff <- subset(gff, isArrayRep)
@@ -427,6 +448,10 @@ pangenome <- function(gsParam,
                           refGenome,
                           propAssignThresh,
                           maxPlacementsPerRefChr){
+
+    genome <- isArrayRep <- og <- id1 <- id2 <- ofID <- clus <- lev <- med <-
+      interpRefChr <- interpRefOrd <- nInChr <- rat <- nOnChr <- tmpi <- nPos <-
+      clusThis <- dist2med <- isSameChr <- chr <- n <- pgID <- altID <- NULL
 
     # -- get full set of positions
     ipInterp <- with(interpolatedPositionDT, data.table(
@@ -536,6 +561,10 @@ pangenome <- function(gsParam,
   ##############################################################################
   # -- internal function to check if we need to use interpolated positions
   drop_pgRepsAlreadyThere <- function(interpolatedPositionPg, refPg){
+
+    ofID <- repOfID <- hasAltRep <- repChr <- refChr <- tmpChr <- sameChr <-
+      hasPosAlready <- refAnchExists <- NULL
+
     interpolatedPositionPg <- data.table(interpolatedPositionPg)
     refPg <- data.table(refPg)
     # -- get unique names of reference scaffold IDs
@@ -588,7 +617,11 @@ pangenome <- function(gsParam,
                               refGenome,
                               genomeIDs){
     pg2clus <- data.table(pg2clus)
-    pgClus1 <- pgClus2 <- NULL
+
+    repChr <- repOfID <- interpRefOrd <- n <- clusThis <- clus <- ogSize <-
+      ofID <- propAssign <- lev <- genome <- interpRefChr <- pgClus1 <-
+      pgClus2 <- NULL
+
     # -- order interpolated positions
     setkey(pg2clus, repChr, repOfID, interpRefOrd)
 
@@ -646,6 +679,10 @@ pangenome <- function(gsParam,
                              synBuff,
                              gff,
                              propAssignThresh){
+
+    pgChr1 <- pgChr2 <- pgOrd1 <- pgOrd2 <- clus <- ofID1 <- ofID2 <- og <-
+      genome <- ofID <- pgChr <- pgOrd <- n <- clusThis <- ogSize <-
+      propAssign <- medPos <- dist2med <- isRep <- NULL
 
     gff <- data.table(gff)
     missingHits <- data.table(missingHits)
@@ -748,6 +785,8 @@ pangenome <- function(gsParam,
   # -- internal function to add array members
   add_arrayMembers <- function(pangenomeDt, gff){
 
+    arrayID <- arrayMemID <- NULL
+
     gff <- data.table(gff)
     pangenomeDt <- data.table(pangenomeDt)
 
@@ -781,6 +820,9 @@ pangenome <- function(gsParam,
   ##############################################################################
   # -- internal function to add and flag indirect syntenic edges
   add_indirectEdges <- function(gff, pangenomeDt){
+
+    og <- ofID <- directSynEdge <- NULL
+
     gff <- data.table(gff)
     pangenomeDt <- data.table(pangenomeDt)
     ogv <- gff$og; names(ogv) <- gff$ofID
@@ -805,6 +847,9 @@ pangenome <- function(gsParam,
                                       synParamsDt,
                                       nCores,
                                       gff){
+
+    repOfID <- ofID <- repOfID <- NULL
+
     ofIDl <- split(pangenomeDt$ofID, pangenomeDt$genome)
     hitsm <- rbindlist(lapply(names(ofIDl), function(i){
       hitsi <- read_hits4pg(
@@ -846,6 +891,9 @@ pangenome <- function(gsParam,
 
   chk_missingEntries <- function(pangenomeDt,
                                  refPgHits){
+
+    ofID <- repOfID <- NULL
+
     tmp <- pangenomeDt[,c("pgChr", "pgOrd","pgID", "og", "ofID")]
     tmp[,`:=`(isRep = FALSE, isDirectSynOG = TRUE, repOfID = ofID, ofID = NULL)]
     hmiss <- subset(refPgHits, repOfID %in% pangenomeDt$ofID)
@@ -864,6 +912,10 @@ pangenome <- function(gsParam,
                                  synParamsDt,
                                  nCores,
                                  gff){
+
+    isArrayRep <- genome <- genome1 <- genome2 <- repOfID <- ofID <- u <-
+      repOfID <- ofID <- pgID <- NULL
+
     pgRef <- data.table(pangenomeDt)
     ofIDl <- subset(gff, isArrayRep & genome != refGenome)
     ofIDl <- split(ofIDl$ofID, ofIDl$genome)
@@ -911,6 +963,12 @@ pangenome <- function(gsParam,
                                 synParamsDt,
                                 nCores,
                                 gff){
+
+    ofID <- repOfID <- genome <- refg <- og <- genome2 <- ng <- hasInterp <-
+      ni <- isRep <- clus <- interpRefChr <- interpRefOrd <- nInChr <- n <-
+      rat <- tmpi <- nPos <- clusThis <- lev <- med <- dist2med <- nOnChr <-
+      pgID <- altID <- NULL
+
     # -- invert and copy hits
     u <- unique(pgInd$ofID)
     ov <- gff$ord; cv <- gff$chr; gv <- gff$genome
@@ -1043,6 +1101,9 @@ pangenome <- function(gsParam,
 
   add_missingSynOgs <- function(pangenomeDt,
                                 gff){
+
+    ofID <- isArrayRep <- og <- pgID <- synog <- isRep <- NULL
+
     gfmiss <- subset(gff, !ofID %in% pangenomeDt$ofID & isArrayRep)
     gfin <- subset(gff, og %in% gfmiss$og & ofID %in% pangenomeDt$ofID)
     synogv <- gff$og; names(synogv) <- gff$ofID
@@ -1096,6 +1157,7 @@ pangenome <- function(gsParam,
   synBuff <- max(synp$selfRegionMask)
 
   # -- check the synhits exist
+  hitsFile <- genome1 <- genome2 <- NULL
   synp[, hitsFile := file.path(
     gsParam$paths$results,
     sprintf("%s_%s_synHits.txt.gz", genome1, genome2))]
@@ -1126,10 +1188,12 @@ pangenome <- function(gsParam,
   if(!file.exists(blksFile))
     stop("can't find the syntenic block coordinates file. Has synteny been run yet?\n")
   blks <- fread(blksFile, showProgress = F, na.strings = c("NA", ""))
+  blkID <- lastGene1 <- lastGene2 <- firstGene2 <- firstGene1 <- isSelf <- NULL
   blks <- subset(blks, !grepl("^NA_", blkID))
   blks[,isSelf := firstGene1 == firstGene2 | firstGene1 == lastGene2 | firstGene2 == lastGene1]
 
   # -- get a list of the chromosomes that are ever in synteny on refGenome
+  gen2 <- gen1 <- blkID <- NULL
   genChr <- unlist(lapply(genomeIDs, function(i){
     b1 <- subset(blks, gen1 == i & !grepl("self", blkID) & gen2 != gen1)$chr1
     b2 <- subset(blks, gen2 == i & !grepl("self", blkID) & gen2 != gen1)$chr2
@@ -1142,6 +1206,7 @@ pangenome <- function(gsParam,
     cat(sprintf("Building reference-anchored scaffold against %s\n", refGenome))
 
   # -- pull all self hits that are array reps
+  genome <- isArrayRep <- genome1 <- genome2 <- NULL
   refSynp <- subset(synp, genome1 == genome2 & genome1 == refGenome)
   if(nrow(refSynp) != 1)
     stop("not exactly 1 refgenome entry in synParams. something is wrong\n")
@@ -1168,6 +1233,8 @@ pangenome <- function(gsParam,
     cat(sprintf(
       "found %s\n\tInterpolating positions ... ",
       nrow(hits)))
+
+  blkID <- isAnchor <- NULL
   anch <- subset(hits, !is.na(blkID) & isAnchor)
   interp <- interp_refPos(
     gff = gf,
@@ -1202,7 +1269,9 @@ pangenome <- function(gsParam,
   pgChk <- chk_missingEntries(
     pangenomeDt = pgRef,
     refPgHits = hits)
-  pgAddedChk <- subset(pgChk, !paste(ofID, pgID) %in% paste(pgRef$ofID, pgRef$pgID))
+  ofID <- pgID <- NULL
+  pgAddedChk <- subset(
+    pgChk, !paste(ofID, pgID) %in% paste(pgRef$ofID, pgRef$pgID))
   if(verbose)
     cat(sprintf("found %s genes and %s placements\n",
                 uniqueN(pgAddedChk$ofID), uniqueN(pgAddedChk$pgID)))
@@ -1215,7 +1284,9 @@ pangenome <- function(gsParam,
     synParamsDt = synp,
     nCores = nCores,
     gff = gf)
-  pgAddedAdd <- subset(pgAdd, !paste(ofID, pgID) %in% paste(pgChk$ofID, pgChk$pgID))
+  ofID <- pgID <- NULL
+  pgAddedAdd <- subset(
+    pgAdd, !paste(ofID, pgID) %in% paste(pgChk$ofID, pgChk$pgID))
   if(verbose)
     cat(sprintf("found %s genes and %s placements\n",
                 uniqueN(pgAddedAdd$ofID), uniqueN(pgAddedAdd$pgID)))
@@ -1230,6 +1301,7 @@ pangenome <- function(gsParam,
     gff = gf)
   pgInd <- data.table(tmp$pg)
   hitsMissing <- data.table(tmp$missingHits)
+  ofID <- pgID <- NULL
   pgAddedInd <- subset(pgInd, !paste(ofID, pgID) %in% paste(pgAdd$ofID, pgAdd$pgID))
   if(verbose)
     cat(sprintf("found %s genes and %s placements\n",
@@ -1243,6 +1315,7 @@ pangenome <- function(gsParam,
     synParamsDt = synp,
     nCores = nCores,
     gff = gf)
+  ofID <- pgID <- NULL
   pgAddedNS <- subset(pgNS, !paste(ofID, pgID) %in% paste(pgInd$ofID, pgInd$pgID))
   if(verbose)
     cat(sprintf("found %s genes and %s placements\n",
@@ -1252,6 +1325,7 @@ pangenome <- function(gsParam,
   if(verbose)
     cat("\tAdding missing genes by synOG identity ... ")
   pgOut <- add_missingSynOgs(pangenomeDt = pgNS, gff = gf)
+  ofID <- pgID <- NULL
   pgAddedSynog <- subset(pgOut, !paste(ofID, pgID) %in% paste(pgNS$ofID, pgNS$pgID))
   if(verbose)
     cat(sprintf("found %s genes and %s placements\n",
@@ -1263,6 +1337,7 @@ pangenome <- function(gsParam,
     cat("Annotating and formatting pan-genome\n\tAdding non-anchor entries ... ")
 
   # -- classifiers
+  ofID <- pgID <- isDirectSyn <- pgOrd <- u <- isSynOgOnly <- NULL
   pgOut[,u := paste(pgID, ofID)]
   genesInPgRef <- with(pgRef, unique(paste(pgID, ofID)))
   genesInPgAddedChk <- with(pgAddedChk, unique(paste(pgID, ofID)))
@@ -1272,10 +1347,11 @@ pangenome <- function(gsParam,
   genesInPgAddedSynog <- with(pgAddedSynog, unique(paste(pgID, ofID)))
   pgOut[,`:=`(
     isDirectSyn = u %in% c(genesInPgRef, genesInPgAddedChk, genesInPgAddedAdd),
-    isSynOgOnly = u %in% pgAddedSynog | is.na(pgOrd),
+    isSynOgOnly = u %in% genesInPgAddedSynog | is.na(pgOrd),
     u = NULL)]
 
   # -- array representatives
+  isArrayRep <- NULL
   pgAll <- add_arrayMembers(pangenomeDt = pgOut, gff = gf)
   pgMem <- subset(pgAll, !isArrayRep)
   if(verbose)
@@ -1294,11 +1370,14 @@ pangenome <- function(gsParam,
       gff = gf,
       pangenomeDt = pgAll,
       maxNonSynOrthos2keepPerGenome = maxNonSynOrthos2keepPerGenome)
-    pgAddedNSog <- subset(pgNSog, !paste(ofID, pgID) %in% paste(pgAll$ofID, pgAll$pgID))
+    ofID <- pgID <- NULL
+    pgAddedNSog <- subset(
+      pgNSog, !paste(ofID, pgID) %in% paste(pgAll$ofID, pgAll$pgID))
     if(verbose)
       cat(sprintf("found %s genes and %s placements\n",
                   uniqueN(pgAddedNSog$ofID), uniqueN(pgAddedNSog$pgID)))
     pgAll <- data.table(pgNSog)
+    ofID <- pgID <- isNSOrtho <- NULL
     pgAll[,isNSOrtho := paste(ofID, pgID) %in% paste(pgAddedNSog$ofID, pgAddedNSog$pgID)]
   }else{
     pgAll[,isNSOrtho := FALSE]
@@ -1310,6 +1389,8 @@ pangenome <- function(gsParam,
   # -- output and write
   if(verbose)
     cat(sprintf("\tWriting pangenome to results/%s_pangenomeDB.txt.gz\n", refGenome))
+  pgChr <- ofID <- pgOrd <- isRep <- isDirectSyn <- isSynOgOnly <- isArrayRep <-
+    isNSOrtho <- genome <- chr <- ord <- NULL
   setorder(
     pgAll, pgChr, pgOrd, -isRep, -isDirectSyn, -isSynOgOnly,
     -isArrayRep, isNSOrtho, genome, chr, ord, na.last = T)
@@ -1336,6 +1417,7 @@ pangenome <- function(gsParam,
   pgout$id[wh] <- paste0(pgout$id[wh], "+")
 
   # -- reshape to wide format
+  pgID <- pgChr <- pgOrd <- genome <- NULL
   pgw <- dcast(
     pgout,
     pgID + pgChr + pgOrd ~ genome,

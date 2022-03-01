@@ -10,7 +10,7 @@ pangenome(
   refGenome = NULL,
   maxPlacementsPerRefChr = 2,
   propAssignThresh = 0.5,
-  maxNonSynOrthos2keepPerGenome = 2
+  maxNonSynOrthos2keepPerGenome = 5
 )
 }
 \arguments{
@@ -25,9 +25,15 @@ to all genomeIDs specification in gsParam.}
 
 \item{refGenome}{character string matching one of the genomeIDs in gsParam}
 
-\item{noSecondaryAnchors}{logical, should "secondary" (see synteny) hits be
-used as pangenome position anchors? If so, like with polyploids, gene
-positions may be duplicated}
+\item{maxPlacementsPerRefChr}{integer of length 1, specifying the maximum
+number of pan-genome entries that a gene can belong to on a single
+reference chromosome.}
+
+\item{propAssignThresh}{numeric of length 1, the minimum proportion of genes
+in a pangenome entry needed to anchor the physical position to a new location}
+
+\item{maxNonSynOrthos2keepPerGenome}{integer of length 1 specifying the
+number of non-syntenic orthologs to include in the pan-genome annotation.}
 }
 \value{
 a data.table with lists of gene ids for each genome. Each row

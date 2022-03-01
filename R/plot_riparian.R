@@ -45,6 +45,8 @@
 #' @param chrLabFun function to parse chr IDs to make them more readible
 #' @param minGenes2plot integer specifying the minimum number of genes on a
 #' chr to plot
+#' @param onlySameChrs logical, should only chromosomes with the same names
+#' be shown?
 #' @param onlyTheseRegions data.table with genome, chr, start and end columns
 #' @param excludeChrOutOfRegion logical, should chromosome representations
 #' be constrained to just those in synteny with the rest of the graph?
@@ -325,7 +327,7 @@ plot_riparian <- function(gsParam,
     genome <- ofID1 <- ofID2 <- chr1 <- chr <- gen1 <- ord1 <- ofID <-
     rl <- refChr <- blkID <- gen2 <- startOrd1 <- endOrd1 <- end <- n <-
     startOrd2 <- endOrd2 <- startBp1 <- endBp1 <- startBp2 <- regID <-
-    endBp2 <- firstGene1 <- x <- linBp <- linOrd <- y <- start <- NULL
+    endBp2 <- firstGene1 <- x <- linBp <- linOrd <- y <- start <- chr2 <- NULL
 
 
   ##############################################################################

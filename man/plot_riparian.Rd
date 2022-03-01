@@ -66,6 +66,9 @@ should be plot}
 
 \item{onlyTheseRegions}{data.table with genome, chr, start and end columns}
 
+\item{onlySameChrs}{logical, should only chromosomes with the same names
+be shown?}
+
 \item{excludeChrOutOfRegion}{logical, should chromosome representations
 be constrained to just those in synteny with the rest of the graph?}
 

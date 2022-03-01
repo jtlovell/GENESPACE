@@ -13,7 +13,6 @@
 #' @param recursive logical, should the search be recursive
 #' @param which character specifying which method to use
 #' @param x vector of observations
-#' @param y vector of observations
 #' @param id1 character vector of ids with length matching id2
 #' @param id2 character vector of ids with length matching id1
 #' @param min numeric, length 1 specifying the minumum value in the scaled data
@@ -29,10 +28,27 @@
 #' @param onlyIDScore logical, should only the geneIDs and score be returned?
 #' @param onlyCheckRun logical, should the run just be checked?
 #' @param hits data.table containing annotated blast-format pairwise hits
+#' @param mirror logical, should hits be mirrored prior to block calculation?
+#' @param refOrd numeric, the order of anchor hits to interpolate
+#' @param toInterpOrd numeric, the order of alt genes to interpolate
+#' @param ... additional arguments passed to other functions
 #' \cr
 #' If called, \code{utils} returns its own arguments.
 #'
-#'
+
+#' @title startup messages
+#' @description
+#' \code{.onAttach} startup messages
+#' @rdname utils
+#' @export
+.onAttach <- function(...) {
+
+  welc <- "GENESPACE v0.9.3: synteny and orthology constrained comparative genomics\n"
+
+  # Display hint
+  packageStartupMessage(paste(strwrap(welc), collapse = "\n"))
+}
+
 #' @title Order files by date of last modification
 #' @description
 #' \code{order_filesByMtime} Order files by date of last modification
@@ -450,6 +466,8 @@ calc_blkCoords <- function(hits, mirror = FALSE){
              "chr1", "chr2", "gen1", "gen2", "ofID1", "ofID2")
   bhits <- subset(hits, complete.cases(hits[,hcols, with = F]))
 
+  ofID1 <- start1 <- end1 <- ofID1 <- ord1 <- blkID <- NULL
+
   if(mirror){
     tmp <- data.table(bhits)
     setnames(tmp, gsub("2$", "3", colnames(tmp)))
@@ -460,7 +478,6 @@ calc_blkCoords <- function(hits, mirror = FALSE){
   }
 
   # -- get the genome1 coordinates
-  ofID1 <- start1 <- end1 <- ofID1 <- ord1 <- NULL
   setkey(bhits, ord1)
   blks1 <- bhits[,list(
     startBp1 = min(start1), endBp1 = max(end1),
@@ -588,7 +605,7 @@ interp_linear <- function(refOrd,
                           toInterpOrd){
 
   # -- convert to numeric, to ensure that NAs are correctly specified
-  dt <- x <- y <- NULL
+  dt <- x <- y <- rl <- toInterp <- ip <- NULL
   ord1 <- as.numeric(refOrd)
   ord2 <- as.numeric(toInterpOrd)
   if(all(is.na(ord1)))

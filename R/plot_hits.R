@@ -3,17 +3,19 @@
 #' \code{plot_hits} Genespace plotting routines
 #'
 #' @param hits data.table of hits
-#' @param plotType character string specifying the plot type
+#' @param onlyOG logical, should the plot only show orthogroup-constrained hits?
+#' @param onlyAnchors logical, should the plot only show syntenic anchors?
+#' @param useBlks logical, should the plot only show hits in blocks?
+#' @param onlyArrayReps logical, should the plot only show only array reps?
+#' @param onlyBuffer logical, should the plot only show hits in buffers?
+#' @param missingHitCol character string or number coercible to an R color. The
+#' point color of hits that are not in blocks
 #' @param reorderChrs logical, should the chromosomes be re-ordered based on
 #' synteny?
-#' @param round2 integer, specifying the rounding of gene rank order positions
-#' to reduce the total number of points. 1 = don't round
 #' @param alpha numeric (0-1) specifying transparency of the points
 #' @param chrLabFun function to parse chr IDs to make them more readible
 #' @param gapProp numeric (0-1) specifying the proportional size of gaps
 #' relative to the length of the largest genome
-#' @param useOrder logical, should gene rank order be used in lieu of physical
-#' positions?
 #' @param axisTitleCex character expansion for the axes and genome labels
 #' @param chrLabCex character expansion for the chromosome labels
 #' @param darkChrFill color of the most dense chr backgrounds
@@ -88,6 +90,9 @@ plot_hits <- function(hits,
     return(cb)
   }
 
+
+  isOg <- isAnchor <- blkID <- regID <- inBuffer <- isRep1 <- isRep2 <- ord1 <-
+    ord2 <- nu1 <- ofID1 <- nu2 <- ofID2 <- NULL
 
   setDTthreads(1)
 

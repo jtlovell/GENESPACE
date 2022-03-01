@@ -17,6 +17,7 @@
 #' @param genomeIDs character vector with the genomes to include in the run
 #' @param minGenes4of integer specifying the minimum number of genes needed to
 #' run orthofinder.
+#' @param path2orthofinder file.path pointing to a valid orthofinder install
 #' @param blast00 data.table containing the blast hits of genome1 to genome1
 #' @param blast01 data.table containing the blast hits of genome1 to genome2
 #' @param blast10 data.table containing the blast hits of genome2 to genome1

@@ -60,6 +60,8 @@ run orthofinder.}
 
 \item{writeDir}{file path pointing to a directory within which to run f}
 
+\item{path2orthofinder}{file.path pointing to a valid orthofinder install}
+
 \item{genome1}{character string specifying genome1}
 
 \item{genome2}{character string specifying genome2}

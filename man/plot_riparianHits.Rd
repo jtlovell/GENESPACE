@@ -65,10 +65,16 @@ be constrained to just those in synteny with the rest of the graph?}
 \item{excludeNoRegPos}{logical, should chromosome representations
 be constrained to just syntenic positions with the rest of the graph?}
 
+\item{onlySameChrs}{logical, should only chromosomes with the same names
+be shown?}
+
 \item{invertTheseChrs}{data.table with two columns, genome and chr containing
 the lists of genomes and chromosomes that should be inverted in the plot}
 
 \item{reorderChrs}{logical, should chromosomes be re-ordered by synteny?}
+
+\item{maxSyntenyFun}{function, how synteny is calculated relative to the
+reference chromosome order.}
 
 \item{refChrCols}{if braids should be colored by reference chromosome,
 a vector of colors or integers that is coerced into a color palette. If
@@ -119,9 +125,6 @@ specified, taken from gsParam.}
 \item{annotatePlot}{logical, should names be printed on the plot}
 
 \item{add2plot}{logical, should plotting use existing graphics device?}
-
-\item{minGenes}{integer specifying the minimum number of genes on a chr to
-plot}
 }
 \description{
 \code{plot_riparianHits} Updated and more accurate version of plot_riparian
