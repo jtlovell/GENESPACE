@@ -613,7 +613,6 @@ plot_riparianHits <- function(gsParam,
       tmp <- subset(gf, genome == refGenome & chr %in% ripHits$refChr)
       refChrs <- unique(tmp$chr)
 
-      print(refChrs)
       urchr <- unique(gf$chr[gf$genome == refGenome])
       if(length(refChrCols) != length(refChrs)){
         cols <- colorRampPalette(refChrCols)(length(refChrs))
