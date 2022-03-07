@@ -862,32 +862,32 @@ pangenome <- function(gsParam,
   # -- internal function to add missing syntenic orthogroups
   add_missingSynOgs <- function(pangenomeDt,
                                 gff){
-
     ofID <- isArrayRep <- og <- pgID <- synog <- isRep <- NULL
 
     gfmiss <- subset(gff, !ofID %in% pangenomeDt$ofID & isArrayRep)
     gfin <- subset(gff, og %in% gfmiss$og & ofID %in% pangenomeDt$ofID)
-    synogv <- gff$og; names(synogv) <- gff$ofID
-    pgin <- subset(pangenomeDt,
-                   pgID %in% subset(pangenomeDt, ofID %in% gfin$ofID)$pgID)
-    pgin[,synog := synogv[ofID]]
-    pgin <- subset(pgin, !isRep)
-    pgin <- pgin[,c("pgChr", "pgOrd", "pgID", "og", "synog")]
-    pgin <- subset(pgin, !duplicated(pgin))
-    gfin <- with(gfmiss, data.table(
-      ofID = ofID, chr = chr, ord = ord,
-      genome = genome, isRep = FALSE, synog = og))
-    pgin <- merge(
-      subset(pgin, !duplicated(pgin)),
-      subset(gfin, !duplicated(gfin)),
-      by = "synog", allow.cartesian = T, all.y = T)
-    pgin <- pgin[,colnames(pangenomeDt), with = F]
-    return(rbind(pangenomeDt, pgin))
+    if(nrow(gfin) > 0){
+      synogv <- gff$og; names(synogv) <- gff$ofID
+      pgin <- subset(pangenomeDt,
+                     pgID %in% subset(pangenomeDt, ofID %in% gfin$ofID)$pgID)
+      pgin[,synog := synogv[ofID]]
+      pgin <- pgin[,c("pgChr", "pgOrd", "pgID", "og", "synog")]
+      pgin <- subset(pgin, !duplicated(pgin))
+
+      gfin <- with(gfmiss, data.table(
+        ofID = ofID, chr = chr, ord = ord,
+        genome = genome, isRep = FALSE, synog = og))
+
+      pgin <- merge(
+        subset(pgin, !duplicated(pgin)),
+        subset(gfin, !duplicated(gfin)),
+        by = "synog", allow.cartesian = T, all.y = T)
+      pgin <- pgin[,colnames(pangenomeDt), with = F]
+      return(rbind(pangenomeDt, pgin))
+    }else{
+      return(pangenomeDt)
+    }
   }
-
-
-
-
 
   ##############################################################################
   # 1. check the basic parameters
