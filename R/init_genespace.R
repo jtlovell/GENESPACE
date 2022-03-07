@@ -144,37 +144,29 @@ init_genespace <- function(genomeIDs,
                            verbose = TRUE){
 
   ##############################################################################
-  ##############################################################################
+  # -- ad hoc function to build the skeleton parameters
   skeleton_params <- function(){
-    list(
-      genomes = list(
-        genomeIDs = NULL,
-        outgroup = NULL,
-        ploidy = NULL),
+    list(genomes = list(
+      genomeIDs = NULL, outgroup = NULL, ploidy = NULL),
       params = list(
-        wd = NULL,
-        orthofinderMethod = NULL,
-        nCores = NULL,
-        verbose = NULL,
-        synteny = NULL),
+        wd = NULL, orthofinderMethod = NULL, nCores = NULL,
+        verbose = NULL, synteny = NULL),
       paths = list(
-        rawGff = NULL,
-        rawPeptide = NULL,
-        gff = NULL,
-        peptide = NULL,
-        orthofinder = NULL,
-        results = NULL,
-        orthofinderCall = NULL,
-        mcscanxCall = NULL,
-        annotGff = NULL,
-        synHits = NULL,
-        blkCoords = NULL,
-        pangenomes = NULL))
+        rawGff = NULL, rawPeptide = NULL, gff = NULL, peptide = NULL,
+        orthofinder = NULL, results = NULL, orthofinderCall = NULL,
+        mcscanxCall = NULL))
   }
 
   ##############################################################################
+  # -- ad hoc function to make sure the genomeIDs conform
   check_genomeIDs <- function(x){
+    lets <- c(LETTERS, letters)
     x <- as.character(x)
+    firstChar <- substr(x, 1, 1)
+    if(!all(firstChar %in% lets))
+      stop("all genomeIDs must start with a letter (a-z A-Z) character\n")
+    if(grepl("[^a-zA-Z0-9]", x))
+      stop("non-alphanumeric characters are not allowed in genomeIDs\n")
     if(any(is.na(x)) || any(is.null(x)))
       stop("problem with genomeIDs - could not coerce to character string\n")
     if(any(duplicated(x)))
@@ -185,20 +177,31 @@ init_genespace <- function(genomeIDs,
   }
 
   ##############################################################################
+  # -- ad hoc function to make sure the outgroup conforms
   check_outgroup <- function(x, genomeIDs){
     if(any(is.null(x))){
       return(NA)
     }else{
       x <- as.character(x)
+      lets <- c(LETTERS, letters)
+      x <- as.character(x)
+      firstChar <- substr(x, 1, 1)
+      if(!all(firstChar %in% lets))
+        stop("outgroup ID must start with a letter (a-z A-Z) character\n")
+      if(grepl("[^a-zA-Z0-9]", x))
+        stop("non-alphanumeric characters are not allowed in outgroup ID\n")
       if(any(is.na(x)) || any(is.null(x)))
-        stop("problem with outgroup - could not coerce to character string\n")
+        stop("problem with outgroup ID - could not coerce to character string\n")
+      if(any(duplicated(x)))
+        stop("problem with outgroup ID - not all are unique\n")
       if(!all(x %in% genomeIDs))
-        stop("problem with outgroup - needs to be one of genomeIDs\n")
+        stop("problem with outgroup - needs to be listed in genomeIDs\n")
       return(x)
     }
   }
 
   ##############################################################################
+  # -- ad hoc function to check if ploidy specs are ok
   check_ploidy <- function(x, genomeIDs){
     x <- as.integer(x)
     if(any(is.na(x)) || any(is.null(x)))
@@ -212,19 +215,7 @@ init_genespace <- function(genomeIDs,
   }
 
   ##############################################################################
-  drop_outgroup <- function(x, outgroup){
-    if(is.null(outgroup)){
-      return(x)
-    }else{
-      y <- x[!x %in% outgroup]
-      y <- factor(y, levels = x)
-      y <- y[order(y)]
-      y <- as.character(y)
-      return(y)
-    }
-  }
-
-  ##############################################################################
+  # -- ad hoc function to make sure the wd is ok and created.
   check_wd <- function(x){
     if(!dir.exists(dirname(x)))
       stop(sprintf(
@@ -236,6 +227,7 @@ init_genespace <- function(genomeIDs,
   }
 
   ##############################################################################
+  # -- ad hoc function to make sure raw files are present
   check_rawFiles <- function(path,
                              genomeIDs,
                              speciesIDs,
@@ -281,6 +273,7 @@ init_genespace <- function(genomeIDs,
   }
 
   ##############################################################################
+  # -- ad hoc function to check min peptide length parameter
   check_minPepLen <- function(x){
     x <- as.integer(x)[1]
     if(is.na(x) || is.null(x))
@@ -291,16 +284,7 @@ init_genespace <- function(genomeIDs,
   }
 
   ##############################################################################
-  check_dropInterSize <- function(x){
-    x <- as.integer(x)[1]
-    if(is.na(x) || is.null(x))
-      stop("dropInterleavesSmallerThan must be an integer\n")
-    if(x < 1)
-      x <- 1
-    return(x)
-  }
-
-  ##############################################################################
+  # -- ad hoc function to make the parsed annotation file paths
   make_parsedAnnotPaths <- function(path, genomeIDs){
     gp <- file.path(path, "gff")
     if(!dir.exists(gp))
@@ -317,6 +301,7 @@ init_genespace <- function(genomeIDs,
   }
 
   ##############################################################################
+  # -- ad hoc function to make genespace directories
   make_genespaceDirs <- function(path, overwrite = FALSE){
     of <- file.path(path, "orthofinder")
     re <- file.path(path, "results")
@@ -328,70 +313,84 @@ init_genespace <- function(genomeIDs,
   }
 
   ##############################################################################
+  # -- ad hoc function to check the mcscanx install
   check_MCScanXhInstall <- function(path){
-    path <- path.expand(path)
-    pth <- file.path(path, "MCScanX_h")
-    if(!dir.exists(path))
-      stop("path to MCScanX is not valid, check that its specified correctly\n")
-    if(!file.exists(pth))
-      stop("found MCScanX folder, but not executable. Has it been installed with make?\n")
-    chk <- suppressWarnings(grepl(
-      "prefix_fn",
-      system2(pth, "-h", stdout = TRUE, stderr = FALSE)[1]))
-    if(!chk)
-      stop("cannot find MCScanX_h in", path,"\n")
+    path <- as.character(path)
+    if(is.na(path) || is.null(path)){
+      pth <- NA
+    }else{
+      path <- path.expand(path)
+      pth <- file.path(path, "MCScanX_h")
+      if(!dir.exists(path))
+        stop("path to MCScanX is not valid, check that its specified correctly\n")
+      if(!file.exists(pth))
+        stop("found MCScanX folder, but not executable. Has it been installed with make?\n")
+
+      chk <- tryCatch(
+        suppressWarnings(system2(pth, "-h", stdout = TRUE, stderr = FALSE)),
+        error = function(err) NA)
+      if(!grepl("prefix_fn", chk[1]) || is.na(chk))
+        pth <- NA
+    }
+    if(is.na(pth))
+      stop("cannot find MCScanX_h executable in", pth,"\n")
+    return(pth)
+  }
+
+  ##############################################################################
+  # -- ad hoc function to check diamond installation
+  check_diamondInstall <- function(path){
+    path <- as.character(path)
+    if(is.na(path) || is.null(path)){
+      path <- NA
+    }else{
+      path <- path.expand(path)
+      wh <- Sys.which(as.character(path))
+      ex <- file.exists(path)
+      if(!file.exists(ex) && wh == ""){
+        path <- NA
+      }else{
+        chk <- tryCatch(
+          suppressWarnings(system2(path, "help", stdout = TRUE, stderr = TRUE)),
+          error = function(err) NA)
+        if(!grepl("diamond v2", chk[1]))
+          path <- NA
+      }
+    }
     return(path)
   }
 
   ##############################################################################
-  check_diamondInstall <- function(path){
-    path <- path.expand(path)
-    chk <- tryCatch(
-      {
-        system2(path, "help",
-                stdout = FALSE, stderr = FALSE)
-      },
-      error=function(err) {
-        warning("cannot call diamond from ", path)
-        return(NA)
-      }
-    )
-    if(!is.na(chk))
-      chk <- path
-    return(chk)
-  }
-
-  ##############################################################################
+  # -- ad hoc function to check orthofinder install
   check_orthofinderInstall <- function(path, verbose = FALSE){
-    path <- path.expand(path)
-    if(is.na(path))
-      path <- "NA"
-    wh <- Sys.which(as.character(path))
-    chk <- FALSE
-    if(basename(wh) == "orthofinder"){
-      ver <- system2(path, "-h", stdout = TRUE)[2]
-      if(grepl("OrthoFinder", ver)){
-        ver <- strsplit(ver, " ")[[1]][3]
-        vern <- strsplit(ver, ".", fixed = T)[[1]]
-        vern <- as.numeric(sprintf("%s.%s%s", vern[1], vern[2], vern[3]))
-        if(vern >= 2.52){
-          chk <- TRUE
-        }else{
-          if(verbose)
-            warning(sprintf("Orthofinder >= 2.5.2 must be installed (path is to %s)\n\tAssuming orthofinder will be run outside of R with v2.5.2 or later\n", ver))
+    if(is.na(path) || is.null(path)){
+      path <- NA
+    }else{
+      path <- path.expand(path)
+      wh <- Sys.which(as.character(path))
+      ex <- file.exists(path)
+      if(!file.exists(ex) && wh == ""){
+        path <- NA
+      }else{
+        ver <- tryCatch(
+          suppressWarnings(system2(path, "-h", stdout = TRUE, stderr = TRUE)),
+          error = function(err) NA)
+        if(!grepl("OrthoFinder", ver[2]) || is.na(ver) || length(ver) == 1){
           path <- NA
+        }else{
+          ver <- strsplit(ver, " ")[[1]][3]
+          vern <- strsplit(ver, ".", fixed = T)[[1]]
+          vern <- as.numeric(sprintf("%s.%s%s", vern[1], vern[2], vern[3]))
+          if(vern < 2.52)
+              warning(sprintf("Orthofinder >= 2.5.2 must be installed (path is to version %s)\n\tAssuming orthofinder will be run outside of R with v2.5.2 or later\n", ver))
         }
       }
     }
-    if(!chk){
-      path <- NA
-      if(verbose)
-        warning("Cannot call orthofinder from path specified to GENESPACE\n\tRun orthofinder outside of R with commands supplied")
-    }
-    return(!is.na(path))
+    return(path)
   }
 
   ##############################################################################
+  # -- ad hoc function to check the nCores parameter
   check_nCores <- function(nCores){
     if(length(nCores > 1)) nCores <- nCores[1]
     nCores <- as.integer(nCores)
@@ -408,6 +407,7 @@ init_genespace <- function(genomeIDs,
   }
 
   ##############################################################################
+  # -- ad hoc function to check which orthofinder method can be used
   choose_ofMethod <- function(path2orthofinder, orthofinderMethod = "default"){
     ofm <- match.arg(orthofinderMethod, choices = c("fast", "default"))
     isInstall <- check_orthofinderInstall(path2orthofinder)
@@ -422,12 +422,14 @@ init_genespace <- function(genomeIDs,
     }
   }
   ##############################################################################
+  # -- ad hoc function to check if orthofinder in block can be run
   choose_ofInBlkMethod <- function(path2orthofinder, orthofinderInBlk = FALSE){
     orthofinderInBlk <- check_logicalArg(orthofinderInBlk)
     return(orthofinderInBlk && check_orthofinderInstall(path2orthofinder))
   }
 
   ##############################################################################
+  # -- ad hoc function to check diamond mode parameter
   choose_diamondMode <- function(path2diamond, diamondMode){
     path2diamond <- check_diamondInstall(path2diamond)
     arg <- match.arg(diamondMode, choices = c(
@@ -436,120 +438,188 @@ init_genespace <- function(genomeIDs,
 
     return(sprintf("--%s", arg))
   }
+
+
+
+
   ##############################################################################
   # 1. make the skeleton and do basic checks
   ##############################################################################
-
   # make sure genomeIDs look good
+  if(verbose)
+    cat("Initializing GENESPACE run\nchecking genomeIDs ... ")
   p <- skeleton_params()
   p$genomes$genomeIDs <- check_genomeIDs(genomeIDs)
+  if(verbose & all(outgroup %in% genomeIDs))
+    cat("PASS\n\tchecking outgroup ... ")
   p$genomes$outgroup <- check_outgroup(outgroup, genomeIDs = genomeIDs)
+  if(verbose & all(outgroup %in% genomeIDs))
+    cat("PASS\n\tchecking ploidy ... ")
   p$genomes$ploidy <- check_ploidy(ploidy, genomeIDs = genomeIDs)
+  if(verbose & all(outgroup %in% genomeIDs))
+    cat("PASS\n\tchecking working directory ... ")
 
   # -- check the working directory
   p$params$wd <- check_wd(wd)
   setwd(p$params$wd)
-  cat("set working directory to", setwd(p$params$wd),"\n")
+  if(verbose)
+    cat(sprintf("PASS - using %s as the working directory\n",
+                p$params$wd))
 
-  # -- orthofinder method checks
-  p$params$orthofinderMethod <- choose_ofMethod(
-    orthofinderMethod = orthofinderMethod,
-    path2orthofinder = path2orthofinder)
-  if(p$params$orthofinderMethod == "default" & orthofinderMethod == "fast")
-    cat(
-      "\n#####################################\n",
-      "Could not find orthofinder in system path, but fast method specified\n",
-      "For this run, setting orthofinder method = default (slower but more accurate)\n",
-      "If this isn't right, open R from a terminal with orthofinder in the path\n")
-
-  # -- orthofinder in block method checks
-  p$params$orthofinderInBlk <- choose_ofInBlkMethod(
-    path2orthofinder = path2orthofinder,
-    orthofinderInBlk = orthofinderInBlk)
-  if(!p$params$orthofinderInBlk & orthofinderInBlk)
-    cat(
-      "\n#####################################\n",
-      "Could not find orthofinder in system path, but orthofinderInBlk specified\n",
-      "For this run, setting orthofinderInBlk to FALSE (may not be appropriate for polyploids)\n",
-      "If this isn't right, open R from a terminal with orthofinder in the path\n")
-
-  p$params$diamondMode <- choose_diamondMode(
-    path2diamond = path2diamond,
-    diamondMode = diamondMode)
-
-
-  # -- basic genespace parameters
-  p$params$nCores <- check_nCores(nCores)
-  p$params$verbose <- check_logicalArg(verbose)
-  p$params$minPepLen <- check_minPepLen(minPepLen)
-
-  ##############################################################################
-  # 2. check dependencies
-  ##############################################################################
-  # -- orthofinder
-  p$paths$orthofinderCall <- check_orthofinderInstall(path2orthofinder, verbose = T)
-  if(p$paths$orthofinderCall)
-    p$paths$orthofinderCall <- path2orthofinder
-  # -- mcscanx
-  p$paths$mcscanxCall <- check_MCScanXhInstall(path2mcscanx)
-  # -- diamond
-  p$paths$diamondCall <- check_diamondInstall(path2diamond)
-
-  ##############################################################################
-  # 3. make/check raw and parsed file paths
-  ##############################################################################
-  # -- gff
-  p$paths$rawGff <- check_rawFiles(
-    path = rawGenomeDir,
-    genomeIDs = p$genomes$genomeIDs,
-    speciesIDs = speciesIDs,
-    versionIDs = versionIDs,
-    pattern = gffString)
-  cat("\nfound raw gff files:\n\t", paste(p$paths$rawGff,collapse = "\n\t"))
-
-  # -- peptide
-  p$paths$rawPeptide <- check_rawFiles(
-    path = rawGenomeDir,
-    genomeIDs = p$genomes$genomeIDs,
-    speciesIDs = speciesIDs,
-    versionIDs = versionIDs,
-    pattern = pepString)
-  cat("\n\nfound raw peptide files:\n\t", paste(p$paths$rawPeptide,collapse = "\n\t"),"\n")
-
-  # -- parsed file paths
+  # -- check for parsed gff annotation files
+  if(verbose)
+    cat("\tchecking parsed gff files ... ")
   tmp <- make_parsedAnnotPaths(
     path = p$params$wd,
     genomeIDs = p$genomes$genomeIDs)
   p$paths$gff <- tmp$gff
-  p$paths$peptide <- tmp$pep
+  foundGff <- FALSE
+  if(!any(file.exists(p$paths$gff))){
+    if(verbose)
+      cat("not found - need to run parse_annotations (etc.)\n")
+  }else{
+    foundGff <- TRUE
+    if(verbose)
+      cat(sprintf("found them here: %s\n", dirname(p$paths$gff)[1]))
+  }
 
+  # -- check for parsed peptide annotation files
+  if(verbose)
+    cat("\tchecking parsed peptide files ... ")
+  p$paths$peptide <- tmp$pep
+  foundPep <- FALSE
+  if(!any(file.exists(p$paths$gff))){
+    if(verbose)
+      cat("not found - need to run parse_annotations (etc.)\n")
+  }else{
+    foundPep <- TRUE
+    if(verbose)
+      cat(sprintf("found them here: %s\n", dirname(p$paths$gff)[1]))
+  }
+
+  # -- check for raw gff and peptide annotation files
+  if(!foundPep || !foundGff){
+    if(verbose)
+      cat("Since there are no parsed gffs and peptides, checking raw files\n")
+    p$paths$rawGff <- check_rawFiles(
+      path = rawGenomeDir,
+      genomeIDs = p$genomes$genomeIDs,
+      speciesIDs = speciesIDs,
+      versionIDs = versionIDs,
+      pattern = gffString)
+
+    p$paths$rawPeptide <- check_rawFiles(
+      path = rawGenomeDir,
+      genomeIDs = p$genomes$genomeIDs,
+      speciesIDs = speciesIDs,
+      versionIDs = versionIDs,
+      pattern = pepString)
+
+    cat("\tfound raw gff files:\n\t",
+        paste(p$paths$rawGff,collapse = "\n\t"))
+    cat("\n\nfound raw peptide files:\n\t",
+        paste(p$paths$rawPeptide,collapse = "\n\t"),"\n")
+  }
+
+  ##############################################################################
+  # 2. check dependencies
+  ##############################################################################
+  # -- mcscanx
+  if(verbose)
+    cat("Checking dependencies and 3rd party installations ...\n\tMCScanX installation ... ")
+  p$paths$mcscanxCall <- check_MCScanXhInstall(path2mcscanx)
+  if(verbose)
+    cat(sprintf("PASS, it is here: %s\n\tOrthofinder installation ... ",
+                p$paths$mcscanxCall))
+
+  # -- orthofinder
+  p$paths$orthofinderCall <- check_orthofinderInstall(
+    path2orthofinder, verbose = verbose)
+  if(is.na(p$paths$orthofinderCall)){
+    if(verbose)
+      cat(sprintf("cound not find orthofinder at %s\n",
+                  path2orthofinder))
+  }else{
+    if(verbose)
+      cat(sprintf("PASS, it is here: %s\n",
+                  p$paths$orthofinderCall))
+  }
+
+  # -- diamond
+  if(verbose)
+    cat("\tOrthoFinder method ... ")
+  p$params$orthofinderMethod <- choose_ofMethod(
+    orthofinderMethod = orthofinderMethod,
+    path2orthofinder = path2orthofinder)
+  if(verbose){
+    if(p$params$orthofinderMethod == "default" & orthofinderMethod == "fast"){
+      cat(
+        "Could not find orthofinder in system path, but fast method specified\n",
+        "For this run, setting orthofinder method = default (slower but more accurate)\n",
+        "If this isn't right, open R from a terminal with orthofinder in the path\n")
+    }else{
+      cat(sprintf("set to %s\n", p$params$orthofinderMethod))
+    }
+  }
+  if(is.na(p$paths$orthofinderCall) & verbose)
+    cat("\n######***NOTE***########\n",
+        "You will need to conduct an orthofinder run outside of R prior to using genespace\n",
+        "Follow instructions printed from run_orthofinder\n")
+
+  # -- orthofinder in block method checks
+  if(verbose)
+    cat("\tOrthofinder in block method ... ")
+  p$params$orthofinderInBlk <- choose_ofInBlkMethod(
+    path2orthofinder = path2orthofinder,
+    orthofinderInBlk = orthofinderInBlk)
+  if(verbose){
+    if(!p$params$orthofinderInBlk & orthofinderInBlk){
+      cat(
+        "Could not find orthofinder in system path, but orthofinderInBlk specified\n",
+        "For this run, setting orthofinderInBlk to FALSE (may not be appropriate for polyploids)\n",
+        "If this isn't right, open R from a terminal with orthofinder in the path\n")
+    }else{
+      cat(sprintf("set to %s\n", p$params$orthofinderInBlk))
+    }
+  }
+
+  # -- diamond calls for just fast method
+  if(p$params$orthofinderMethod == "fast"){
+    if(verbose)
+      cat("\tdiamond mode ... ")
+    p$paths$diamondCall <- check_diamondInstall(path2diamond)
+    p$params$diamondMode <- choose_diamondMode(
+      path2diamond = path2diamond,
+      diamondMode = diamondMode)
+    if(verbose)
+      cat(sprintf("set to %s\n", p$params$diamondMode))
+  }
+
+  # -- basic genespace parameters
+  if(verbose)
+    cat("Checking parameters\n\tNumber of parallel processes ... ")
+  p$params$nCores <- check_nCores(nCores)
+  if(verbose)
+    cat(sprintf("PASS, set to %s\n\tVerbosity ... ", p$params$nCores))
+  p$params$verbose <- check_logicalArg(verbose)
+  if(verbose)
+    cat(sprintf("PASS, set to %s\n\tminPepLen ... ", p$params$verbose))
+  p$params$minPepLen <- check_minPepLen(minPepLen)
+  if(verbose)
+    cat(sprintf("PASS, set to %s\n", p$params$minPepLen))
+
+  # -- final initialization
+  if(verbose)
+    cat("GENESPACE run successfully initialized\n")
   tmp <- make_genespaceDirs(p$params$wd, overwrite = overwrite)
   p$paths$orthofinder <- tmp[1]
   p$paths$results <- tmp[2]
+  if(verbose)
+    cat(sprintf("\tresults will be store in %s\n", p$paths$results))
+
   p$paths$blastDir <- NA
   p$paths$orthogroupsDir <- NA
-  p$paths$paralogsDir <- NA
   p$paths$orthologuesDir <- NA
 
-  if(!any(file.exists(p$paths$gff)) || !any(file.exists(p$paths$peptide)))
-    cat("\n\nCan't find all parsed annotation files ... need to run parse_annotations, parse_ncbi or parse_phytozome\n")
-
-  if(verbose)
-    cat("\nGENESPACE run initialized:\n")
-  if(verbose)
-    cat(sprintf(
-      "\tInitial orthofinder database generation method: %s\n",
-      p$params$orthofinderMethod))
-
-  if(verbose)
-    cat(sprintf(
-      "\tOrthology graph method: %s\n",
-      ifelse(p$params$orthofinderInBlk, "inBlock", "global")))
-
-  # 3rd party calls
-  if(is.na(p$paths$orthofinderCall))
-    cat("\n######***NOTE***########\n",
-        "You will need to conduct an orthofinder run prior to using genespace\n",
-        "Follow instructions printed from run_orthofinder\n")
   return(p)
 }

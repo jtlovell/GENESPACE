@@ -72,16 +72,6 @@ order_filesByMtime <- function(path = getwd(),
   return(rownames(details))
 }
 
-#' @title Check if orthofinder is installed
-#' @description
-#' \code{check_orthofinderInstall} Check if orthofinder is installed
-#' @rdname utils
-#' @export
-check_orthofinderInstall <- function(path){
-  grepl("OrthoFinder",
-        system2(path, "-h", stdout = TRUE)[2])
-}
-
 #' @title Check logical argument
 #' @description
 #' \code{check_logicalArg} Ensure a logical (length 1) argument is coerced

@@ -17,6 +17,8 @@ Imports: data.table,
   R.utils
 Suggests: knitr,
   rmarkdown
+SystemRequirements: MCScanX, 
+  orthofinder
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true
