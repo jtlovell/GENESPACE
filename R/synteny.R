@@ -1062,7 +1062,7 @@ run_mcscanx <- function(hits,
     if(is.na(nGaps))
       stop("Cannot coerce nGaps to an integer\n")
   }
-  MCScanX_h <- file.path(path2mcscanx, "MCScanX_h")
+  MCScanX_h <- path.expand(path2mcscanx)
   if(!file.exists(MCScanX_h))
     stop("Cannot find MCScanX_h executable in", path2mcscanx,"\n")
 
