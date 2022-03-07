@@ -4,7 +4,6 @@
 \alias{utils}
 \alias{.onAttach}
 \alias{order_filesByMtime}
-\alias{check_orthofinderInstall}
 \alias{check_logicalArg}
 \alias{add_rle}
 \alias{clus_igraph}
@@ -31,8 +30,6 @@
 .onAttach(...)
 
 order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
-
-check_orthofinderInstall(path)
 
 check_logicalArg(x)
 
@@ -149,8 +146,6 @@ risk.
 \code{.onAttach} startup messages
 
 \code{order_filesByMtime} Order files by date of last modification
-
-\code{check_orthofinderInstall} Check if orthofinder is installed
 
 \code{check_logicalArg} Ensure a logical (length 1) argument is coerced
 correctly. If cannot be coerced, return error.

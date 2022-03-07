@@ -1156,10 +1156,14 @@ pangenome <- function(gsParam,
   if(verbose)
     cat(sprintf("\tWriting pangenome to results/%s_pangenomeDB.txt.gz\n", refGenome))
   pgChr <- ofID <- pgOrd <- isRep <- isDirectSyn <- isSynOgOnly <- isArrayRep <-
-    isNSOrtho <- genome <- chr <- ord <- NULL
+    isNSOrtho <- genome <- chr <- ord <- u <- NULL
   setorder(
     pgAll, pgChr, pgOrd, -isRep, -isDirectSyn, -isSynOgOnly,
     -isArrayRep, isNSOrtho, genome, chr, ord, na.last = T)
+  pgAll[,u := paste(pgChr, pgOrd, pgID)]
+  pgAll$u[is.na(pgAll$pgOrd)] <- as.numeric(as.factor(pgAll$og[is.na(pgAll$pgOrd)]))
+  pgAll[,pgID := as.numeric(factor(u, levels = unique(u)))]
+  pgAll[,u := NULL]
   pgout <- data.table(pgAll)
 
   # -- give real names
