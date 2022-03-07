@@ -199,8 +199,7 @@ run_orthofinder <- function(gsParam,
       gsParam$paths$orthofinder)
     outp <- system2(
       gsParam$paths$orthofinderCall,
-      com,
-      stdout = TRUE, stderr = TRUE)
+      com, stdout = TRUE, stderr = TRUE)
 
     # -- place orthofinder input files in paths$orthofinder
     reorg_ofInput(gsParam$paths$orthofinder)
@@ -244,11 +243,6 @@ run_orthofinder <- function(gsParam,
 
   ##############################################################################
   ##############################################################################
-  # -- check the orthofinder call
-  if(is.logical(gsParam$paths$orthofinderCall))
-    if(!gsParam$paths$orthofinderCall && !is.na(gsParam$paths$orthofinderCall))
-      gsParam$paths$orthofinderCall <- NA
-
   # -- set the synteny parameters
   if(is.data.table(gsParam$params$synteny))
     if(!all(gsParam$genomes$genomeIDs %in% gsParam$params$synteny$genome1))
@@ -260,12 +254,11 @@ run_orthofinder <- function(gsParam,
 
   beenRun <- find_orthofinderResults(gsParam, onlyCheckRun = T)
   if(beenRun & !overwrite){
-    warning("orthofinder run exists & !overwrite, so not running")
+    warning("orthofinder run exists & !overwrite, so not running\n")
     gsParam <- find_orthofinderResults(gsParam, onlyCheckRun = F)
   }else{
     if(is.na(gsParam$paths$orthofinderCall)){
-      com <- default_ofDb(
-        gsParam)
+      com <- default_ofDb(gsParam)
     }else{
       if(gsParam$params$orthofinderMethod == "fast"){
         if(gsParam$params$verbose & gsParam$params$diamondMode == "fast")
@@ -310,12 +303,17 @@ blkwise_orthofinder <- function(gsParam,
                                 minGenes4of = 40){
   setDTthreads(1)
   inblkOG <- NULL
+
   ##############################################################################
   # 1.Checking
   ##############################################################################
-  # -- get various parameters
+  # -- check genomeIDs
   if(is.null(genomeIDs))
     genomeIDs <- unique(gff$genome)
+  if(!any(genomeIDs) %in% unique(gff$genome))
+    genomeIDs <- genomeIDs[genomeIDs %in% unique(gff$genome)]
+
+  # -- get various parameters
   verbose <- gsParam$params$verbose
   nCores <- gsParam$params$nCores
 
@@ -341,15 +339,14 @@ blkwise_orthofinder <- function(gsParam,
 
   # -- read in and split up the peptide files
   pepspl <- sapply(genomeIDs, USE.NAMES = T, simplify = F, function(i)
-    readAAStringSet(file.path(gsParam$paths$blastDir,
-                              sprintf("Species%s.fa", ofSpId[i]))))
+    readAAStringSet(
+      file.path(gsParam$paths$blastDir, sprintf("Species%s.fa", ofSpId[i]))))
 
   # -- run orthofinder within each region
   if(verbose)
     cat("Running orthofinder by region ... \n\tgenome combinat. : n. non-self genes, nOGs global/syntenic/inblk\n")
   genome <- chr <- start <- end <- isArrayRep <- ofID <- genome <- NULL
   setkey(gff, genome, chr, start, end)
-
   arrep <- with(subset(gff, isArrayRep), split(ofID, genome))
 
   synOgInBlkHits <- rbindlist(lapply(1:nrow(synp), function(i){
@@ -431,7 +428,7 @@ blkwise_orthofinder <- function(gsParam,
 
         # -- split hits by lgRegs
         inblkOgDt <- rbindlist(mclapply(names(hspl), mc.cores = nCores, mc.preschedule = F, function(j){
-          tmpDir <- file.path(gsParam$params$wd, sprintf("%s_og4inBlkTMPdir", j))
+          tmpDir <- file.path(gsParam$paths$results, sprintf("%s_og4inBlkTMPdir", j))
           if(dir.exists(tmpDir))
             unlink(tmpDir, recursive = T)
           on.exit(expr = unlink(tmpDir, recursive = T))
