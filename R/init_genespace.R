@@ -378,7 +378,7 @@ init_genespace <- function(genomeIDs,
         if(!grepl("OrthoFinder", ver[2]) || is.na(ver) || length(ver) == 1){
           path <- NA
         }else{
-          ver <- strsplit(ver, " ")[[1]][3]
+          ver <- strsplit(ver[2], " ")[[1]][3]
           vern <- strsplit(ver, ".", fixed = T)[[1]]
           vern <- as.numeric(sprintf("%s.%s%s", vern[1], vern[2], vern[3]))
           if(vern < 2.52)
