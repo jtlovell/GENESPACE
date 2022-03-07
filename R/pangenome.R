@@ -440,7 +440,8 @@ pangenome <- function(gsParam,
     return(intPos)
   }
 
-
+  ##############################################################################
+  # -- internal function to build reference pangenome
   build_refPg <- function(refAnchorHits,
                           interpolatedPositionDT,
                           gff,
@@ -557,230 +558,6 @@ pangenome <- function(gsParam,
     return(out)
   }
 
-
-  ##############################################################################
-  # -- internal function to check if we need to use interpolated positions
-  drop_pgRepsAlreadyThere <- function(interpolatedPositionPg, refPg){
-
-    ofID <- repOfID <- hasAltRep <- repChr <- refChr <- tmpChr <- sameChr <-
-      hasPosAlready <- refAnchExists <- NULL
-
-    interpolatedPositionPg <- data.table(interpolatedPositionPg)
-    refPg <- data.table(refPg)
-    # -- get unique names of reference scaffold IDs
-    urep <- unique(interpolatedPositionPg$repOfID)
-
-    # -- get position information for reference scaffold IDs
-    upos <- refPg$repOrd; names(upos) <- refPg$repOfID
-    uchr <- refPg$repChr; names(uchr) <- refPg$repOfID
-
-    # -- drop self maps
-    tmp <- subset(interpolatedPositionPg, ofID != repOfID)
-
-    # -- make vector of whether the ofID is a representative in the scaff
-    tmp[,hasAltRep := ofID %in% urep & repChr == refChr]
-
-    # -- check if each repOfID already has that chr and rep in the graph
-    tmp[,hasAltRep := any(hasAltRep), by = "repOfID"]
-
-    # -- just keep the ones that have this
-    toCheck <- subset(tmp, hasAltRep)
-
-    # -- add in the order and chr names for the interpolated positions
-    toCheck[,`:=`(tmpChr = uchr[ofID], tmpOrd = upos[ofID])]
-
-    # -- drop any with missing positions
-    toCheck <- subset(toCheck, !is.na(tmpChr))
-
-    # -- check if the same chromosome and synBuffer are matches
-    toCheck[,`:=`(sameChr = refChr == tmpChr)]
-
-    # -- if so, drop these entries, create vector of these to drop
-    toDrop <- subset(toCheck, sameChr)
-    ud <- with(toDrop, paste(repOfID, refChr))
-
-    # -- create index of whether it should be dropped and subset accordingly
-    interpolatedPositionPg[,hasPosAlready := paste(repOfID, refChr) %in% ud]
-    pgChkd <- subset(interpolatedPositionPg, !hasPosAlready)
-    pgChkd[,`:=`(hasPosAlready = NULL,
-                 refAnchExists = ofID == repOfID & repChr == refChr)]
-    pgChkd[,refAnchExists := any(refAnchExists), by = c("repOfID", "refChr")]
-    setnames(pgChkd, "refChr", "interpRefChr")
-    return(pgChkd)
-  }
-
-  ##############################################################################
-  # -- internal function to cluster interpolated positions.
-  cluster_refOrds <- function(pg2clus,
-                              synBuff,
-                              propAssignThresh,
-                              refGenome,
-                              genomeIDs){
-    pg2clus <- data.table(pg2clus)
-
-    repChr <- repOfID <- interpRefOrd <- n <- clusThis <- clus <- ogSize <-
-      ofID <- propAssign <- lev <- genome <- interpRefChr <- pgClus1 <-
-      pgClus2 <- NULL
-
-    # -- order interpolated positions
-    setkey(pg2clus, repChr, repOfID, interpRefOrd)
-
-    # -- count the number of placements (if 1, set aside)
-    pg2clus[,n := .N, by = c("repOfID","repChr")]
-    pg2clus[,`:=`(clusThis = FALSE, clus = 1)]
-    pgClus1 <- subset(pg2clus, n < 2)
-
-    # -- count the maximum difference within a chromosome
-    pgClus2 <- subset(pg2clus, n >= 2)
-    if(nrow(pgClus2) > 0){
-      pgClus2[,clusThis := max(diff(interpRefOrd)) > synBuff,
-              by = c("repOfID","repChr")]
-
-      # -- if < synBuff, set aside
-      pgClus1 <- rbind(pgClus1, subset(pgClus2, !clusThis))
-      pgClus2 <- subset(pgClus2, clusThis)
-
-      # -- cluster if needed
-      if(nrow(pgClus2)){
-        pgClus2[,clus := dbscan(frNN(cbind(interpRefOrd, interpRefOrd),
-                                     eps = synBuff), minPts = 1)$cluster,
-                by = c("repOfID","repChr")]
-      }
-    }
-    out <- rbind(pgClus1, pgClus2)
-    out[,clusThis := NULL]
-
-    # -- get counts for total og members and within clus members
-    out[,ogSize := uniqueN(ofID), by = c("repOfID")]
-    out[,n := uniqueN(ofID), by = c("repOfID", "interpRefChr", "clus")]
-
-    # -- subset to only assignments representend by enough members
-    out[,propAssign := n / ogSize]
-    out <- subset(out, propAssign >= propAssignThresh)
-
-    # -- re order so that highest proportion is first, then genomeIDs
-    gord <- c(refGenome, genomeIDs[genomeIDs != refGenome])
-    out[,lev := factor(genome, levels = gord)]
-
-    # -- subset to only the best placement for each ref chrs
-    setorder(out, -propAssign, lev)
-    outs <- subset(out, !duplicated(paste(repOfID, interpRefChr)))
-    outs[,`:=`(n = NULL, clus = NULL, ogSize = NULL,
-               propAssign = NULL, lev = NULL)]
-    return(outs)
-  }
-
-  ##############################################################################
-  # -- internal function to build non-reference pangenome
-  build_nonRefPg <- function(missingHits,
-                             interpPos,
-                             refGenome,
-                             genomeIDs,
-                             synBuff,
-                             gff,
-                             propAssignThresh){
-
-    pgChr1 <- pgChr2 <- pgOrd1 <- pgOrd2 <- clus <- ofID1 <- ofID2 <- og <-
-      genome <- ofID <- pgChr <- pgOrd <- n <- clusThis <- ogSize <-
-      propAssign <- medPos <- dist2med <- isRep <- NULL
-
-    gff <- data.table(gff)
-    missingHits <- data.table(missingHits)
-    interpPos <- data.table(interpPos)
-
-    # -- merge with interpolated positions
-    hitsint <- merge(
-      subset(missingHits, !duplicated(missingHits)),
-      with(interpPos, data.table(
-        ofID1 = ofID, pgChr1 = refChr, pgOrd1 = interpRefOrd)),
-      allow.cartesian = T, by = "ofID1")
-    hitsint <- merge(
-      hitsint,
-      with(interpPos, data.table(
-        ofID2 = ofID, pgChr2 = refChr, pgOrd2 = interpRefOrd)),
-      allow.cartesian = T, by = "ofID2")
-
-    # -- subset to just hits that have similar interpolated syntenic positions
-    hitsint <- subset(hitsint, pgChr1 == pgChr2 & abs(pgOrd1 - pgOrd2) < synBuff)
-
-    # -- cluster these into syntenic orthogroups
-    hitsint[,clus := clus_igraph(ofID1, ofID2)]
-
-
-    # -- re-organize
-    hint <- with(hitsint, data.table(
-      ofID = c(ofID1, ofID2),
-      pgChr = c(pgChr1, pgChr2),
-      pgOrd = c(pgOrd1, pgOrd2),
-      og = c(clus, clus)))
-    hint <- subset(hint, !duplicated(hint))
-    setkey(hint, og)
-    gv <- gff$genome; names(gv) <- gff$ofID
-    levs <- c(refGenome, genomeIDs[genomeIDs!=refGenome])
-    hint[,genome := factor(gv[ofID], levels = levs)]
-    setkey(hint, og, pgChr, genome, pgOrd)
-
-    hint[,n := .N, by = c("pgChr","og")]
-    hint[,`:=`(clusThis = FALSE, clus = 1)]
-    hint1 <- subset(hint, n < 2)
-
-    hint2 <- subset(hint, n >= 2)
-    if(nrow(hint2) > 0){
-      hint2[,clusThis := max(diff(pgOrd) > synBuff),
-            by = c("og", "pgChr")]
-
-      # -- if < synBuff, set aside
-      hint1 <- rbind(hint1, subset(hint2, !clusThis))
-      hint2 <- subset(hint2, clusThis)
-
-      # -- cluster if needed
-      if(nrow(hint2)){
-        hint2[,clus := dbscan(frNN(cbind(pgOrd, pgOrd),
-                                   eps = synBuff), minPts = 1)$cluster,
-              by = c("og","pgChr")]
-      }
-    }
-    out <- rbind(hint1, hint2)
-    out[,clusThis := NULL]
-
-    # -- get counts for total og members and within clus members
-    out[,ogSize := uniqueN(ofID), by = c("og")]
-    out[,n := uniqueN(ofID), by = c("og", "pgChr", "clus")]
-
-    # -- subset to only assignments representend by enough members
-    out[,propAssign := n / ogSize]
-    out <- subset(out, propAssign >= propAssignThresh)
-
-    # -- drop non-best clusters
-    setorder(out, og, pgChr, -propAssign, genome, pgOrd)
-    og2keep <- subset(out, !duplicated(paste(og, pgChr)))
-    og2keep <- with(og2keep, paste(og, pgChr, clus))
-    out <- subset(out, paste(og, pgChr, clus) %in% og2keep)
-
-    # -- set representatives as the most central, closest genome
-    out[,`:=`(n = NULL, clus = NULL, ogSize = NULL, propAssign = NULL)]
-    out[,medPos := median(pgOrd), by = c("og", "pgChr")]
-    out[,dist2med := abs(pgOrd - medPos)]
-    setorder(out, og, pgChr, dist2med, genome)
-    out[,isRep := 1:.N == 1, by = c("og", "pgChr")]
-    out[,og := paste(og, pgChr)]
-
-    # -- merge representatives with all to mimic pangenome format
-    outrep <- with(subset(out, isRep), data.table(
-      repOfID = ofID, pgChr = pgChr, pgOrd = pgOrd, og = og))
-    pgm <- merge(
-      outrep,
-      with(out, data.table(og = og, genome = genome, ofID = ofID)),
-      by = "og",
-      allow.cartesian = T)
-
-    # -- add metadata and clean up
-    gv <- gff$genome; cv <- gff$chr; ov <- gff$ord
-    names(gv) <- names(cv) <- names(ov) <- gf$ofID
-    pgm[,`:=`(og = NULL, chr = cv[ofID], ord = ov[ofID], hasRefAnchor = FALSE)]
-    return(pgm)
-  }
-
   ##############################################################################
   # -- internal function to add array members
   add_arrayMembers <- function(pangenomeDt, gff){
@@ -818,31 +595,7 @@ pangenome <- function(gsParam,
   }
 
   ##############################################################################
-  # -- internal function to add and flag indirect syntenic edges
-  add_indirectEdges <- function(gff, pangenomeDt){
-
-    og <- ofID <- directSynEdge <- NULL
-
-    gff <- data.table(gff)
-    pangenomeDt <- data.table(pangenomeDt)
-    ogv <- gff$og; names(ogv) <- gff$ofID
-    pangenomeDt[,og := ogv[ofID]]
-    gfm <- subset(gff, og %in% unique(pangenomeDt$og) & !ofID %in% pangenomeDt$ofID)
-
-    pgtmp <- pangenomeDt[,c("repOfID", "pgChr", "pgOrd", "hasRefAnchor", "og")]
-    pgtmp <- subset(pgtmp, !duplicated(pgtmp))
-    pgis <- merge(
-      pgtmp,
-      gfm[,c("genome", "chr", "ord", "ofID", "isArrayRep", "og")],
-      by = "og", allow.cartesian = T)
-    pangenomeDt[,directSynEdge := TRUE]
-    pgis[,directSynEdge := FALSE]
-    pgis <- pgis[,colnames(pangenomeDt), with = F]
-    pangenomeDt <- rbind(pangenomeDt, pgis)
-    return(pangenomeDt)
-  }
-
-
+  # -- internal function to pull missing direct edges
   pull_missingDirectEdges <- function(pangenomeDt,
                                       synParamsDt,
                                       nCores,
@@ -889,6 +642,8 @@ pangenome <- function(gsParam,
     return(pangenomeDt)
   }
 
+  ##############################################################################
+  # -- internal function to check for missing entries
   chk_missingEntries <- function(pangenomeDt,
                                  refPgHits){
 
@@ -908,6 +663,8 @@ pangenome <- function(gsParam,
     return(out)
   }
 
+  ##############################################################################
+  # -- internal function to pull indirect syntenic edges
   pull_indirectEdges <- function(pangenomeDt,
                                  synParamsDt,
                                  nCores,
@@ -959,6 +716,8 @@ pangenome <- function(gsParam,
     return(list(pg = pgRef, missingHits = hitsOut))
   }
 
+  ##############################################################################
+  # -- internal function to pull non-reference syntenic orthogroups
   pull_nonRefSynOgs <- function(pangenomeDt,
                                 synParamsDt,
                                 nCores,
@@ -1099,6 +858,8 @@ pangenome <- function(gsParam,
     return(pgOut)
   }
 
+  ##############################################################################
+  # -- internal function to add missing syntenic orthogroups
   add_missingSynOgs <- function(pangenomeDt,
                                 gff){
 
@@ -1123,6 +884,11 @@ pangenome <- function(gsParam,
     pgin <- pgin[,colnames(pangenomeDt), with = F]
     return(rbind(pangenomeDt, pgin))
   }
+
+
+
+
+
   ##############################################################################
   # 1. check the basic parameters
   # -- genomeIDs
