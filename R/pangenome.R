@@ -89,6 +89,7 @@ pangenome <- function(gsParam,
       x <- parse_orthologues(
         gsParam = gsParam,
         refGenome = i)
+      x <- subset(x, gen1 %in% genomeIDs & gen2 %in% genomeIDs)
 
       # -- rename to unique orthofinderIDs
       x[,`:=`(ofID1 = idv[paste(gen1, id1)],
