@@ -67,6 +67,7 @@ pangenome <- function(gsParam,
                                    synParamsDt,
                                    nCores,
                                    gff,
+                                   genomeIDs,
                                    pangenomeDt,
                                    maxNonSynOrthos2keepPerGenome){
 
@@ -945,6 +946,7 @@ pangenome <- function(gsParam,
   gf <- fread(gffFile, showProgress = F, na.strings = c("NA", ""))
   if(!"og" %in% colnames(gf))
     stop("can't find the og column name in the gff-like text file\n\tHas synteny been run yet?\n")
+  gf <- subset(gf, genome %in% genomeIDs)
 
   # -- check that the reference is in the gff
   if(!refGenome %in% gf$genome)
@@ -1135,6 +1137,7 @@ pangenome <- function(gsParam,
       gsParam = gsParam,
       synParamsDt = synp,
       nCores = nCores,
+      genomeIDs = genomeIDs,
       gff = gf,
       pangenomeDt = pgAll,
       maxNonSynOrthos2keepPerGenome = maxNonSynOrthos2keepPerGenome)
