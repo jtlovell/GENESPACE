@@ -100,9 +100,7 @@ pangenome <- function(gsParam,
       x <- merge(pg2, x, by = "ofID2", allow.cartesian = T, all.y = T)
       x <- subset(x, !duplicated(x))
       x <- subset(x, pgID1 != pgID2 | is.na(pgID1) | is.na(pgID2))
-      print(x)
       x[,n := 1:.N, by = c("ofID1", "genome")]
-      print(x)
       x <- subset(x, n <= maxNonSynOrthos2keepPerGenome)
       x <- with(x, data.table(pgID = pgID1, ofID = ofID2, genome = genome))
       x <- subset(x, !duplicated(x))
