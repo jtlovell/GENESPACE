@@ -903,6 +903,8 @@ pangenome <- function(gsParam,
       "genomeIDs (%s) must all be present in the gsParam genomeIDs (%s)",
       paste(genomeIDs, collapse = ","),
       paste(gsParam$genomes$genomeIDs, collapse = ",")))
+  if(!is.na(gsParam$genomes$outgroup))
+    genomeIDs <- genomeIDs[!genomeIDs %in% gsParam$genomes$outgroup]
 
   # -- refGenome
   if(is.null(refGenome))
