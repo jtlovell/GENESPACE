@@ -425,8 +425,11 @@ init_genespace <- function(genomeIDs,
   ##############################################################################
   # -- ad hoc function to check if orthofinder in block can be run
   choose_ofInBlkMethod <- function(path2orthofinder, orthofinderInBlk = FALSE){
+    hasOF <- !is.na(check_orthofinderInstall(path2orthofinder))
     orthofinderInBlk <- check_logicalArg(orthofinderInBlk)
-    return(orthofinderInBlk && check_orthofinderInstall(path2orthofinder))
+    if(!hasOF)
+      orthofinderInBlk <- FALSE
+    return(orthofinderInBlk)
   }
 
   ##############################################################################
@@ -593,10 +596,11 @@ init_genespace <- function(genomeIDs,
     orthofinderInBlk = orthofinderInBlk)
   if(verbose){
     if(!p$params$orthofinderInBlk & orthofinderInBlk){
-      cat(
-        "Could not find orthofinder in system path, but orthofinderInBlk specified\n",
-        "For this run, setting orthofinderInBlk to FALSE (may not be appropriate for polyploids)\n",
-        "If this isn't right, open R from a terminal with orthofinder in the path\n")
+      cat("setting to FALSE\n")
+      message("\n\t######***NOTE***########\n",
+              "\tCould not find orthofinder in system path, but orthofinderInBlk specified\n",
+              "\tFor this run, setting orthofinderInBlk to FALSE (may not be appropriate for polyploids)\n",
+              "\tIf this isn't right, open R from a terminal with orthofinder in the path\n")
     }else{
       cat(sprintf("PASS (%s)\n", p$params$orthofinderInBlk))
     }
