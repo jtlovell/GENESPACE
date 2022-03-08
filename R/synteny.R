@@ -1685,6 +1685,7 @@ add_synOg2gff <- function(gff,
   av <- gff$arrv; names(av) <- gff$ofID
   hts[,`:=`(a1 = as.character(av[ofID1]),
             a2 = as.character(av[ofID2]))]
+  hts <- subset(hts, !is.na(a1) & !is.na(a2))
 
   # -- convert to syntenic orthogroups
   a1 <- a2 <- NULL
