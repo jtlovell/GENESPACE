@@ -38,10 +38,6 @@
 #' for anchors?
 #' @param onlyOgAnchorsSecond logical should only hits in orthogroups be
 #' considered for anchors in secondary blocks?
-#' @param selfRegionMask integer specifying the size of the region (radius, gene
-#' rank order) surrounding self hits to mask for secondary/homeologous hits
-#' @param minRbhScore integer specifying the minimum blast bit score to allow
-#' for a RBH to be included
 #' @param path2mcscanx character string file.path pointing to the install
 #' directory for the MCScanX program. In particular, there must be an
 #' executable in this directory for MCScanX_h.
@@ -888,8 +884,6 @@ set_syntenyParams <- function(gsParam,
                               nSecondHits = 0,
                               synBuff = 100,
                               synBuffSecond = synBuff,
-                              selfRegionMask = synBuff * 5,
-                              minRbhScore = 50,
                               arrayBuffer = sqrt(2*(synBuff^2))){
   setDTthreads(1)
   # -- check the parameters
@@ -921,15 +915,9 @@ set_syntenyParams <- function(gsParam,
   if(is.null(synBuffSecond) || is.na(synBuffSecond) || length(synBuffSecond) == 0)
     stop("cannot coerce synBuffSecond to integer\n")
 
-  selfRegionMask <- as.integer(selfRegionMask)[1]
-  if(is.null(selfRegionMask) || is.na(selfRegionMask) || length(selfRegionMask) == 0)
-    stop("cannot coerce selfRegionMask to integer\n")
   nSecondHits <- as.integer(nSecondHits)[1]
   if(is.null(nSecondHits) || is.na(nSecondHits) || length(nSecondHits) == 0)
     stop("cannot coerce nSecondHits to integer\n")
-  minRbhScore <- as.integer(minRbhScore)[1]
-  if(is.null(minRbhScore) || is.na(minRbhScore) || length(minRbhScore) == 0)
-    stop("cannot coerce minRbhScore to integer\n")
 
   # -- shorten some names
   genomeIDs <- gsParam$genomes$genomeIDs
@@ -1006,8 +994,8 @@ set_syntenyParams <- function(gsParam,
   ##############################################################################
   params <- c(
     "onlyOgAnchors","onlyOgAnchorsSecond","blkSize", "blkSizeSecond",
-    "nGaps", "nGapsSecond", "synBuff", "synBuffSecond", "selfRegionMask",
-    "nSecondHits", "minRbhScore")
+    "nGaps", "nGapsSecond", "synBuff", "synBuffSecond",
+    "nSecondHits")
   for(i in params)
     cmb[[i]] <- get(i)
 
