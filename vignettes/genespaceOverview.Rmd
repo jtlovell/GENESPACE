@@ -28,68 +28,72 @@ See the [readme](https://github.com/jtlovell/GENESPACE) for full installation in
 
 # Example data
 
-Here, we will use the example data provided with the GENESPACE installation: chromosomes 17-18 in the human, chimpanzee and rhesus macaque genomes. See `?make_exampleData` for more information on data sources. 
-
-Here, we will use the example data provided with the GENESPACE installation: chromosomes 17-18 in the human, chimpanzee and rhesus macaque genomes. See `?make_exampleData` for more information on data sources. 
+Here, we will use the example data provided with the GENESPACE installation: chromosomes 17-18 in the human, chimpanzee and rhesus macaque genomes. 
 
 First, in R, require the GENESPACE package and make a file path to a directory where you want to put your run. The directory should either be empty or non-existent (GENESPACE will make it for you, assuming that the parent directory exists). 
 
-```{r}
+```{r require}
 library(GENESPACE)
 runwd <- file.path("~/Desktop/testGenespace")
 ```
 
+```{r rmExistDir, echo = F}
+if(dir.exists(runwd))
+  unlink(runwd, recursive = T)
+```
+
 To illustrate all steps of the pipeline, lightly subset NCBI-formatted annotations of human/chimpanzee chrs 3-4 and rhesus chr 2 & 5 are provided in the extData of the GENESPACE R package. These data can be added to the above directory with the correct subdirectory structure for GENESPACE via:
 
-```{r}
+```{r mkdat}
 make_exampleDataDir(writeDir = runwd)
 ```
 
 **NOTE** this creates a subdirectory called `/rawGenomes`. For downstream flexibility (e.g. multiple genome versions for one species, metadata or assembly data, etc), the raw genome directory structure follows: `/rawGenomes/$speciesID/$versionID/annotion`. 
 
-```{r}
+```{r showFiles}
 list.files(runwd, recursive = T, full.names = F)
 ```
 
 When working with your own data, place the raw annotation files in this same directory structure with separate directories for each species, separate subdirectories for each genome version, and the annotation files in a subdirectory called "annotation".
 
-# Initialize the GENESPACE run
+# Initialize GENESPACE
 
 All elements of GENESPACE require a list of parameters, specified to functions as a GENESPACE parameter list, below `gpar`. This contains paths to files, working directories, program executables the basic parameterization of the run.
 
 The `init_genespace()` function generates this for you. Here are the arguments and what they mean (see the help file for more information):
 
-1. General set up
+## General set up
 
-  - `rawGenomeDir` file path to the directory where the raw genome annotations are stored. 
-  - `genomeIDs` a vector of unique names you want your genomes to be called. Must be alphanumeric, starting with a character.
-  - `ploidy` integer string specifying ploidy of genome assemblies. This is usually half of the actual ploidy, that is an inbred diploid usually is represented by a haploid genome assembly.
-  - `path2orthofinder` file path that points to the orthofinder executable. If orthofinder is in the path, specify with "orthofinder"
-  - `path2mcscanx` file path that points to the mcscanx install directory. This directory must contain the MCScanX_h executable. 
-  - `path2diamond` file path that points to the diamond executable. If orthofinder or diamond is in the path, specify with "diamond"
-  - `wd` the directory where the GENESPACE run output will be stored. 
+- `rawGenomeDir` file path to the directory where the raw genome annotations are stored. 
+- `genomeIDs` a vector of unique names you want your genomes to be called. Must be alphanumeric, starting with a character.
+- `ploidy` integer string specifying ploidy of genome assemblies. This is usually half of the actual ploidy, that is an inbred diploid usually is represented by a haploid genome assembly.
+- `path2orthofinder` file path that points to the orthofinder executable. If orthofinder is in the path, specify with "orthofinder"
+- `path2mcscanx` file path that points to the mcscanx install directory. This directory must contain the MCScanX_h executable. 
+- `path2diamond` file path that points to the diamond executable. If orthofinder or diamond is in the path, specify with "diamond"
+- `wd` the directory where the GENESPACE run output will be stored. 
   
-2. Paths to raw data (see the directory structure of the example data above)
+## Paths to raw data (see the directory structure of the example data above)
 
-  - `speciesIDs` the subdirectories of `rawGenomeDir` pointing to each `genomeIDs`'s data 
-  - `versionIDs` the subdirectories of `rawGenomeDir/speciesIDs` pointing to the version of each `genomeIDs`'s data.
-  - `gffString` character string (coercable to a regular expression). File names in the 'annotation' subdirectories are screened for this string. If a single, unique file is found, it is returned as the gff source file. Otherwise an error is produced.
-  - `pepString`character string of length 1, coercable to a regular expression. See `gffString`. 
+- `speciesIDs` the subdirectories of `rawGenomeDir` pointing to each `genomeIDs`'s data 
+- `versionIDs` the subdirectories of `rawGenomeDir/speciesIDs` pointing to the version of each `genomeIDs`'s data.
+- `gffString` character string (coercable to a regular expression). File names in the 'annotation' subdirectories are screened for this string. If a single, unique file is found, it is returned as the gff source file. Otherwise an error is produced.
+- `pepString`character string of length 1, coercable to a regular expression. See `gffString`.
 
+## Other optional parameters
 
-3. Other optional parameters
+- `outgroup` [optional], but if specified, one or more of the `genomeIDs` that will be used in the orthofinder -og run but not in the synteny search. 
+- `orthofinderMethod` either 'fast' or 'default'
+- `diamondMode`	character string to match one of the diamond search modes, only used if `orthofinderMethod` = "fast"
+- `orthofinderInBlk` should orthofinder be re-run within syntenic regions? Highly recommended for polyploids
+- `nCores` the number of parallel processes to run
+- `minPepLen`	the length of shortest peptides to be analyzed
+- `overwrite` should existing directories be overwritten?
 
-  - `outgroup` [optional], but if specified, one or more of the `genomeIDs` that will be used in the orthofinder -og run but not in the synteny search. 
-  - `orthofinderMethod` either 'fast' or 'default'
-  - `diamondMode`	character string to match one of the diamond search modes, only used if `orthofinderMethod` = "fast"
-  - `orthofinderInBlk` should orthofinder be re-run within syntenic regions? Highly recommended for polyploids
-  - `nCores` the number of parallel processes to run
-  - `minPepLen`	the length of shortest peptides to be analyzed
-  - `overwrite` should existing directories be overwritten?
+## Run init_genespace
 
 For the example data, here is how the GENESPACE run setup would look. Simple calls to orthofinder and diamond are here since both of these are in the path from the shell where the R interactive session was originally opened. 
 
-```{r}
+```{r init}
 gpar <- init_genespace(
   genomeIDs = c("human","chimp","rhesus"),
   speciesIDs = c("human","chimp","rhesus"),
@@ -108,23 +112,78 @@ gpar <- init_genespace(
   pepString = "pep",
   path2orthofinder = "orthofinder",
   path2diamond = "diamond",
-  path2mcscanx = "~/MCScanX",
+  path2mcscanx = "/Users/lovell/Desktop/programs/MCScanX",
   rawGenomeDir = file.path(runwd, "rawGenomes"))
 ```
 
 Given that most of these are the defaults, an identical run could be specified as
 
-```{r}
+```{r qInit, eval = FALSE}
 spec <- c("human","chimp","rhesus")
 gpar <- init_genespace(
-  genomeIDs = spec,  speciesIDs = spec,  versionIDs = spec,
-  diamondMode = "fast",
-  orthofinderMethod = "fast",
-  wd = runwd,
-  path2mcscanx = "~/MCScanX",
+  genomeIDs = spec,  speciesIDs = spec,  versionIDs = spec, ploidy = rep(1,3),
+  diamondMode = "fast", orthofinderMethod = "fast", wd = runwd,
+    path2mcscanx = "/Users/lovell/Desktop/programs/MCScanX",
   rawGenomeDir = file.path(runwd, "rawGenomes"))
 ```
 
+# Formatting raw data
+
+## Downloading raw genome annotations
+
+**NOTE!** If downloading data from NCBI, be sure to use the 'translated.cds.fa' peptide annotation files instead of the 'petide.fa' files. GENESPACE `parse_ncbi` is built to match the former to the gff and not the latter. 
+
+**NOTE!** If downloading from phytozome, or any other data source, it can be benefical to get the 'primaryTranscriptOnly', 'longest', 'hightConfidenceOnly' (or similar) annotation files. In most cases, taking the longest transcript works fine (this is what GENESPACE does), but there are situations where this is not the case.
+
+## Motivation
+
+To improve read/write speed, GENESPACE uses a simplified gff3-like text file with a column `id` that exactly matches the peptide fasta header. GENESPACE has built in functions to parse NCBI (`parse_ncbi`) and phytozome (`parse_phytozome`); however, if using non-standard formatted annotations, this can be a tricky step and must be run using `parse_annotations`. 
+
+## General parse_annotations arguments
+
+- `gsParam` the GENESPACE parameter list, See init_genespace.
+- `genomeIDs`	the genomeIDs that you want to parse. Sometimes you'll need to use different parameter specifications for different genomes. Give only the genomes that you'd like to parse for this specific call.
+- `overwrite` should existing files be overwritten? 
+- `troubleshoot` should the headers of the raw and parsed files be printed to help determine how to parameterize the run? 
+
+## Parsing the gff
+
+The gff file is parsed in three ways:
+
+1. lines are subset to the entry type of interest (e.g. 'gene', 'mRNA', 'CDS', etc). This is specified in `gffEntryType`.
+2. the ";" separated field in the 9th column (e.g. 'ID', 'name', 'parent' etc.) is extracted. This is specified in `gffIdColumn`.
+3. any superfluous text in the ID field is stripped away. This is specified in `gffStripText` as a regular expression.
+
+## Parsing the peptide fasta headers
+
+GENESPACE needs to have the fasta header exactly match the gff gene ID. To facilitate this, there are three parameters to parse the peptide header. 
+
+1. `headerEntryIndex`  specifies which field in the fasta header contains the gene ID information to match with the gff.
+2. `headerSep` is the character that delimits the header fields. 
+3. `headerStripText` which, like its equivalent in the gff, removes any text taht would make the geneIDs not match the gff. 
+
+
+
+## Parsing the example data
+
+While the example data was originally downloaded from NCBI, much of the NCBI formatting was stripped to make the files smaller. They now can be parsed with the generic `parse_annotations`:
+
+```{r parseAnnotations}
+parse_annotations(
+  gsParam = gpar,
+  gffEntryType = "gene",
+  gffIdColumn = "locus",
+  gffStripText = "locus=",
+  headerEntryIndex = 1,
+  headerSep = " ",
+  headerStripText = "locus=")
+```
+
+If the annotations were directly from NCBI, we would use a simpler specification:
+
+```{r parseNCBI, eval = FALSE}
+parse_ncbi(gsParam = gpar, overwrite = T)
+```
 
 
 
