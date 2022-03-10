@@ -15,7 +15,7 @@ Imports: data.table,
   stats,
   graphics,
   R.utils
-Suggests: knitr,
+Suggests: BiocStyle, knitr,
   rmarkdown
 SystemRequirements: MCScanX, 
   orthofinder
