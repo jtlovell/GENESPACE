@@ -1,5 +1,7 @@
 This is v0.9.3 of the GENESPACE R package. This is new software, which we are actively working to make more user friendly. Please open an issue above or email John directly (jlovell[at]hudsonalpha[dot]org) if you run into problems or the help files are not sufficient. Thanks for using GENESPACE! 
 
+*NOTE!* The hardest part of GENESPACE is getting the dependencies installed and your annotations formatted correctly. Don't be dissuaded if you have having trouble with these steps! Open an issue and we can help!
+
 ## 1. Overview
 
 GENESPACE conducts synteny- and orthology-constrained comparative genomics, which can be used to (1) make multi-genome graphical comparisons, (2) define syntenic block breakpoints and (3) build a pan-genome annotation. Below is a quick overview. For more details see vignette which includes the following information:

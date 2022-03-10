@@ -1,0 +1,134 @@
+---
+title: "An overview of GENESPACE"
+author:
+- name: John T. Lovell
+  affiliation: Genome Sequencing Center, HudsonAlpha Institute for Biotechnology, Huntsville, AL, USA
+  email: jlovell@hudsonalpha.org
+output:
+  BiocStyle::html_document:
+    toc_float: true
+  BiocStyle::pdf_document: default
+package: BiocStyle
+abstract: |
+  Details on the functions and output of GENESPACE.
+vignette: |
+  %\VignetteIndexEntry{Authoring R Markdown vignettes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Prerequisites
+
+See the [readme](https://github.com/jtlovell/GENESPACE) for full installation instructions. In short, the below vignette assumes the following:
+
+1. You are using MacOS or Linux - we have not tested GENESPACE on other OS
+2. Orthofinder, MCScanX, R and their dependencies are successfully installed
+3. An R interactive session (e.g. Rstudio, commandline R) has been opened. To recreate the full run below, R should be opened from a terminal session where OrthoFinder is in the path. 
+4. The GENESPACE R package and its package dependencies have been installed.
+
+# Example data
+
+Here, we will use the example data provided with the GENESPACE installation: chromosomes 17-18 in the human, chimpanzee and rhesus macaque genomes. See `?make_exampleData` for more information on data sources. 
+
+Here, we will use the example data provided with the GENESPACE installation: chromosomes 17-18 in the human, chimpanzee and rhesus macaque genomes. See `?make_exampleData` for more information on data sources. 
+
+First, in R, require the GENESPACE package and make a file path to a directory where you want to put your run. The directory should either be empty or non-existent (GENESPACE will make it for you, assuming that the parent directory exists). 
+
+```{r}
+library(GENESPACE)
+runwd <- file.path("~/Desktop/testGenespace")
+```
+
+To illustrate all steps of the pipeline, lightly subset NCBI-formatted annotations of human/chimpanzee chrs 3-4 and rhesus chr 2 & 5 are provided in the extData of the GENESPACE R package. These data can be added to the above directory with the correct subdirectory structure for GENESPACE via:
+
+```{r}
+make_exampleDataDir(writeDir = runwd)
+```
+
+**NOTE** this creates a subdirectory called `/rawGenomes`. For downstream flexibility (e.g. multiple genome versions for one species, metadata or assembly data, etc), the raw genome directory structure follows: `/rawGenomes/$speciesID/$versionID/annotion`. 
+
+```{r}
+list.files(runwd, recursive = T, full.names = F)
+```
+
+When working with your own data, place the raw annotation files in this same directory structure with separate directories for each species, separate subdirectories for each genome version, and the annotation files in a subdirectory called "annotation".
+
+# Initialize the GENESPACE run
+
+All elements of GENESPACE require a list of parameters, specified to functions as a GENESPACE parameter list, below `gpar`. This contains paths to files, working directories, program executables the basic parameterization of the run.
+
+The `init_genespace()` function generates this for you. Here are the arguments and what they mean (see the help file for more information):
+
+1. General set up
+
+  - `rawGenomeDir` file path to the directory where the raw genome annotations are stored. 
+  - `genomeIDs` a vector of unique names you want your genomes to be called. Must be alphanumeric, starting with a character.
+  - `ploidy` integer string specifying ploidy of genome assemblies. This is usually half of the actual ploidy, that is an inbred diploid usually is represented by a haploid genome assembly.
+  - `path2orthofinder` file path that points to the orthofinder executable. If orthofinder is in the path, specify with "orthofinder"
+  - `path2mcscanx` file path that points to the mcscanx install directory. This directory must contain the MCScanX_h executable. 
+  - `path2diamond` file path that points to the diamond executable. If orthofinder or diamond is in the path, specify with "diamond"
+  - `wd` the directory where the GENESPACE run output will be stored. 
+  
+2. Paths to raw data (see the directory structure of the example data above)
+
+  - `speciesIDs` the subdirectories of `rawGenomeDir` pointing to each `genomeIDs`'s data 
+  - `versionIDs` the subdirectories of `rawGenomeDir/speciesIDs` pointing to the version of each `genomeIDs`'s data.
+  - `gffString` character string (coercable to a regular expression). File names in the 'annotation' subdirectories are screened for this string. If a single, unique file is found, it is returned as the gff source file. Otherwise an error is produced.
+  - `pepString`character string of length 1, coercable to a regular expression. See `gffString`. 
+
+
+3. Other optional parameters
+
+  - `outgroup` [optional], but if specified, one or more of the `genomeIDs` that will be used in the orthofinder -og run but not in the synteny search. 
+  - `orthofinderMethod` either 'fast' or 'default'
+  - `diamondMode`	character string to match one of the diamond search modes, only used if `orthofinderMethod` = "fast"
+  - `orthofinderInBlk` should orthofinder be re-run within syntenic regions? Highly recommended for polyploids
+  - `nCores` the number of parallel processes to run
+  - `minPepLen`	the length of shortest peptides to be analyzed
+  - `overwrite` should existing directories be overwritten?
+
+For the example data, here is how the GENESPACE run setup would look. Simple calls to orthofinder and diamond are here since both of these are in the path from the shell where the R interactive session was originally opened. 
+
+```{r}
+gpar <- init_genespace(
+  genomeIDs = c("human","chimp","rhesus"),
+  speciesIDs = c("human","chimp","rhesus"),
+  versionIDs = c("human","chimp","rhesus"),
+  outgroup = NULL,
+  ploidy = rep(1,3),
+  diamondMode = "fast",
+  orthofinderMethod = "fast",
+  wd = runwd,
+  orthofinderInBlk = FALSE, 
+  overwrite = F, 
+  verbose = T,
+  nCores = 4,
+  minPepLen = 50,
+  gffString = "gff",
+  pepString = "pep",
+  path2orthofinder = "orthofinder",
+  path2diamond = "diamond",
+  path2mcscanx = "~/MCScanX",
+  rawGenomeDir = file.path(runwd, "rawGenomes"))
+```
+
+Given that most of these are the defaults, an identical run could be specified as
+
+```{r}
+spec <- c("human","chimp","rhesus")
+gpar <- init_genespace(
+  genomeIDs = spec,  speciesIDs = spec,  versionIDs = spec,
+  diamondMode = "fast",
+  orthofinderMethod = "fast",
+  wd = runwd,
+  path2mcscanx = "~/MCScanX",
+  rawGenomeDir = file.path(runwd, "rawGenomes"))
+```
+
+
+
+
+
+```{r sessionInfo, echo=FALSE}
+sessionInfo()
+```
