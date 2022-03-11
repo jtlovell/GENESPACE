@@ -8,7 +8,7 @@ output:
   BiocStyle::html_document:
     toc_float: true
   BiocStyle::pdf_document: default
-package: BiocStyle
+package: GENESPACE
 abstract: |
   Details on the functions and output of GENESPACE.
 vignette: |

@@ -34,6 +34,8 @@
 #' nSecondaryHits > 0.
 #' @param synBuffSecond see syntenyBuffer. Applied only to synteny
 #' construction of secondary hits.
+#' @param selfRegionMask integer specifying the size of the region (radius, gene
+#' rank order) surrounding self hits to mask for secondary/homeologous hits
 #' @param onlyOgAnchors logical, should only hits in orthogroups be considered
 #' for anchors?
 #' @param onlyOgAnchorsSecond logical should only hits in orthogroups be
@@ -884,6 +886,7 @@ set_syntenyParams <- function(gsParam,
                               nSecondHits = 0,
                               synBuff = 100,
                               synBuffSecond = synBuff,
+                              selfRegionMask = synBuff * 5,
                               arrayBuffer = sqrt(2*(synBuff^2))){
   setDTthreads(1)
   # -- check the parameters
@@ -914,6 +917,10 @@ set_syntenyParams <- function(gsParam,
   synBuffSecond <- as.integer(synBuffSecond)[1]
   if(is.null(synBuffSecond) || is.na(synBuffSecond) || length(synBuffSecond) == 0)
     stop("cannot coerce synBuffSecond to integer\n")
+
+  selfRegionMask <- as.integer(selfRegionMask)[1]
+  if(is.null(selfRegionMask) || is.na(selfRegionMask) || length(selfRegionMask) == 0)
+    stop("cannot coerce selfRegionMask to integer\n")
 
   nSecondHits <- as.integer(nSecondHits)[1]
   if(is.null(nSecondHits) || is.na(nSecondHits) || length(nSecondHits) == 0)
@@ -994,7 +1001,7 @@ set_syntenyParams <- function(gsParam,
   ##############################################################################
   params <- c(
     "onlyOgAnchors","onlyOgAnchorsSecond","blkSize", "blkSizeSecond",
-    "nGaps", "nGapsSecond", "synBuff", "synBuffSecond",
+    "nGaps", "nGapsSecond", "synBuff", "synBuffSecond","selfRegionMask",
     "nSecondHits")
   for(i in params)
     cmb[[i]] <- get(i)
