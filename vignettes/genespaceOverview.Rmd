@@ -261,7 +261,7 @@ GENESPACE visualizes multi-species synteny with a 'riparian' plot. The default s
 
 There are a large number of parameters to allow custom plotting (we won't go into all of them here, but see `?plot_riparianHits` for details). 
 
-```{r riparian, fig.width = 5}
+```{r riparian, fig.width = 10}
 plot_riparianHits(gpar)
 ```
 
@@ -278,7 +278,7 @@ You can easily alter the order of genomes and which genome is the reference. Als
 - `blackBg` turning off the black background
 - `returnSourceData` returns a list with the source data for the plot
 
-```{r riparian2, fig.width = 5}
+```{r riparian2, fig.width = 10}
 ripSouceDat <- plot_riparianHits(
   gpar, 
   refGenome = "chimp",
@@ -296,7 +296,7 @@ ripSouceDat <- plot_riparianHits(
 
 We can also plot a few regions. Lets make 4 regions to highlight (`regs`) and plot them. This object, which is passed to `onlyTheseRegions` must have at least two columns ("genome", "chr"). If only these columns are specified, the colors are given from a standard palette and the entire chromosomes are highlighted. If "start" and "end" are given, then only these regions for these chromosomes are shown. The "col" column can be given any set of characters or numbers that R can interpret as colors. 
 
-```{r ripReg, fig.width = 5}
+```{r ripReg, fig.width = 10}
 regs <- data.frame(
   genome = c("human", "human", "chimp", "rhesus"),
   chr = c(3, 3, 4, 5),
@@ -311,7 +311,7 @@ plot_riparianHits(
 
 The default behavior is to show the entire genome, but, if you only want to show one chromosome, it can be specified as follows. In this case, `excludeNoRegChr = TRUE` means that any chromosomes with no syntenic links to the regions specified are excluded. 
 
-```{r ripReg, fig.width = 5}
+```{r ripReg2, fig.width = 10}
 regs2 <- data.frame(
   genome = c("human", "human"),
   chr = c(3, 3),
@@ -330,7 +330,7 @@ plot_riparianHits(
 Lastly, you may want to overlay regions of interest onto a genome-wide run. This can be accomplished with some care using the `annotatePlot` and `add2plot` arguments as follows. Here, we are coloring the original plot with light grey braids so that it forms a background, 
 then overlaying the regions from above onto the original plot and only annotating this second plot. 
 
-```{r ripOvly}
+```{r ripOvly, fig.width = 10}
 plot_riparianHits(
   gpar, 
   refChrCols = "grey80", 
@@ -361,7 +361,7 @@ The pan-genome annotation is constructed in seven steps:
 
 ## Calling pangenome
 
-```{r build pangenome}
+```{r buildPangenome}
 pg <- pangenome(gpar)
 ```
 
