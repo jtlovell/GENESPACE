@@ -50,7 +50,6 @@ set_syntenyParams(
   synBuff = 100,
   synBuffSecond = synBuff,
   selfRegionMask = synBuff * 5,
-  minRbhScore = 50,
   arrayBuffer = sqrt(2 * (synBuff^2))
 )
 
@@ -150,9 +149,6 @@ construction of secondary hits.}
 
 \item{selfRegionMask}{integer specifying the size of the region (radius, gene
 rank order) surrounding self hits to mask for secondary/homeologous hits}
-
-\item{minRbhScore}{integer specifying the minimum blast bit score to allow
-for a RBH to be included}
 
 \item{arrayBuffer}{Numeric length 1, specifying the maximum gene-rank order
 position of two genes to be considered members of the same collinear array.
