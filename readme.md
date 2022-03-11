@@ -70,7 +70,7 @@ library(GENESPACE)
 runwd <- file.path("~/Desktop/testGenespace")
 ```
 
-#### 3.2 
+#### 3.2 Get some example data
 
 To illustrate all steps of the pipeline, lightly subset NCBI-formatted annotations of human/chimpanzee chromosomes 3-4 and rhesus chromosomes 2 & 5 are provided in the extData of the GENESPACE R package. These data can be added to the above directory with the correct subdirectory structure for GENESPACE via:
 
@@ -91,20 +91,11 @@ When working with your own data, place the raw annotation files in this same dir
 All elements of GENESPACE require a list of parameters, specified to functions as `gsParam`. This contains paths to files, working directories, program executables the basic parameterization of the run. 
 
 ```{r}
+gids <- c("human","chimp","rhesus")
 gpar <- init_genespace(
-  genomeIDs = c("human","chimp","rhesus"),
-  speciesIDs = c("human","chimp","rhesus"),
-  versionIDs = c("human","chimp","rhesus"),
-  ploidy = rep(1,3),
-  diamondMode = "fast",
-  orthofinderMethod = "fast",
-  wd = runwd,
-  nCores = 4,
-  minPepLen = 50,
-  gffString = "gff",
-  pepString = "pep",
-  path2orthofinder = "orthofinder",
-  path2mcscanx = "~/MCScanX",
+  genomeIDs = gids, speciesIDs = gids, versionIDs = gids, ploidy = rep(1,3),
+  wd = runwd, gffString = "gff", pepString = "pep",
+  path2orthofinder = "orthofinder", path2mcscanx = "~/MCScanX",
   rawGenomeDir = file.path(runwd, "rawGenomes"))
 ```
 
@@ -114,13 +105,9 @@ To improve read/write speed, GENESPACE uses a simplified gff3-like text file wit
 
 ```{r parse annotations}
 parse_annotations(
-  gsParam = gpar,
-  gffEntryType = "gene",
-  gffIdColumn = "locus",
-  gffStripText = "locus=",
-  headerEntryIndex = 1,
-  headerSep = " ",
-  headerStripText = "locus=")
+  gsParam = gpar, gffEntryType = "gene", gffIdColumn = "locus",
+  gffStripText = "locus=", headerEntryIndex = 1,
+  headerSep = " ", headerStripText = "locus=")
 ```
 
 #### 3.5 Run orthofinder
@@ -147,9 +134,7 @@ This function populates the results directory (`r gpar$paths$results`) directory
 GENESPACE visualizes multi-species synteny with a 'riparian' plot. The default specification orders chromosomes by maximum synteny to a reference genome and colors the synteny by their reference chromosome of origins.
 
 ```{r riparian, fig.width=5}
-ripdat <- plot_riparian(
-  gpar,
-  colByChrs = c("#BC4F43", "#F67243"))
+ripdat <- plot_riparianHits(gpar)
 ```
 
 #### 3.8 Build a pangenome annotation

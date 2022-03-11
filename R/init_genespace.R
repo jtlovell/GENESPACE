@@ -482,7 +482,7 @@ init_genespace <- function(genomeIDs,
 
   # -- check the working directory
   p$params$wd <- check_wd(wd)
-  setwd(p$params$wd)
+  # setwd(p$params$wd)
   if(verbose)
     cat(sprintf("PASS (%s)\n", p$params$wd))
 

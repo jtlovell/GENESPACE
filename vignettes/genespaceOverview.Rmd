@@ -386,11 +386,9 @@ The text file contains the following fields:
 
 1. Do you **just want to show a synteny plot** and don't care about the membership of orthogroups in the pangenome? 
     - If so, you can set `orthofinderMethod = "fast"` and `diamondMode = "fast"` in `init_genespace()`. 
-
 2. Are any of your genomes represented at **higher ploidy than haploid**?
     - If so, you should definitely specify `orthofinderInBlk = TRUE` in `init_genespace()`. This takes longer, but can recover >50% more orthologs than the global orthofinder run. 
     - If your polyploid (or have both haplotypes in an outbred diploid genome) genomes have subgenomes that are very closely related, the benefits of the within-block orthofinder runs are tempered, so this isn't as necessary. 
-
 3. Are all of your genomes haploid, **very closely related** (e.g. the same species) and you are only interested in orthologs?
     - If so, you can get away with `orthofinderMethod = "fast"` and `diamondMode = "fast"` in `init_genespace(). 
     - This is especially useful if you have a large number of genomes, as this specification can result in 10X speed improvement over orthofinder defaults. 
@@ -401,8 +399,7 @@ The text file contains the following fields:
     - If you are interested in paralogs (e.g. regions that retain > ploidy syntenic hits), you should look closely at your dotplots. 
     - If the dotplots do not capture the paralogous regions, it is likely that they are highly diverged and may not be captured by genome-wide synteny rules. You can adjust this by increasing the number of secondary hits to retain to the number of paralogs you expect to fine. 
     
-# FAQs
-
+# Session Info
 
 ```{r sessionInfo, echo=FALSE}
 sessionInfo()
