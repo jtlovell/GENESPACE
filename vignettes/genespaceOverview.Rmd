@@ -404,7 +404,6 @@ The text file contains the following fields:
 # FAQs
 
 
-
 ```{r sessionInfo, echo=FALSE}
 sessionInfo()
 ```
