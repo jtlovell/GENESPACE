@@ -46,12 +46,12 @@ devtools::install_github("jtlovell/GENESPACE", upgrade = F)
 
 #### 2.5 Install R dependencies
 
-The above command will install the CRAN-sourced dependencies (`data.table`, `dbscan` and `R.utils`). The bioconductor dependencies (`Rtracklayer` and `Biostrings`) need to be installed separately via:
+The above command will install the CRAN-sourced dependencies (`data.table`, `dbscan` and `R.utils`). The bioconductor dependencies (`rtracklayer` and `Biostrings`) need to be installed separately via:
 
 ```{r, eval = FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-BiocManager::install(c("Biostrings", "Rtracklayer"))
+BiocManager::install(c("Biostrings", "rtracklayer"))
 ```
 
 ## 3. Run GENESPACE on the tutorial data
