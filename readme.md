@@ -46,12 +46,12 @@ devtools::install_github("jtlovell/GENESPACE", upgrade = F)
 
 #### 2.5 Install R dependencies
 
-The above command will install the CRAN-sourced dependencies (`data.table`, `dbscan` and `R.utils`). The bioconductor dependencies (`Rtracklayer` and `Biostrings`) need to be installed separately via:
+The above command will install the CRAN-sourced dependencies (`data.table`, `dbscan` and `R.utils`). The bioconductor dependencies (`rtracklayer` and `Biostrings`) need to be installed separately via:
 
 ```{r, eval = FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-BiocManager::install(c("Biostrings", "Rtracklayer"))
+BiocManager::install(c("Biostrings", "rtracklayer"))
 ```
 
 ## 3. Run GENESPACE on the tutorial data
@@ -77,7 +77,7 @@ This creates a subdirectory called `/rawGenomes`. For downstream flexibility (e.
 
 #### 3.3 Initialize the GENESPACE run
 
-All elements of GENESPACE require a list of parameters, specified to functions as `gsParam`. This contains paths to files, working directories, program executables the basic parameterization of the run. See the vignette for argument descriptions. 
+All elements of GENESPACE require a list of parameters, specified to functions as `gsParam`. This contains paths to files, working directories, program executables the basic parameterization of the run. See the [**vignette**](https://htmlpreview.github.io/?https://github.com/jtlovell/GENESPACE/blob/master/doc/genespaceOverview.html) for argument descriptions. 
 
 ```{r}
 gids <- c("human","chimp","rhesus")
