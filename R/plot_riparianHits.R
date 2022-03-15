@@ -608,7 +608,7 @@ plot_riparianHits <- function(gsParam,
       ripHits[,rl := add_rle(refChr, which = "id"), by = c("gen1", "chr1", "blkID")]
       ripHits[,blkID := as.numeric(as.factor(paste(gen1, gen2, chr1, chr2, rl, refChr, blkID)))]
       ripHits[,rl := NULL]
-      ripHits[,blkID := sprintf("%s_%s", refChr, blkID)]
+      ripHits[,blkID := sprintf("%sXXSplitBtwChrBlksXX%s", refChr, blkID)]
 
       tmp <- subset(gf, genome == refGenome & chr %in% ripHits$refChr)
       refChrs <- unique(tmp$chr)
@@ -623,13 +623,13 @@ plot_riparianHits <- function(gsParam,
     }else{
       ripHits[,refChr := 1]
       ripHits[,blkID := as.numeric(as.factor(paste(gen1, gen2, chr1, chr2, refChr, blkID)))]
-      ripHits[,blkID := sprintf("%s_%s", refChr, blkID)]
+      ripHits[,blkID := sprintf("%sXXSplitBtwChrBlksXX%s", refChr, blkID)]
       cols <- refChrCols[1]
       names(cols) <- "1"
     }
 
     bc <- calc_blkCoords(ripHits)
-    bc[,c("refChr", "blkID") := tstrsplit(blkID, "_")]
+    bc[,c("refChr", "blkID") := tstrsplit(blkID, "XXSplitBtwChrBlksXX")]
     bc[,col := cols[refChr]]
   }
 
