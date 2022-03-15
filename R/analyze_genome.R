@@ -1,7 +1,12 @@
 #' @title Sliding window and kmer exploration of genomes
 #'
 #' @description
-#' \code{analyze_genome} Sliding window and kmer exploration of genomes
+#' \code{analyze_genome} Sliding window and kmer exploration of genomes. The
+#' scripts here are not integrated into the primary GENESPACE pipeline;
+#' however, we find that these methods, namely fast physically anchored
+#' sliding windows and kmer extract (e.g. to find centromeres & telomeres) are
+#' often accomplished on GENESPACE output data or plot_riparian coordinate
+#' systems. Thus we distribute these functins along with the main script engine.
 #'
 #' @name analyze_genome
 #'
@@ -41,9 +46,12 @@
 #' \cr
 #' If called, \code{analyze_genome} returns its own arguments.
 #'
-#' @title kmerize_fa
+#' @title Convert a fasta sequence into fixed-size kmers
 #' @description
-#' \code{kmerize_fa} kmerize_fa
+#' \code{kmerize_fa} Takes a path to a single-entry fasta file and splits it
+#' into all unique strings (kmers) of a specified size. Exact matches for these
+#' kmers is very fast. Thus, this approach offers a quick-and-dirty method to
+#' find sequences in a set of large fasta files (like genome assemblies).
 #' @rdname analyze_genome
 #' @import data.table
 #' @importFrom Biostrings DNAString readDNAStringSet
@@ -63,9 +71,10 @@ kmerize_fa <- function(path2fasta, kmerSize){
   return(ssl)
 }
 
-#' @title find_kmer
+#' @title Exact kmer matching
 #' @description
-#' \code{find_kmer} find_kmer
+#' \code{find_kmer} Takes a vector of kmers and a path to a (potentially multi)
+#' sequence fasta file and finds the genomic coordinates of all kmers.
 #' @rdname analyze_genome
 #' @import data.table
 #' @importFrom parallel mclapply
@@ -180,9 +189,14 @@ find_kmer <- function(path2fasta,
   return(out)
 }
 
-#' @title slide_genome
+#' @title Conduct physically-anchored sliding window analysis
 #' @description
-#' \code{slide_genome} slide_genome
+#' \code{slide_genome} Implemented as overlapping interval joins for data.table
+#' foverlaps, this calculates the percent of a given window that is occupied
+#' by an interval in a specified bed file. Useful for calculating %genic or
+#' %repeat across the genome, tabulating the proportion of windows containing
+#' a specific kmer (e.g. telomere) or similar.
+#'
 #' @rdname analyze_genome
 #' @import data.table
 #' @importFrom parallel mclapply
