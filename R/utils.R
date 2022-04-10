@@ -43,7 +43,7 @@
 #' @export
 .onAttach <- function(...) {
 
-  welc <- "GENESPACE v0.9.3: synteny and orthology constrained comparative genomics\n"
+  welc <- "GENESPACE v0.9.4 (pre-release): synteny and orthology constrained comparative genomics\n"
 
   # Display hint
   packageStartupMessage(paste(strwrap(welc), collapse = "\n"))
@@ -241,12 +241,15 @@ read_orthofinderSpeciesIDs <- function(path){
 read_orthofinderSequenceIDs <- function(path){
   setDTthreads(1)
   ofID <- NULL
-  gi <- fread(
-    file.path(path, "SequenceIDs.txt"),
-    header = F,
-    sep = ":",
-    col.names = c("ofID","id"),
-    colClasses = c("character","character"))
+  gi <- readLines(file.path(path, "SequenceIDs.txt"))
+  ofID <- sapply(gi, function(x) strsplit(x, ": ")[[1]][1])
+  id <- sapply(gi, function(x) strsplit(x, ": ")[[1]][-1])
+  if(any(sapply(id, length) > 1)){
+    wh <- which(sapply(id, length) > 1)
+    tmp <- sapply(id[wh], function(x) paste(x, collapse = ":"))
+    id[wh] <- tmp
+  }
+  gi <- data.table(ofID = ofID, id = id)
   gi[,c("genomeNum","geneNum") := tstrsplit(ofID, "_", type.convert = T)]
   return(gi)
 }

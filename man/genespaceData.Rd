@@ -53,7 +53,9 @@ existent path within an existing directory.}
 
 \code{find_exampleData} find_exampleData
 
-\code{find_exampleData} find_exampleData
+\code{make_exampleDataDir} Given a successful install of GENESPACE, this
+function moves the interal (extData) tutorial data into a user-specified
+directory in which GENESPACE can be run.
 }
 \details{
 ...

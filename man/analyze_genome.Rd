@@ -48,13 +48,26 @@ windows in bps.}
 ...
 }
 \description{
-\code{analyze_genome} Sliding window and kmer exploration of genomes
+\code{analyze_genome} Sliding window and kmer exploration of genomes. The
+scripts here are not integrated into the primary GENESPACE pipeline;
+however, we find that these methods, namely fast physically anchored
+sliding windows and kmer extract (e.g. to find centromeres & telomeres) are
+often accomplished on GENESPACE output data or plot_riparian coordinate
+systems. Thus we distribute these functins along with the main script engine.
 
-\code{kmerize_fa} kmerize_fa
+\code{kmerize_fa} Takes a path to a single-entry fasta file and splits it
+into all unique strings (kmers) of a specified size. Exact matches for these
+kmers is very fast. Thus, this approach offers a quick-and-dirty method to
+find sequences in a set of large fasta files (like genome assemblies).
 
-\code{find_kmer} find_kmer
+\code{find_kmer} Takes a vector of kmers and a path to a (potentially multi)
+sequence fasta file and finds the genomic coordinates of all kmers.
 
-\code{slide_genome} slide_genome
+\code{slide_genome} Implemented as overlapping interval joins for data.table
+foverlaps, this calculates the percent of a given window that is occupied
+by an interval in a specified bed file. Useful for calculating %genic or
+%repeat across the genome, tabulating the proportion of windows containing
+a specific kmer (e.g. telomere) or similar.
 }
 \details{
 ...
