@@ -108,7 +108,8 @@ plot_riparianHits <- function(gsParam,
                               returnSourceData = F,
                               verbose = NULL,
                               annotatePlot = TRUE,
-                              add2plot = FALSE){
+                              add2plot = FALSE,
+                              resultsDir = NULL){
 
   read_refHits <- function(synParamsDt,
                            refGenome,
@@ -302,55 +303,94 @@ plot_riparianHits <- function(gsParam,
     ord2 <- medOrd <- x1 <- x2 <- regID <- ofID1 <- ofID2 <- refChr1 <-
     refChr2 <- rl <- blkID <- chr1 <- chr2 <- x <- xstart <- NULL
 
-  nCores <- gsParam$params$nCores
+  # -- if not using gsParam ...
+  if(is.null(gsParam)){
 
-  if(is.null(genomeIDs))
-    genomeIDs <- gsParam$genomes$genomeIDs
-  if(!all(genomeIDs %in% gsParam$genomes$genomeIDs))
-    stop(sprintf(
-      "genomeIDs (%s) must all be present in the gsParam genomeIDs (%s)",
-      paste(genomeIDs, collapse = ","),
-      paste(gsParam$genomes$genomeIDs, collapse = ",")))
+    # -- check and read the gff
+    gffFile <- file.path(resultsDir, "gffWithOgs.txt.gz")
+    if(!dir.exists(resultsDir))
+      stop("if gsParam is NULL, must provide resultsDir\n")
+    if(!file.exists(gffFile))
+      stop("if gsParam is NULL, resultsDir must contain the file: gffWithOgs.txt.gz\n")
+    gf <- fread(gffFile, showProgress = F, na.strings = c("NA", ""))
 
-  # -- refGenome
-  if(is.null(refGenome))
-    refGenome <- genomeIDs[1]
-  if(!refGenome %in% genomeIDs)
-    stop(sprintf(
-      "refGenome %s not one of the genomeIDs %s",
-      refGenome, paste(genomeIDs, collapse = ",")))
+    # -- check the refGenome and genomeIDs
+    if(is.null(genomeIDs))
+      genomeIDs <- unique(gf$genome)
+    genomeIDs <- genomeIDs[genomeIDs %in% gf$genome]
+    if(is.null(refGenome))
+      refGenome <- genomeIDs[1]
+    if(!refGenome %in% genomeIDs)
+      stop(sprintf(
+        "refGenome %s not one of the genomeIDs %s",
+        refGenome, paste(genomeIDs, collapse = ",")))
 
-  # -- check that synteny params exist
-  synp <- gsParam$params$synteny
-  if(!is.data.table(synp))
-    stop("Must run set_syntenyParams first!\n")
-  synp <- data.table(synp)
-  blkSize <- max(synp$blkSize)
-  synBuff <- max(synp$selfRegionMask)
+    # -- manually set parameters from gsParam
+    nCores <- 1
+    blkSize <- 5
+    synBuff <- 100
+    if(is.null(verbose))
+      verbose <- TRUE
 
-  # -- check the synhits exist
-  synp[, hitsFile := file.path(
-    gsParam$paths$results,
-    sprintf("%s_%s_synHits.txt.gz", genome1, genome2))]
-  synp <- subset(synp, file.exists(hitsFile))
-  if(nrow(synp) < 1)
-    stop("can't find synHits accompanying synParams ... has synteny been run?\n")
+    # -- get the synParam data.table
+    synp <- CJ(genome1 = genomeIDs, genome2 = genomeIDs)
+    synp[,hitsFile := file.path(
+      resultsDir,
+      sprintf("%s_%s_synHits.txt.gz", genome1, genome2))]
+    synp <- subset(synp, file.exists(hitsFile))
+  }else{
+    # -- else, use the gsParam object to get the info ...
+    nCores <- gsParam$params$nCores
 
-  # -- get the orthofinder directory if needed
-  if(is.na(gsParam$paths$orthogroupsDir))
-    gsParam <- find_orthofinderResults(gsParam)
-  verbose <- gsParam$params$verbose
+    if(is.null(genomeIDs))
+      genomeIDs <- gsParam$genomes$genomeIDs
+    if(!all(genomeIDs %in% gsParam$genomes$genomeIDs))
+      stop(sprintf(
+        "genomeIDs (%s) must all be present in the gsParam genomeIDs (%s)",
+        paste(genomeIDs, collapse = ","),
+        paste(gsParam$genomes$genomeIDs, collapse = ",")))
 
-  # -- check the gff file
-  gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
-  if(!file.exists(gffFile))
-    stop("can't find the annotated gff-like text file\t\n ... have you run annotate_gff yet?\n")
-  gf <- fread(gffFile, showProgress = F, na.strings = c("NA", ""))
-  genomeIDs <- genomeIDs[genomeIDs %in% gf$genome]
-  # -- check that the reference is in the gff
-  if(!refGenome %in% gf$genome)
-    stop(sprintf("%s (specified refGenome) not in the gff. Available genomes are: \n\t%s\n",
-                 refGenome, paste(unique(gf$genome), collapse = ",")))
+    # -- refGenome
+    if(is.null(refGenome))
+      refGenome <- genomeIDs[1]
+    if(!refGenome %in% genomeIDs)
+      stop(sprintf(
+        "refGenome %s not one of the genomeIDs %s",
+        refGenome, paste(genomeIDs, collapse = ",")))
+
+    # -- check that synteny params exist
+    synp <- gsParam$params$synteny
+    if(!is.data.table(synp))
+      stop("Must run set_syntenyParams first!\n")
+    synp <- data.table(synp)
+    blkSize <- max(synp$blkSize)
+    synBuff <- max(synp$selfRegionMask)
+
+    # -- check the synhits exist
+    synp[, hitsFile := file.path(
+      gsParam$paths$results,
+      sprintf("%s_%s_synHits.txt.gz", genome1, genome2))]
+    synp <- subset(synp, file.exists(hitsFile))
+    if(nrow(synp) < 1)
+      stop("can't find synHits accompanying synParams ... has synteny been run?\n")
+
+    # -- get the orthofinder directory if needed
+    if(is.na(gsParam$paths$orthogroupsDir))
+      gsParam <- find_orthofinderResults(gsParam)
+    if(is.null(verbose))
+      verbose <- gsParam$params$verbose
+
+    # -- check the gff file
+    gffFile <- file.path(gsParam$paths$results, "gffWithOgs.txt.gz")
+    if(!file.exists(gffFile))
+      stop("can't find the annotated gff-like text file\t\n ... have you run annotate_gff yet?\n")
+    gf <- fread(gffFile, showProgress = F, na.strings = c("NA", ""))
+    genomeIDs <- genomeIDs[genomeIDs %in% gf$genome]
+    # -- check that the reference is in the gff
+    if(!refGenome %in% gf$genome)
+      stop(sprintf("%s (specified refGenome) not in the gff. Available genomes are: \n\t%s\n",
+                   refGenome, paste(unique(gf$genome), collapse = ",")))
+  }
 
   # -- check and get the regions in order
   if(!is.null(onlyTheseRegions)){
