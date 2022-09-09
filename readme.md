@@ -1,5 +1,17 @@
+###################
 **Version 1 of GENESPACE is coming soon** Check back for updates in the fall 2022. 
+V1 will include the following changes:
 
+- Use of bed files instead of gff3 (will still have accessory functions for conversion)
+- ggplot2 graphics and options to output to plotly for interactive viz
+- better error catching and checking for genome quality
+- optional use of phylogenetically hierarchical orthogroups 
+- optional use of within-block orthologs (instead of orthogroups)
+- slightly modified tandem-array collapsing, to better integrate with synteny
+
+Thanks to the users who offered suggestions (and found bugs)!
+
+###################
 This is v0.9.3 of the GENESPACE R package. This is new software, which we are actively working to make more user friendly. Please open an issue above or email John directly (jlovell[at]hudsonalpha[dot]org) if you run into problems or the help files are not sufficient. Thanks for using GENESPACE! 
 
 [**Click here for a more detailed vignette**](https://htmlpreview.github.io/?https://github.com/jtlovell/GENESPACE/blob/master/doc/genespaceOverview.html) including pipeline details, output descriptions, etc. Below is a quick overview of installation and running the package.
