@@ -1,16 +1,16 @@
-The manuscript describing GENESPACE is now pubished in eLife [link](https://elifesciences.org/articles/78526). 
+The manuscript describing GENESPACE is now pubished in eLife. [Find the article here](https://elifesciences.org/articles/78526). 
 
 ###################
 
-**Version 1 of GENESPACE is coming soon** Check back for updates in the fall 2022. 
-V1 will include the following changes:
+## Version 1 of GENESPACE is coming soon
+Check back for updates in the fall 2022. V1 will include the following changes:
 
 - Use of bed files instead of gff3 (will still have accessory functions for conversion)
 - ggplot2 graphics and options to output to plotly for interactive viz
 - better error catching and checking for genome quality
 - optional use of phylogenetically hierarchical orthogroups 
 - optional use of within-block orthologs (instead of orthogroups)
-- slightly modified tandem-array collapsing, to better integrate with synteny
+- The synteny and pan-genome engines will remain largely un-changed and the results should be nearly identical. There will be one small change that improves how tandem-arrays are identified and collapsed. This improves pan-genome integration and gives better estimates of synteny in genomes with tandem arrays with many gaps larger than 100 genes. These tend to be rare or absent in most genomes, but present in some. Given this change, exact backwards compatibility to < V1 will be broken and we will recommend all future work to use V1. 
 
 Thanks to the users who offered suggestions (and found bugs)!
 
