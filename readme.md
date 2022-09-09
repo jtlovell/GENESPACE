@@ -1,3 +1,5 @@
+The manuscript describing GENESPACE is now pubished in eLife [link](https://elifesciences.org/articles/78526). 
+
 ###################
 
 **Version 1 of GENESPACE is coming soon** Check back for updates in the fall 2022. 
@@ -14,7 +16,7 @@ Thanks to the users who offered suggestions (and found bugs)!
 
 ###################
 
-This is v0.9.3 of the GENESPACE R package. This is new software, which we are actively working to make more user friendly. Please open an issue above or email John directly (jlovell[at]hudsonalpha[dot]org) if you run into problems or the help files are not sufficient. Thanks for using GENESPACE! 
+This is v0.9.4 of the GENESPACE R package. This is new software, which we are actively working to make more user friendly. Please open an issue above or email John directly (jlovell[at]hudsonalpha[dot]org) if you run into problems or the help files are not sufficient. Thanks for using GENESPACE! 
 
 [**Click here for a more detailed vignette**](https://htmlpreview.github.io/?https://github.com/jtlovell/GENESPACE/blob/master/doc/genespaceOverview.html) including pipeline details, output descriptions, etc. Below is a quick overview of installation and running the package.
 
