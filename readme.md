@@ -1,4 +1,4 @@
-# This is version 1.0.0 of the GENESPACE R package. 
+# This is **beta** version 1.0.0 of the GENESPACE R package. **USE WITH CAUTION** 
 
 The manuscript describing GENESPACE is now pubished in eLife. [Find the article here](https://elifesciences.org/articles/78526). Please cite this if you use GENESPACE. 
 
