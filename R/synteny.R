@@ -49,7 +49,7 @@ synteny <- function(gsParam){
       "**NOTE** synteny parameters have not been set, using parameters from
       gsParam. If you want to manually adjust parameters for each combination
       of genomes, run `set_synParam()` separately\n", indent = 0, exdent = 8)
-    gsParam <- set_syntenyParams(gsParam)
+    gsParam <- set_syntenyParams(gsParam, overwrite = T)
   }
 
   blMd <- data.table(gsParam$annotBlastMd)
