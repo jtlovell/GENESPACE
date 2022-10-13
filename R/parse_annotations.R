@@ -1,611 +1,432 @@
-#' @title Functions to convert from raw to genespace annotation formats
+#' @title Accessory function to help build GENESPACE input files
 #' @description
-#' \code{parse_annotations} Format gff and fasta for genespace. The two parse
-#' functions (parse_gff & parse_faHeader) take a single file and return a
-#' formatted R object. format_annotations is a wrapper for these two that reads
-#' and writes the full genespace-formatted files.
+#' \code{parse_annotations} Peptide and gff3 gene annotation matching and
+#' conversion to .bed format. Speeds up downstream compute and catches problems
+#' with annotation files. This is NOT required for GENESPACE, but does help
+#' get the input files in order. There are many other methods to convert
+#' gff3 --> bed and match the names with fasta headers.
 #'
 #' @name parse_annotations
-#' @param gsParam a list containing all parameters for a GENESPACE run. See
-#' init_genespace
-#' @param genomeIDs character vector of the same length as paths. Names for
-#' each genome.
-#' @param path2rawGff3 character vector coercible to file.paths. This points to
-#' the raw gff3-formatted annotation (.gz or gff3)
-#' @param gffEntryType character, specifying which attribute type should be
-#' retained. This is the 3rd column of a gff3-formatted annotation. Can be a
-#' vector of length 1, if all files should be parsed identically, or a vector
-#' with the same length as file paths and genomeIDs, specifying different
-#' parsing parameters for each genome.
+#' @param rawGenomeRepo file path to the location of gff3 and fasta annotations
+#' @param genomeDirs character vector giving exact matches to subdirectories
+#' in rawGenome repo.
+#' @param genomeIDs character vector of length equal to genomeDirs. By default,
+#' takes values from genomeDirs, but, if specified, re-names the files
+#' accordingly. Useful if you want to shorten the names of genomes in your
+#' GENESPACE run.
+#' @param gffString regular expression of length 1 specifying the string to
+#' search for in rawGenomeRepo/genomeDirs that will exactly match the gff3-
+#' formatted annotation. Default is any text or .gz file ending in gff3, gff.
+#' @param faString same as gffString but for the fasta-formatted peptide
+#' annotation. Default is any text or .gz file ending in fa, fasta or faa.
+#' @param genespaceWd file.path of length 1 specifying the GENESPACE working
+#' directory. Will make two subdirectories: /bed and /peptide for the parsed
+#' annotations
+#' @param presets character string: "none", "phytozome" or "ncbi" which sets
+#' the below parameters to parse phytozome or ncbi-formatted annotations
+#' correctly. See details.
 #' @param gffIdColumn character, specifying the field name in the gff3
-#' attributes column.Can be a vector of length 1, if all files should be parsed
-#' identically, or a vector with the same length as file paths and genomeIDs,
-#' specifying different parsing parameters for each genome.
+#' attributes column.
 #' @param headerEntryIndex integer specifying the field index in the fasta
-#' header which contains the gene ID information to match with the gff. Can be a
-#' vector of length 1, if all files should be parsed identically, or a vector
-#' with the same length as file paths and genomeIDs, specifying different
-#' parsing parameters for each genome.
+#' header which contains the gene ID information to match with the gff.
 #' @param headerSep character used as a field delimiter in the fasta header.
-#' Can be a
-#' vector of length 1, if all files should be parsed identically, or a vector
-#' with the same length as file paths and genomeIDs, specifying different
-#' parsing parameters for each genome.
-#' @param headerStripText character or regex to remove from the fasta header.
-#' Can be a vector of length 1, if all files should be parsed identically,
-#' or a vector with the same length as file paths and genomeIDs, specifying
-#' different parsing parameters for each genome.
-#' @param gffStripText like headerStripText but for the gff geneID entry
-#' @param troubleshoot logical, should the raw and parsed files be printed?
-#' @param path2rawFasta character string coercible to a file path, pointing to
-#' the location of the unparsed fasta file.
-#' @param overwrite logical, should existing files be overwritten? If FALSE,
-#' and all files are present, just returns a named vector of gff/pep file
-#' locations
-#' @param verbose logical, should updates be printed to the console?
+#' @param gffStripText regular expression of length 1 specifying a gsub command
+#' to remove text from the gff ID.
+#' @param headerStripText like gffStripText, but for the fasta header
+#' @param chrIdDictionary a named vector where the names are the values in the
+#' first ("seqnames") gff3 column and the element names in the vector are
+#' the values to replace.
+#' @param troubleShoot logical, should the raw and parsed files be printed?
+#' @param path2fasta for internal use, the file path to the peptide fasta
+#' @param path2gff for internal use, the file path to the peptide gff3
 #'
-
+#' @details parse_annotations assumes that you have a 'rawGenomeRepo' directory
+#' that contains a subdirectory for each genome to parse. These subdirectory
+#' names are given in "genomeDirs". So, if rawGenomeRepo = "~/Destop/genomeRepo"
+#' and genomeDirs = c("human", "mouse"), then parse_annotations assumes there
+#' are two directories: ~/Desktop/genomeRepo/human and ../mouse. Each of these
+#' dicectories must contain a gff3-formatted gene annotation and a fasta-
+#' formatted peptide annotation. These annotation files can be further nested
+#' in the subdirectories, but each must be named with a uniquely findable
+#' "gffString" and "faString". If multiple (or no) files match these strings,
+#' an error will be returned.
+#'
+#' Given differences in how gff3 and fasta headers are constructed, there are a
+#' number of parameters to choose how the files should be matched. Unless the
+#' files come from phytozome or NCBI, these need to be chosen manually. If you
+#' have differently named or formatted files, you can run parse_annotations
+#' several times with different parameters and paths to the files.
+#'
+#' For each genomeDir, the pair of files are read in, parsed, matched, then
+#' written to $genespaceWd/$genomeID/peptide and $genespaceWd/$genomeID/bed
+#' respectively. By default, the genomeID is the same as the genomeDir, but
+#' this can be customized.
+#'
+#' Presets: In the case of "ncbi", this assumes that you have downloaded the
+#' 'translated_cds' peptide file and gene.gff3 annotation. Given this file,
+#' it uses the following parameters: gffIdColumn <- "gene"; headerEntryIndex <- 2;
+#' headerSep <- " "; gffStripText <- ""; headerStripText <- "gene=|\\[|\\]"
+#' Present 'ncbi"  also builds a chrIdDictionary to re-name sequenceIDs based on
+#' entries labeled "chromosome" in the third gff3 column.
+#'
+#' Phytozome presets: gffIdColumn <- "Name"; headerEntryIndex <- 4;
+#' headerSep <- " "; gffStripText <- ""; headerStripText <- "locus="
+#'
+#' @return a data.table containing the file paths to the raw and parsed
+#' annotations.
+#'
 #' @examples
 #' \dontrun{
-#' runwd <- file.path(getwd(), "testGenespace")
-#' make_exampleDataDir(writeDir = runwd)
-#'
-#' gpar <- init_genespace(
-#'   genomeIDs = c("human","chimp","rhesus"),
-#'   speciesIDs = c("human","chimp","rhesus"),
-#'   versionIDs = c("human","chimp","rhesus"),
-#'   ploidy = rep(1,3),
-#'   diamondMode = "fast",
-#'   orthofinderMethod = "fast",
-#'   wd = runwd,
-#'   nCores = 4,
-#'   minPepLen = 50,
-#'   gffString = "gff",
-#'   pepString = "pep",
-#'   path2orthofinder = "orthofinder",
-#'   path2mcscanx = "~/MCScanX",
-#'   rawGenomeDir = file.path(runwd, "rawGenomes"))
-#'
-#' # -- in the example dataset, the raw NCBI annotations have been parsed and
-#' # subset to a more compact file format. Therefore, we cant use parse_ncbi
-#' # and must use parse_annotations with some custom specs:
-#' parse_annotations(
-#'   gsParam = gpar,
-#'   gffEntryType = "gene",
-#'   gffIdColumn = "locus",
-#'   gffStripText = "locus=",
-#'   headerEntryIndex = 1,
-#'   headerSep = " ",
-#'   headerStripText = "locus=")
+#' # coming soon
 #' }
-
-#' @note \code{parse_annotations} is a generic name for the functions documented.
-#' \cr
-#' If called, \code{parse_annotations} returns its own arguments.
 #'
-
-#' @title parse phytozome-formatted annotations
+#'
+#' @title match gff and fasta transcript annotations
 #' @description
-#' \code{parse_phytozome} parse phytozome-formatted annotations
+#' \code{parse_annotations} parse gff into a bed format with one entry per
+#' primary transcript, and ensure that the peptide fasta headers match the
+#' name column
 #' @rdname parse_annotations
 #' @import data.table
-#' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet
 #' @export
-parse_phytozome <- function(gsParam, overwrite = F, genomeIDs = NULL){
+parse_annotations <- function(rawGenomeRepo,
+                              genomeDirs,
+                              genomeIDs = genomeDirs,
+                              gffString = "gff$|gff3$|gff3\\.gz$|gff\\.gz",
+                              faString = "fa$|fasta$|faa$|fa\\.gz$|fasta\\.gz|faa\\.gz",
+                              genespaceWd,
+                              presets = "none",
+                              gffIdColumn = "Name",
+                              headerEntryIndex = 4,
+                              headerSep = " ",
+                              gffStripText = "",
+                              headerStripText = "locus=",
+                              chrIdDictionary = NULL,
+                              troubleShoot = FALSE,
+                              overwrite = FALSE){
 
-
-  pytz_fun <- function(gffIn, gffOut, pepIn, pepOut, verbose, minPepLen){
-    Name <- seqid <- start <- end <- NULL
-    if(verbose)
-      cat("\tReading gff ... ")
-    # read in the gene gff
-    gff <- data.table(data.frame(rtracklayer::readGFF(
-      filepath = gffIn,
-      filter = list(type = "gene"),
-      tags = "Name")))
-    if(verbose)
-      cat(sprintf("found %s protein coding genes\n", nrow(gff)))
-
-    # read in the peptide fa
-    if(verbose)
-      cat("\tReading peptide fasta ... ")
-    fa <- readAAStringSet(pepIn)
-
-    # rename peptide headers
-    tmp <- sapply(names(fa), function(x) strsplit(x, " ")[[1]][4])
-    tmp2 <- substr(tmp, 7, nchar(tmp))
-    names(fa) <- tmp2
-    nfa <- length(fa)
-
-    # drop duplicates, keeping the longest
-    fa <- fa[order(-width(fa))]
-    fa <- fa[!duplicated(names(fa))]
-
-    # cull out "."s very short sequences
-    fa <- AAStringSet(gsub(".","",fa, fixed = T))
-    fa <- fa[width(fa) > minPepLen]
-
-    if(verbose)
-      cat(sprintf("found %s / %s total and unique entries\n\tMerging fa and gff",
-                  nfa, nrow(gff)))
-
-    # join the two
-    gff <- subset(gff, Name %in% names(fa))
-    fa <- fa[gff$Name]
-    gff <- subset(gff, Name %in% names(fa))
-
-    if(nrow(gff) == 0){
-      stop("PARSING FAILED - is this a phytozome-formatted annotation?\n")
-    }else{
-      if(verbose)
-        cat(sprintf(" found %s matching entires\n", nrow(gff)))
-
-      gff[,seqid := factor(seqid, levels = unique(seqid))]
-      setkey(gff, seqid, start, end)
-
-      # write output
-      gff <- with(gff, data.table(
-        chr = seqid,
-        start = start,
-        end = end,
-        id = Name,
-        strand = strand,
-        ord = 1:length(Name)))
-
-      fwrite(gff, file = gffOut, sep = "\t", quote = F)
-      writeXStringSet(fa, filepath = pepOut)
-    }
-  }
-
-  on.exit(expr = setDTthreads(getDTthreads()))
-  setDTthreads(threads = gsParam$params$nCores)
-
-  if (!requireNamespace("rtracklayer", quietly = TRUE))
+  if(!requireNamespace("rtracklayer", quietly = TRUE))
     stop("to parse gff files, install rtracklayer from bioconductor\n")
 
-  if(is.null(genomeIDs))
-    genomeIDs <- gsParam$genomes$genomeIDs
-  if(!all(genomeIDs %in% gsParam$genomes$genomeIDs)){
-    wh <- which(!genomeIDs %in% gsParam$genomes$genomeIDs)
-    stop(sprintf("specified %s genomes not in gsParam\n", paste(genomeIDs[wh], collapse = ", ")))
-  }
-
-  for(i in genomeIDs){
-    if(file.exists(gsParam$paths$gff[i]) && file.exists(gsParam$paths$peptide[i]) && !overwrite){
-      cat(sprintf("parsed annotations for %s exist and !overwrite, skipping\n", i))
+  # -- make sure you can write the output directory
+  genespaceWd <- check_character(genespaceWd)
+  if(!dir.exists(genespaceWd)){
+    if(!dir.exists(dirname(genespaceWd))){
+      stop("could not find genespace directory nor its parent directory")
     }else{
-      if(gsParam$params$verbose)
-        cat(sprintf("Parsing annotations: %s\n",i))
-      pytz_fun(
-        gffIn = gsParam$paths$rawGff[i],
-        gffOut = gsParam$paths$gff[i],
-        pepIn = gsParam$paths$rawPeptide[i],
-        pepOut = gsParam$paths$peptide[i],
-        verbose = gsParam$params$verbose,
-        minPepLen = gsParam$params$minPepLen)
+      dir.create(genespaceWd)
     }
   }
+
+  # -- make sure the repo directory is good
+  rawGenomeRepo <- check_character(rawGenomeRepo)
+  if(!dir.exists(rawGenomeRepo))
+    stop("could not find rawGenomeRepo directory")
+  rawDis <- file.path(rawGenomeRepo, genomeDirs)
+  if(any(!dir.exists(rawDis)))
+    stop("could not find the following raw genome directories: \n\t",
+         paste(basename(rawDis[!dir.exists(rawDis)]), collapse = "\n\t"))
+
+  # -- get parameters in order
+  genomeDirs <- check_character(genomeDirs, na.rm = T)
+  genomeIDs <- check_character(genomeIDs, na.rm = T)
+  gffStripText <- check_character(gffStripText, na.rm = T, onlySingleValue = T)
+  headerStripText <- check_character(headerStripText, na.rm = T, onlySingleValue = T)
+  gffIdColumn <- check_character(gffIdColumn, na.rm = T, onlySingleValue = T)
+  faString <- check_character(
+    faString, na.rm = T, default = "gff", onlySingleValue = T)
+  gffString <- check_character(
+    gffString, na.rm = T, default = "gff", onlySingleValue = T)
+  presets <- check_character(
+    presets, na.rm = T, default = "none", onlySingleValue = T)
+  headerSep <- check_character(
+    headerSep, na.rm = T, default = "none", onlySingleValue = T)
+  headerEntryIndex <- check_integer(
+    headerEntryIndex, min = 1, na.rm = T, onlySingleValue = T)
+
+  if(length(genomeDirs) != length(genomeIDs))
+    stop("genomeDirs (subdirectory in rawGenomeRepo) and genomeIDs must be the same length")
+
+  outPaths <- rbindlist(lapply(1:length(genomeIDs), function(i){
+    # -- get input file locations
+    dirID <- genomeDirs[i]
+    genID <- genomeIDs[i]
+    gf <- list.files(
+      file.path(rawGenomeRepo, dirID),
+      pattern = gffString, recursive = T, full.names = T)
+    fa <- list.files(
+      file.path(rawGenomeRepo, dirID),
+      pattern = faString, recursive = T, full.names = T)
+
+    if(length(fa) == 0)
+      stop(sprintf("could not find fasta file with faString = %s in %s. Files available:\n\t%s",
+           faString, file.path(rawGenomeRepo, dirID),
+           paste(list.files(file.path(rawGenomeRepo, dirID), recursive = T), collapse = "\n\t")))
+    if(length(gf) == 0)
+      stop(sprintf("could not find gff file with gffString = %s in %s. Files available:\n\t%s",
+           gffString, file.path(rawGenomeRepo, dirID),
+           paste(list.files(file.path(rawGenomeRepo, dirID), recursive = T), collapse = "\n\t")))
+    if(length(fa) > 1)
+      stop(sprintf("found multiple fasta files with faString = %s:\n\t%s",
+                   faString, file.path(rawGenomeRepo, dirID),
+                   paste(gf, collapse = "\n\t")))
+    if(length(gf) > 1)
+      stop(sprintf("found multiple gff files with gffString = %s:\n\t%s",
+                   gffString, file.path(rawGenomeRepo, dirID),
+                   paste(fa, collapse = "\n\t")))
+    # do the matching
+    mtch <- match_fasta2gff(
+      path2fasta = fa, path2gff = gf, genespaceWd = genespaceWd,
+      genomeID = genID, troubleShoot = troubleShoot,
+      headerEntryIndex = headerEntryIndex, presets = presets,
+      gffIdColumn = gffIdColumn, headerSep = headerSep,
+      gffStripText = gffStripText, headerStripText = headerStripText,
+      chrIdDictionary = chrIdDictionary)
+
+    return(data.table(
+      gffFileIn = gf, faFileIn = fa,
+      bedFileOut = mtch$bed, faFileOut = mtch$fasta))
+  }))
+  return(outPaths)
 }
 
 
-#' @title parse NCBI-formatted annotations
+#' @title match a single peptide fasta to a gff
 #' @description
-#' \code{parse_ncbi} parse NCBI-formatted annotations
-#' @rdname parse_annotations
+#' \code{match_fasta2gff} engine for reading, parsing and writing annotation
+#' files
+#' @rdname match_annotations
 #' @import data.table
-#' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet
+#' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet DNA_ALPHABET
 #' @export
-parse_ncbi <- function(gsParam, overwrite = F, genomeIDs = NULL){
-
-  gene_biotype <- gene <- seqid <- chromosome <- end <- start <- isBest <- NULL
-  chr <- nbp <- nGene <- NULL
-
-  ncbi_fun <- function(gffIn, gffOut, pepIn, pepOut, verbose, minPepLen){
-    if(verbose)
-      cat("\tReading gff ... ")
-    # read in the gene gff
-    gff <- data.table(data.frame(rtracklayer::readGFF(
-      filepath = gffIn,
-      filter = list(type = "gene"),
-      tags = c("gene", "gene_biotype"))))
-    gff <- subset(gff, gene_biotype == "protein_coding")
-    gff <- subset(gff, !duplicated(gene))
-    gff[,`:=`(seqid = as.character(seqid), gene = as.character(gene))]
-    gchr <- gff[,list(nGene = .N), by = "seqid"]
-    if(verbose)
-      cat(sprintf("found %s protein coding genes\n", nrow(gff)))
-
-    # read in the region gff
-    chrIDs <- data.table(data.frame(rtracklayer::readGFF(
-      filepath = gffIn,
-      filter = list(type = "region"),
-      tags = c("chromosome"))))
-    chrIDs[,`:=`(seqid = as.character(seqid), chromosome = as.character(chromosome))]
-
-    uchrs <- c(unique(chrIDs$chromosome), unique(chrIDs$seqid))
-    uchrs <- uchrs[!duplicated(uchrs)]
-
-    # choose largest regions / chromosome as rep
-    gid <- chrIDs[,list(nbp = end - start), by = c("chromosome","seqid")]
-    gchr <- merge(gchr, gid, by = "seqid", all.x = T)
-    gchr[,isBest := nGene == max(nGene) & !is.na(chromosome) & chromosome != "Unknown", by = "chromosome"]
-    gchr[,chr := ifelse(isBest, chromosome, seqid)]
-    setorder(gchr, -nbp)
-    gchr <- subset(gchr, !duplicated(seqid))
-
-    # rename sequences in gene gff with regions
-    gff <- merge(gff, gchr[,c("seqid", "chr")], by = "seqid")
-    uchrs <- uchrs[uchrs %in% unique(gff$chr)]
-
-    # order genes
-    gff[,chr := factor(chr, levels = uchrs)]
-    gff$chr[is.na(gff$chr)] <- gff$seqid[is.na(gff$chr)]
-    setorder(gff, chr, start, end, na.last = T)
-
-    # read in the peptide fa
-    if(verbose)
-      cat("\tReading peptide fasta ... ")
-    fa <- readAAStringSet(pepIn)
-
-    # rename peptide headers
-    tmp <- sapply(names(fa), function(x) strsplit(x, " ")[[1]][2])
-    tmp2 <- substr(tmp, 7, nchar(tmp)-1)
-    names(fa) <- tmp2
-    nfa <- length(fa)
-
-    # drop duplicates, keeping the longest
-    fa <- fa[order(-width(fa))]
-    fa <- fa[!duplicated(names(fa))]
-    fa <- AAStringSet(gsub(".","",fa, fixed = T))
-    fa <- fa[width(fa) > minPepLen]
-
-    if(verbose)
-      cat(sprintf("found %s / %s total and unique entries\n\tMerging fa and gff",
-                  nfa, nrow(gff)))
-    # join the two
-    gff <- subset(gff, gene %in% names(fa))
-    fa <- fa[gff$gene]
-
-    if(nrow(gff) == 0){
-      stop("PARSING FAILED - is this a ncbi-formatted annotation?\n")
-    }else{
-      if(verbose)
-        cat(sprintf(" found %s matching entires\n", nrow(gff)))
-
-      # write output
-      gff <- with(gff, data.table(
-        chr = chr,
-        start = start,
-        end = end,
-        id = gene,
-        strand = strand,
-        ord = 1:length(gene)))
-
-      fwrite(gff, file = gffOut, sep = "\t", quote = F)
-      writeXStringSet(fa, filepath = pepOut)
-    }
-  }
-
-  on.exit(expr = setDTthreads(getDTthreads()))
-  setDTthreads(threads = gsParam$params$nCores)
-  if (!requireNamespace("rtracklayer", quietly = TRUE))
+match_fasta2gff <- function(path2fasta,
+                            path2gff,
+                            genespaceWd,
+                            genomeID,
+                            presets,
+                            gffIdColumn,
+                            headerEntryIndex,
+                            headerSep,
+                            gffStripText,
+                            headerStripText,
+                            chrIdDictionary,
+                            troubleShoot){
+  if(!requireNamespace("rtracklayer", quietly = TRUE))
     stop("to parse gff files, install rtracklayer from bioconductor\n")
-
-  if(is.null(genomeIDs))
-    genomeIDs <- gsParam$genomes$genomeIDs
-  if(!all(genomeIDs %in% gsParam$genomes$genomeIDs)){
-    wh <- which(!genomeIDs %in% gsParam$genomes$genomeIDs)
-    stop(sprintf("specified %s genomes not in gsParam\n", paste(genomeIDs[wh], collapse = ", ")))
+  # -- ensure the place to write to is valid
+  wd <- path.expand(genespaceWd)
+  path2fasta <- path.expand(path2fasta)
+  path2gff <- path.expand(path2gff)
+  if(!dir.exists(wd))
+    stop("wd must be an existing directory\n")
+  # -- ensure input files are valid
+  if(!file.exists(path2fasta))
+    stop("specified path2fasta does not exist\n")
+  if(!file.exists(path2gff))
+    stop("specified path2gff does not exist\n")
+  # -- make sure presets are ok
+  presets <- match.arg(
+    presets,
+    choices = c("phytozome", "ncbi", "none"))
+  # -- make sure the chrIdDictionary is ok
+  if(!is.null(chrIdDictionary)){
+    if(!is.vector(chrIdDictionary))
+      stop("if specified, chrIdDictionary must be a vector")
+    if(is.null(names(chrIdDictionary)))
+      stop("if specified, chrIdDictionary must be a NAMED vector")
+    if(any(duplicated(names(chrIdDictionary))))
+      stop("if specified, chrIdDictionary must be a NAMED vector with unique names")
   }
-
-  for(i in genomeIDs){
-    if(file.exists(gsParam$paths$gff[i]) && file.exists(gsParam$paths$peptide[i]) && !overwrite){
-      cat(sprintf("parsed annotations for %s exist and !overwrite, skipping\n", i))
-    }else{
-      if(gsParam$params$verbose)
-        cat(sprintf("Parsing annotations: %s\n",i))
-      ncbi_fun(
-        gffIn = gsParam$paths$rawGff[i],
-        gffOut = gsParam$paths$gff[i],
-        pepIn = gsParam$paths$rawPeptide[i],
-        pepOut = gsParam$paths$peptide[i],
-        verbose = gsParam$params$verbose,
-        minPepLen = gsParam$params$minPepLen)
-    }
-  }
-}
-
-#' @rdname parse_annotations
-#' @import data.table
-#' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet
-#' @export
-parse_annotations <- function(
-  genomeIDs = NULL,
-  gsParam,
-  gffEntryType = "gene",
-  gffIdColumn = "Name",
-  gffStripText = "",
-  headerEntryIndex = 4,
-  headerSep = " ",
-  headerStripText = "locus=",
-  overwrite = FALSE,
-  troubleshoot = FALSE){
-
-  nbp <- end <- start <- id <- ord <- NULL
-
-  if(is.null(genomeIDs))
-    genomeIDs <- gsParam$genomes$genomeIDs
-  if(!all(genomeIDs %in% gsParam$genomes$genomeIDs)){
-    wh <- which(!genomeIDs %in% gsParam$genomes$genomeIDs)
-    stop(sprintf("specified %s genomes not in gsParam\n", paste(genomeIDs[wh], collapse = ", ")))
-  }
-
-  on.exit(expr = setDTthreads(getDTthreads()))
-  setDTthreads(threads = gsParam$params$nCores)
-
-  if (!requireNamespace("rtracklayer", quietly = TRUE))
-    stop("to parse gff files, install rtracklayer from bioconductor\n")
-
-  ##############################################################################
-  # check arguments
-  troubleshoot <- check_logicalArg(troubleshoot)
-  overwrite <- check_logicalArg(overwrite)
-  if(length(headerEntryIndex) == 1)
-    headerEntryIndex <- rep(headerEntryIndex, length(genomeIDs))
-  if(length(headerEntryIndex) != length(genomeIDs))
-    stop("headerEntryIndex must be a vector of length 1, or match length of genomeIDs\n")
-  names(headerEntryIndex) <- genomeIDs
-
-  if(length(headerSep) == 1)
-    headerSep <- rep(headerSep, length(genomeIDs))
-  if(length(headerSep) != length(genomeIDs))
-    stop("headerSep must be a vector of length 1, or match length of genomeIDs\n")
-  names(headerSep) <- genomeIDs
-
-  if(length(headerStripText) == 1)
-    headerStripText <- rep(headerStripText, length(genomeIDs))
-  if(length(headerStripText) != length(genomeIDs))
-    stop("headerStripText must be a vector of length 1, or match length of genomeIDs\n")
-  names(headerStripText) <- genomeIDs
-
-  if(length(gffStripText) == 1)
-    gffStripText <- rep(gffStripText, length(genomeIDs))
-  if(length(gffStripText) != length(genomeIDs))
-    stop("gffStripText must be a vector of length 1, or match length of genomeIDs\n")
-  names(gffStripText) <- genomeIDs
-
-  if(length(gffEntryType) == 1)
-    gffEntryType <- rep(gffEntryType, length(genomeIDs))
-  if(length(gffEntryType) != length(genomeIDs))
-    stop("gffEntryType must be a vector of length 1, or match length of genomeIDs\n")
-  names(gffEntryType) <- genomeIDs
-
-  if(length(gffIdColumn) == 1)
-    gffIdColumn <- rep(gffIdColumn, length(genomeIDs))
-  if(length(gffIdColumn) != length(genomeIDs))
-    stop("gffIdColumn must be a vector of length 1, or match length of genomeIDs\n")
-  names(gffIdColumn) <- genomeIDs
-
-  ##############################################################################
-  # -- loop through, parsing each genome ID
-  if(gsParam$params$verbose)
-    cat("Parsing annotation files ...\n")
-
-  for(i in genomeIDs){
-    if(gsParam$params$verbose)
-      cat("\t",i, " ... \n\t\t", sep = "")
-
-    if(file.exists(gsParam$paths$gff[i]) && file.exists(gsParam$paths$peptide[i]) && !overwrite){
-      cat(sprintf("parsed annotations for %s exist and !overwrite, skipping\n", i))
-    }else{
-      gff <- parse_gff(
-        path2rawGff3 = gsParam$paths$rawGff[i],
-        gffEntryType = gffEntryType[i],
-        gffIdColumn = gffIdColumn[i],
-        gffStripText = gffStripText[i],
-        verbose = gsParam$params$verbose,
-        troubleshoot = troubleshoot)
-
-      if(any(duplicated(gff$id))){
-        cat("\n**FOUND DUPLICATE GFF ENTRIES. THERE COULD BE A PROBLEM***",
-            "\nsubsetting to longest model for each gene\n")
-        gff[,nbp := abs(end - start)]
-        setorder(gff, -nbp)
-        gff <- subset(gff, !duplicated(id))
-        setkey(gff, ord)
+  # -- set phytozome presets
+  if(presets == "phytozome"){
+    gffIdColumn <- "Name"
+    headerEntryIndex <- 4
+    headerSep <- " "
+    gffStripText <- ""
+    headerStripText <- "locus="
+  }else{
+    # -- set ncbi presets
+    if(presets == "ncbi"){
+      gffIdColumn <- "gene"
+      headerEntryIndex <- 2
+      headerSep <- " "
+      gffStripText <- ""
+      headerStripText <- "gene=|\\[|\\]"
+      # -- get ncbi chromosome - seqid dictionary from the gff
+      if(is.null(chrIdDictionary)){
+        chrIDs <- data.table(data.frame(rtracklayer::readGFF(
+          filepath = path2gff,
+          filter = list(type = "region"),
+          tags = c("chromosome"))))
+        seqid <- chromosome <- NULL
+        chrIDs <- subset(chrIDs, !is.na(seqid) & !is.na(chromosome))
+        chrIdDictionary <- chrIDs$chromosome
+        names(chrIdDictionary) <- chrIDs$seqid
+        chrIdDictionary <- chrIdDictionary[!duplicated(names(chrIdDictionary))]
       }
-
-      if(gsParam$params$verbose)
-        cat("\t\t")
-      pep <- parse_faHeader(
-        path2rawFasta = gsParam$paths$rawPeptide[i],
-        headerEntryIndex = headerEntryIndex[i],
-        headerSep = headerSep[i],
-        headerStripText = headerStripText[i],
-        verbose = gsParam$params$verbose,
-        troubleshoot = troubleshoot)
-
-      if(any(duplicated(names(pep)))){
-        cat("\n**FOUND DUPLICATE PEPTIDE FASTA HEADERS. IS THIS JUST A PRIMARY TRANSCRIPT FILE?***",
-            "\nsubsetting to longest model for each gene\n")
-        pepSize <- width(pep)
-        pep <- pep[order(-pepSize)]
-        pep <- pep[!duplicated(names(pep))]
-      }
-      pep <- AAStringSet(gsub(".","",pep, fixed = T))
-      pep <- pep[width(pep) > gsParam$params$minPepLen]
-
-      gff <- subset(gff, id %in% names(pep))
-      pep <- pep[gff$id]
-      if(gsParam$params$verbose)
-        cat("\t\t",nrow(gff)," gff-peptide matches\n", sep = "")
-
-      if(nrow(gff) == 0){
-        if(troubleshoot)
-          stop("PARSING FAILED - try different parameters\n")
-        if(!troubleshoot)
-          stop("PARSING FAILED - run with troubleshoot = TRUE to see where the issues might be\n")
-      }else{
-        writeXStringSet(
-          pep,
-          filepath = gsParam$paths$peptide[i])
-
-        setkey(gff, ord)
-        gff <- with(gff, data.table(
-          chr = chr,
-          start = start,
-          end = end,
-          id = id,
-          strand = strand,
-          ord = 1:length(id)))
-
-        fwrite(
-          gff,
-          file = gsParam$paths$gff[i],
-          sep = "\t")
-      }
-      if(gsParam$params$verbose)
-        cat("\tDone!\n")
-    }
-  }
-}
-
-#' @title convert gff3-formatted annotation files for genespace
-#' @description
-#' \code{parse_gff} parse the gff3-formatted annotation into genespace-readable
-#' data.table/csv file. This has a unique ID for each gene that matches the
-#' fasta annotation entries exactly.
-#' @rdname parse_annotations
-#' @import data.table
-#' @export
-parse_gff <- function(
-  path2rawGff3,
-  gffEntryType,
-  gffIdColumn,
-  gffStripText,
-  verbose = TRUE,
-  troubleshoot = FALSE){
-
-  ord <- end <- start <- chr <- tmp2 <- tmp1 <- type <- NULL
-
-  if (!requireNamespace("rtracklayer", quietly = TRUE))
-    stop("to parse gff files, install rtracklayer from bioconductor\n")
-
-  if(length(path2rawGff3) > 1){
-    warning("can only parse one gff, 1st the first\n")
-    path2rawGff3 <- path2rawGff3[1]
-  }
-  if(length(gffEntryType) > 1){
-    warning("can only parse one gff, taking the 1st gffEntryType\n")
-    gffEntryType <- gffEntryType[1]
-  }
-  if(length(gffIdColumn) > 1){
-    warning("can only parse one gff, taking the 1st gffIdColumn\n")
-    gffIdColumn <- gffIdColumn[1]
-  }
-  if(length(gffStripText) > 1){
-    warning("can only parse one gff, taking the 1st gffStripText\n")
-    gffStripText <- gffStripText[1]
-  }
-  if(!file.exists(path2rawGff3))
-    stop("cant find", path2rawGff3, "\n")
-
-  # -- Import gff into R env
-  if(verbose)
-    cat("Importing gff ... ")
-  gff <- data.table(data.frame(rtracklayer::readGFF(
-    filepath = path2rawGff3,
-    filter = list(type = gffEntryType),
-    tags = c(gffIdColumn))))
-  if(troubleshoot){
-    if(grepl(".gz$", path2rawGff3)){
-      print(system(sprintf("cat %s | gunzip -c | grep -v '#' | head -10",path2rawGff3)))
     }else{
-      print(system(sprintf("cat %s | grep -v '#' | head -10",path2rawGff3)))
+      # -- ensure custom paramters are OK
+      headerEntryIndex <- check_integer(
+        headerEntryIndex, min = 1, max = Inf, default = 4, onlySingleValue = T)
+      gffIdColumn <- as.character(gffIdColumn[1])
+      headerSep <- as.character(headerSep[1])
+      gffStripText <- as.character(gffStripText[1])
+      headerStripText <- as.character(headerStripText[1])
     }
   }
-  if(verbose)
-    cat("found", nrow(gff), "gff entires")
+  # -- read in the peptide annotations
+  fa <- Biostrings::readAAStringSet(path2fasta)
+  if(troubleShoot){
+    cat("\n### first 6 fasta headers before parsing ... \n")
+    cat(head(names(fa)), sep = "\n")
+  }
+  # -- ensure that they are peptides, not DNA
+  tmp <- gsub("[^A-Za-z]", "", paste(fa[1:100], collapse = ""))
+  dnaa <- paste(DNA_ALPHABET, collapse = "|")
+  tmp <- gsub(gsub("[^A-Za-z]", "", dnaa), "", tmp)
+  if(nchar(tmp) == 0)
+    stop("Only DNA characters found ... is this a peptide sequence?\n")
+  # -- parse the peptide headers
+  names(fa) <- gsub(
+    headerStripText, "", sapply(names(fa), function(y)
+      strsplit(y, headerSep)[[1]][headerEntryIndex]))
+  if(troubleShoot){
+    cat("\n### first 6 fasta headers after parsing ... \n")
+    cat(head(names(fa)), sep = "\n")
+  }
+  # -- ensure no duplicated headers
+  if(any(duplicated(names(fa)))){
+    fa <- fa[order(-width(fa)),]
+    fa <- fa[!duplicated(names(fa)),]
+  }
 
-  # -- subset to the type of entry desired and reformat
-  if(sum(gff$type == gffEntryType) < 1)
-    stop("cant find", gffEntryType, "in the type (3rd) column\n")
-  if(!gffIdColumn %in% colnames(gff))
-    stop("cant find column named ", gffIdColumn,
-         "\n\tAvailable column names are:", paste(colnames(gff), collapse = ", "),"\n")
-  gffSub <- subset(gff, type == gffEntryType)
-  gff <- with(gffSub, data.table(
-    chr = seqid,
-    start = start,
-    end = end,
-    id = gsub(gffStripText, "", get(gffIdColumn)),
-    strand = strand))
-
-  # -- sort by chromosome number (strip text), then chr size, the position
-  gff[,tmp1 := as.numeric(gsub("[^0-9]", "", chr))]
-  gff[,tmp2 := .N, by = "chr"]
-  setorder(gff, tmp1, -tmp2, start, end)
-  gff[,ord := 1:.N]
-  gff[,`:=`(tmp1 = NULL, tmp2 = NULL)]
-  if (troubleshoot)
-    print(head(gff, 10))
-  if(verbose)
-    cat(", and", nrow(gffSub), gffEntryType, "entries\n")
-  return(gff)
+  nfa <- length(fa)
+  # -- read in the gff
+  end <- start <- width <- id <- seqid <- NULL
+  if(troubleShoot){
+    cat("\n### first 6 gff lines before parsing ... \n")
+    if(grepl(".gz$", path2gff)){
+      system(sprintf("cat %s | gunzip | grep -v '#' | head", path2gff))
+    }else{
+      system(sprintf("cat %s | grep -v '#' | head", path2gff))
+    }
+  }
+  gff <- data.table(rtracklayer::readGFF(path2gff, tags = gffIdColumn))
+  setnames(gff, gffIdColumn, "id")
+  gff[,id := gsub(gffStripText, "", id)]
+  if(troubleShoot){
+    cat("\n### first 6 gff lines after parsing ... \n")
+    print(head(gff))
+  }
+  gff <- subset(gff, id %in% names(fa))
+  gff[,seqid := as.character(seqid)]
+  # -- check if any duplicates
+  if(any(duplicated(gff$id))){
+    gff[,width := end - start]
+    setorder(gff, id, -width)
+    gff <- subset(gff, !duplicated(id))
+  }
+  # -- match positions
+  fa <- fa[gff$id]
+  # -- rename chromosomes
+  if(!is.null(chrIdDictionary)){
+    if(any(duplicated(names(chrIdDictionary))))
+      stop("all names in chrIdDictionary must be unique\n")
+    gff[,chr := chrIdDictionary[seqid]]
+    wh <- which(!gff$seqid %in% names(chrIdDictionary))
+    gff$chr[wh] <- gff$seqid[wh]
+  }else{
+    gff[,chr := seqid]
+  }
+  # -- convert to 0-index 1-open bed
+  gff <- gff[,c("chr", "start", "end", "id")]
+  gff[,start := start - 1]
+  if(troubleShoot){
+    cat("\n### first 6 bed lines after full parsing (and potential chr re-name)\n")
+    print(head(gff))
+  }
+  # -- write output
+  wdPep <- file.path(wd, "peptide")
+  if(!dir.exists(wdPep))
+    dir.create(wdPep)
+  wdBed <- file.path(wd, "bed")
+  if(!dir.exists(wdBed))
+    dir.create(wdBed)
+  cat(sprintf("%s: n unique sequences = %s, n matched to gff = %s\n",
+              genomeID, nfa, nrow(gff)))
+  gffout <- file.path(wdBed, sprintf("%s.bed", genomeID))
+  faout <- file.path(wdPep, sprintf("%s.fa", genomeID))
+  fwrite(gff, file = gffout, col.names = FALSE, quote = FALSE, sep = "\t")
+  writeXStringSet(fa, filepath = faout)
+  return(list(bed = gffout, fasta = faout))
 }
 
-#' @title convert fasta files for genespace
+#' @title Parse ncbi-formatted annotations
 #' @description
-#' \code{parse_faHeader} parse fasta headers to gene gff entries
+#' \code{parse_ncbi} a shortcut for parse_annotations(preset = "ncbi") to
+#' maintain backwards compatibility with < v1.0.0.
 #' @rdname parse_annotations
-#' @import data.table
-#' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet
-#' @importFrom utils head
 #' @export
-parse_faHeader <- function(
-  path2rawFasta,
-  headerEntryIndex,
-  headerSep,
-  headerStripText,
-  verbose = TRUE,
-  troubleshoot = FALSE){
+parse_ncbi <- function(rawGenomeRepo,
+                       genomeDirs,
+                       genomeIDs = genomeDirs,
+                       gffString = "gff$|gff3$|gff3\\.gz$|gff\\.gz",
+                       faString = "fa$|fasta$|faa$|fa\\.gz$|fasta\\.gz|faa\\.gz",
+                       genespaceWd,
+                       presets = "none",
+                       chrIdDictionary = NULL,
+                       troubleShoot = FALSE){
 
+  outPaths <- parse_annotations(
+    rawGenomeRepo = rawGenomeRepo,
+    genomeDirs = genomeDirs,
+    genomeIDs = genomeIDs,
+    gffString = gffString,
+    faString = faString,
+    genespaceWd = genespaceWd,
+    presets = "ncbi",
+    chrIdDictionary = NULL,
+    troubleShoot = FALSE)
 
-  # -- argument checking
-  if(length(path2rawFasta) > 1){
-    warning("can only parse one fasta, taking the 1st\n")
-    path2rawFasta <- path2rawFasta[1]
-  }
-  if(length(headerEntryIndex) > 1){
-    warning("can only parse one fasta, taking the 1st headerEntryIndex\n")
-    headerEntryIndex <- headerEntryIndex[1]
-  }
-  if(length(headerSep) > 1) {
-    warning("can only parse one fasta, taking the 1st headerSep\n")
-    headerSep <- headerSep[1]
-  }
-  if(length(headerStripText) > 1){
-    warning("can only parse one fasta, taking the 1st headerStripText\n")
-    headerStripText <- headerStripText[1]
-  }
-
-  # -- Read fasta file in
-  if (verbose)
-    cat("Importing fasta ... ")
-  fa <- readAAStringSet(path2rawFasta)
-  if (troubleshoot)
-    print(head(names(fa), 10))
-
-  # parse the header, following use-specified rules
-  if (verbose)
-    cat("found", length(fa), "fasta entires\n")
-  nparse <- tstrsplit(names(fa), headerSep)[[headerEntryIndex]]
-  if (!is.null(headerStripText)) {
-    nparse <- gsub(headerStripText, "", nparse)
-  }
-  names(fa) <- nparse
-  if (troubleshoot)
-    print(head(names(fa), 10))
-  return(fa)
+  return(outPaths)
 }
 
+
+#' @title Parse phytozome-formatted annotations
+#' @description
+#' \code{parse_phytozome} a shortcut for parse_annotations(preset = "phytozome")
+#' to maintain backwards compatibility with < v1.0.0.
+#' @rdname parse_annotations
+parse_phytozome <- function(rawGenomeRepo,
+                            genomeDirs,
+                            genomeIDs = genomeDirs,
+                            gffString = "gff$|gff3$|gff3\\.gz$|gff\\.gz",
+                            faString = "fa$|fasta$|faa$|fa\\.gz$|fasta\\.gz|faa\\.gz",
+                            genespaceWd,
+                            chrIdDictionary = NULL,
+                            troubleShoot = FALSE){
+  outPaths <- parse_annotations(
+    rawGenomeRepo = rawGenomeRepo,
+    genomeDirs = genomeDirs,
+    genomeIDs = genomeIDs,
+    gffString = gffString,
+    faString = faString,
+    genespaceWd = genespaceWd,
+    presets = "phytozome",
+    chrIdDictionary = NULL,
+    troubleShoot = FALSE)
+  return(outPaths)
+}
+
+#' @title Deprecated
+#' @description
+#' \code{parse_faHeader} function to maintain backwards compatibility
+#' @rdname parse_faHeader
+#' @export
+parse_faHeader <- function(...){
+  cat(strwrap(
+    "Thanks for switching to GENESPACE v1! To avoid confusion due to the new
+  specification, parse_faHeader is now deprecated. See ?parse_annotations
+  to format your annotations."),
+    sep = "\n")
+}

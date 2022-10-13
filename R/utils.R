@@ -5,209 +5,299 @@
 #' risk.
 #' @name utils
 #'
-#' @param gsParam list of genespace parameters
+#' @param x single-value parameter, string, integer, numeric, list, vector
 #' @param path file path character string
-#' @param col character or integer specifying a color
-#' @param alpha numeric (0-1) specifying the transparency
-#' @param pattern regular expression to search for
-#' @param recursive logical, should the search be recursive
-#' @param which character specifying which method to use
-#' @param x vector of observations
-#' @param id1 character vector of ids with length matching id2
-#' @param id2 character vector of ids with length matching id1
-#' @param min numeric, length 1 specifying the minumum value in the scaled data
-#' @param max numeric, length 1 specifying the maximum value in the scaled data
-#' @param raw logical, should a raw vector of peptide widths be returned?
-#' @param scale1toMean logical, if single value, should it be the mean?
-#' @param width integer, the number of characters to return in string.
-#' @param to what should the value be rounded to?
-#' @param refGenome character string specifying which genome is the reference
-#' @param blFile file path to the blast-like text file
-#' @param ofID1 orthofinder ID of the first gene
-#' @param ofID2 orthofinder ID of the second gene
-#' @param onlyIDScore logical, should only the geneIDs and score be returned?
-#' @param onlyCheckRun logical, should the run just be checked?
-#' @param hits data.table containing annotated blast-format pairwise hits
-#' @param mirror logical, should hits be mirrored prior to block calculation?
-#' @param refOrd numeric, the order of anchor hits to interpolate
-#' @param toInterpOrd numeric, the order of alt genes to interpolate
-#' @param ... additional arguments passed to other functions
+#' @param min if x is an integer or numeric, the minimum value allowed
+#' @param max if x is an integer or numeric, the minimum value allowed
+#' @param default if there is a problem with x, replace with this value
+#' @param na.rm logical, should NA's be dropped
 #' \cr
 #' If called, \code{utils} returns its own arguments.
 #'
+#'
 
-#' @title startup messages
+#' @title Check parameter value for integer values or vectors
 #' @description
-#' \code{.onAttach} startup messages
+#' \code{check_integer} Checks and parses integer arguments to GENESPACE
+#' functions. Replaces values of x not in range (min, max) with the minimum or
+#' maximum values. If a single value and a value that is not coercible to an
+#' integer is specified, returns the default value. If na.rm = TRUE and
+#' onlySingleValue = FALSE, drops NAs.
+#' from the vector
 #' @rdname utils
 #' @export
-.onAttach <- function(...) {
+check_integer <- function(x,
+                          min = -Inf,
+                          max = Inf,
+                          default = NA,
+                          na.rm = FALSE,
+                          onlySingleValue = length(x) <= 1){
 
-  welc <- "GENESPACE v0.9.4 (pre-release): synteny and orthology constrained comparative genomics\n"
+  if(is.null(x))
+    x <- NA
 
-  # Display hint
-  packageStartupMessage(paste(strwrap(welc), collapse = "\n"))
-}
+  suppressWarnings(min <- as.integer(min(x, na.rm = T)))
+  suppressWarnings(max <- as.integer(max(x, na.rm = T)))
+  suppressWarnings(na.rm <- as.logical(na.rm[1]))
+  suppressWarnings(onlySingleValue <- as.logical(onlySingleValue[1]))
 
-#' @title Order files by date of last modification
-#' @description
-#' \code{order_filesByMtime} Order files by date of last modification
-#' @rdname utils
-#' @export
-order_filesByMtime <- function(path = getwd(),
-                               pattern = "*",
-                               recursive = F){
-  if (length(path) == 1) {
-    allFiles <- list.files(
-      path = path,
-      full.names = T,
-      pattern = pattern,
-      recursive = recursive)
+  if(is.na(min))
+    min <- (-Inf)
+  if(is.na(max))
+    max <- (-Inf)
+  if(is.na(onlySingleValue))
+    onlySingleValue <- length(x) <= 1
+
+  suppressWarnings(x <- as.integer(x))
+  if(na.rm)
+    x <- x[!is.na(x)]
+
+  if(onlySingleValue || length(x) <= 1){
+    x <- x[1]
+    if(is.na(x) || is.null(x) || length(x) == 0){
+      suppressWarnings(default <- as.integer(default[1]))
+      x <- default
+    }else{
+      if(x > max) x <- max
+      if(x < min) x <- min
+    }
   }else{
-    allFiles <- path
+    x[x > max & !is.na(x)] <- max
+    x[x < min & !is.na(x)] <- min
   }
 
-  details <- file.info(allFiles, extra_cols = F)
-  details <- details[rev(with(details, order(as.POSIXct(mtime)))), ]
-  return(rownames(details))
-}
-
-#' @title Check logical argument
-#' @description
-#' \code{check_logicalArg} Ensure a logical (length 1) argument is coerced
-#' correctly. If cannot be coerced, return error.
-#' @rdname utils
-#' @importFrom parallel detectCores
-#' @export
-check_logicalArg <- function(x){
-  x <- as.logical(x)
-  if(is.null(x)) stop(x, "must be logical\n")
-  if(is.na(x)) stop(x, "must be logical\n")
-  if(length(x) == 0) stop(x, "must be logical\n")
-  if(length(x) > 1) x <- x[1]
   return(x)
 }
 
-#' @title convert vector to RLE
+#' @title Check parameter value for numeric values or vectors
 #' @description
-#' \code{add_rle} Convert vector into run length equivalents
+#' \code{check_numeric} See check_integer. Same but for numeric values.
 #' @rdname utils
 #' @export
-add_rle <- function(x, which = "n"){
-  if (which == "n") {
-    rep(rle(x)$lengths, rle(x)$lengths)
+check_numeric <- function(x,
+                          min = -Inf,
+                          max = Inf,
+                          default = NA,
+                          na.rm = FALSE,
+                          onlySingleValue = length(x) <= 1){
+  if(is.null(x))
+    x <- NA
+
+  suppressWarnings(min <- as.numeric(min(x, na.rm = T)))
+  suppressWarnings(max <- as.numeric(max(x, na.rm = T)))
+  suppressWarnings(na.rm <- as.logical(na.rm[1]))
+  suppressWarnings(onlySingleValue <- as.logical(onlySingleValue[1]))
+
+  if(is.na(min))
+    min <- (-Inf)
+  if(is.na(max))
+    max <- (-Inf)
+  if(is.na(onlySingleValue))
+    onlySingleValue <- length(x) <= 1
+
+  suppressWarnings(x <- as.numeric(x))
+  if(na.rm)
+    x <- x[!is.na(x)]
+
+  if(onlySingleValue || length(x) <= 1){
+    x <- x[1]
+    if(is.na(x) || is.null(x) || length(x) == 0){
+      suppressWarnings(default <- as.numeric(default[1]))
+      x <- default
+    }else{
+      if(x > max) x <- max
+      if(x < min) x <- min
+    }
   }else{
-    rep(1:length(rle(x)$lengths), rle(x)$lengths)
+    x[x > max & !is.na(x)] <- max
+    x[x < min & !is.na(x)] <- min
   }
+
+  return(x)
 }
 
-#' @title clus_igraph
+
+#' @title Check parameter value for character values or vectors
 #' @description
-#' \code{clus_igraph} Clus_igraph
+#' \code{check_character} See check_integer. Same but for character values.
 #' @rdname utils
-#' @importFrom igraph graph_from_data_frame clusters
 #' @export
-clus_igraph <- function(id1, id2){
-  if(length(unique(id1)) == 1 & length(unique(id2)) == 2){
-    return(rep(1, length(id1)))
-  }else{
-    return(clusters(graph_from_data_frame(
-      data.frame(id1, id2),
-      directed = F))$membership[id1])
+check_character <- function(x,
+                            default = NULL,
+                            na.rm = FALSE,
+                            onlySingleValue = length(x) <= 1){
+  if(is.null(x))
+    x <- NA
+  if(all(is.na(x)))
+    x <- rep("NA", length(x))
+  suppressWarnings(na.rm <- as.logical(na.rm[1]))
+  suppressWarnings(onlySingleValue <- as.logical(onlySingleValue[1]))
+
+  if(is.na(onlySingleValue))
+    onlySingleValue <- length(x) <= 1
+
+  suppressWarnings(x <- as.character(x))
+  if(na.rm)
+    x <- x[!is.na(x)]
+
+  if(onlySingleValue || length(x) <= 1){
+    x <- x[1]
+    if(is.na(x) || is.null(x) || length(x) == 0){
+      suppressWarnings(default <- as.character(default[1]))
+      if(is.na(default))
+        stop(sprintf("NA value given, but default value %s could not be coerced to a character\n", default))
+      x <- default
+    }
   }
+  x[x == "NA"] <- NA
+  return(x)
+}
+
+#' @title Check parameter value for logical values or vectors
+#' @description
+#' \code{check_logical} See check_integer. Same but for logical values.
+#' @rdname utils
+#' @export
+check_logical <- function(x,
+                          default = NA,
+                          na.rm = FALSE,
+                          onlySingleValue = length(x) <= 1){
+
+  if(is.null(x))
+    x <- NA
+  suppressWarnings(na.rm <- as.logical(na.rm[1]))
+  suppressWarnings(onlySingleValue <- as.logical(onlySingleValue[1]))
+
+  if(is.na(onlySingleValue))
+    onlySingleValue <- length(x) <= 1
+
+  suppressWarnings(x <- as.logical(x))
+  if(na.rm)
+    x <- x[!is.na(x)]
+  if(length(x) == 0)
+    x <- NA
+
+  if(onlySingleValue || length(x) <= 1){
+    x <- x[1]
+    if(is.na(x) || is.null(x) || length(x) == 0){
+      suppressWarnings(default <- as.logical(default[1]))
+      x <- default
+    }
+  }
+
+  return(x)
+}
+
+#' @title check_filePathParam
+#' @description
+#' \code{check_filePathParam} check_filePathParam
+#' @rdname utils
+#' @export
+check_filePathParam <- function(path){
+  if(is.null(path))
+    path <- NA
+  path <- path.expand(check_character(
+    x = path, default = NA, na.rm = FALSE))
+  chk <- dir.exists(path) || file.exists(path)
+  if(!chk)
+    path <- NA
+  return(path)
+}
+
+#' @title Check only DNA
+#' @description
+#' \code{check_onlyDNA} Check only DNA
+#' @rdname utils
+#' @importFrom Biostrings readAAStringSet DNA_ALPHABET AAStringSet
+#' @export
+check_onlyDNA <- function(path){
+  fa <- readAAStringSet(path)
+  tmp <- gsub("[^A-Za-z]", "", paste(fa[1:100], collapse = ""))
+  dnaa <- paste(DNA_ALPHABET, collapse = "|")
+  tmp <- gsub(gsub("[^A-Za-z]", "", dnaa), "", tmp)
+  return(nchar(tmp) == 0)
+}
+
+
+#' @title read_aaFasta
+#' @description
+#' \code{read_aaFasta} read_aaFasta
+#' @rdname utils
+#' @export
+read_aaFasta <- function(path){
+  chk <- tryCatch(
+    {
+      readAAStringSet(path)
+    },
+    error = function(err) {
+      return(NA)
+    }
+  )
 }
 
 #' @title count the number of amino acids by gene
 #' @description
 #' \code{get_nAA} count the number of amino acids by gene
 #' @rdname utils
-#' @import data.table
 #' @importFrom Biostrings readAAStringSet
 #' @export
-get_nAA <- function(path, raw = FALSE){
-  setDTthreads(1)
-  if(!raw){
-    pepF <- list.files(path, pattern = "^Species", full.names = T)
-    pepF <- pepF[grep(".fa$", pepF)]
-    peps <- rbindlist(lapply(pepF, function(x){
-      y <- readAAStringSet(x)
-      return(data.table(ofID = names(y),
-                        nAA = width(y)))
-    }))
-  }else{
-    y <- readAAStringSet(path)
-    o <- width(y)
-    names(o) <- names(y)
-    return(o)
-  }
+get_nAA <- function(path){
+  y <- readAAStringSet(path)
+  o <- width(y)
+  names(o) <- names(y)
+  return(o)
 }
 
-#' @title calculate the mode
+#' @title read_bed
 #' @description
-#' \code{find_modalValue} find the most commmon value in a series
+#' \code{read_bed} read_bed
 #' @rdname utils
+#' @import data.table
 #' @export
-find_modalValue <- function(x){
-  tab <- table(x)
-  return(names(tab[order(-tab)])[1])
-}
-
-#' @title scale a vector between a range
-#' @description
-#' \code{scale_between} scale a vector between a range
-#' @rdname utils
-#' @export
-scale_between <- function(x, min, max){
-  (x - min(x)) / (max(x) - min(x)) * (max - min) + min
-}
-
-#' @title flatten a list
-#' @description
-#' \code{flatten_list} convert a list into a vector while keeping names
-#' @rdname utils
-#' @export
-flatten_list <- function(x){
-  y <- unlist(x)
-  names(y) <- rep(names(x), sapply(x, length))
-  return(y)
-}
-
-#' @title
-#' @description
-#' \code{scale_between} ...
-#' @rdname utils
-#' @export
-scale_between <- function(x, min, max, scale1toMean = TRUE){
-  if(length(unique(x)) > 1){
-    return((x - min(x)) / (max(x) - min(x)) * (max - min) + min)
-  }else{
-    if(scale1toMean){
-      return(mean(c(min, max)))
-    }else{
-      return(max)
+read_bed <- function(path){
+  chk <- tryCatch(
+    {
+      suppressWarnings(suppressMessages(fread(
+        path, verbose = FALSE, showProgress = FALSE, select = 1:4,
+        colClasses = c("character", "numeric", "numeric", "character"),
+        header = FALSE, col.names = c("chr", "start", "end", "id"))))
+    },
+    error = function(err) {
+      return(NA)
     }
-  }
+  )
+  if(!is.data.table(chk))
+    chk <- subset(chk, complete.cases(chk))
+
+  return(chk)
 }
 
-#' @title pull_strWidth
+#' @title read_bed
 #' @description
-#' \code{pull_strWidth} pull_strWidth
+#' \code{read_bed} read_bed
 #' @rdname utils
+#' @import data.table
 #' @export
-pull_strWidth <- function(x, width){
-  y <- substr(x, 1, width)
-  if(nchar(y) < width)
-    y <- sprintf("%s%s", y, paste(rep(" ", width-nchar(y)), collapse = ""))
-  return(y)
+align_charLeft <- function(x){
+  x <- check_character(x, default = "", na.rm = FALSE, onlySingleValue = FALSE)
+  maxChar <- max(nchar(x))
+  nbuff <- maxChar - nchar(x)
+  buffBlank <- sapply(nbuff, function(z) paste(rep(" ", z), collapse = ""))
+  return( x <- sprintf("%s%s", x, buffBlank))
 }
 
-#' @title round_toInteger
+#' @title read_bed
 #' @description
-#' \code{round_toInteger} round_toInteger
+#' \code{read_bed} read_bed
 #' @rdname utils
+#' @import data.table
 #' @export
-round_toInteger <- function(x, to){
-  round(x / to, 0) * to
+align_charRight <- function(x){
+  x <- check_character(x, default = "", na.rm = FALSE, onlySingleValue = FALSE)
+  maxChar <- max(nchar(x))
+  nbuff <- maxChar - nchar(x)
+  buffBlank <- sapply(nbuff, function(z) paste(rep(" ", z), collapse = ""))
+  return(sprintf("%s%s", buffBlank, x))
 }
 
 #' @title Read orthofinder species IDs
@@ -218,14 +308,14 @@ round_toInteger <- function(x, to){
 #' @import data.table
 #' @export
 read_orthofinderSpeciesIDs <- function(path){
-  setDTthreads(1)
-  genome <- NULL
   si <- fread(
-    file.path(path, "SpeciesIDs.txt"),
+    path,
     sep = ":",
     header = F,
     col.names = c("genomeNum", "genome"),
     colClasses = c("numeric", "character"))
+
+  genome <- NULL
   si[,genome := gsub(".fa", "", genome, fixed = T)]
   sio <- si$genomeNum; names(sio) <- si$genome
   return(sio)
@@ -239,62 +329,153 @@ read_orthofinderSpeciesIDs <- function(path){
 #' @import data.table
 #' @export
 read_orthofinderSequenceIDs <- function(path){
-  setDTthreads(1)
+
+  gi <- fread(
+    path,
+    header = F,
+    sep = ":",
+    col.names = c("ofID","id"),
+    colClasses = c("character","character"))
+
   ofID <- NULL
-  gi <- readLines(file.path(path, "SequenceIDs.txt"))
-  ofID <- sapply(gi, function(x) strsplit(x, ": ")[[1]][1])
-  id <- sapply(gi, function(x) strsplit(x, ": ")[[1]][-1])
-  if(any(sapply(id, length) > 1)){
-    wh <- which(sapply(id, length) > 1)
-    tmp <- sapply(id[wh], function(x) paste(x, collapse = ":"))
-    id[wh] <- tmp
-  }
-  gi <- data.table(ofID = ofID, id = id)
-  gi[,c("genomeNum","geneNum") := tstrsplit(ofID, "_", type.convert = T)]
+  gi[,c("genomeNum", "geneNum") := tstrsplit(ofID, "_", type.convert = T)]
   return(gi)
 }
 
-#' @title choose_mostRecentOF
+#' @title Count the number of sequences in a fasta file
 #' @description
-#' \code{choose_mostRecentOF} choose_mostRecentOF
+#' \code{get_nSeqs} Counts the number of lines with ">" in a file. If the output
+#' is not convertible to an integer, returns NA.
+#' @rdname utils
+#' @export
+get_nSeqs <- function(path){
+  nseq <- system2("grep", "-c '>'", path, stdout = TRUE, stderr = TRUE)
+  suppressWarnings(nseq <- as.integer(nseq))
+  return(nseq)
+}
+
+
+#' @title check_annotFiles
+#' @description
+#' \code{check_annotFiles}
 #' @rdname utils
 #' @import data.table
 #' @export
-choose_mostRecentOF <- function(path){
-  setDTthreads(1)
-  p <- file.path(path, "Orthofinder")
-  ps <- order_filesByMtime(p)
-  pschk <- lapply(ps, function(x){
-    chks <- c(dir.exists(file.path(x, "Orthologues")),
-              dir.exists(file.path(x, "Gene_Duplication_Events")),
-              file.exists(file.path(x, "Gene_Duplication_Events","Duplications.tsv")))
-    if(all(chks))
-      return(x)
-  })
-  wh <- min(which(!sapply(pschk, is.null)))
-  if(length(wh) > 0){
-    return(pschk[[wh]])
-  }else{
-    stop("Cannot find orthogues and duplications, has the full orthofinder pipe been run?\n")
+check_annotFiles <- function(path, genomeIDs){
+
+  # -- make sure the working directory is OK
+  wd <- check_filePathParam(path)
+  if(is.na(wd))
+    stop("couldn't find working directory:", wd)
+
+  # -- make sure the peptide files exist
+  pepDir <- file.path(wd, "peptide")
+  pepFiles <- file.path(pepDir, sprintf("%s.fa",genomeIDs))
+  if(!all(file.exists(pepFiles))){
+    mf <- basename(pepFiles[!file.exists(pepFiles)])
+    stop(sprintf("Cannot find the following peptide files in %s:\n\t%s\n",
+                 pepDir, paste(mf, collapse = "\n\t")))
   }
+
+  # -- make sure the gff files exist
+  bedDir <- file.path(wd, "bed")
+  bedFiles <- file.path(bedDir, sprintf("%s.bed",genomeIDs))
+  if(!all(file.exists(bedFiles))){
+    mf <- basename(bedFiles[!file.exists(bedFiles)])
+    stop(sprintf("Cannot find the following bed files in %s:\n\t%s\n",
+                 bedDir, paste(mf, collapse = "\n\t")))
+  }
+
+  # -- check that the peptide files contain peptides and not DNA
+  onlyDNA <- sapply(pepFiles, check_onlyDNA)
+  if(any(onlyDNA)){
+    mf <- basename(names(onlyDNA)[onlyDNA])
+    warning(sprintf("The following fasta files appear to only have DNA sequence\n\t%s\nCheck these to make sure they contain peptides and not DNA\n",
+                    paste(mf, collapse = "\n\t")))
+  }
+
+  # -- check exact match between bed and fasta headers
+  labs <- align_charLeft(genomeIDs)
+  chk <- rbindlist(lapply(1:length(genomeIDs), function(i){
+
+    aa <- read_aaFasta(pepFiles[i])
+    bd <- read_bed(bedFiles[i])
+    un <- uniqueN(c(names(aa), bd$id))
+    ui <- length(intersect(names(aa), bd$id))
+    pf <- ifelse((ui/un) < .95, "FAIL", "PASS")
+    cat(sprintf("\t%s: %s / %s geneIDs exactly match (%s)\n",
+                labs[i], ui, un, pf))
+    return(data.table(
+      genomeID = genomeIDs[i],
+      bedFile = bedFiles[i],
+      peptideFile = pepFiles[i],
+      nGenes = ui,
+      annotationPass = pf == "PASS"))
+  }))
+  if(any(!chk$annotationPass))
+    stop("some annotations do not have matching peptide headers and bed names\n")
+  return(chk)
 }
 
-#' @title parse orthogroups file into a data.table
+
+#' @title check MCScanX install
 #' @description
-#' \code{parse_ogs} wide to long format conversion for orthogroups.tsv
+#' \code{check_MCScanXhInstall} check that MCScanX_h can be called
 #' @rdname utils
 #' @export
-parse_ogs <- function(gsParam){
-  setDTthreads(1)
-  id <- genome <- Orthogroup <- NULL
-  ogtsv <- file.path(gsParam$paths$orthogroupsDir, "Orthogroups.tsv")
-  og <- fread(ogtsv, showProgress = F, verbose = F)
-  og <- melt(
-    og, id.vars = "Orthogroup", variable.name = "genome", value.name = "id")
-  og <- og[,list(id = strsplit(id, ",")[[1]]), by = c("Orthogroup", "genome")]
-  og[,`:=`(genome = trimws(genome), id = trimws(id), Orthogroup = trimws(Orthogroup))]
-  setnames(og, 1, "ogID")
-  return(og)
+check_MCScanXhInstall <- function(path){
+  path <- check_filePathParam(path)
+  if(is.na(path)){
+    chk <- NA
+  }else{
+    pth <- check_filePathParam(file.path(path, "MCScanX_h"))
+    if(is.na(pth)){
+      chk <- NA
+    }else{
+      chk <- suppressWarnings(grepl(
+        "prefix_fn",
+        system2(pth, "-h", stdout = TRUE, stderr = FALSE)[1]))
+      if(!chk)
+        chk <- NA
+    }
+  }
+  return(chk)
+}
+
+#' @title parse_ogs
+#' @description
+#' \code{parse_ogs} parse_ogs
+#' @rdname utils
+#' @import data.table
+#' @export
+parse_ogs <- function(path, genomeIDs){
+  tmp <- fread(path, showProgress = F, verbose = F)
+  tmp <- melt(
+    tmp, id.vars = "Orthogroup", measure.vars = genomeIDs,
+    variable.name = "genome", value.name = "id")
+  tmp <- tmp[,list(id = strsplit(id, ",")[[1]]),
+             by = c("Orthogroup", "genome")]
+  tmp[,`:=`(genome = trimws(genome),
+            id = trimws(id), Orthogroup = trimws(Orthogroup))]
+  setnames(tmp, 1, "ogID")
+  return(tmp)
+}
+
+#' @title parse_hogs
+#' @description
+#' \code{parse_hogs} parse_hogs
+#' @rdname utils
+#' @import data.table
+#' @export
+parse_hogs <- function(path, genomeIDs){
+  tmp <- fread(path, showProgress = F, verbose = F)
+  tmp <- melt(
+    tmp, id.vars = "HOG", measure.vars = genomeIDs,
+    variable.name = "genome", value.name = "id")
+  tmp <- tmp[,list(id = strsplit(id, ",")[[1]]), by = c("HOG", "genome")]
+  tmp[,`:=`(genome = trimws(genome), id = trimws(id), HOG = trimws(HOG))]
+  setnames(tmp, 1, "hogID")
+  return(tmp)
 }
 
 #' @title parse_orthologues
@@ -303,345 +484,61 @@ parse_ogs <- function(gsParam){
 #' @rdname utils
 #' @import data.table
 #' @export
-parse_orthologues <- function(gsParam, refGenome){
-  orthID <- NULL
-  setDTthreads(1)
-  od <- file.path(gsParam$paths$orthologuesDir,
-                  sprintf("Orthologues_%s", refGenome))
-  odf <- list.files(od, full.names = T, pattern = "__v__")
-  ogo <- rbindlist(lapply(odf, function(i){
-    x <- fread(i, showProgress = F)
-    refID <- colnames(x)[2]
-    altID <- colnames(x)[3]
-    setnames(x, c("og", "id1", "id2"))
-    id1 <- id2 <- NULL
-    x1 <- subset(x, !grepl(",", paste(id1, id2)))
-    x2 <- subset(x, grepl(",", paste(id1, id2)))
-    x2[,orthID := 1:.N]
-    x2r <- x2[,list(id1 = unique(strsplit(id1, ",")[[1]])),
-              by = "orthID"]
-    x2a <- x2[,list(id2 = unique(strsplit(id2, ",")[[1]])),
-              by = "orthID"]
-    x2 <- merge(x2r, x2a, by = "orthID", all = T, allow.cartesian = T)
-    x1[,orthID := (1:.N)+max(x2$orthID)]
-    x <- rbind(x1[,colnames(x2), with = F], x2)
-    x[,`:=`(gen1 = refID, gen2 = altID,
-            id1 = gsub(" ", "", id1), id2 = gsub(" ", "", id2))]
-    return(x)
-  }))
-  return(ogo)
-}
-
-#' @title Read orthofinder blast file
-#' @description
-#' \code{read_blast} Reads in a single pairwise orthofinder-formaatted blast
-#' file
-#' @rdname utils
-#' @import data.table
-#' @export
-read_blast <- function(blFile = NULL,
-                       ofID1 = NULL,
-                       ofID2 = NULL,
-                       path = NULL,
-                       onlyIDScore = TRUE){
-  setDTthreads(1)
-  if(is.null(blFile)){
-    blFile <- file.path(path, sprintf("Blast%s_%s.txt.gz", ofID1, ofID2))
-  }
-  if(!file.exists(blFile))
-    stop("cannot find ", blFile, "\n")
-
-  if(!onlyIDScore){
-    bl <-  fread(
-      blFile,
-      showProgress = FALSE,
-      verbose = FALSE)
-    g1 <- strsplit(bl$V1[1], "_")[[1]][1]
-    g2 <- strsplit(bl$V2[1], "_")[[1]][1]
-
-    if(g1 == g2){
-      tmp <- data.table(bl[, c(2, 1, 3:6, 8, 7, 10, 9, 11, 12)])
-      setnames(tmp, colnames(bl))
-      tmp <- tmp[,colnames(bl), with = F]
-      bl <- rbind(bl, tmp)
-      V12 <- NULL
-      setorder(bl, -V12)
-      bl <- subset(bl, !duplicated(bl[, c(1:2)]))
-    }
-  }else{
-    bl <-  fread(
-      blFile,
-      showProgress = FALSE,
-      verbose = FALSE,
-      select = c(1,2,12),
-      col.names = c("ofID1", "ofID2", "score"))
-    g1 <- strsplit(bl$ofID1[1], "_")[[1]][1]
-    g2 <- strsplit(bl$ofID2[1], "_")[[1]][1]
-
-    if(g1 == g2){
-      tmp <- data.table(bl[,c(2,1,3)])
-      setnames(tmp, colnames(bl))
-      tmp <- tmp[, colnames(bl), with = F]
-      bl <- rbind(bl, tmp)
-      score <- NULL
-      setorder(bl, -score)
-      bl <- subset(bl, !duplicated(bl[, c(1:2)]))
-    }
-  }
-
-  return(bl)
-}
-
-#' @title find_orthofinderResults
-#' @description
-#' \code{find_orthofinderResults} find_orthofinderResults
-#' @rdname utils
-#' @import data.table
-#' @importFrom R.utils gunzip
-#' @export
-find_orthofinderResults <- function(gsParam, onlyCheckRun = F){
-  ogsFile <- order_filesByMtime(
-    path = gsParam$paths$orthofinder,
-    pattern = "Orthogroups.tsv",
-    recursive = T)
-  if(onlyCheckRun){
-    return(length(ogsFile) > 0)
-  }else{
-    if(length(ogsFile) > 1)
-      warning("Found multiple orthofinder runs, only using the most recent\n")
-    if(length(ogsFile) == 0)
-      stop("Can't find the 'orthogroups.tsv' file\n\tHave you run orthofinder yet?\n")
-
-    ofResDir <- dirname(dirname(ogsFile[1]))
-
-    pfile <- file.path(ofResDir, "Gene_Duplication_Events")
-    if(!dir.exists(pfile)){
-      paralogsDir <- NA
-    }else{
-      paralogsDir <- pfile
-    }
-
-    orthfile <- file.path(ofResDir, "Orthologues")
-    if(!dir.exists(orthfile)){
-      orthologuesDir <- NA
-    }else{
-      orthologuesDir <- orthfile
-    }
-
-    blsFile <- order_filesByMtime(
-      path = gsParam$paths$orthofinder,
-      pattern = "diamondDBSpecies0.dmnd",
-      recursive = T)
-
-    blastDir <- dirname(blsFile[1])
-
-    gsParam$paths$blastDir <- blastDir
-    gsParam$paths$orthogroupsDir <- dirname(ogsFile[1])
-    gsParam$paths$paralogsDir <- paralogsDir
-    gsParam$paths$orthologuesDir <- orthologuesDir
-
-    return(gsParam)
-  }
-}
-
-#' @title calc_blkCoords
-#' @description
-#' \code{calc_blkCoords} calc_blkCoords
-#' @rdname utils
-#' @import data.table
-#' @importFrom stats cor
-#' @export
-calc_blkCoords <- function(hits, mirror = FALSE){
-  setDTthreads(1)
-
-  # -- get the columns and complete observations for these
-  hcols <- c("blkID", "start1", "start2", "end1", "end2", "ord1", "ord2",
-             "chr1", "chr2", "gen1", "gen2", "ofID1", "ofID2")
-  bhits <- subset(hits, complete.cases(hits[,hcols, with = F]))
-
-  ofID1 <- start1 <- end1 <- ofID1 <- ord1 <- blkID <- NULL
-
-  if(mirror){
-    tmp <- data.table(bhits)
-    setnames(tmp, gsub("2$", "3", colnames(tmp)))
-    setnames(tmp, gsub("1$", "2", colnames(tmp)))
-    setnames(tmp, gsub("3$", "1", colnames(tmp)))
-    bhits <- rbind(bhits, tmp[,colnames(bhits), with = F])
-    bhits <- subset(bhits, !duplicated(paste(ofID1, ofID2, blkID)))
-  }
-
-  # -- get the genome1 coordinates
-  setkey(bhits, ord1)
-  blks1 <- bhits[,list(
-    startBp1 = min(start1), endBp1 = max(end1),
-    startOrd1 = min(ord1), endOrd1 = max(ord1),
-    firstGene1 = first(ofID1), lastGene1 = last(ofID1),
-    nHits1 = uniqueN(ofID1)),
-    by = c("blkID", "gen1","gen2", "chr1", "chr2")]
-
-  # -- get the genome2 coordinates
-  ofID2 <- start2 <- end2 <- ofID2 <- ord2 <- NULL
-  setkey(bhits, ord2)
-  blks2 <- bhits[,list(
-    minBp2 = min(start2), maxBp2 = max(end2),
-    minOrd2 = min(ord2), maxOrd2 = max(ord2),
-    minGene2 = first(ofID2), maxGene2 = last(ofID2),
-    nHits2 = uniqueN(ofID2),
-    orient = ifelse(length(ord1) <= 1, "+",
-                    ifelse(cor(jitter(ord1),
-                               jitter(ord2)) > 0,"+", "-"))),
-    by = c("blkID", "gen1","gen2", "chr1", "chr2")]
-
-  # -- merge the two coordinates
-  blks <- merge(blks1, blks2, by = c("gen1","gen2","chr1","chr2","blkID"))
-
-  # -- fix the coordinates for inverted blocks
-  orient <- NULL
-  bgfor <- subset(blks, orient == "+")
-  bgrev <- subset(blks, orient == "-")
-
-  maxBp2 <- minBp2 <- maxOrd2 <- minOrd2 <- maxGene2 <- minGene2 <- NULL
-  bgrev[,`:=`(startBp2 = maxBp2, endBp2 = minBp2,
-              startOrd2 = maxOrd2, endOrd2 = minOrd2,
-              firstGene2 = maxGene2, lastGene2 = minGene2)]
-  bgfor[,`:=`(startBp2 = minBp2, endBp2 = maxBp2,
-              startOrd2 = minOrd2, endOrd2 = maxOrd2,
-              firstGene2 = minGene2, lastGene2 = maxGene2)]
-  blks <- rbind(bgfor, bgrev)
-  return(blks)
-}
-
-#' @title clus_dbscan
-#' @description
-#' \code{clus_dbscan} clus_dbscan
-#' @rdname synteny
-#' @import data.table
-#' @importFrom dbscan dbscan frNN
-#' @export
-clus_dbscan <- function(hits,
-                        radius,
-                        blkSize){
-  setDTthreads(1)
-
-  # -- split up the hits
-  x <- split(hits, by = c("gen1","gen2","chr1","chr2"))
-
-  ord1 <- ord2 <- chr1 <- chr2 <- NULL
-  x <- rbindlist(lapply(x,  function(y){
-    y[,blkID := dbscan(frNN(cbind(ord1, ord2), eps = radius),
-                       minPts = blkSize)$cluster]
-    return(y)
-  }))
-
-  # -- subset the blocks, then add unique IDs
-  blkID <- NULL
-  x <- subset(x, blkID > 0)
-  x[,blkID := sprintf("blk_%s_%s_%s", chr1, chr2, blkID)]
-
+parse_orthologues <- function(path){
+  x <- fread(path, showProgress = F)
+  refID <- colnames(x)[2]
+  altID <- colnames(x)[3]
+  setnames(x, c("og", "id1", "id2"))
+  id1 <- id2 <- NULL
+  x1 <- subset(x, !grepl(",", paste(id1, id2)))
+  x2 <- subset(x, grepl(",", paste(id1, id2)))
+  x2[,orthID := 1:.N]
+  x2r <- x2[,list(id1 = unique(strsplit(id1, ",")[[1]])),
+            by = "orthID"]
+  x2a <- x2[,list(id2 = unique(strsplit(id2, ",")[[1]])),
+            by = "orthID"]
+  x2 <- merge(x2r, x2a, by = "orthID", all = T, allow.cartesian = T)
+  x1[,orthID := (1:.N)+max(x2$orthID)]
+  x <- rbind(x1[,colnames(x2), with = F], x2)
+  x[,`:=`(gen1 = refID, gen2 = altID,
+          id1 = gsub(" ", "", id1), id2 = gsub(" ", "", id2))]
   return(x)
 }
 
-#' @title check if a vector is coercible to R colors
+#' @title round_toInteger
 #' @description
-#' \code{are_colors} check if a vector is coercible to R colors
-#' @rdname utils
-#' @importFrom grDevices col2rgb
-#' @export
-are_colors <- function(col) {
-  sapply(col, function(X) {
-    tryCatch(is.matrix(col2rgb(X)),
-             error = function(e) FALSE)
-  })
-}
-
-#' @title add transparency to a color
-#' @description
-#' \code{add_alpha} add transparency to a color
-#' @rdname utils
-#' @importFrom grDevices col2rgb rgb
-#' @export
-add_alpha <- function(col,
-                      alpha = 1){
-
-  if(missing(col) || !all(are_colors(col)))
-    stop("Colors are misspecified\n")
-  if(length(alpha) != 1 || alpha > 1 || alpha < 0)
-    stop("alpha is misspecified\n")
-
-  return(apply(sapply(col, col2rgb)/255, 2, function(x)
-    rgb(x[1], x[2], x[3], alpha = alpha)))
-}
-
-#' @title drop_unusedPeptides
-#' @description
-#' \code{drop_unusedPeptides} drop_unusedPeptides
+#' \code{round_toInteger} round_toInteger
 #' @rdname utils
 #' @import data.table
 #' @export
-drop_unusedPeptides <- function(gsParam){
-  f <- list.files(path = dirname(gsParam$paths$peptide[1]), full.names = F)
-  fi <- basename(gsParam$paths$peptide)
-  if(any(!f %in% fi)){
-    fo <- f[!f %in% fi]
-    for(i in fo)
-      file.remove(file.path(dirname(gsParam$paths$peptide[1]), i))
-  }
+round_toInteger <- function(x, to){
+  round(x/to, 0) * to
 }
 
-#' @title linear interpolation of missing values
+#' @title add_rle
 #' @description
-#' \code{interp_linear} linear interpolation of missing values in x
+#' \code{add_rle} add_rle
 #' @rdname utils
 #' @import data.table
 #' @export
-interp_linear <- function(refOrd,
-                          toInterpOrd){
-
-  # -- convert to numeric, to ensure that NAs are correctly specified
-  dt <- x <- y <- rl <- toInterp <- ip <- NULL
-  ord1 <- as.numeric(refOrd)
-  ord2 <- as.numeric(toInterpOrd)
-  if(all(is.na(ord1)))
-    stop("refOrd (achors) is all NAs. Can't proceed\n")
-  if(any(is.na(ord2)))
-    stop("found NAs in toInterpOrd (hits to interpolate) - not permitted\n")
-
-  # -- if no NAs, just spit back ord2
-  if(all(!is.na(ord1))){
-    return(ord1)
+add_rle <- function(x, which = "n"){
+  if(which == "n"){
+    rep(rle(x)$lengths, rle(x)$lengths)
   }else{
-    # make into a data table with index and whether or not to interpolate
-    dt <- data.table(
-      x = ord1, y = ord2, index = 1:length(ord1), toInterp = is.na(ord1))
-    dto <- data.table(dt)
-    # order by anchor positions (ord1, x)
-    setkey(dt, y)
-
-    # -- find runs of NAs in y
-    dt[,rl := add_rle(toInterp, which = "id")]
-
-    # -- pull runs to infer (not first and last if they are NAs)
-    interpThis <- subset(dt, !(toInterp & rl %in% c(1, max(rl))))
-
-    # -- return original data if no bounding non-na runs and no internal NAs
-    if(uniqueN(interpThis$rl[interpThis$toInterp]) < 1){
-      return(ord1)
-    }else{
-      # -- get max right and min left values for each non-missing run
-      minr <- with(subset(interpThis, !toInterp), tapply(x, rl, min))
-      maxl <- with(subset(interpThis, !toInterp), tapply(x, rl, max))
-
-      # -- linear interpolation of runs of NAs from bounding values
-      out <- subset(interpThis, toInterp)
-      out[,ip := seq(from = maxl[as.character(rl-1)],
-                     to = minr[as.character(rl+1)],
-                     length.out = .N+2)[-c(1, .N+2)],
-          by = "rl"]
-
-      # -- fill NAs and return
-      dto$x <- as.numeric(dto$x)
-      dto$x[out$index] <- out$ip
-      return(dto$x)
-    }
+    rep(1:length(rle(x)$lengths), rle(x)$lengths)
   }
+}
+
+#' @title gs_colors
+#' @description
+#' \code{gs_colors} gs_colors
+#' @rdname utils
+#' @import data.table
+#' @export
+gs_colors <- function(n = 10){
+  cols <- c("#C4645C", "#F5915C", "#FFC765",
+            "#FCF8D5", "#BEF3F9", "#66B8FF", "#6666FF", "#9C63E1",
+            "#F4BDFF")
+  pal <- colorRampPalette(cols)
+  return(pal(n))
 }

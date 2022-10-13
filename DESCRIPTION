@@ -1,7 +1,7 @@
 Package: GENESPACE
 Type: Package
 Title: Synteny- and orthology-constrained comparative genomics
-Version: 0.9.4
+Version: 1.0.0
 Author: John T. Lovell
 Maintainer: John T. Lovell <jlovell@hudsonalpha.org>
 Description: Construct pan-genome annotations and orther comparative genomics
@@ -15,12 +15,15 @@ Imports: data.table,
   stats,
   graphics,
   R.utils
-Suggests: BiocStyle, knitr,
-  rmarkdown
+Suggests: BiocStyle, 
+  knitr, 
+  rmarkdown, 
+  ggplot2, 
+  rtracklayer
 SystemRequirements: MCScanX, 
   orthofinder
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.1
 VignetteBuilder: knitr

@@ -2,171 +2,139 @@
 % Please edit documentation in R/utils.R
 \name{utils}
 \alias{utils}
-\alias{.onAttach}
-\alias{order_filesByMtime}
-\alias{check_logicalArg}
-\alias{add_rle}
-\alias{clus_igraph}
+\alias{check_integer}
+\alias{check_numeric}
+\alias{check_character}
+\alias{check_logical}
+\alias{check_filePathParam}
+\alias{check_onlyDNA}
+\alias{read_aaFasta}
 \alias{get_nAA}
-\alias{find_modalValue}
-\alias{scale_between}
-\alias{flatten_list}
-\alias{pull_strWidth}
-\alias{round_toInteger}
+\alias{read_bed}
+\alias{align_charLeft}
+\alias{align_charRight}
 \alias{read_orthofinderSpeciesIDs}
 \alias{read_orthofinderSequenceIDs}
-\alias{choose_mostRecentOF}
+\alias{get_nSeqs}
+\alias{check_annotFiles}
+\alias{check_MCScanXhInstall}
 \alias{parse_ogs}
+\alias{parse_hogs}
 \alias{parse_orthologues}
-\alias{read_blast}
-\alias{find_orthofinderResults}
-\alias{calc_blkCoords}
-\alias{are_colors}
-\alias{add_alpha}
-\alias{drop_unusedPeptides}
-\alias{interp_linear}
+\alias{round_toInteger}
+\alias{add_rle}
+\alias{gs_colors}
 \title{Generic internal functions used by genespace}
 \usage{
-.onAttach(...)
+check_integer(
+  x,
+  min = -Inf,
+  max = Inf,
+  default = NA,
+  na.rm = FALSE,
+  onlySingleValue = length(x) <= 1
+)
 
-order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
+check_numeric(
+  x,
+  min = -Inf,
+  max = Inf,
+  default = NA,
+  na.rm = FALSE,
+  onlySingleValue = length(x) <= 1
+)
 
-check_logicalArg(x)
+check_character(
+  x,
+  default = NULL,
+  na.rm = FALSE,
+  onlySingleValue = length(x) <= 1
+)
 
-add_rle(x, which = "n")
+check_logical(x, default = NA, na.rm = FALSE, onlySingleValue = length(x) <= 1)
 
-clus_igraph(id1, id2)
+check_filePathParam(path)
 
-get_nAA(path, raw = FALSE)
+check_onlyDNA(path)
 
-find_modalValue(x)
+read_aaFasta(path)
 
-scale_between(x, min, max, scale1toMean = TRUE)
+get_nAA(path)
 
-flatten_list(x)
+read_bed(path)
 
-scale_between(x, min, max, scale1toMean = TRUE)
+align_charLeft(x)
 
-pull_strWidth(x, width)
-
-round_toInteger(x, to)
+align_charRight(x)
 
 read_orthofinderSpeciesIDs(path)
 
 read_orthofinderSequenceIDs(path)
 
-choose_mostRecentOF(path)
+get_nSeqs(path)
 
-parse_ogs(gsParam)
+check_annotFiles(path, genomeIDs)
 
-parse_orthologues(gsParam, refGenome)
+check_MCScanXhInstall(path)
 
-read_blast(
-  blFile = NULL,
-  ofID1 = NULL,
-  ofID2 = NULL,
-  path = NULL,
-  onlyIDScore = TRUE
-)
+parse_ogs(path, genomeIDs)
 
-find_orthofinderResults(gsParam, onlyCheckRun = F)
+parse_hogs(path, genomeIDs)
 
-calc_blkCoords(hits, mirror = FALSE)
+parse_orthologues(path)
 
-are_colors(col)
+round_toInteger(x, to)
 
-add_alpha(col, alpha = 1)
+add_rle(x, which = "n")
 
-drop_unusedPeptides(gsParam)
-
-interp_linear(refOrd, toInterpOrd)
+gs_colors(n = 10)
 }
 \arguments{
-\item{...}{additional arguments passed to other functions
+\item{x}{single-value parameter, string, integer, numeric, list, vector}
+
+\item{min}{if x is an integer or numeric, the minimum value allowed}
+
+\item{max}{if x is an integer or numeric, the minimum value allowed}
+
+\item{default}{if there is a problem with x, replace with this value}
+
+\item{na.rm}{logical, should NA's be dropped
 \cr
 If called, \code{utils} returns its own arguments.}
 
 \item{path}{file path character string}
-
-\item{pattern}{regular expression to search for}
-
-\item{recursive}{logical, should the search be recursive}
-
-\item{x}{vector of observations}
-
-\item{which}{character specifying which method to use}
-
-\item{id1}{character vector of ids with length matching id2}
-
-\item{id2}{character vector of ids with length matching id1}
-
-\item{raw}{logical, should a raw vector of peptide widths be returned?}
-
-\item{min}{numeric, length 1 specifying the minumum value in the scaled data}
-
-\item{max}{numeric, length 1 specifying the maximum value in the scaled data}
-
-\item{scale1toMean}{logical, if single value, should it be the mean?}
-
-\item{width}{integer, the number of characters to return in string.}
-
-\item{to}{what should the value be rounded to?}
-
-\item{gsParam}{list of genespace parameters}
-
-\item{refGenome}{character string specifying which genome is the reference}
-
-\item{blFile}{file path to the blast-like text file}
-
-\item{ofID1}{orthofinder ID of the first gene}
-
-\item{ofID2}{orthofinder ID of the second gene}
-
-\item{onlyIDScore}{logical, should only the geneIDs and score be returned?}
-
-\item{onlyCheckRun}{logical, should the run just be checked?}
-
-\item{hits}{data.table containing annotated blast-format pairwise hits}
-
-\item{mirror}{logical, should hits be mirrored prior to block calculation?}
-
-\item{col}{character or integer specifying a color}
-
-\item{alpha}{numeric (0-1) specifying the transparency}
-
-\item{refOrd}{numeric, the order of anchor hits to interpolate}
-
-\item{toInterpOrd}{numeric, the order of alt genes to interpolate}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called
 directly by the user. Little documentation support provided, use at your own
 risk.
 
-\code{.onAttach} startup messages
+\code{check_integer} Checks and parses integer arguments to GENESPACE
+functions. Replaces values of x not in range (min, max) with the minimum or
+maximum values. If a single value and a value that is not coercible to an
+integer is specified, returns the default value. If na.rm = TRUE and
+onlySingleValue = FALSE, drops NAs.
+from the vector
 
-\code{order_filesByMtime} Order files by date of last modification
+\code{check_numeric} See check_integer. Same but for numeric values.
 
-\code{check_logicalArg} Ensure a logical (length 1) argument is coerced
-correctly. If cannot be coerced, return error.
+\code{check_character} See check_integer. Same but for character values.
 
-\code{add_rle} Convert vector into run length equivalents
+\code{check_logical} See check_integer. Same but for logical values.
 
-\code{clus_igraph} Clus_igraph
+\code{check_filePathParam} check_filePathParam
+
+\code{check_onlyDNA} Check only DNA
+
+\code{read_aaFasta} read_aaFasta
 
 \code{get_nAA} count the number of amino acids by gene
 
-\code{find_modalValue} find the most commmon value in a series
+\code{read_bed} read_bed
 
-\code{scale_between} scale a vector between a range
+\code{read_bed} read_bed
 
-\code{flatten_list} convert a list into a vector while keeping names
-
-\code{scale_between} ...
-
-\code{pull_strWidth} pull_strWidth
-
-\code{round_toInteger} round_toInteger
+\code{read_bed} read_bed
 
 \code{read_orthofinderSpeciesIDs} Parses the SpeciesIDs.txt file into a
 data.table and returns to R.
@@ -174,24 +142,22 @@ data.table and returns to R.
 \code{read_orthofinderSequenceIDs} Reads the sequence
 IDs:gene name dictionary into memory.
 
-\code{choose_mostRecentOF} choose_mostRecentOF
+\code{get_nSeqs} Counts the number of lines with ">" in a file. If the output
+is not convertible to an integer, returns NA.
 
-\code{parse_ogs} wide to long format conversion for orthogroups.tsv
+\code{check_annotFiles}
+
+\code{check_MCScanXhInstall} check that MCScanX_h can be called
+
+\code{parse_ogs} parse_ogs
+
+\code{parse_hogs} parse_hogs
 
 \code{parse_orthologues} parse_orthologues
 
-\code{read_blast} Reads in a single pairwise orthofinder-formaatted blast
-file
+\code{round_toInteger} round_toInteger
 
-\code{find_orthofinderResults} find_orthofinderResults
+\code{add_rle} add_rle
 
-\code{calc_blkCoords} calc_blkCoords
-
-\code{are_colors} check if a vector is coercible to R colors
-
-\code{add_alpha} add transparency to a color
-
-\code{drop_unusedPeptides} drop_unusedPeptides
-
-\code{interp_linear} linear interpolation of missing values in x
+\code{gs_colors} gs_colors
 }
