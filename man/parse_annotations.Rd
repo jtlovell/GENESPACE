@@ -2,8 +2,10 @@
 % Please edit documentation in R/parse_annotations.R
 \name{parse_annotations}
 \alias{parse_annotations}
+\alias{match_fasta2gff}
 \alias{parse_ncbi}
 \alias{parse_phytozome}
+\alias{parse_faHeader}
 \title{Accessory function to help build GENESPACE input files}
 \usage{
 parse_annotations(
@@ -22,6 +24,21 @@ parse_annotations(
   chrIdDictionary = NULL,
   troubleShoot = FALSE,
   overwrite = FALSE
+)
+
+match_fasta2gff(
+  path2fasta,
+  path2gff,
+  genespaceWd,
+  genomeID,
+  presets,
+  gffIdColumn,
+  headerEntryIndex,
+  headerSep,
+  gffStripText,
+  headerStripText,
+  chrIdDictionary,
+  troubleShoot
 )
 
 parse_ncbi(
@@ -46,6 +63,8 @@ parse_phytozome(
   chrIdDictionary = NULL,
   troubleShoot = FALSE
 )
+
+parse_faHeader(...)
 }
 \arguments{
 \item{rawGenomeRepo}{file path to the location of gff3 and fasta annotations}
@@ -108,11 +127,16 @@ gff3 --> bed and match the names with fasta headers.
 primary transcript, and ensure that the peptide fasta headers match the
 name column
 
+\code{match_fasta2gff} engine for reading, parsing and writing annotation
+files
+
 \code{parse_ncbi} a shortcut for parse_annotations(preset = "ncbi") to
 maintain backwards compatibility with < v1.0.0.
 
 \code{parse_phytozome} a shortcut for parse_annotations(preset = "phytozome")
 to maintain backwards compatibility with < v1.0.0.
+
+\code{parse_faHeader} function to maintain backwards compatibility
 }
 \details{
 parse_annotations assumes that you have a 'rawGenomeRepo' directory

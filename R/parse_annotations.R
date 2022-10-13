@@ -207,7 +207,7 @@ parse_annotations <- function(rawGenomeRepo,
 #' @description
 #' \code{match_fasta2gff} engine for reading, parsing and writing annotation
 #' files
-#' @rdname match_annotations
+#' @rdname parse_annotations
 #' @import data.table
 #' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet DNA_ALPHABET
 #' @importFrom utils head
@@ -410,6 +410,7 @@ parse_ncbi <- function(rawGenomeRepo,
 #' \code{parse_phytozome} a shortcut for parse_annotations(preset = "phytozome")
 #' to maintain backwards compatibility with < v1.0.0.
 #' @rdname parse_annotations
+#' @export
 parse_phytozome <- function(rawGenomeRepo,
                             genomeDirs,
                             genomeIDs = genomeDirs,
@@ -418,6 +419,7 @@ parse_phytozome <- function(rawGenomeRepo,
                             genespaceWd,
                             chrIdDictionary = NULL,
                             troubleShoot = FALSE){
+
   outPaths <- parse_annotations(
     rawGenomeRepo = rawGenomeRepo,
     genomeDirs = genomeDirs,
@@ -428,13 +430,14 @@ parse_phytozome <- function(rawGenomeRepo,
     presets = "phytozome",
     chrIdDictionary = NULL,
     troubleShoot = FALSE)
+
   return(outPaths)
 }
 
 #' @title Deprecated
 #' @description
 #' \code{parse_faHeader} function to maintain backwards compatibility
-#' @rdname parse_faHeader
+#' @rdname parse_annotations
 #' @export
 parse_faHeader <- function(...){
   cat(strwrap(

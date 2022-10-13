@@ -139,7 +139,7 @@ run_orthofinder <- function(gsParam,
     ############################################################################
     # 3. Get the orthofinder command
     ofComm <- sprintf(
-      "-f %s -t %s -a %s %s %s -X -o %s",
+      "-f %s -t %s -a 1 %s %s -X -o %s",
       tmpDir, nCores, nCores,
       ifelse(onewayBlast, "-1", ""),
       ifelse(diamondUltraSens, "-S diamond_ultra_sens", ""),

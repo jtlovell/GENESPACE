@@ -39,6 +39,7 @@
 #' \code{synteny} synteny
 #' @rdname synteny
 #' @import data.table
+#' @import R.utils
 #' @export
 synteny <- function(gsParam){
   ##############################################################################
