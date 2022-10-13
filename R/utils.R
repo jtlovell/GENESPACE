@@ -11,6 +11,11 @@
 #' @param max if x is an integer or numeric, the minimum value allowed
 #' @param default if there is a problem with x, replace with this value
 #' @param na.rm logical, should NA's be dropped
+#' @param onlySingleValue logical, should long a single valuebe returned?
+#' @param genomeIDs character vector of genomeIDs
+#' @param to integer, top end value
+#' @param which character specifying what to use
+#' @param n integer, number of observations
 #' \cr
 #' If called, \code{utils} returns its own arguments.
 #'
@@ -253,6 +258,7 @@ get_nAA <- function(path){
 #' \code{read_bed} read_bed
 #' @rdname utils
 #' @import data.table
+#' @importFrom stats complete.cases
 #' @export
 read_bed <- function(path){
   chk <- tryCatch(
@@ -449,6 +455,7 @@ check_MCScanXhInstall <- function(path){
 #' @import data.table
 #' @export
 parse_ogs <- function(path, genomeIDs){
+  id <- genome <- Orthogroup <- NULL
   tmp <- fread(path, showProgress = F, verbose = F)
   tmp <- melt(
     tmp, id.vars = "Orthogroup", measure.vars = genomeIDs,
@@ -468,6 +475,7 @@ parse_ogs <- function(path, genomeIDs){
 #' @import data.table
 #' @export
 parse_hogs <- function(path, genomeIDs){
+  id <- genome <- HOG <- NULL
   tmp <- fread(path, showProgress = F, verbose = F)
   tmp <- melt(
     tmp, id.vars = "HOG", measure.vars = genomeIDs,
@@ -485,11 +493,11 @@ parse_hogs <- function(path, genomeIDs){
 #' @import data.table
 #' @export
 parse_orthologues <- function(path){
+  orthID <- id1 <- id2 <- NULL
   x <- fread(path, showProgress = F)
   refID <- colnames(x)[2]
   altID <- colnames(x)[3]
   setnames(x, c("og", "id1", "id2"))
-  id1 <- id2 <- NULL
   x1 <- subset(x, !grepl(",", paste(id1, id2)))
   x2 <- subset(x, grepl(",", paste(id1, id2)))
   x2[,orthID := 1:.N]
@@ -534,6 +542,7 @@ add_rle <- function(x, which = "n"){
 #' \code{gs_colors} gs_colors
 #' @rdname utils
 #' @import data.table
+#' @importFrom grDevices colorRampPalette
 #' @export
 gs_colors <- function(n = 10){
   cols <- c("#C4645C", "#F5915C", "#FFC765",

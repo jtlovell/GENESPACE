@@ -43,7 +43,7 @@
 #' \enumerate{
 #' \item genome unique genomeID, taken from the individual bed files
 #' \item ord integer with the order of genes
-#' \ofID unique orthofinder ID, taken from 'SequenceIDs.txt'
+#' \item unique orthofinder ID, taken from 'SequenceIDs.txt'
 #' \item pepLen: amino acid length of the gene CDS
 #' \item arrayID: tandem array ID, unique for each genome, og and chr.
 #' \item isArayRep: logical flag whether a gene is the representative for array
@@ -92,6 +92,7 @@ set_syntenyParams <- function(gsParam, overwrite){
     gsParam <- annotate_blast(gsParam = gsParam)
 
   # -- add ploidy
+  ploidy1 <- ploidy2 <- query <- target <- synBuff <- NULL
   blMd <- data.table(gsParam$annotBlastMd)
   blMd[,`:=`(ploidy1 = gsParam$ploidy[query],
              ploidy2 = gsParam$ploidy[target])]
@@ -108,7 +109,7 @@ set_syntenyParams <- function(gsParam, overwrite){
               inBufferRadius = synBuff/2)]
 
   if(!is.na(gsParam$outgroup))
-    blMd <- subset(blMd, !(query %in% outgroup | target %in% outgroup))
+    blMd <- subset(blMd, !(query %in% gsParam$outgroup | target %in% gsParam$outgroup))
 
   gsParam$annotBlastMd <- blMd
   return(gsParam)
@@ -119,10 +120,12 @@ set_syntenyParams <- function(gsParam, overwrite){
 #' \code{annotate_bed} annotate_bed
 #' @rdname set_syntenyParams
 #' @import data.table
+#' @importFrom stats median
 #' @export
 annotate_bed <- function(gsParam){
 
   add_ofID2bed <- function(bed, gsParam){
+    genomeNum <- genome <- id <- ofID <- NULL
     seqid <- read_orthofinderSequenceIDs(
       file.path(gsParam$paths$results, "SequenceIDs.txt"))
     speid <- read_orthofinderSpeciesIDs(
@@ -135,7 +138,7 @@ annotate_bed <- function(gsParam){
 
   add_pepLen2bed <- function(bed,
                              gsParam){
-    id <- NULL
+    id <- pepLen <- NULL
     genomeIDs <- unique(bed$genome)
     pepFiles <- file.path(gsParam$paths$peptide, sprintf("%s.fa", genomeIDs))
     pepFiles <- pepFiles[file.exists(pepFiles)]
@@ -165,6 +168,7 @@ annotate_bed <- function(gsParam){
   }
 
   add_og2bed <- function(bed, gsParam){
+    genome <- id <- NULL
     ogPath <- file.path(gsParam$paths$results, "Orthogroups.tsv")
     ogs <- parse_ogs(path = ogPath, genomeIDs = genomeIDs)
     di <- ogs$ogID; names(di) <- with(ogs, paste(genome, id))
@@ -176,6 +180,7 @@ annotate_bed <- function(gsParam){
   }
 
   add_hog2bed <- function(bed, gsParam){
+    genome <- id <- NULL
     ogPath <- file.path(gsParam$paths$results, "N0.tsv")
     ogs <- parse_hogs(path = ogPath, genomeIDs = genomeIDs)
     di <- ogs$hogID; names(di) <- with(ogs, paste(genome, id))
@@ -187,6 +192,7 @@ annotate_bed <- function(gsParam){
   }
 
   add_nOGplaces2bed <- function(bed, arrayJump){
+    genome <- chr <- og <- ord <- jumpLeft <- NULL
     setkey(bed, genome, chr, og, ord)
     bed[,jumpLeft := c(arrayJump + 1, diff(ord)), by = c("genome", "chr", "og")]
     bed[,nOGPlaces := sum(jumpLeft > arrayJump), by = c("genome","og")]
@@ -199,19 +205,21 @@ annotate_bed <- function(gsParam){
 
     # -- we can make arrays for everything except that we want to exclude the
     # arrays that are huge and problematic
+    genome <- chr <- id <- arrayID <- nOGPlaces <- tord <- NULL
     tmp <- subset(bed, nOGPlaces <= maxPlaces)
     tmp[,tord := as.numeric(ord)]
 
     # -- set up the iteration
     cnt <- 1
     diffn <- 1
-    tmp[,arrayID := sprintf("tmp%s",
-                            as.integer(as.factor(paste(genome, chr, id))))]
+    tmp[,arrayID := sprintf(
+      "tmp%s", as.integer(as.factor(paste(genome, chr, id))))]
     while(cnt <= maxIter && diffn > 0){
       # -- for each iteration, calculate clusters by the size of jump between
       # genes larger than the synBuffer
       cnt <- cnt + 1
       initn <- uniqueN(tmp$arrayID)
+      genome <- chr <- og <- ord <- jumpLeft <- clus <- n <- NULL
       setkey(tmp, genome, chr, og, tord)
       tmp[,tord := frank(tord, ties.method = "dense"), by = "genome"]
       tmp[,jumpLeft := c(synBuff + 1, diff(tord)), by = c("genome", "chr", "og")]
@@ -235,6 +243,7 @@ annotate_bed <- function(gsParam){
     }
 
     # -- relabel
+    ogID <- NULL
     lab <- gsub(" ", "0",
                 align_charRight(
                   as.numeric(factor(tmp$arrayID,
@@ -252,6 +261,8 @@ annotate_bed <- function(gsParam){
   }
 
   add_arrayReps2bed <- function(bed){
+    n <- ord <- medOrd <- medDiff <- pepLen <- arrayID <- isRep <-
+      isArrayRep <- ofID <- NULL
     bed[,n := .N, by = "arrayID"]
     tmp <- subset(bed, n > 1)
     tmp[,medOrd := as.numeric(median(ord)), by = "arrayID"]
@@ -267,6 +278,7 @@ annotate_bed <- function(gsParam){
   }
 
   check_ploidyOgMatch <- function(ploidy, bed){
+    genome <- nGenome <- nGenes <- ofID <- n <- nOGs <- smPloid <- NULL
     cat("Checking which type of orthogroup most closely matches ploidy\n")
     tmp <- data.table(genome = names(ploidy), ploidy = ploidy)
     cat("Checking global orthogroups (OGs) ... \n")
@@ -301,6 +313,9 @@ annotate_bed <- function(gsParam){
     tp <- rbind(tp,
                 matrix(c(genome = "total",
                          colSums(tp[,-1,with = F])),nrow =  1), use.names = F)
+
+    pOG <- pHOG <- genome <- HOG <- OG <- HOG_TRUE <- HOG_FALSE <- OG_TRUE <-
+      OG_FALSE <- NULL
     tp[,`:=`(pHOG = as.numeric(HOG_TRUE)/(as.numeric(HOG_FALSE) + as.numeric(HOG_TRUE)),
              pOG = as.numeric(OG_TRUE)/(as.numeric(OG_FALSE) + as.numeric(OG_TRUE)))]
     tp[,`:=`(pHOG = round(pHOG*100, 2), pOG = round(pOG*100,2))]
@@ -363,12 +378,15 @@ annotate_bed <- function(gsParam){
   }))
 
   # -- 2.3 add in gene orders
+  chrn <- n <- chr <- ord <- NULL
   bed[,chrn := as.numeric(gsub('\\D+','', chr))]
   bed[,n := .N, by = c("genome", "chr")]
   setorder(bed, genome, chrn, chr, -n)
   bed[,ord := 1:.N, by = "genome"]
 
   # -- 2.4 add in all other columns
+  noAnchor <- arrayID <- chr <- n <- ofID <- pepLen <- arrayID <- isArrayRep <-
+    globOG <- globHOG <- synOG <- inblkOG <- NULL
   bed[,`:=`(
     chrn = NULL, n = NULL, ofID = NA, pepLen = NA, arrayID = NA,
     isArrayRep = NA,  globOG = NA, globHOG = NA, synOG = NA,
@@ -393,6 +411,8 @@ annotate_bed <- function(gsParam){
   if(is.null(useHOGs) || is.na(useHOGs))
     useHOGs <- check_ploidyOgMatch(bed = bed, ploidy = gsParam$ploidy)
 
+  og <- globHOG <- globOG <- genome <- nOGPlaces <- isArrayRep <- tmp <-
+    n <- maxPlaces <- NULL
   if(useHOGs){
     bed[,og := globHOG]
   }else{
@@ -417,7 +437,9 @@ annotate_bed <- function(gsParam){
 
   ##############################################################################
   # 5. Clean up and summarize
-
+  n <- nchr <- nGenes <- nHOG <- og <- ofID <- nGenesInArray <- nOGs <-
+    nGenesSmallScaff <- nSmallScaff <- nDispArray <- genome <- narr <-
+    nGenome <- NULL
   cat(strwrap(
     "\n\nBelow, printing a table with QC information for each genome. Abbreviations:
   'nArr' = n. tandem arrays, 'smChrs' = scaffolds smaller than `2 * blkSize`,
@@ -461,6 +483,7 @@ annotate_bed <- function(gsParam){
 #' \code{annotate_blast} annotate_blast
 #' @rdname set_syntenyParams
 #' @import data.table
+#' @importFrom grDevices pdf dev.off rgb
 #' @export
 annotate_blast <- function(gsParam){
   ##############################################################################
@@ -471,6 +494,8 @@ annotate_blast <- function(gsParam){
   bed <- fread(bedFile, na.strings = c("", "NA"), showProgress = F)
 
   # -- 1.2 get the blast files together
+  genome1 <- genome2 <- n1 <- n2 <- blastFile <- query <- target <- hasBlast <-
+    type <- NULL
   tmp <- gsParam$ofFiles$blast
   nseqs <- table(bed$genome)
   tmp[,`:=`(n1 = nseqs[genome1], n2 = nseqs[genome2])]
@@ -496,22 +521,30 @@ annotate_blast <- function(gsParam){
   setnames(bed1, paste0(names(bed1), "1"))
   bed2 <- data.table(bed[,bdNames, with = F])
   setnames(bed2, paste0(names(bed2), "2"))
+  annotBlastFile <- NULL
   synMd[,annotBlastFile := NA]
   for(i in 1:nrow(synMd)){
 
     # -- 2.1 read in the blast file(s)
     bl <- fread(
-      synMd$queryBlast[i], showProgress = F, na.strings = c("", "NA"),
+      synMd$queryBlast[i],
+      showProgress = F,
+      na.strings = c("", "NA"),
       col.names = blNamesR)
     if(!is.na(synMd$targetBlast[i])){
       blr <- fread(
-        synMd$targetBlast[i], showProgress = F, na.strings = c("", "NA"),
+        synMd$targetBlast[i],
+        showProgress = F,
+        na.strings = c("", "NA"),
         col.names = blNames)
       bl <- rbind(blr, use.names = T)
       bl <- bl[,blNames, with = F]
     }
 
     # -- 2.2 drop duplicated hits, keeping the highest score
+    bitScore <- ofID1 <- ofID2 <- og1 <- og2 <- og <- noAnchor1 <- ns1 <- ns2 <-
+      noAnchor2 <- noAnchor <- rnd1 <- rnd2 <- ngene1 <- ngene2 <- sameOg <-
+      ord1 <- ord2 <- ancOrd1 <- ancOrd2 <- n <- NULL
     setorder(bl, -bitScore)
     bl <- subset(bl, !duplicated(paste(ofID1, ofID2)))
     cat(sprintf("\t%s vs. %s: total hits = %s",
@@ -555,7 +588,6 @@ annotate_blast <- function(gsParam){
     hc <- subset(hits, sameOg & ngene1 > 50 & ngene2 > 50)
     hc <- hc[,list(n = .N), by = c("chr1", "chr2", "rnd1", "rnd2")]
     hc[,ns2 := sum(n), by = c("chr2")]
-    hc[,ns2 := sum(n), by = c("chr2")]
     hc$n[hc$n > 20] <- 20
     p1 <- ggplot(subset(hc), aes(rnd1, rnd2, col = n)) +
       geom_point(pch = ".") +
@@ -573,7 +605,7 @@ annotate_blast <- function(gsParam){
             strip.text.y.left = element_text(angle = 0, family = "Helvetica", size = 5),
             axis.title = element_text( family = "Helvetica", size = 6),
             plot.title = element_text( family = "Helvetica", size = 7)) +
-      facet_grid(chr2 ~ chr1, scale = "free", space = "free", as.table = F, switch = "both")+
+      facet_grid(chr2 ~ chr1, scales = "free", space = "free", as.table = F, switch = "both")+
       labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
                        hits$genome1[1], uniqueN(hits$ofID1)),
            y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
@@ -601,7 +633,7 @@ annotate_blast <- function(gsParam){
             strip.text.y.left = element_text(angle = 0, family = "Helvetica", size = 5),
             axis.title = element_text( family = "Helvetica", size = 6),
             plot.title = element_text( family = "Helvetica", size = 7)) +
-      facet_grid(chr2 ~ chr1, scale = "free", space = "free", as.table = F, switch = "both")+
+      facet_grid(chr2 ~ chr1, scales = "free", space = "free", as.table = F, switch = "both")+
       labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
                        hits$genome1[1], uniqueN(hits$ofID1)),
            y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
@@ -629,7 +661,7 @@ annotate_blast <- function(gsParam){
             strip.text.y.left = element_text(angle = 0, family = "Helvetica", size = 5),
             axis.title = element_text( family = "Helvetica", size = 6),
             plot.title = element_text( family = "Helvetica", size = 7)) +
-      facet_grid(chr2 ~ chr1, scale = "free", space = "free", as.table = F, switch = "both")+
+      facet_grid(chr2 ~ chr1, scales = "free", space = "free", as.table = F, switch = "both")+
       labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
                        hits$genome1[1], uniqueN(hits$ofID1)),
            y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",

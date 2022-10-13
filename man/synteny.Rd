@@ -37,6 +37,10 @@ ggdotplot_blkRegs(hits, outDir, gridSize = 20, appendName = "synHits")
 \item{gsParam}{A list of genespace parameters. This should be created
 by init_genespace.}
 
+\item{hits}{data.table containing the blast hits, also stored in /synHits
+\cr
+If called, \code{synteny} returns its own arguments.}
+
 \item{synRad}{integer of length 1, taken as the euclidean distance from
 synBuff (* sqrt 2).}
 
@@ -63,9 +67,7 @@ OG?}
 \item{inBufferRadius}{integer of length 1,}
 
 \item{maxIter}{integer of length 1, specifying the number of iterations to
-allow to split overlapping non-duplicated blocks
-\cr
-If called, \code{synteny} returns its own arguments.}
+allow to split overlapping non-duplicated blocks}
 
 \item{outDir}{file.path of length 1, pointing to the directory to write plots}
 

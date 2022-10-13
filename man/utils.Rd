@@ -98,11 +98,21 @@ gs_colors(n = 10)
 
 \item{default}{if there is a problem with x, replace with this value}
 
-\item{na.rm}{logical, should NA's be dropped
-\cr
-If called, \code{utils} returns its own arguments.}
+\item{na.rm}{logical, should NA's be dropped}
+
+\item{onlySingleValue}{logical, should long a single valuebe returned?}
 
 \item{path}{file path character string}
+
+\item{genomeIDs}{character vector of genomeIDs}
+
+\item{to}{integer, top end value}
+
+\item{which}{character specifying what to use}
+
+\item{n}{integer, number of observations
+\cr
+If called, \code{utils} returns its own arguments.}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called

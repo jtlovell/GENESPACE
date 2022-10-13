@@ -6,6 +6,7 @@
 #'
 #' @param gsParam A list of genespace parameters. This should be created
 #' by init_genespace.
+#' @param genomeIDs character vector of genomeIDs to consider
 #' @param resultsDir file.path to the genespace /results directory
 #' @param orthofinderDir file.path to the orthofinder run. When used with
 #' copy_of2results, can move files from a separate orthofinder run to
@@ -230,8 +231,11 @@ find_ofFiles <- function(orthofinderDir){
 
   if(!is.null(sids)){
     # -- blast files
+    genome1 <- genome2 <- blastFile <- genNum1 <- genNum2 <-
+      orthologFile <-NULL
     genomeIDs <- names(sids)
     blMd <- data.table(CJ(genome1 = genomeIDs, genome2 = genomeIDs))
+
     blMd[,`:=`(genNum1 = sids[genome1], genNum2 = sids[genome2])]
     blMd[,blastFile := file.path(ofWd, sprintf(
       "Blast%s_%s.txt.gz", genNum1, genNum2))]
@@ -304,6 +308,8 @@ find_gsResults <- function(genomeIDs = NULL,
 
       ##########################################################################
       # 3. Get paths to blast and ortholog files
+      genNum1 <- genNum2 <- orthologFile <- genome1 <- genome2 <-
+        blastFile <- NULL
       blMd <- data.table(CJ(genome1 = genomeIDs, genome2 = genomeIDs))
       blMd[,`:=`(genNum1 = sids[genome1], genNum2 = sids[genome2])]
       blMd[,blastFile := file.path(resultsDir, sprintf(

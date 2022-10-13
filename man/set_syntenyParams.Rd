@@ -64,7 +64,7 @@ name), and the following (columns 4:16):
 \enumerate{
 \item genome unique genomeID, taken from the individual bed files
 \item ord integer with the order of genes
-\ofID unique orthofinder ID, taken from 'SequenceIDs.txt'
+\item unique orthofinder ID, taken from 'SequenceIDs.txt'
 \item pepLen: amino acid length of the gene CDS
 \item arrayID: tandem array ID, unique for each genome, og and chr.
 \item isArayRep: logical flag whether a gene is the representative for array

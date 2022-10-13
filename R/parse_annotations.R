@@ -37,8 +37,20 @@
 #' first ("seqnames") gff3 column and the element names in the vector are
 #' the values to replace.
 #' @param troubleShoot logical, should the raw and parsed files be printed?
-#' @param path2fasta for internal use, the file path to the peptide fasta
-#' @param path2gff for internal use, the file path to the peptide gff3
+#' @param overwrite logical, should existing files be overwritten?
+#' @param path2fasta deprecated, kept to maintain backwards compatibility
+#' @param path2gff deprecated, kept to maintain backwards compatibility
+#' @param genespaceWd xxxxxxxx
+#' @param genomeID xxxxxxxx
+#' @param presets xxxxxxxx
+#' @param gffIdColumn xxxxxxxx
+#' @param headerEntryIndex  xxxxxxxx
+#' @param headerSep xxxxxxxx
+#' @param gffStripText xxxxxxxx
+#' @param headerStripText xxxxxxxx
+#' @param chrIdDictionary xxxxxxxx
+#' @param troubleShoot  xxxxxxxx
+#' @param ... additional arguments passed on
 #'
 #' @details parse_annotations assumes that you have a 'rawGenomeRepo' directory
 #' that contains a subdirectory for each genome to parse. These subdirectory
@@ -198,6 +210,7 @@ parse_annotations <- function(rawGenomeRepo,
 #' @rdname match_annotations
 #' @import data.table
 #' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet DNA_ALPHABET
+#' @importFrom utils head
 #' @export
 match_fasta2gff <- function(path2fasta,
                             path2gff,
@@ -302,7 +315,7 @@ match_fasta2gff <- function(path2fasta,
 
   nfa <- length(fa)
   # -- read in the gff
-  end <- start <- width <- id <- seqid <- NULL
+  end <- start <- width <- id <- seqid <- chr <- NULL
   if(troubleShoot){
     cat("\n### first 6 gff lines before parsing ... \n")
     if(grepl(".gz$", path2gff)){

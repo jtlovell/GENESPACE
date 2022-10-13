@@ -74,6 +74,10 @@
 #' @param nCores integer of length 1 specifying the number of parallel processes
 #' to run
 #' @param wd file.path where the analysis will be run
+#' @param maxOgPlaces xxxx
+#' @param arrayJump xxxx
+#' @param nSecondaryHits xxxx
+#' @param minPepLen xxxx
 #'
 #' @param outgroup deprecated in V1. See ignoreTheseGenomes.
 #' @param orthofinderMethod deprecated in V1. See onewayBlast.
@@ -132,6 +136,8 @@ init_genespace <- function(wd,
 
                            # -- deprecated arguments here for backwards compat.
                            outgroup = ignoreTheseGenomes,
+                           nSecondHits = nSecondaryHits,
+                           synBuffSecond = NULL,
                            orthofinderMethod = NULL,
                            speciesIDs = NULL,
                            minPepLen = NULL,
@@ -192,7 +198,6 @@ init_genespace <- function(wd,
       x <- x[!names(x) %in% outgroup]
     return(x)
   }
-
 
   ##############################################################################
   check_genomeIDs <- function(genomeIDs){
@@ -255,7 +260,8 @@ init_genespace <- function(wd,
   # 0. Check if old parameters are specified and return notes if so
   ##############################################################################
   # -- 0.1 parameters that are now in parse_annotations only
-  toParse <- c(speciesIDs, versionIDs, rawGenomeDir, gffString, pepString, minPepLen)
+  toParse <- c(
+    speciesIDs, versionIDs, rawGenomeDir, gffString, pepString, minPepLen)
   if(any(!is.null(toParse))){
     depr <- paste(toParse[!is.null(toParse)], collapse = ", ")
     cat(strwrap(sprintf(
@@ -400,9 +406,9 @@ init_genespace <- function(wd,
   # -- 1.3 basic argument checking (just do the checking, no reporting)
   # -- check that the arguments are specified correctly
   path2orthofinder <- check_character(
-    x = path2orthofinder, def = "orthofinder", onlySingleValue = T, na.rm = T)
+    x = path2orthofinder, default = "orthofinder", onlySingleValue = T, na.rm = T)
   path2mcscanx <- check_character(
-    x = path2mcscanx, def = "MCScanX", onlySingleValue = T, na.rm = T)
+    x = path2mcscanx, default = "MCScanX", onlySingleValue = T, na.rm = T)
   diamondUltraSens <- check_logical(diamondUltraSens, onlySingleValue = T)
   onewayBlast <- check_logical(onewayBlast, onlySingleValue = T)
 

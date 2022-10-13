@@ -29,6 +29,8 @@ init_genespace(
   blkSizeSecond = blkSize,
   onlyOgAnchorsSecond = FALSE,
   outgroup = ignoreTheseGenomes,
+  nSecondHits = nSecondaryHits,
+  synBuffSecond = NULL,
   orthofinderMethod = NULL,
   speciesIDs = NULL,
   minPepLen = NULL,
@@ -105,6 +107,8 @@ mode run within orthofinder should be --more-sensitive (default, FALSE) or
 \item{nCores}{integer of length 1 specifying the number of parallel processes
 to run}
 
+\item{maxOgPlaces}{xxxx}
+
 \item{blkSize}{integer of length 1, specifying the -s param to mcscanx}
 
 \item{nGaps}{integer of length 1, specifying the -m param to mcscanx
@@ -116,8 +120,12 @@ to consider a hit syntenic. This parameter is also used to limit the search
 radius in dbscan-based blk calculation. Larger values will return larger
 tandem arrays but also may permit inclusion of spurious non-syntenic networks}
 
+\item{arrayJump}{xxxx}
+
 \item{onlyOgAnchors}{logical, should only hits in orthogroups be considered
 for anchors?}
+
+\item{nSecondaryHits}{xxxx}
 
 \item{nGapsSecond}{see nGaps, but passed to secondary hits after masking
 primary hits.}
@@ -130,9 +138,17 @@ considered for anchors in secondary blocks?}
 
 \item{outgroup}{deprecated in V1. See ignoreTheseGenomes.}
 
+\item{nSecondHits}{integer of length 1, specifying the number of blast
+hits to include after masking.}
+
+\item{synBuffSecond}{see syntenyBuffer. Applied only to synteny
+construction of secondary hits.}
+
 \item{orthofinderMethod}{deprecated in V1. See onewayBlast.}
 
 \item{speciesIDs}{deprecated in V1. See `parse_annotations`.}
+
+\item{minPepLen}{xxxx}
 
 \item{versionIDs}{deprecated in V1. See `parse_annotations`.}
 
@@ -148,12 +164,6 @@ considered for anchors in secondary blocks?}
 \item{pepString}{deprecated in V1. See `parse_annotations`.}
 
 \item{verbose}{deprecated in V1. All updates are printed to the console}
-
-\item{nSecondHits}{integer of length 1, specifying the number of blast
-hits to include after masking.}
-
-\item{synBuffSecond}{see syntenyBuffer. Applied only to synteny
-construction of secondary hits.}
 }
 \value{
 A list containing paths to the raw files. If a file is not found,

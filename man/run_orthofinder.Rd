@@ -33,6 +33,8 @@ If called, \code{run_orthofinder} returns its own arguments.}
 \item{gsParam}{A list of genespace parameters. This should be created
 by init_genespace.}
 
+\item{genomeIDs}{character vector of genomeIDs to consider}
+
 \item{overwrite}{deprecated, retained for backward compatibility. If an
 orthofinder run exists, stops the run and returns a warning.}
 

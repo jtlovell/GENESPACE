@@ -65,36 +65,33 @@ formatted annotation. Default is any text or .gz file ending in gff3, gff.}
 \item{faString}{same as gffString but for the fasta-formatted peptide
 annotation. Default is any text or .gz file ending in fa, fasta or faa.}
 
-\item{genespaceWd}{file.path of length 1 specifying the GENESPACE working
-directory. Will make two subdirectories: /bed and /peptide for the parsed
-annotations}
+\item{genespaceWd}{xxxxxxxx}
 
-\item{presets}{character string: "none", "phytozome" or "ncbi" which sets
-the below parameters to parse phytozome or ncbi-formatted annotations
-correctly. See details.}
+\item{presets}{xxxxxxxx}
 
-\item{gffIdColumn}{character, specifying the field name in the gff3
-attributes column.}
+\item{gffIdColumn}{xxxxxxxx}
 
-\item{headerEntryIndex}{integer specifying the field index in the fasta
-header which contains the gene ID information to match with the gff.}
+\item{headerEntryIndex}{xxxxxxxx}
 
-\item{headerSep}{character used as a field delimiter in the fasta header.}
+\item{headerSep}{xxxxxxxx}
 
-\item{gffStripText}{regular expression of length 1 specifying a gsub command
-to remove text from the gff ID.}
+\item{gffStripText}{xxxxxxxx}
 
-\item{headerStripText}{like gffStripText, but for the fasta header}
+\item{headerStripText}{xxxxxxxx}
 
-\item{chrIdDictionary}{a named vector where the names are the values in the
-first ("seqnames") gff3 column and the element names in the vector are
-the values to replace.}
+\item{chrIdDictionary}{xxxxxxxx}
 
-\item{troubleShoot}{logical, should the raw and parsed files be printed?}
+\item{troubleShoot}{xxxxxxxx}
 
-\item{path2fasta}{for internal use, the file path to the peptide fasta}
+\item{overwrite}{logical, should existing files be overwritten?}
 
-\item{path2gff}{for internal use, the file path to the peptide gff3}
+\item{path2fasta}{deprecated, kept to maintain backwards compatibility}
+
+\item{path2gff}{deprecated, kept to maintain backwards compatibility}
+
+\item{genomeID}{xxxxxxxx}
+
+\item{...}{additional arguments passed on}
 }
 \value{
 a data.table containing the file paths to the raw and parsed

@@ -30,7 +30,6 @@ run_mcscanx <- function(hits,
                         nGaps,
                         tmpDir,
                         MCScanX_hCall){
-  setDTthreads(1)
   mcsID1 <- mcsID2 <- NULL
   ##############################################################################
   # parameter argument checking
@@ -90,7 +89,8 @@ run_mcscanx <- function(hits,
   # mcsBlsIn[,score := 1]
 
   mcsBlsIn[,ofID2 := paste0(ofID2, "xxxx")]
-  mcsGffIn$id[grepl("bb", mcsGffIn$chr)] <- paste0(mcsGffIn$id[grepl("bb", mcsGffIn$chr)],"xxxx")
+  mcsGffIn$id[grepl("bb", mcsGffIn$chr)] <-
+    paste0(mcsGffIn$id[grepl("bb", mcsGffIn$chr)],"xxxx")
 
   blFile <- file.path(tmpd, "mcs.homology")
   gfFile <- file.path(tmpd, "mcs.gff")
