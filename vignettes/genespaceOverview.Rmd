@@ -1,0 +1,406 @@
+---
+title: "An overview of GENESPACE"
+author:
+- name: John T. Lovell
+  affiliation: Genome Sequencing Center, HudsonAlpha Institute for Biotechnology, Huntsville, AL, USA
+  email: jlovell@hudsonalpha.org
+output:
+  BiocStyle::html_document:
+    toc_float: true
+  BiocStyle::pdf_document: default
+package: GENESPACE
+abstract: |
+  Details on the functions and output of GENESPACE.
+vignette: |
+  %\VignetteIndexEntry{Authoring R Markdown vignettes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Prerequisites
+
+See the [readme](https://github.com/jtlovell/GENESPACE) for full installation instructions. In short, the below vignette assumes the following:
+
+1. You are using MacOS or Linux - we have not tested GENESPACE on other OS
+2. Orthofinder, MCScanX, R and their dependencies are successfully installed
+3. An R interactive session (e.g. Rstudio, command line R) has been opened. To recreate the full run below, R should be opened from a terminal session where OrthoFinder is in the path. 
+4. The GENESPACE R package and its package dependencies have been installed.
+
+# Example data
+
+Here, we will use the example data provided with the GENESPACE installation: chromosomes 17-18 in the human, chimpanzee and rhesus macaque genomes. 
+
+First, in R, require the GENESPACE package and make a file path to a directory where you want to put your run. The directory should either be empty or non-existent (GENESPACE will make it for you, assuming that the parent directory exists). 
+
+```{r require}
+library(GENESPACE)
+runwd <- file.path("~/Desktop/testGenespace")
+```
+
+```{r rmExistDir, echo = F}
+if(dir.exists(runwd))
+  unlink(runwd, recursive = T)
+```
+
+To illustrate all steps of the pipeline, lightly subset NCBI-formatted annotations of human/chimpanzee chrs 3-4 and rhesus chr 2 & 5 are provided in the extData of the GENESPACE R package. These data can be added to the above directory with the correct subdirectory structure for GENESPACE via:
+
+```{r mkdat}
+make_exampleDataDir(writeDir = runwd)
+```
+
+**NOTE** this creates a subdirectory called `/rawGenomes`. For downstream flexibility (e.g. multiple genome versions for one species, metadata or assembly data, etc), the raw genome directory structure follows: `/rawGenomes/$speciesID/$versionID/annotion`. 
+
+```{r showFiles}
+list.files(runwd, recursive = T, full.names = F)
+```
+
+When working with your own data, place the raw annotation files in this same directory structure with separate directories for each species, separate subdirectories for each genome version, and the annotation files in a subdirectory called "annotation".
+
+# Initialize GENESPACE
+
+All elements of GENESPACE require a list of parameters, specified to functions as a GENESPACE parameter list, below `gpar`. This contains paths to files, working directories, program executables the basic parameterization of the run.
+
+The `init_genespace()` function generates this for you. Here are the arguments and what they mean (see the help file for more information):
+
+## General set up
+
+- `rawGenomeDir` file path to the directory where the raw genome annotations are stored. 
+- `genomeIDs` a vector of unique names you want your genomes to be called. Must be alphanumeric, starting with a character.
+- `ploidy` integer string specifying ploidy of genome assemblies. This is usually half of the actual ploidy, that is an inbred diploid usually is represented by a haploid genome assembly.
+- `path2orthofinder` file path that points to the orthofinder executable. If orthofinder is in the path, specify with "orthofinder"
+- `path2mcscanx` file path that points to the mcscanx install directory. This directory must contain the MCScanX_h executable. 
+- `path2diamond` file path that points to the diamond executable. If orthofinder or diamond is in the path, specify with "diamond"
+- `wd` the directory where the GENESPACE run output will be stored. 
+  
+## Paths to raw data (see the directory structure of the example data above)
+
+- `speciesIDs` the subdirectories of `rawGenomeDir` pointing to each `genomeIDs`'s data 
+- `versionIDs` the subdirectories of `rawGenomeDir/speciesIDs` pointing to the version of each `genomeIDs`'s data.
+- `gffString` character string (coercable to a regular expression). File names in the 'annotation' subdirectories are screened for this string. If a single, unique file is found, it is returned as the gff source file. Otherwise an error is produced.
+- `pepString`character string of length 1, coercable to a regular expression. See `gffString`.
+
+## Other optional parameters
+
+- `outgroup` [optional], but if specified, one or more of the `genomeIDs` that will be used in the orthofinder -og run but not in the synteny search. 
+- `orthofinderMethod` either 'fast' or 'default'
+- `diamondMode`	character string to match one of the diamond search modes, only used if `orthofinderMethod` = "fast"
+- `orthofinderInBlk` should orthofinder be re-run within syntenic regions? Highly recommended for polyploids
+- `nCores` the number of parallel processes to run
+- `minPepLen`	the length of shortest peptides to be analyzed
+- `overwrite` should existing directories be overwritten?
+
+## Run init_genespace
+
+For the example data, here is how the GENESPACE run setup would look. Simple calls to orthofinder and diamond are here since both of these are in the path from the shell where the R interactive session was originally opened. 
+
+```{r init}
+gpar <- init_genespace(
+  genomeIDs = c("human","chimp","rhesus"),
+  speciesIDs = c("human","chimp","rhesus"),
+  versionIDs = c("human","chimp","rhesus"),
+  outgroup = NULL,
+  ploidy = rep(1,3),
+  diamondMode = "fast",
+  orthofinderMethod = "fast",
+  wd = runwd,
+  orthofinderInBlk = FALSE, 
+  overwrite = F, 
+  verbose = T,
+  nCores = 4,
+  minPepLen = 50,
+  gffString = "gff",
+  pepString = "pep",
+  path2orthofinder = "orthofinder",
+  path2diamond = "diamond",
+  path2mcscanx = "~/Documents/comparative_genomics/programs/MCScanX",
+  rawGenomeDir = file.path(runwd, "rawGenomes"))
+```
+
+Given that most of these are the defaults, an identical run could be specified as
+
+```{r qInit, eval = FALSE}
+spec <- c("human","chimp","rhesus")
+gpar <- init_genespace(
+  genomeIDs = spec,  speciesIDs = spec,  versionIDs = spec, ploidy = rep(1,3),
+  diamondMode = "fast", orthofinderMethod = "fast", wd = runwd,
+  path2mcscanx = "~/Documents/comparative_genomics/programs/MCScanX",
+  rawGenomeDir = file.path(runwd, "rawGenomes"))
+```
+
+# Formatting raw data
+
+## Downloading raw genome annotations
+
+**NOTE!** If downloading data from NCBI, be sure to use the 'translated.cds.fa' peptide annotation files instead of the 'petide.fa' files. GENESPACE `parse_ncbi` is built to match the former to the gff and not the latter. 
+
+**NOTE!** If downloading from phytozome, or any other data source, it can be benefical to get the 'primaryTranscriptOnly', 'longest', 'hightConfidenceOnly' (or similar) annotation files. In most cases, taking the longest transcript works fine (this is what GENESPACE does), but there are situations where this is not the case.
+
+## Motivation
+
+To improve read/write speed, GENESPACE uses a simplified gff3-like text file with a column `id` that exactly matches the peptide fasta header. GENESPACE has built in functions to parse NCBI (`parse_ncbi`) and phytozome (`parse_phytozome`); however, if using non-standard formatted annotations, this can be a tricky step and must be run using `parse_annotations`. 
+
+## General parse_annotations arguments
+
+- `gsParam` the GENESPACE parameter list, See init_genespace.
+- `genomeIDs`	the genomeIDs that you want to parse. Sometimes you'll need to use different parameter specifications for different genomes. Give only the genomes that you'd like to parse for this specific call.
+- `overwrite` should existing files be overwritten? 
+- `troubleshoot` should the headers of the raw and parsed files be printed to help determine how to parameterize the run? 
+
+## Parsing the gff
+
+The gff file is parsed in three ways:
+
+1. lines are subset to the entry type of interest (e.g. 'gene', 'mRNA', 'CDS', etc). This is specified in `gffEntryType`.
+2. the ";" separated field in the 9th column (e.g. 'ID', 'name', 'parent' etc.) is extracted. This is specified in `gffIdColumn`.
+3. any superfluous text in the ID field is stripped away. This is specified in `gffStripText` as a regular expression.
+
+## Parsing the peptide fasta headers
+
+GENESPACE needs to have the fasta header exactly match the gff gene ID. To facilitate this, there are three parameters to parse the peptide header. 
+
+1. `headerEntryIndex`  specifies which field in the fasta header contains the gene ID information to match with the gff.
+2. `headerSep` is the character that delimits the header fields. 
+3. `headerStripText` which, like its equivalent in the gff, removes any text taht would make the geneIDs not match the gff. 
+
+## Parsing the example data
+
+While the example data was originally downloaded from NCBI, much of the NCBI formatting was stripped to make the files smaller. They now can be parsed with the generic `parse_annotations`:
+
+```{r parseAnnotations}
+parse_annotations(
+  gsParam = gpar,
+  gffEntryType = "gene",
+  gffIdColumn = "locus",
+  gffStripText = "locus=",
+  headerEntryIndex = 1,
+  headerSep = " ",
+  headerStripText = "locus=")
+```
+
+If the annotations were directly from NCBI, we would use a simpler specification:
+
+```{r parseNCBI, eval = FALSE}
+parse_ncbi(gsParam = gpar, overwrite = T)
+```
+
+# Run orthofinder
+
+GENESPACE requires orthofinder to be run. Here, since orthofinder is in the path, we can run it straight from R, using the 'fast' search method. The fast method is used here to save time, however, we would recommend using the default method since these genomes are fairly diverged. 
+
+```{r orthofinder}
+gpar <- run_orthofinder(
+  gsParam = gpar)
+```
+
+The orthofinder run is stored in the `/orthofinder` subdirectory of the main working directory. GENESPACE has convienence functions to read and parse the orthologs, orthogroups and blast hits in case you want to explore these results directly. 
+
+# Set synteny parameters
+
+Synteny has a lot of parameters that allow you to fine-tune the synteny search. For most cases the defaults should be fine, but in some cases (e.g. very diverged genomes or studying ancient whole-genome duplicates) it will be crucial to manipulate these. If you do not run `set_syntenyParams` prior to `synteny` (see below), the defaults are used unless you specify them in the call. For example, if you want to only find larger blocks, you could run `synteny(gsParam, blkSize = 20)`. However, if you have previously run `synteny` you will need to separately re-specify your parameters with `set_syntenyParams`, since `synteny` will respect the previously defined parameters in the gsParam list. 
+
+## Main synteny parameters
+
+Below are a list of the synteny parameters. For many there is a "second" option. This is the parameter specification for homeologs (duplicates within polyploid genomes) or paralogs after masking the orthologous regions.  
+
+- `synBuff`: the gene-rank order radius surround an anchor hit to include nearby hits that are in the buffer region. 
+- `blkSize`; : the minimum size of a colinear run of genes for that region to be called a syntenic block. This parameter is used for both `dbscan(min.pts)` and `MCScanX_h -s` specification. 
+- `nGaps`; : the `MCScanX_h -m` parameter; the number of gaps allowed for a collinear region to be called a block. 
+- `synBuff`; : the gene-rank order position around syntenic anchors within which hits are considered within a syntenic region and retained in the pan-genome db. 
+- `onlyOgAnchors`; : logical, should only orthogroup-constrained hits be considered as candidates for syntenic anchors? This should almost always be TRUE, unless the genomes you are studying are very diverged. 
+
+## Other synteny parameters
+
+- `nSecondHits`: the number of secondary hits, after accounting for ploidy. This is usually set to 0, unless you wish to test for paralogous regions. Any parameters below ending in "Second" are passed to these secondary hits. 
+- `synBuffSecond`, `blkSizeSecond`, `nGapsSecond`, `synBuffSecond`, `onlyOgAnchorsSecond` same as above but for the secondary hits. Allows the user to relax thresholds for highly-diverged paralogs. 
+- `arrayBuffer` the maximum gap between adjacent genes in the same orthogroup on a chromosome for them to be considered an array. 
+
+```{r setParam}
+gpar <- set_syntenyParams(gsParam = gpar)
+```
+
+To see what these look like, you can print the `gpar$params$synteny` data.table ...
+
+```{r prntParams, echo = FALSE}
+knitr::kable(gpar$params$synteny)
+```
+
+
+# Calculate synteny 
+
+## Main synteny pipeline steps
+
+The main engine of GENESPACE is `synteny`. This is a complex function that parses blast hits into syntenic regions and blocks. For each unique pair of genomes, `synteny` conducts six main steps. 
+
+1. Read the gffs, combine into a single object and add the global orthogroup ID for each gene. Genes within `arrayBuffer` from eachother in the same orthogroup are members of the same array. For each array, an "arrayRep" gene is chosen as the model closest to the median position of the array. 
+2. read and subset the blast file, retaining the unique hit with the highest score. Also adds required information including orthofinder orthogroup ID, genome position (chromosome, bp, gene rank order), score-rank (the blast hit is ranked by highest to lowest scoring for each gene). 
+3. subsets out potential anchor hits. These only hits where both query and target genes are array representatives, [if onlyOgAnchors = TRUE] both query and target genes must be in the same orthogroup, and the top n scoring hits, where n is informed by the ploidy of the query and target genomes. 
+4. finds anchor hits by running MCScanX_h (passing `nGaps` and `blkSize` parameters) on potential anchors, pulling all hits within a fixed radius (`synBuff`) of the initial hits, re-ranking the order of these hits and re-running MCScanX_h, and finally clustering the anchor hits with a dbscan and dropping any blocks smaller than the `blkSize`. Syntenic block coordinates are extracted from these anchor hits. All hits, regardless of orthogroup identity are then classified as "isAnchor" and "inBuffer" - within the `synBuff` of an anchor hit. The orthogroup calls are then split into "synOGs", so that all edges in each synOG is connected by genes within syntenic regions.
+5. If `nSecondaryHits > 0` or the pairwise blast results are intragenomic for a genome with ploidy > 1, the self (if polyploid intragenomic) or anchor hits are masked and step 3 is re-run.  
+6. If `orthofinderInBlk = TRUE`, for each syntenic region, all inBuffer hits are fed into orthofinder (assuming there are enough for it to be run, see below). This produces an "inBlkOG", which replaces the synOG as the primary orthogroup ID and step 3 is re-run. 
+
+## Running synteny
+
+```{r synteny}
+gpar <- synteny(gsParam = gpar)
+```
+
+This function populates the results directory (`r gpar$paths$results`) directory with dotplots and annotated blast hits. Its always worth looking at the dotplots to make sure that your synteny parameterization caputured the expected patterns of synteny. 
+
+# Riparian plots
+
+In many cases, the most important output from GENESPACE is just the reference chromosome-informed synteny plot, which we call the 'riparian plot'. The functions to build this, `plot_riparian` (legacy) and `plot_riparianHits` (current), build upon similar river plots from other software, by phasing and splitting all blocks by their syntenic relationship with a single reference genome; thereby allowing a view of how one chromosome is syntenic across a large network. In simple systems where all genomes are haploid, `plot_riparian` will perform adequately; however, this will be phased out in later releases in favor of `plot_riparianHits`, which is slower, but more accurately infers the relationships between all chromosomes to a reference genome. 
+
+## Genome-wide synteny graphs
+
+GENESPACE visualizes multi-species synteny with a 'riparian' plot. The default specification does the following:
+
+- orders chromosomes by maximum synteny (`reorderChrs = TRUE`) to a reference genome
+- colors blocks by synteny to the reference chromosome (`refChrCols = colors`)
+- uses gene rank order (`useOrder = TRUE`) instead of physical basepair position
+- plots small syntenic blocks (`useBlks = TRUE`), instead of larger syntenic regions
+
+There are a large number of parameters to allow custom plotting (we won't go into all of them here, but see `?plot_riparianHits` for details). 
+
+```{r riparian, fig.width = 10}
+plot_riparianHits(gpar)
+```
+
+## Customizing the plot
+
+You can easily alter the order of genomes and which genome is the reference. Also using this as an opportunity to show some other features: 
+
+- `labelTheseGenomes` labeling only two genomes
+- `invertTheseChrs` inverting a chromosome that is more syntenic if reversed
+- `refChrCols` specifying custom colors
+- `genomeIDs` re-ordering the genomes on the y-axis
+- `refGenome` using synteny to chimp as the chromosome ordering anchor
+- `gapProp` decreasing the spacing between chromosomes
+- `blackBg` turning off the black background
+- `returnSourceData` returns a list with the source data for the plot
+
+```{r riparian2, fig.width = 10}
+ripSouceDat <- plot_riparianHits(
+  gpar, 
+  refGenome = "chimp",
+  invertTheseChrs = data.frame(genome = "rhesus", chr = 2),
+  genomeIDs = c("chimp", "human", "rhesus"),
+  labelTheseGenomes = c("chimp", "rhesus"),
+  gapProp = .001,
+  refChrCols = c("#BC4F43", "#F67243"),
+  blackBg = FALSE, 
+  returnSourceData = T, 
+  verbose = F)
+```
+  
+## Plotting regions of interest
+
+We can also plot a few regions. Lets make 4 regions to highlight (`regs`) and plot them. This object, which is passed to `onlyTheseRegions` must have at least two columns ("genome", "chr"). If only these columns are specified, the colors are given from a standard palette and the entire chromosomes are highlighted. If "start" and "end" are given, then only these regions for these chromosomes are shown. The "col" column can be given any set of characters or numbers that R can interpret as colors. 
+
+```{r ripReg, fig.width = 10}
+regs <- data.frame(
+  genome = c("human", "human", "chimp", "rhesus"),
+  chr = c(3, 3, 4, 5),
+  start = c(0, 50e6, 0, 60e6),
+  end = c(10e6, 70e6, 50e6, 90e6),
+  cols = c("pink", "gold", "cyan", "dodgerblue"))
+
+plot_riparianHits(
+  gpar, 
+  onlyTheseRegions = regs)
+```
+
+The default behavior is to show the entire genome, but, if you only want to show one chromosome, it can be specified as follows. In this case, `excludeNoRegChr = TRUE` means that any chromosomes with no syntenic links to the regions specified are excluded. 
+
+```{r ripReg2, fig.width = 10}
+regs2 <- data.frame(
+  genome = c("human", "human"),
+  chr = c(3, 3),
+  start = c(0, 50e6),
+  end = c(10e6, 70e6),
+  cols = c("pink", "gold"))
+
+plot_riparianHits(
+  gpar, 
+  onlyTheseRegions = regs2, 
+  excludeNoRegChr = T)
+```
+
+## Overlaying multiple plots
+
+Lastly, you may want to overlay regions of interest onto a genome-wide run. This can be accomplished with some care using the `annotatePlot` and `add2plot` arguments as follows. Here, we are coloring the original plot with light grey braids so that it forms a background, 
+then overlaying the regions from above onto the original plot and only annotating this second plot. 
+
+```{r ripOvly, fig.width = 10}
+plot_riparianHits(
+  gpar, 
+  refChrCols = "grey80", 
+  annotatePlot = F)
+
+plot_riparianHits(
+  gpar, 
+  onlyTheseRegions = regs,
+  add2plot = T)
+```
+
+
+# Build a pangenome annotation
+
+The main output of GENESPACE is a synteny-anchored pan-genome annotation, where every unique synteny-constrained orthogroup is placed in a position on the reference genome gene order. This is constructed by `pangenome`. 
+
+## Pangenome construction methods
+
+The pan-genome annotation is constructed in seven steps:
+
+1. The gff is queried, extracting only array representative genes in the specified reference genome. This becomes the "reference scaffold" for the pan-genome annotation. 
+2. Hits for all genomes against the reference are read in and culled to only hits where the reference genome geneID is in the reference scaffold and both the query and target are in the same syntenic orthogroup. Each of these subgraphs are added to the reference scaffold, producing a reference pan-genome. 
+3. The syntenic position for all genes are interpolated against the reference using only syntenic anchor hits in the reference pan-genome. 
+4. Syntenic orthogroups that do not contain a reference gene are added to the pan-genome iteratively, placed in the most common location(s) from the interpolated positions. This is the pan-genome annotation - all entries are flagged as `isDirectSyn = TRUE`. 
+5. Genes that are members of syntenic orthogroups, but not represented in pan-genome annotation are added and flagged as `isSynOgOnly = TRUE`. 
+6. Genes that are members of arrays, but not the representative are added in and flagged as `isArrayRep = FALSE`
+7. All orthologs from the original orthofinder run are parsed and those that are not captured in the syntenic pan-genome annotation are added and flagged as `isNSOrtho = TRUE`
+
+## Calling pangenome
+
+```{r buildPangenome}
+pg <- pangenome(gpar)
+```
+
+## Pangenome text file output
+
+For each pan-genome, constructed against a reference, GENESPACE writes a file: `/results/[refgenome]_pangenome.txt.gz`. This is the source data that can be manipulated programatically to extract your regions of interest. Future GENESPACE releases will have auxilary functions that let the user access the pan-genome by rules (e.g. contains these genes, in these regions etc.). For now, we'll leave this work to scripting by the user. 
+
+The text file contains the following fields:
+
+- ["pgChr", "pgOrd", "pgID", "og"] ... these are unique pan-genome entry identifiers. "pgChr" and "pgOrd" are the inferred chromosome and gene rank order in the reference genome used in the pangenome(..., refGenome = "") call. If you didn't specify a refGenome, it will just be the first genomeID you specified in init_genespace(). "pgID" is a unique identifier for each entry. "og" is the orthogroup that the anchor of the entry belongs to. 
+- ["ofID", "genome", "id"] ... these are the IDs and metadata for each gene. "ofID" is the orthofinder internal ID and crucial for mapping against the synHits and gff, but mostly just used internally. "id" is the geneID in the gff. "genome" is the genome where that gene resides. 
+- [isDirectSyn, isSynOgOnly, isArrayRep, isNSOrtho] ... see pipeline description above
+
+## Pangenome R object output
+
+`pangenome` also returns an R object, which is a data.table with the first three metadata positional information columns as the source text file. The follow columns are labeled by the genomeIDs and give gene members for each pan-genome entry (row). Each entry is a list of the geneIDs, which appears as a "," separated vector when printed in R. If written to file using `fwrite`, the commas will become "|" separated, per data.table specification. Non-rep array members are flagged with a "+" following the geneID; non-syntenic orthologs are flagged with "*". 
+
+**NOTE!** If the run was accomplished with `orthofinderMethod = "fast"`, non-syntenic orthologs will NOT be reported, since this method does not permit ortholog inference by orthofinder. 
+
+
+# General considerations
+
+1. Do you **just want to show a synteny plot** and don't care about the membership of orthogroups in the pangenome? 
+    - If so, you can set `orthofinderMethod = "fast"` and `diamondMode = "fast"` in `init_genespace()`. 
+2. Are any of your genomes represented at **higher ploidy than haploid**?
+    - If so, you should definitely specify `orthofinderInBlk = TRUE` in `init_genespace()`. This takes longer, but can recover >50% more orthologs than the global orthofinder run. 
+    - If your polyploid (or have both haplotypes in an outbred diploid genome) genomes have subgenomes that are very closely related, the benefits of the within-block orthofinder runs are tempered, so this isn't as necessary. 
+3. Are all of your genomes haploid, **very closely related** (e.g. the same species) and you are only interested in orthologs?
+    - If so, you can get away with `orthofinderMethod = "fast"` and `diamondMode = "fast"` in `init_genespace(). 
+    - This is especially useful if you have a large number of genomes, as this specification can result in 10X speed improvement over orthofinder defaults. 
+4. What is the expected **scale of synteny** among your genomes?
+    - If you think that some of your genomes may have very little retained synteny, you should consider NOT using GENESPACE at all. 
+    - If there is still complete genome-wide synteny, but it is divided into very small blocks, you should decrease the block size in the synteny search (see 4.3 synteny parameters below).
+5. Are you only interested in orthologs, or **are paralogs of interest too**?
+    - If you are interested in paralogs (e.g. regions that retain > ploidy syntenic hits), you should look closely at your dotplots. 
+    - If the dotplots do not capture the paralogous regions, it is likely that they are highly diverged and may not be captured by genome-wide synteny rules. You can adjust this by increasing the number of secondary hits to retain to the number of paralogs you expect to fine. 
+    
+# Session Info
+
+```{r sessionInfo, echo=FALSE}
+sessionInfo()
+```
