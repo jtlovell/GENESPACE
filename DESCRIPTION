@@ -9,16 +9,14 @@ Description: Construct pan-genome annotations and orther comparative genomics
 Imports: data.table,
   dbscan,
   Biostrings,
-  rtracklayer,
   igraph,
   parallel,
   stats,
-  graphics,
-  R.utils
-Suggests: BiocStyle, 
-  knitr, 
+  grDevices,
+  R.utils,
+  ggplot2
+Suggests: knitr, 
   rmarkdown, 
-  ggplot2, 
   rtracklayer
 SystemRequirements: MCScanX, 
   orthofinder
