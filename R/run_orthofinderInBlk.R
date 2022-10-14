@@ -55,7 +55,13 @@ run_orthofinderInBlk <- function(gsParam){
 #' @import data.table
 #' @export
 add_inblkHogs2hits <- function(gsParam, genome1, genome2){
-
+  blNames <- c(
+    "ofID1", "ofID2", "pid", "length", "mismatches","gapopenings", "queryStart",
+    "queryEnd", "subjectStart", "subjectEnd", "Evalue", "bitScore", "rid")
+  blNamesR <- c(
+    "ofID2", "ofID1", "pid", "length", "mismatches","gapopenings",
+    "subjectStart", "subjectEnd", "queryStart", "queryEnd", "Evalue",
+    "bitScore", "rid")
   ##############################################################################
   # -- 1. Get the data read in
   ########
@@ -67,7 +73,6 @@ add_inblkHogs2hits <- function(gsParam, genome1, genome2){
     genome2 <- genome1
     genome1 <- tmp
   }
-  print(x)
   if(nrow(x) > 1)
     stop(sprintf("genome1: %s and genome2: %s are not unique in gsParam\n",
                  genome1, genome2))
