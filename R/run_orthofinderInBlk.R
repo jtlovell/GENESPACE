@@ -36,7 +36,7 @@ run_orthofinderInBlk <- function(gsParam){
   md <- data.table(gsParam$annotBlastMd)
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
   # -- for each line in metadata
-  hitsInOgs <- rbindlist(lapply(4:nrow(md), function(i){
+  hitsInOgs <- rbindlist(lapply(1:nrow(md), function(i){
     cat(md$lab[i])
     inblkOgs <- with(md[i,], add_inblkHogs2hits(
       gsParam = gsParam, genome1 = query, genome2 = target))
