@@ -201,7 +201,7 @@ synteny <- function(gsParam){
 find_selfSyn <- function(hits, synRad){
   ##############################################################################
   # 1. get the minimum distance between two gene as either ancOrd or ord
-  ofID1 <- ofID2 <- chr1 <- chr2 <- ord1 <- ord2 <- synRad <- regID <-
+  ofID1 <- ofID2 <- chr1 <- chr2 <- ord1 <- ord2 <- regID <-
     blkID <- isAnchor <- inBuffer <- NULL
   hits[,isAnchor := ofID1 == ofID2]
   tmp <- subset(hits, chr1 == chr2)
