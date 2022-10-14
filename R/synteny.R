@@ -49,7 +49,7 @@ synteny <- function(gsParam){
       "**NOTE** synteny parameters have not been set, using parameters from
       gsParam. If you want to manually adjust parameters for each combination
       of genomes, run `set_synParam()` separately\n", indent = 0, exdent = 8)
-    gsParam <- set_syntenyParams(gsParam, overwrite = T)
+    gsParam <- set_syntenyParams(gsParam, overwrite = F)
   }
 
   blMd <- data.table(gsParam$annotBlastMd)
@@ -195,6 +195,7 @@ synteny <- function(gsParam){
 #' \code{find_selfSyn} find_selfSyn
 #' @rdname synteny
 #' @import data.table
+#' @importFrom dbscan dbscan frNN
 #' @export
 find_selfSyn <- function(hits, synRad){
   ##############################################################################
