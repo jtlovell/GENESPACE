@@ -36,7 +36,7 @@ run_orthofinderInBlk <- function(gsParam){
   md <- data.table(gsParam$annotBlastMd)
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
   # -- for each line in metadata
-  hitsInOgs <- rbindlist(lapply(1:nrow(md), function(i){
+  hitsInOgs <- rbindlist(lapply(4:nrow(md), function(i){
     cat(md$lab[i])
     inblkOgs <- with(md[i,], add_inblkHogs2hits(
       gsParam = gsParam, genome1 = query, genome2 = target))
@@ -53,6 +53,7 @@ run_orthofinderInBlk <- function(gsParam){
 #' \code{add_inblkHogs2hits} add_inblkHogs2hits
 #' @rdname build_synOGs
 #' @import data.table
+#' @import parallel
 #' @export
 add_inblkHogs2hits <- function(gsParam, genome1, genome2){
   blNames <- c(
@@ -84,10 +85,12 @@ add_inblkHogs2hits <- function(gsParam, genome1, genome2){
 
   # -- add unique identifier to geneIDs (in case of intragenomic)
   allBlast[,`:=`(ofID1 = sprintf("%s_g1", ofID1),
-                 ofID2 = sprintf("%s_g2", ofID2))]
+             ofID2 = sprintf("%s_g2", ofID2))]
 
   # -- subset to only hits in regions
   sb01 <- subset(allBlast, !is.na(regID))
+
+
   cat(sprintf("%s synhits || %s in global OGs ", nrow(sb01), sum(sb01$sameOg)))
 
   # -- make a new variable `rid` that is a unique regionID vector
@@ -98,8 +101,8 @@ add_inblkHogs2hits <- function(gsParam, genome1, genome2){
   sb01 <- subset(sb01, uid1 >= 40 & uid2 >= 40)
 
   # -- make an ofID --> id dictionary
-  di <- with(sb01, c(ofID1, ofID2))
-  names(di) <- with(sb01, c(id1, id2))
+  di1 <- sb01$ofID1;  names(di1) <- sb01$id1
+  di2 <- sb01$ofID2;  names(di2) <- sb01$id2
 
   ########
   # -- 1.3 read in and parse the peptides
@@ -113,8 +116,8 @@ add_inblkHogs2hits <- function(gsParam, genome1, genome2){
   peps1 <- peps1[unique(sb01$id2)]
 
   # -- replace names with unique ofIDs
-  names(peps0) <- di[names(peps0)]
-  names(peps1) <- di[names(peps1)]
+  names(peps0) <- di1[names(peps0)]
+  names(peps1) <- di2[names(peps1)]
 
   ########
   # -- 1.4 build blast-only column data.tables
@@ -245,11 +248,13 @@ add_inblkHogs2hits <- function(gsParam, genome1, genome2){
   # -- 3.3 merge hogs with blast files
   hogout <- rbindlist(lapply(names(spl01), function(j){
     y <- spl01[[j]]
-    z <- parse_hogs(path = hogf[j], genomeIDs = c("g0", "g1"))
-    hogv <- z$hogID; names(hogv) <- z$id
-    y[,`:=`(hog1 = hogv[ofID1], hog2 = hogv[ofID2])]
-    y[,sameHog := hog1 == hog2]
-    return(subset(y, sameHog)[,c("ofID1", "ofID2")])
+    if(file.exists(hogf[j])){
+      z <- parse_hogs(path = hogf[j], genomeIDs = c("g0", "g1"))
+      hogv <- z$hogID; names(hogv) <- z$id
+      y[,`:=`(hog1 = hogv[ofID1], hog2 = hogv[ofID2])]
+      y[,sameHog := hog1 == hog2]
+      return(subset(y, sameHog)[,c("ofID1", "ofID2")])
+    }
   }))
 
   ########
