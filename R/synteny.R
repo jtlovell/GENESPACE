@@ -40,6 +40,7 @@
 #' @rdname synteny
 #' @import data.table
 #' @import R.utils
+#' @importFrom dbscan dbscan frNN
 #' @export
 synteny <- function(gsParam){
   ##############################################################################
@@ -222,6 +223,7 @@ find_selfSyn <- function(hits, synRad){
 #' \code{split_ovlBlks} split_ovlBlks
 #' @rdname synteny
 #' @import data.table
+#' @importFrom dbscan dbscan frNN
 #' @export
 split_ovlBlks <- function(hits,
                           dropSmallNonOGBlks,
@@ -322,6 +324,7 @@ split_ovlBlks <- function(hits,
 #' @rdname synteny
 #' @import data.table
 #' @importFrom stats complete.cases
+#' @importFrom dbscan dbscan frNN
 #' @export
 find_initialAnchors <- function(hits,
                                 nGaps,
@@ -589,6 +592,7 @@ find_synBlks <- function(hits,
 #' @import data.table
 #' @import ggplot2
 #' @importFrom grDevices pdf dev.off rgb
+#' @importFrom dbscan dbscan frNN
 #' @export
 ggdotplot_blkRegs <- function(hits,
                               outDir,
