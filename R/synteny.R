@@ -1164,6 +1164,7 @@ annotate_gff <- function(gsParam, genomeIDs){
     gff <- rbindlist(lapply(names(gffFiles), function(i){
       x <- fread(
         gffFiles[[i]],
+        colClasses = c("character", "integer", "integer", "character", "character", "integer"),
         key = c("chr", "start","end","strand"))
       x[,genome := i]
       return(x)
