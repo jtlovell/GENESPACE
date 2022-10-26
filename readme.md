@@ -6,7 +6,8 @@ Updates since v0.9.4 ...
 
 - **major changes!! backwards compatibility to < v1 is broken in v1.0.1**: 
     - The user must now specify pre-formatted bed files instead of raw gff3 formatted annotations. This allows GENESPACE to catch issues with data formatting before running orthofinder etc. We are truly sorry to alter the specification and input so much, but it is unavoidable -- we want GENESPACE to integrate with existing bioinformatic pipelines, and too much internal customization was required, which produced hard-to-resolve errors.
-    - Better organization of results output. Previously all output went into /results. /results now only contains the parsed orthofinder results and annotated bed files. All other results are placed in /syntenicHits, /dotplots, /riparian, and /pangenome. 
+    - **Resolved issues with plot visualization in interactive R sessions**: xy dotplots and riparian plots are no longer written to the plot window. These are now saved as vector pdfs in the new /dotplot and /riparian directories respectively.
+    Better organization of results output. Previously all output went into /results. /results now only contains the parsed orthofinder results and annotated bed files. All other results are placed in /syntenicHits, /dotplots, /riparian, and /pangenome. 
     - All GENESPACE functions are now integrated into `run_genespace()`, which completes all steps internally (the user can still run each step independently too). 
     - The only change to the actual algorithm is a modification to how large tandem arrays are handled and masked. This will only affect a small number of genomes. 
 

@@ -381,7 +381,7 @@ annotate_bed <- function(gsParam){
   chrn <- n <- chr <- ord <- NULL
   bed[,chrn := as.numeric(gsub('\\D+','', chr))]
   bed[,n := .N, by = c("genome", "chr")]
-  setorder(bed, genome, chrn, chr, -n)
+  setorder(bed, genome, chrn, chr, -n, start)
   bed[,ord := 1:.N, by = "genome"]
 
   # -- 2.4 add in all other columns
@@ -467,14 +467,14 @@ annotate_bed <- function(gsParam){
   cat("##############################################################################\n")
   nu <- apply(md, 1, function(x){
     x <- unlist(x)
-    cat(sprintf("%s: %s (%s / %s), %s (%s), %s (%s), %s\n",
+    cat(sprintf("%s: %s (%s / %s) || %s (%s) || %s (%s) || %s\n",
                 x[1], x[2], x[3], x[4], x[5], x[6], x[8], x[7], x[9]))
   })
 
   bed[,`:=`(
     nGenome = NULL, nOGPlaces = NULL, maxPlaces = NULL, n = NULL, nchr = NULL)]
-  bedFile <- file.path(gsParam$paths$results, "combBed.txt")
-  fwrite(bed, file = bedFile, showProgress = F, quote = F, sep = "\t")
+  write_combBed(
+    x = bed, filepath = file.path(gsParam$paths$results, "combBed.txt"))
   return(bed)
 }
 
@@ -489,9 +489,9 @@ annotate_blast <- function(gsParam){
   ##############################################################################
   # 1. Build the blast file metadata
 
-  # -- 1.1 read in the blast files
-  bedFile <- file.path(gsParam$paths$results, "combBed.txt")
-  bed <- fread(bedFile, na.strings = c("", "NA"), showProgress = F)
+  # -- 1.1 read in the combined bed
+  bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
+
 
   # -- 1.2 get the blast files together
   genome1 <- genome2 <- n1 <- n2 <- blastFile <- query <- target <- hasBlast <-
@@ -559,12 +559,12 @@ annotate_blast <- function(gsParam){
     bl[,`:=`(og1 = NULL, og2 = NULL, noAnchor1 = NULL, noAnchor2 = NULL)]
     cat(sprintf(", same og = %s\n", sum(bl$sameOg)))
 
-    bl[,`:=`(ancOrd1 = ifelse(noAnchor, NA, frank(ord1, ties.method = "dense")),
-             ancOrd2 = ifelse(noAnchor, NA, frank(ord2, ties.method = "dense")))]
+    bl[,`:=`(isAnchor = NA, inBuffer = NA, regID = NA, blkID = NA, lgBlkID = NA)]
     blf <- file.path(
       gsParam$paths$syntenicHits,
       sprintf("%s_vs_%s.synBlast.txt.gz", synMd$query[i], synMd$target[i]))
-    fwrite(bl, file = blf, quote = F, sep = "\t", showProgress = FALSE)
+
+    write_synBlast(bl, filepath = blf)
     synMd$annotBlastFile[i] <- blf
     # -- 2.5 summarize the hits, make plots
     hits <- data.table(bl)

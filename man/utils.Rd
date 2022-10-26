@@ -24,6 +24,17 @@
 \alias{round_toInteger}
 \alias{add_rle}
 \alias{gs_colors}
+\alias{clus_igraph}
+\alias{interp_linear}
+\alias{flag_boundingNAs}
+\alias{calc_blkCoords}
+\alias{are_colors}
+\alias{scale_between}
+\alias{read_combBed}
+\alias{write_combBed}
+\alias{read_synHits}
+\alias{write_synBlast}
+\alias{add_alpha}
 \title{Generic internal functions used by genespace}
 \usage{
 check_integer(
@@ -88,6 +99,28 @@ round_toInteger(x, to)
 add_rle(x, which = "n")
 
 gs_colors(n = 10)
+
+clus_igraph(id1, id2)
+
+interp_linear(x, y)
+
+flag_boundingNAs(x)
+
+calc_blkCoords(hits, mirror = FALSE)
+
+are_colors(col)
+
+scale_between(x, min, max, scale1toMean = TRUE)
+
+read_combBed(filepath)
+
+write_combBed(x, filepath)
+
+read_synHits(filepath)
+
+write_synBlast(x, filepath)
+
+add_alpha(col, alpha = 1)
 }
 \arguments{
 \item{x}{single-value parameter, string, integer, numeric, list, vector}
@@ -170,4 +203,26 @@ is not convertible to an integer, returns NA.
 \code{add_rle} add_rle
 
 \code{gs_colors} gs_colors
+
+\code{clus_igraph} Clus_igraph
+
+\code{interp_linear} linear interpolation of missing values in x
+
+\code{flag_boundingNAs} flag_boundingNAs
+
+\code{calc_blkCoords} calc_blkCoords
+
+\code{are_colors} check if a vector is coercible to R colors
+
+\code{scale_between} scale a vector between a range
+
+\code{read_combBed} read_combBed
+
+\code{write_combBed} write_combBed
+
+\code{read_synHits} read_synHits
+
+\code{write_synBlast} write_synBlast
+
+\code{add_alpha} add transparency to a color
 }

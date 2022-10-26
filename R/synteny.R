@@ -61,7 +61,7 @@ synteny <- function(gsParam){
   # -- loop through the metadata
   blMdOut <- rbindlist(lapply(1:nrow(blMd), function(i){
     x <- blMd[i,]
-    hits <- fread(x$annotBlastFile, na.strings = c("", "NA"))
+    hits <- read_synHits(x$annotBlastFile)
     cat(x$lab)
     ############################################################################
     # 1. intragenomic hits
@@ -164,9 +164,9 @@ synteny <- function(gsParam){
       nRegionHits = sum(!is.na(hits$regID)),
       nRegions =uniqueN(hits$regID, na.rm = T),
       nAnchorHits = sum(hits$isAnchor),
-      nBlks = uniqueN(hits$blkID, na.rm = T),
-      nSVs = uniqueN(hits$blkID, na.rm = T) -
-        uniqueN(paste(hits$chr1, hits$chr2)[!is.na(hits$blkID)]))]
+      nBlks = uniqueN(hits$lgBlkID, na.rm = T),
+      nSVs = uniqueN(hits$lgBlkID, na.rm = T) -
+        uniqueN(paste(hits$chr1, hits$chr2)[!is.na(hits$lgBlkID)]))]
 
     nRegionHits <- nRegions <- nAnchorHits <- nBlks <- nSVs <- NULL
     with(x, cat(sprintf(
@@ -178,12 +178,7 @@ synteny <- function(gsParam){
       outDir = gsParam$paths$dotplots,
       appendName = "synHits")
 
-    fwrite(
-      hits,
-      file = x$annotBlastFile,
-      quote = F,
-      sep = "\t",
-      showProgress = FALSE)
+    write_synBlast(x = hits, filepath = x$annotBlastFile)
     return(x)
   }))
   gsParam$annotBlastMd <- blMdOut
@@ -213,8 +208,9 @@ find_selfSyn <- function(hits, synRad){
     return(subset(x, 1:nrow(x) %in% wh)[,c("ofID1", "ofID2")])
   })), paste(ofID1, ofID2))
   hits[,inBuffer := paste(ofID1, ofID2) %in% ofInBuff]
-  hits[,regID := ifelse(inBuffer, paste(chr1, chr2), NA)]
-  hits[,blkID := regID]
+  hits[,regID := ifelse(inBuffer, sprintf("reg_%s", as.integer(as.factor(paste(chr1, chr2)))), NA)]
+  hits[,blkID := ifelse(is.na(regID), NA, sprintf("blk_%s_1_1", regID))]
+  hits[,lgBlkID := blkID]
   return(hits)
 }
 
@@ -400,6 +396,7 @@ find_synRegions <- function(hits,
   tmp <- tmp[,c("ofID1", "ofID2", "chr1", "chr2", "ord1", "ord2", "bitScore")]
   tmp[,`:=`(ord1 = frank(ord1, ties.method = "dense"),
             ord2 = frank(ord2, ties.method = "dense"))]
+
   setnames(tmp, "bitScore", "score")
   tmp <- subset(tmp, complete.cases(tmp))
   anchu <- run_mcscanx(
@@ -431,12 +428,14 @@ find_synRegions <- function(hits,
 
   # -- rename blocks with uniqueID, add to hits
   tmp[,regID := paste(chr1, chr2, regID)]
-  regu <- tmp$regID; names(regu) <- with(tmp, paste(ofID1, ofID2))
+  regu <- sprintf("reg_%s", as.numeric(as.factor(tmp$regID)))
+  names(regu) <- with(tmp, paste(ofID1, ofID2))
   hits[,regID := regu[paste(ofID1, ofID2)]]
 
   # -- 5 get all hits within region coordinates
   u <- with(subset(hits, !is.na(regID)), unique(paste(chr1, chr2)))
   tmp <- subset(hits, paste(chr1, chr2) %in% u)
+
   tmp[,`:=`(ord1 = frank(ord1, ties.method = "dense"),
             ord2 = frank(ord2, ties.method = "dense"))]
 
@@ -449,21 +448,19 @@ find_synRegions <- function(hits,
   })), paste(ofID1, ofID2))
   tmp <- subset(tmp, paste(ofID1, ofID2) %in% ofInBuff)
 
+
   tmp[,`:=`(ord1 = frank(ord1, ties.method = "dense"),
             ord2 = frank(ord2, ties.method = "dense"))]
-
   # -- get block coordinates
   blks <- subset(tmp, !is.na(regID))[,list(
     start1 = min(ord1), end1 = max(ord1),
     start2 = min(ord2), end2 = max(ord2)),
     by = c("chr1", "chr2", "regID")]
   u <- with(blks, unique(paste(chr1, chr2)))
-
   # -- split out hits and block coordinates by block ID
   splh <- split(subset(tmp, paste(chr1, chr2) %in% u), by = c("chr1", "chr2"))
   splb <- split(blks, by = c("chr1", "chr2"))
   splh <- splh[names(splb)]
-
   # -- 6 finalize hits within each region
   tmpReg <- rbindlist(lapply(1:nrow(blks), function(i){
     y <- blks[i,]
@@ -478,8 +475,8 @@ find_synRegions <- function(hits,
     out[,regID := y$regID]
     return(out)
   }))
-
-  regu <- tmpReg$regID; names(regu) <- with(tmpReg, paste(ofID1, ofID2))
+  regu <- with(tmpReg, sprintf("reg_%s", as.numeric(as.factor(paste(chr1, chr2, regID)))))
+  names(regu) <- with(tmpReg, paste(ofID1, ofID2))
   hits[,regID := NULL]
   hits[,regID := regu[paste(ofID1, ofID2)]]
   return(hits)
@@ -504,16 +501,25 @@ find_synBlks <- function(hits,
   tmp[,sr1 := frank(-bitScore, ties.method = "dense"), by = c("regID","ofID1")]
   tmp[,sr2 := frank(-bitScore, ties.method = "dense"), by = c("regID","ofID2")]
   tmp <- subset(tmp, sr1 == 1 & sr2 == 1)
-
-  # -- 3.2 re-rank genes within each region and split by region
+  # -- 3.2 initial block clustering using blkSize
   ord1 <- ord2 <- blkID <- regID <- ofID1 <- ofID2 <- NULL
+  tmp[,`:=`(ord1 = frank(ord1, ties.method = "dense"),
+            ord2 = frank(ord2, ties.method = "dense"))]
+  tmp[,blkID := dbscan(frNN(
+    x = cbind(ord1, ord2),
+    eps = (blkSize * 2) - 1),
+    minPts = blkSize)$cluster, by = c("chr1", "chr2")]
+  iblk <- subset(tmp, blkID != 0)
+  iblk[,blkID := sprintf("%s_%s_%s", chr1, chr2, blkID)]
+  lgBlk <- iblk$blkID; names(lgBlk) <- with(iblk, paste(ofID1, ofID2))
+  hits[,lgBlkID := lgBlk[paste(ofID1, ofID2)]]
+
   tmp[,`:=`(ord1 = frank(ord1, ties.method = "dense"),
             ord2 = frank(ord2, ties.method = "dense")), by = "regID"]
   spl <- split(tmp, by = "regID")
 
   # -- for each region ...
   tmpBlk <- rbindlist(lapply(spl, function(x){
-
     # -- 3.3 dbscan prune with slightly larger buffer
     x[,blkID := dbscan(frNN(
       x = cbind(ord1, ord2),
@@ -540,12 +546,10 @@ find_synBlks <- function(hits,
     x <- subset(x, blkID > 0)
     return(x)
   }))
-
-  u <- with(tmpBlk, paste(regID, blkID))
-  names(u) <- with(tmpBlk, paste(ofID1, ofID2))
+  tmpBlk[,blkID := as.numeric(as.factor(paste(chr1, chr2, regID, blkID)))]
+  u <- tmpBlk$blkID; names(u) <- with(tmpBlk, paste(ofID1, ofID2))
   hits[,blkID := u[paste(ofID1, ofID2)]]
   hits[,isAnchor := !is.na(blkID)]
-
   ##############################################################################
   # 4. finalize all the data
   # -- 4.1 split non-duplicated overlapping blocks
@@ -562,9 +566,9 @@ find_synBlks <- function(hits,
     nblks <- uniqueN(tmp$blkID, na.rm = T)
   }
 
+  tmp[,blkID := as.numeric(as.factor(paste(chr1, chr2, regID, blkID)))]
+  u <- tmp$blkID; names(u) <- with(tmp, paste(ofID1, ofID2))
   hits[,blkID := NULL]
-  u <- with(tmp, paste(regID, blkID))
-  names(u) <- with(tmp, paste(ofID1, ofID2))
   hits[,blkID := u[paste(ofID1, ofID2)]]
   hits[,isAnchor := !is.na(blkID)]
 
@@ -601,7 +605,7 @@ ggdotplot_blkRegs <- function(hits,
 
   blkCols <- sample(
     gs_colors(20),
-    uniqueN(hits$blkID, na.rm = T),
+    uniqueN(hits$lgBlkID, na.rm = T),
     replace = T)
   regCols <- sample(
     gs_colors(20),
@@ -632,16 +636,15 @@ ggdotplot_blkRegs <- function(hits,
                     hits$genome1[1], hits$genome2[1], appendName))
   pdf(dpFile, height = ht, width = wd)
 
-  isAnchor <- n <- rnd1 <- rnd2 <- chr1 <- chr2 <- ns1 <- ns2 <- blkID <-
+  isAnchor <- n <- rnd1 <- rnd2 <- chr1 <- chr2 <- ns1 <- ns2 <- lgBlkID <-
     regID <- NULL
   hcBlk <- subset(tp, isAnchor)[,list(
     n = .N),
-    by = c("chr1", "chr2", "rnd1", "rnd2", "blkID")]
+    by = c("chr1", "chr2", "rnd1", "rnd2", "lgBlkID")]
   hcBlk[,ns2 := sum(n), by = c("chr2")]
   hcBlk[,ns2 := sum(n), by = c("chr2")]
   hcBlk$n[hcBlk$n > 20] <- 20
-
-  p1 <- ggplot(hcBlk, aes(rnd1, rnd2, col = blkID)) +
+  p1 <- ggplot(hcBlk, aes(rnd1, rnd2, col = lgBlkID)) +
     geom_point(size = .01) +
     scale_color_manual(values = blkCols, guide = "none") +
     scale_x_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hcBlk$rnd1), by = 1e3))+
