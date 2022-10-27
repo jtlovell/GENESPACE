@@ -73,9 +73,9 @@ plot_riparian <- function(
     chrFill = "white",
     highlightTheseRegions = NULL,
     braidAlpha = .75,
-    scalePlotHeight = .9,
+    scalePlotHeight = 1,
     dropDupBlks = FALSE,
-    scalePlotWidth = 0.2,
+    scalePlotWidth = 0.3,
     chrLabBorderLwd = .1,
     refChrCols = NULL,
     ylabBuff = NULL,
@@ -340,7 +340,7 @@ plot_riparian <- function(
 
   if(is.null(ylabBuff))
     ylabBuff <- length(gids)/40
-  plotHeight <- length(gids)*scalePlotHeight
+  plotHeight <- sqrt(length(gids))*scalePlotHeight
 
   if(!is.null(pdfFile))
     if(!dir.exists(dirname(pdfFile)))
@@ -378,9 +378,10 @@ plot_riparian <- function(
     blk <- fread(file.path(gsParam$paths$results, "blkCoords.txt.gz"),
                  na.strings = c("", "NA"))
   }
-
+  blk[,blkID := paste(genome1, genome2, blkID)]
 
   # subset to just daisy chained hits
+  blk <- subset(blk, nHits1 >= minBlkSize & nHits2 >= minBlkSize)
   tp <- subset_toChainedGenomes(blk = blk, genomeIDs = gids)
   cat(sprintf("riparian plot type: %s, with %s collinear blocks\n",
               runType, nrow(tp)))
@@ -402,6 +403,7 @@ plot_riparian <- function(
   ##############################################################################
   # -- 1.4 simplify the block coordinates, depending on run type
   tp <- simplify_blkCoords(blk = tp, useOrder = useOrder, runType = runType)
+
   ##############################################################################
   # -- 1.5 check chromosome length information
   clens <- get_chrLens(chrLengths = chrLengths, faidir = faidir, blk = tp)
@@ -423,7 +425,8 @@ plot_riparian <- function(
       minBlkSize = minBlkSize))
     # blkReg <- subset_toChainedGenomes(blk = blkReg, genomeIDs = genomeIDs)
     blkReg <- subset_toChainedGenomes(blk = blkReg, genomeIDs = gids)
-    blkReg <- simplify_blkCoords(blk = blkReg, useOrder = useOrder, runType = runType)
+    blkReg <- simplify_blkCoords(
+      blk = blkReg, useOrder = useOrder, runType = runType)
     tp <- rbind(tp, blkReg[,colnames(tp), with = F])
   }
 
@@ -462,7 +465,8 @@ plot_riparian <- function(
            xs2 = a2[paste(genome2, chr2)] + start2,
            xe2 = a2[paste(genome2, chr2)] + end2)]
   tpb <- data.table(tp)
-  clens <- data.table(clens)
+  u <- with(tp, unique(paste(c(genome1, genome2), c(chr1, chr2))))
+  clens <- subset(clens, paste(genome, chr) %in% u )
   clens[,y := match(genome, gids)]
   ##############################################################################
   ##############################################################################
@@ -858,7 +862,7 @@ get_chrOrder <- function(blk, refGenome, reorderChrsBySynteny, refChrOrdFun){
     bocr <- rbind(boc, bor)
     chrOrds <- bocr$chrOrd; names(chrOrds) <- with(bocr, paste(genome, chr))
   }else{
-    u <- with(tp, data.table(genome = c(genome1, genome2), chr = c(chr1, chr2)))
+    u <- with(blk, data.table(genome = c(genome1, genome2), chr = c(chr1, chr2)))
     u <- subset(u, !duplicated(u))
     u[,chrOrd := refChrOrdFun(chr), by = "genome"]
     setorder(u, genome, chr, chrOrd)
