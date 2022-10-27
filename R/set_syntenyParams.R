@@ -497,6 +497,13 @@ annotate_blast <- function(gsParam){
   genome1 <- genome2 <- n1 <- n2 <- blastFile <- query <- target <- hasBlast <-
     type <- NULL
   tmp <- gsParam$ofFiles$blast
+  if(is.null(tmp)){
+    gsParam$ofFiles <- find_gsResults(
+      resultsDir = gsParam$paths$results,
+      genomeIDs = gsParam$genomeIDs)
+    tmp <- gsParam$ofFiles$blast
+  }
+
   nseqs <- table(bed$genome)
   tmp[,`:=`(n1 = nseqs[genome1], n2 = nseqs[genome2])]
   tmp[,query := ifelse(n1 >= n2, genome1, genome2)]

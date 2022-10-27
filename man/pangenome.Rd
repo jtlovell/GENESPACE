@@ -4,7 +4,7 @@
 \alias{pangenome}
 \title{Build genespace pangenome}
 \usage{
-pangenome(gsParam, refGenome, propAssignThresh = 0.25)
+pangenome(gsParam, genomeIDs = NULL, refGenome = NULL, propAssignThresh = 0.25)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -13,13 +13,13 @@ elements: blast (file.path to the original orthofinder run), synteny (
 file.path to the directory where syntenic results are stored), genomeIDs (
 character vector of genomeIDs).}
 
+\item{genomeIDs}{character vector, specifying which genomes to use. Defaults
+to all genomeIDs specification in gsParam.}
+
 \item{refGenome}{character string matching one of the genomeIDs in gsParam}
 
 \item{propAssignThresh}{numeric of length 1, the minimum proportion of genes
 in a pangenome entry needed to anchor the physical position to a new location}
-
-\item{genomeIDs}{character vector, specifying which genomes to use. Defaults
-to all genomeIDs specification in gsParam.}
 }
 \value{
 a data.table with lists of gene ids for each genome. Each row
