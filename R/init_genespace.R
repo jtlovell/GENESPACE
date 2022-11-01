@@ -564,7 +564,8 @@ init_genespace <- function(wd,
 
   ##############################################################################
   # -- 4.3 make directories if they do not exist
-  tmp <- sapply(paths[names(paths) != "orthofinder"], function(x){
+  pth2chk <- paths[names(paths) %in% c("orthofinder", "rawOrthofinderDir")]
+  tmp <- sapply(pth2chk, function(x){
     if(!dir.exists(x))
       dir.create(x)
   })
