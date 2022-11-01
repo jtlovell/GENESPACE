@@ -26,7 +26,7 @@ build_synOGs <- function(gsParam){
   bedFile <- file.path(gsParam$paths$results, "combBed.txt")
   bed <- fread(bedFile, na.strings = c("", "NA"), showProgress = F)
 
-  cat("Aggregating syntenic orthogroups ... ")
+  cat("\t##############\n\tAggregating syntenic orthogroups ... ")
   soh <- pull_synOgs(gsParam = gsParam)
   ic <- with(soh, clus_igraph(id1 = ofID1, id2 = ofID2))
   bed[,synOG := ic[ofID]]
@@ -35,10 +35,10 @@ build_synOGs <- function(gsParam){
   bed$synOG[whna] <- paste((mx + 1): (mx + length(whna)))
   cat("Done!\n")
 
-  if(gpar$params$orthofinderInBlk){
-    cat("Running Orthofinder within syntenic regions\n")
+  if(gsParam$params$orthofinderInBlk){
+    cat("\t##############\n\tRunning Orthofinder within syntenic regions\n")
     # -- get the graph of inBlock orthogroups
-    synOgHits <- pull_inblkOgs(gpar)
+    synOgHits <- pull_inblkOgs(gsParam)
 
     ic <- with(soh, clus_igraph(id1 = ofID1, id2 = ofID2))
     bed[,inblkOG := ic[ofID]]
@@ -48,15 +48,16 @@ build_synOGs <- function(gsParam){
     bed[,og := inblkOG]
     fwrite(bed, file = bedFile, showProgress = F, quote = F, sep = "\t")
 
-    cat("Done!\nRe-running synteny on new inblk orthogroups ...\n")
+    cat("\t##############\n\tRe-annotating the blast files\n")
     gsParam <- annotate_blast(gsParam = gsParam)
-    gpar <- synteny(gpar)
-    cat("Done!\n")
+    cat("\t##############\n\tRe-running synteny\n")
+    gsParam <- synteny(gsParam)
 
   }else{
     bed[,`:=`(inblkOG = NA, og = synOG)]
     fwrite(bed, file = bedFile, showProgress = F, quote = F, sep = "\t")
   }
+  return(gsParam)
 }
 
 #' @title run_orthofinderInBlk
@@ -86,9 +87,9 @@ pull_synOgs <- function(gsParam, onlyInBuffer = TRUE){
   return(hitsInOgs)
 }
 
-#' @title run_orthofinderInBlk
+#' @title pull_inblkOgs
 #' @description
-#' \code{run_orthofinderInBlk} run_orthofinderInBlk
+#' \code{pull_inblkOgs} pull_inblkOgs
 #' @rdname build_synOGs
 #' @import data.table
 #' @export
@@ -99,7 +100,7 @@ pull_inblkOgs <- function(gsParam, overwrite = FALSE, onlyInBuffer = TRUE){
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
   # -- for each line in metadata
   hitsInOgs <- rbindlist(lapply(1:nrow(md), function(i){
-    cat(md$lab[i])
+    cat("\t...", md$lab[i])
     inblkOgs <- with(md[i,], run_orthofinderInBlk(
       gsParam = gsParam, genome1 = query, genome2 = target, overwrite = overwrite))
     out <- subset(inblkOgs, !is.na(regID) & (sameOg | sameInblkOg))
@@ -112,9 +113,9 @@ pull_inblkOgs <- function(gsParam, overwrite = FALSE, onlyInBuffer = TRUE){
   return(hitsInOgs)
 }
 
-#' @title add_inblkHogs2hits
+#' @title run_orthofinderInBlk
 #' @description
-#' \code{add_inblkHogs2hits} add_inblkHogs2hits
+#' \code{run_orthofinderInBlk} run_orthofinderInBlk
 #' @rdname build_synOGs
 #' @import data.table
 #' @import parallel
@@ -222,8 +223,10 @@ run_orthofinderInBlk <- function(gsParam, genome1, genome2, overwrite){
     ########
     # -- 2.1 make the tmp directory
     tmpDir <- gsParam$paths$tmp
-    if(!dir.exists(tmpDir))
-      dir.create(tmpDir)
+    if(dir.exists(tmpDir))
+      unlink(tmpDir, recursive = T)
+    dir.create(tmpDir)
+
 
     ########
     # -- 2.2 create the directories for each region
@@ -274,42 +277,49 @@ run_orthofinderInBlk <- function(gsParam, genome1, genome2, overwrite){
     }
 
     bl <- sapply(names(spl01), function(j){
-      sids <- read_orthofinderSequenceIDs(ofDirs[j])
-      idv <- sids$ofID; names(idv) <- sids$id
-      y <- data.table(spl01[[j]])
-      u1 <- unique(y$ofID1)
-      u2 <- unique(y$ofID2)
-      y01 <- subset(bl01, ofID1 %in% u1 & ofID2 %in% u2)
-      y10 <- subset(bl10, ofID1 %in% u2 & ofID2 %in% u1)
-      y00 <- subset(bl00, ofID1 %in% u1 & ofID2 %in% u1)
-      y11 <- subset(bl11, ofID1 %in% u2 & ofID2 %in% u2)
-      y01[,`:=`(ofID1 = idv[ofID1], ofID2 = idv[ofID2])]
-      y10[,`:=`(ofID1 = idv[ofID1], ofID2 = idv[ofID2])]
-      y00[,`:=`(ofID1 = idv[ofID1], ofID2 = idv[ofID2])]
-      y11[,`:=`(ofID1 = idv[ofID1], ofID2 = idv[ofID2])]
-      write_blast(y01, file.path(dirname(ofDirs[j]), "Blast0_1.txt.gz"))
-      write_blast(y10, file.path(dirname(ofDirs[j]), "Blast1_0.txt.gz"))
-      write_blast(y00, file.path(dirname(ofDirs[j]), "Blast0_0.txt.gz"))
-      write_blast(y11, file.path(dirname(ofDirs[j]), "Blast1_1.txt.gz"))
+      if(file.exists(ofDirs[j])){
+        sids <- read_orthofinderSequenceIDs(ofDirs[j])
+        idv <- sids$ofID; names(idv) <- sids$id
+        y <- data.table(spl01[[j]])
+        u1 <- unique(y$ofID1)
+        u2 <- unique(y$ofID2)
+        y01 <- subset(bl01, ofID1 %in% u1 & ofID2 %in% u2)
+        y10 <- subset(bl10, ofID1 %in% u2 & ofID2 %in% u1)
+        y00 <- subset(bl00, ofID1 %in% u1 & ofID2 %in% u1)
+        y11 <- subset(bl11, ofID1 %in% u2 & ofID2 %in% u2)
+        y01[,`:=`(ofID1 = idv[ofID1], ofID2 = idv[ofID2])]
+        y10[,`:=`(ofID1 = idv[ofID1], ofID2 = idv[ofID2])]
+        y00[,`:=`(ofID1 = idv[ofID1], ofID2 = idv[ofID2])]
+        y11[,`:=`(ofID1 = idv[ofID1], ofID2 = idv[ofID2])]
+        write_blast(y01, file.path(dirname(ofDirs[j]), "Blast0_1.txt.gz"))
+        write_blast(y10, file.path(dirname(ofDirs[j]), "Blast1_0.txt.gz"))
+        write_blast(y00, file.path(dirname(ofDirs[j]), "Blast0_0.txt.gz"))
+        write_blast(y11, file.path(dirname(ofDirs[j]), "Blast1_1.txt.gz"))
+      }
     })
 
     ##############################################################################
     # -- 3. Run orthofinder within block
     ########
     # -- 3.1 make the orthofinder commands
-    comms <- sapply(names(spl01), function(j)
-      sprintf("-b %s -t 1 -a 1 -X", dirname(ofDirs[j])))
+    comms <- sapply(names(spl01), function(j){
+      if(file.exists(ofDirs[j]))
+        return(sprintf("-b %s -t 1 -a 1 -X", dirname(ofDirs[j])))
+    })
+
 
     ########
     # -- 3.2 call orthofinder and get the paths to the HOG files
-    hogf <- mclapply(names(spl01), mc.cores = 10, function(j){
-      outp <- system2(
-        ofcall,
-        comms[j],
-        stdout = TRUE, stderr = TRUE)
-      HOG <- find_ofFiles(
-        orthofinderDir = file.path(dirname(ofDirs[j]), "OrthoFinder"))$hogs
-      return(HOG)
+    hogf <- mclapply(names(spl01), mc.cores = gsParam$params$nCores, function(j){
+      if(file.exists(ofDirs[j])){
+        outp <- system2(
+          ofcall,
+          comms[j],
+          stdout = TRUE, stderr = TRUE)
+        HOG <- find_ofFiles(
+          orthofinderDir = file.path(dirname(ofDirs[j]), "OrthoFinder"))$hogs
+        return(HOG)
+      }
     })
     hogf <- unlist(hogf); names(hogf) <- names(spl01)
 

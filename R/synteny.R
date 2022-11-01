@@ -42,15 +42,16 @@
 #' @import R.utils
 #' @importFrom dbscan dbscan frNN
 #' @export
-synteny <- function(gsParam){
+synteny <- function(gsParam, verbose = TRUE){
   ##############################################################################
   # 0. setup
-  if(!"synRad" %in% colnames(gsParam$annotBlastMd)){
-    strwrap(
-      "**NOTE** synteny parameters have not been set, using parameters from
+  if(!"synBuff" %in% colnames(gsParam$annotBlastMd)){
+    if(verbose)
+      strwrap(
+        "**NOTE** synteny parameters have not been set, using parameters from
       gsParam. If you want to manually adjust parameters for each combination
       of genomes, run `set_synParam()` separately\n", indent = 0, exdent = 8)
-    gsParam <- set_syntenyParams(gsParam, overwrite = F)
+    gsParam <- set_syntenyParams(gsParam, overwrite = FALSE, verbose = FALSE)
   }
 
   blMd <- data.table(gsParam$annotBlastMd)
@@ -62,7 +63,7 @@ synteny <- function(gsParam){
   blMdOut <- rbindlist(lapply(1:nrow(blMd), function(i){
     x <- blMd[i,]
     hits <- read_synHits(x$annotBlastFile)
-    cat(x$lab)
+    cat("\t...", x$lab)
     ############################################################################
     # 1. intragenomic hits
     if(x$query == x$target){

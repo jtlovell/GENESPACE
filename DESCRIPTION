@@ -4,7 +4,7 @@ Title: Synteny- and orthology-constrained comparative genomics
 Version: 1.0.0
 Author: John T. Lovell
 Maintainer: John T. Lovell <jlovell@hudsonalpha.org>
-Description: Construct pan-genome annotations and orther comparative genomics
+Description: Construct pan-genome annotations and other comparative genomics
   analyses from synteny- and orthogroup-constrained blast hits.
 Imports: data.table,
   dbscan,

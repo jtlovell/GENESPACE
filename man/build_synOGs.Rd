@@ -32,9 +32,9 @@ If called, \code{build_synOGs} returns its own arguments.}
 
 \code{run_orthofinderInBlk} run_orthofinderInBlk
 
-\code{run_orthofinderInBlk} run_orthofinderInBlk
+\code{pull_inblkOgs} pull_inblkOgs
 
-\code{add_inblkHogs2hits} add_inblkHogs2hits
+\code{run_orthofinderInBlk} run_orthofinderInBlk
 }
 \details{
 info here

@@ -58,7 +58,6 @@
 #' @export
 plot_riparian <- function(
     gsParam,
-    remakeBlockCoords = FALSE,
     reorderChrsBySynteny = TRUE,
     refGenome = NULL,
     labelTheseGenomes = NULL,
@@ -74,7 +73,6 @@ plot_riparian <- function(
     highlightTheseRegions = NULL,
     braidAlpha = .75,
     scalePlotHeight = 1,
-    dropDupBlks = FALSE,
     scalePlotWidth = 0.3,
     chrLabBorderLwd = .1,
     refChrCols = NULL,
@@ -86,7 +84,8 @@ plot_riparian <- function(
            gsub("chr|scaf|chromosome|scaffold|^lg|_", "", tolower(x))),
     xlab = sprintf(
       "Chromosomes scaled by %s",
-      ifelse(useOrder, "gene rank order", "physical position"))){
+      ifelse(useOrder, "gene rank order", "physical position")),
+    verbose = TRUE){
 
 
   check_highlightRegParam <- function(x){
@@ -272,7 +271,8 @@ plot_riparian <- function(
     }
 
     if(is.null(chrLengths)){
-      cat("Cannot find valid fais or chrLengths using chromosome coordinates from the blocks.\n")
+      if(verbose)
+        cat("Cannot find valid fais or chrLengths using chromosome coordinates from the blocks.\n")
       chrLengths <- with(blk, data.table(
         genome = c(genome1, genome2, genome1, genome2),
         chr = c(chr1, chr2, chr1, chr2),
@@ -340,7 +340,7 @@ plot_riparian <- function(
 
   if(is.null(ylabBuff))
     ylabBuff <- length(gids)/40
-  plotHeight <- sqrt(length(gids))*scalePlotHeight
+  plotHeight <- (sqrt(length(gids)) * scalePlotHeight) + 2
 
   if(!is.null(pdfFile))
     if(!dir.exists(dirname(pdfFile)))
@@ -368,14 +368,14 @@ plot_riparian <- function(
   # phased blocks if default
   if(runType == "default"){
     blk <- subset(
-      fread(file.path(gsParam$paths$riparian, "refPhasedBlkCoords.txt.gz"),
+      fread(file.path(gsParam$paths$riparian, "refPhasedBlkCoords.txt"),
             na.strings = c("", "NA")), refGenome == rg)
     blk[,blkID := paste(blkID, refChr)]
   }
 
   # raw blocks if highlighting
   if(runType == "highlight"){
-    blk <- fread(file.path(gsParam$paths$results, "blkCoords.txt.gz"),
+    blk <- fread(file.path(gsParam$paths$results, "blkCoords.txt"),
                  na.strings = c("", "NA"))
   }
   blk[,blkID := paste(genome1, genome2, blkID)]
@@ -383,10 +383,11 @@ plot_riparian <- function(
   # subset to just daisy chained hits
   blk <- subset(blk, nHits1 >= minBlkSize & nHits2 >= minBlkSize)
   tp <- subset_toChainedGenomes(blk = blk, genomeIDs = gids)
-  cat(sprintf("riparian plot type: %s, with %s collinear blocks\n",
-              runType, nrow(tp)))
+  if(verbose)
+    cat(sprintf("riparian plot type: %s, with %s collinear blocks\n",
+                runType, nrow(tp)))
 
-  if(gsParam$ploidy[rg] > 1)
+  if(gsParam$ploidy[rg] > 1 & verbose)
     cat(strwrap(sprintf(
       "**NOTE** The reference genome %s has ploidy > 1. If possible, try to use
       a haploid reference genome. Polyploid references will produce many
@@ -475,7 +476,7 @@ plot_riparian <- function(
   # 3.1 get parameters together that are needed for coordinates
   clens[, chrLab := chrLabFun(chr)]
   maxChrChars <- with(clens, tapply(chrLab, genome, function(x) sum(nchar(x))))
-  plotWidth <- max(maxChrChars) * scalePlotWidth
+  plotWidth <- (sqrt(max(maxChrChars)) * scalePlotWidth) + 6
 
   # -- 4.1 polygon matrix
   plist <- rbindlist(lapply(1:nrow(tpb), function(i){
@@ -566,7 +567,8 @@ plot_riparian <- function(
     labs(x = xlab)
 
   # -- write the plot
-  cat(strwrap(sprintf("writing plot to %s", pdfFile), indent = 8, exdent = 8), sep = "\n")
+  if(verbose)
+    cat(strwrap(sprintf("writing plot to %s", pdfFile), indent = 8, exdent = 8), sep = "\n")
   pdf(pdfFile, height = plotHeight, width = plotWidth)
   print(p)
   dev.off()

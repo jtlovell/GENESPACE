@@ -64,17 +64,17 @@
 #' @rdname set_syntenyParams
 #' @import data.table
 #' @export
-set_syntenyParams <- function(gsParam, overwrite){
+set_syntenyParams <- function(gsParam, overwrite, verbose = TRUE){
 
   # -- if there is not combined bed file, make it
   bedFile <- file.path(gsParam$paths$results, "combBed.txt")
-  if(file.exists(bedFile) & !overwrite)
+  if(file.exists(bedFile) & !overwrite & verbose)
     cat("**NOTE** annotated/combined bed file exists, not overwriting\n")
-  if(file.exists(bedFile) & overwrite)
+  if(file.exists(bedFile) & overwrite & verbose)
     cat(strwrap(
       "**NOTE** annotated/combined bed file exists but overwrite = TRUE,
       re-making it", indent = 0, exdent = 8), sep = "\n")
-  if(!file.exists(bedFile))
+  if(!file.exists(bedFile) & verbose)
     cat("combining and annotating the bed files\n")
   if((file.exists(bedFile) & overwrite) || !file.exists(bedFile)){
     tmp <- annotate_bed(gsParam = gsParam)
@@ -82,9 +82,9 @@ set_syntenyParams <- function(gsParam, overwrite){
   }
 
   # if there are no blast md in the gsParam
-  if(!"annotBlastMd" %in% names(gsParam))
+  if(!"annotBlastMd" %in% names(gsParam) & verbose)
     cat("**NOTE** could not find annotated blast files, making them.\n")
-  if("annotBlastMd" %in% names(gsParam) && overwrite)
+  if("annotBlastMd" %in% names(gsParam) && overwrite & verbose)
     cat("**NOTE** annotated blast files exist, but overwrite = TRUE,
       re-making them")
   if(("annotBlastMd" %in% names(gsParam) && overwrite) ||
@@ -279,11 +279,10 @@ annotate_bed <- function(gsParam){
 
   check_ploidyOgMatch <- function(ploidy, bed){
     genome <- nGenome <- nGenes <- ofID <- n <- nOGs <- smPloid <- NULL
-    cat("Checking which type of orthogroup most closely matches ploidy\n")
+    cat("\t##############\n\tChecking which type of orthogroup best matches ploidy\n")
     tmp <- data.table(genome = names(ploidy), ploidy = ploidy)
-    cat("Checking global orthogroups (OGs) ... \n")
     bed[,nGenome := uniqueN(genome), by = "globOG"]
-    cat(sprintf("\t%s OGs (of %s) with %s genes (of %s) hit all genomes\n",
+    cat(sprintf("\t... %s OGs (of %s) with %s genes (of %s) hit all genomes\n",
                 uniqueN(bed$globOG[bed$nGenome == nrow(tmp)]),
                 uniqueN(bed$globOG),
                 uniqueN(bed$ofID[bed$nGenome == nrow(tmp)]),
@@ -295,9 +294,8 @@ annotate_bed <- function(gsParam){
     ogCnt[,smPloid := ploidy == nGenes]
     ogCnt <- ogCnt[,list(nOGs = sum(n), type = "OG"), by = c("genome", "smPloid")]
 
-    cat("Checking phylogenetic hierarchical orthogroups (HOGs) ... \n")
     bed[,nGenome := uniqueN(genome), by = "globHOG"]
-    cat(sprintf("\t%s HOGs (of %s) with %s genes (of %s) hit all genomes\n",
+    cat(sprintf("\t... %s HOGs (of %s) with %s genes (of %s) hit all genomes\n",
                 uniqueN(bed$globHOG[bed$nGenome == nrow(tmp)]),
                 uniqueN(bed$globHOG),
                 uniqueN(bed$ofID[bed$nGenome == nrow(tmp)]),
@@ -325,19 +323,17 @@ annotate_bed <- function(gsParam){
                                           sprintf("%s, %s, %s", HOG_TRUE, HOG_FALSE, pHOG))),
                    OG = align_charLeft(c("match, not, % (OGs)",
                                          sprintf("%s, %s, %s", OG_TRUE, OG_FALSE, pOG))))]
-    cat("##############################################################################\n")
     nu <- apply(md, 1, function(x){
       x <- unlist(x)
-      cat(sprintf("%s: %s || %s\n", x[1], x[2], x[3]))
+      cat(sprintf("\t# %s: %s || %s\n", x[1], x[2], x[3]))
     })
-    cat("##############################################################################\n")
     tmp <- subset(tp, genome == "total")
     if(tmp$pHOG > tmp$pOG){
       useHOGs <- TRUE
-      cat("More HOGs match patterns of ploidy than OGs. Setting useHOGs = TRUE")
+      cat("\t**NOTE** HOGs better match ploidy than OGs. Setting useHOGs = TRUE")
     }else{
       useHOGs <- FALSE
-      cat("More OGs match patterns of ploidy than HOGs. Setting useHOGs = FALSE")
+      cat("\t**NOTE** OGs better match ploidy than HOGs. Setting useHOGs = FALSE")
     }
     return(useHOGs)
   }
@@ -362,6 +358,7 @@ annotate_bed <- function(gsParam){
   ##############################################################################
   # 2. combine bed files
   # -- 2.1 get the file paths
+  cat("\t##############\n\tConcatenating bed-formatted annotations\n")
   bedDir <- gsParam$paths$bed
   bedFiles <- file.path(bedDir, sprintf("%s.bed", genomeIDs))
   if(!all(file.exists(bedFiles)))
@@ -440,22 +437,18 @@ annotate_bed <- function(gsParam){
   n <- nchr <- nGenes <- nHOG <- og <- ofID <- nGenesInArray <- nOGs <-
     nGenesSmallScaff <- nSmallScaff <- nDispArray <- genome <- narr <-
     nGenome <- NULL
-  cat(strwrap(
-    "\n\nBelow, printing a table with QC information for each genome. Abbreviations:
-  'nArr' = n. tandem arrays, 'smChrs' = scaffolds smaller than `2 * blkSize`,
-  'dispOG' = over-dispersed OG, by default, hitting > `8 * ploidy` unique
-  places in the genome. If there are more than ~5-10% of genes in either of the
-  last two columns, you may have an issue with your genome or annotation.",
-    indent = 0, exdent = 0), sep = "\n")
+  cat("\n\t##############\n\tQC-ing annotations\n")
+  cat("\t... 'nArr' = n. tandem arrays\n\t... 'smChrs' = scaffolds smaller than `2 * blkSize`\n")
+  cat("\t... 'dispOG' = over-dispersed OG, hitting > `8 * ploidy` unique positions.\n")
   bed[,n := uniqueN(ofID), by = c("genome", "arrayID")]
   bed[,nchr := uniqueN(og), by = c("genome", "chr")]
-  md <- bed[,list(nGenes = uniqueN(ofID), nOGs = uniqueN(globOG),
+  mdi <- bed[,list(nGenes = uniqueN(ofID), nOGs = uniqueN(globOG),
                   nHOG = uniqueN(globHOG), narr = uniqueN(arrayID[n > 1]),
                   nGenesInArray = uniqueN(ofID[n > 1]),
                   nGenesSmallScaff = sum(nchr <= blkSize * 2),
                   nSmallScaff = uniqueN(chr[nchr <= blkSize * 2]),
                   nDispArray = sum(nOGPlaces > maxPlaces)), by = "genome"]
-  md <- md[,list(genome = align_charLeft(c("", genome)),
+  md <- mdi[,list(genome = align_charLeft(c("", genome)),
                  nGenes = align_charLeft(c("nGenes",nGenes)),
                  nOGs = align_charLeft(c("nOG", nOGs)),
                  nHOG = align_charLeft(c("nHOG", nHOG)),
@@ -464,12 +457,20 @@ annotate_bed <- function(gsParam){
                  nGenesSmallScaff = align_charLeft(c("genes", nGenesSmallScaff)),
                  nSmallScaff = align_charLeft(c("smChrs",nSmallScaff)),
                  nDispArray = align_charLeft(c("dispOG", nDispArray)))]
-  cat("##############################################################################\n")
   nu <- apply(md, 1, function(x){
     x <- unlist(x)
-    cat(sprintf("%s: %s (%s / %s) || %s (%s) || %s (%s) || %s\n",
+    cat(sprintf("\t# %s: %s (%s / %s) || %s (%s) || %s (%s) || %s\n",
                 x[1], x[2], x[3], x[4], x[5], x[6], x[8], x[7], x[9]))
   })
+  mdi[,flag := ((nGenesSmallScaff + nDispArray) / nGenes) > 0.05]
+  if(any(mdi$flag)){
+    cat(strwrap(
+      "**NOTE** Some genomes have >5% of genes on small scaffolds or large
+    dispersed OGs ... you may have an issue with your genome or annotation.",
+      indent = 8, exdent = 8), sep = "\n")
+  }else{
+    cat(strwrap("All look good!",  indent = 8, exdent = 8), sep = "\n")
+  }
 
   bed[,`:=`(
     nGenome = NULL, nOGPlaces = NULL, maxPlaces = NULL, n = NULL, nchr = NULL)]
@@ -554,7 +555,7 @@ annotate_blast <- function(gsParam){
       ord1 <- ord2 <- ancOrd1 <- ancOrd2 <- n <- NULL
     setorder(bl, -bitScore)
     bl <- subset(bl, !duplicated(paste(ofID1, ofID2)))
-    cat(sprintf("\t%s vs. %s: total hits = %s",
+    cat(sprintf("\t... %s v. %s: total hits = %s",
                 synMd$query[i], synMd$target[i], nrow(bl)))
 
     # -- 2.3 merge with bed information

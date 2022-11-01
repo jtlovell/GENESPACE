@@ -355,6 +355,12 @@ init_genespace <- function(wd,
                 indent = 0, exdent = 16))
   }
 
+  # -- if there are outgroups, strip these out of the genomeIDs and ploidy
+  if(!is.na(outgroup) && any(outgroup %in% genomeIDs) && !is.null(outgroup)){
+    genomeIDs <- genomeIDs[!genomeIDs %in% outgroup]
+    ploidy <- ploidy[!names(ploidy) %in% outgroup]
+  }
+
   ##############################################################################
   # -- 1.2 synteny parameters
   # -- number of cores
@@ -553,7 +559,8 @@ init_genespace <- function(wd,
     dotplots = file.path(wd, "dotplots"),
     riparian = file.path(wd, "riparian"),
     pangenome = file.path(wd, "pangenome"),
-    tmp = file.path(wd, "tmp"))
+    tmp = file.path(wd, "tmp"),
+    rawOrthofinder = rawOrthofinderDir)
 
   ##############################################################################
   # -- 4.3 make directories if they do not exist

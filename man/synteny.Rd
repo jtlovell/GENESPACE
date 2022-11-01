@@ -10,7 +10,7 @@
 \alias{ggdotplot_blkRegs}
 \title{synteny}
 \usage{
-synteny(gsParam)
+synteny(gsParam, verbose = TRUE)
 
 find_selfSyn(hits, synRad)
 

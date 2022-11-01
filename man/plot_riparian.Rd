@@ -10,7 +10,6 @@
 \usage{
 plot_riparian(
   gsParam,
-  remakeBlockCoords = FALSE,
   reorderChrsBySynteny = TRUE,
   refGenome = NULL,
   labelTheseGenomes = NULL,
@@ -25,9 +24,8 @@ plot_riparian(
   chrFill = "white",
   highlightTheseRegions = NULL,
   braidAlpha = 0.75,
-  scalePlotHeight = 0.9,
-  dropDupBlks = FALSE,
-  scalePlotWidth = 0.2,
+  scalePlotHeight = 1,
+  scalePlotWidth = 0.3,
   chrLabBorderLwd = 0.1,
   refChrCols = NULL,
   ylabBuff = NULL,
@@ -36,7 +34,8 @@ plot_riparian(
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf|chromosome|scaffold|^lg|_", "",
     tolower(x))),
   xlab = sprintf("Chromosomes scaled by \%s", ifelse(useOrder, "gene rank order",
-    "physical position"))
+    "physical position")),
+  verbose = TRUE
 )
 
 calc_curvePolygon(

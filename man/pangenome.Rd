@@ -4,7 +4,13 @@
 \alias{pangenome}
 \title{Build genespace pangenome}
 \usage{
-pangenome(gsParam, genomeIDs = NULL, refGenome = NULL, propAssignThresh = 0.25)
+pangenome(
+  gsParam,
+  genomeIDs = NULL,
+  refGenome = NULL,
+  propAssignThresh = 0.25,
+  verbose = T
+)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created

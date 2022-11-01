@@ -79,28 +79,105 @@ get_diamondVersion <- function(path2diamond){
 #' @export
 run_orthofinder <- function(gsParam,
                             genomeIDs = NULL,
-                            overwrite = FALSE){
+                            overwrite = FALSE,
+                            verbose = TRUE){
 
   ##############################################################################
   # 1. handle an existing run
+  if(is.null(genomeIDs))
+    genomeIDs <- gsParam$genomeIDs
+  genomeIDs <- genomeIDs[genomeIDs %in% gsParam$genomeIDs]
+  if(length(genomeIDs) < 2)
+    stop(sprintf("only %s genomes (%s) provided. Need to give > 1.",
+                 length(genomeIDs), paste(genomeIDs, collapse = ", ")))
+
   ofDir <- gsParam$paths$orthofinder
   resDir <- gsParam$paths$results
-  ofRun <- length(list.files(ofDir)) > 0
 
   # -- 1.1 Handle overwrite = TRUE
-  if(ofRun & overwrite)
+  if(overwrite & verbose)
     stop(strwrap(sprintf(
       "overwrite = TRUE is now deprecated ... to re-run orthofinder, you need to
       remove the directory %s and all of its contents, then re-call
       `run_orthofinder()`",
       ofDir)))
-  if(ofRun){
-    cat(strwrap(sprintf(
-      "An existing orthofinder run exists in %s. To overwrite this result,
-      remove this directory and all of its contents, then re-call
-      `run_orthofinder()`. **NOT RE-RUNNING ORTHOFINDER** Instead just checking
-      to make sure all files are OK ...",
-      ofDir)))
+
+  ##############################################################################
+  # 1. Get orthofinder information together
+  ofRun <- FALSE
+  # 1.1 -- Check if there is a full run in $results
+  gsf <- find_gsResults(
+    genomeIDs = genomeIDs,
+    resultsDir = gsParam$paths$results,
+    verbose = FALSE)
+  if(all(!is.na(unlist(gsf[1:4])))){
+    gids <- names(read_orthofinderSpeciesIDs(gsf$SpeciesIDs))
+    if(all(genomeIDs %in% gids)){
+      if(verbose)
+        cat(strwrap(sprintf(
+          "Found parsed orthofinder results in %s.", dirname(gsf[[1]])),
+          indent = 0, exdent = 8), sep = "\n")
+      ofRun <- TRUE
+      gsParam$ofFiles <- gsf
+    }
+  }
+
+  if(!ofRun){
+    # 1.2 -- If not, check if there is a full run in $orthofinder
+    if(dir.exists(gsParam$paths$orthofinder)){
+      gsf <- find_ofFiles(orthofinderDir = gsParam$paths$orthofinder)
+      if(file.exists(gsf$SpeciesIDs)){
+        gids <- names(read_orthofinderSpeciesIDs(gsf$SpeciesIDs))
+      }else{
+        gids <- "none"
+      }
+      if(all(!is.na(unlist(gsf[1:4]))) && all(genomeIDs %in% gids)){
+        ofRun <- TRUE
+        ofdir <- gsParam$paths$orthofinder
+        gsParam$ofFiles <- gsf
+      }
+    }
+
+    # 1.3 -- If not, check if there is a full run in $rawOrthofinder
+    if(dir.exists(gsParam$paths$rawOrthofinder) && !ofRun){
+      gsf <- find_ofFiles(orthofinderDir = gsParam$paths$rawOrthofinder)
+      if(file.exists(gsf$SpeciesIDs)){
+        gids <- names(read_orthofinderSpeciesIDs(gsf$SpeciesIDs))
+      }else{
+        gids <- "none"
+      }
+      if(all(!is.na(unlist(gsf[1:4])))&& all(genomeIDs %in% gids)){
+        ofRun <- TRUE
+        ofdir <- gsParam$paths$rawOrthofinder
+        gsParam$ofFiles <- gsf
+      }
+    }
+
+    # 1.4 -- If files exist, move them to $results
+    if(ofRun){
+      if(verbose)
+        cat(strwrap(sprintf(
+          "Found orthofinder results in %s. Copying to /results", ofdir),
+          indent = 0, exdent = 8), sep = "\n")
+      gsParam$ofFiles <- copy_of2results(
+        orthofinderDir = ofdir,
+        resultsDir = gsParam$paths$results,
+        genomeIDs = genomeIDs)
+      gids <- names(read_orthofinderSpeciesIDs(file.path(
+        gsParam$paths$results, "SpeciesIDs.txt")))
+      gsf <- find_gsResults(
+        resultsDir = gsParam$paths$results,
+        genomeIDs = genomeIDs, verbose = FALSE)
+      if(all(!is.na(unlist(gsf[1:4]))) && all(genomeIDs %in% gids)){
+        ofRun <- TRUE
+        ofdir <- gsParam$paths$rawOrthofinder
+        gsParam$ofFiles <- gsf
+      }else{
+          stop(strwrap(
+            "There is a problem with the orthofinder run .. will need to re-run",
+            indent = 0, exdent = 8), sep = "\n")
+      }
+    }
   }
 
   # -- if no existing run, remove the orthofinder directory if it exists
@@ -118,9 +195,10 @@ run_orthofinder <- function(gsParam,
     # 2. set up the directory structure and make sure things look good
     # -- make the tmp directory
     tmpDir <- gsParam$paths$tmp
-    cat(strwrap(sprintf(
-      "Copying files over to the temporary directory: %s",
-      tmpDir), indent = 8, exdent = 16), sep = "\n")
+    if(verbose)
+      cat(strwrap(sprintf(
+        "Copying files over to the temporary directory: %s",
+        tmpDir), indent = 8, exdent = 16), sep = "\n")
     if(dir.exists(tmpDir))
       unlink(tmpDir, recursive = T)
     dir.create(tmpDir)
@@ -128,7 +206,6 @@ run_orthofinder <- function(gsParam,
     # -- copy peptides over to tmp directory
     # -- this allows for more genomeIDs in /peptide than just those in gsParam
     pepDir <- gsParam$paths$peptide
-    genomeIDs <- gsParam$genomeIDs
     pepf <- file.path(pepDir, sprintf("%s.fa", genomeIDs))
     if(!all(file.exists(pepf)))
       stop(sprintf(
@@ -165,8 +242,6 @@ run_orthofinder <- function(gsParam,
         function from the shell using: \n", indent = 0, exdent = 8), sep = "\n")
       cat(sprintf("orthofinder %s", ofComm))
     }
-  }else{
-    gsParam$ofFiles <- find_ofFiles(orthofinderDir = ofDir)
   }
   return(gsParam)
 }
@@ -178,7 +253,7 @@ run_orthofinder <- function(gsParam,
 #' @rdname run_orthofinder
 #' @import data.table
 #' @export
-find_ofFiles <- function(orthofinderDir){
+find_ofFiles <- function(orthofinderDir, verbose = TRUE){
   ##############################################################################
   # 1. check to ensure that a valid orthofinder run exists
   ofDir <- check_filePathParam(orthofinderDir)
@@ -264,7 +339,8 @@ find_ofFiles <- function(orthofinderDir){
 #' @export
 find_gsResults <- function(genomeIDs = NULL,
                            resultsDir = NULL,
-                           gsParam = NULL){
+                           gsParam = NULL,
+                           verbose = TRUE){
 
   if(!is.null(gsParam)){
     genomeIDs <- gsParam$genomeIDs
@@ -287,10 +363,11 @@ find_gsResults <- function(genomeIDs = NULL,
   names(fs) <- c("SpeciesIDs", "SequenceIDs", "ogs", "hogs")
 
   if(!all(file.exists(fs))){
-    cat(strwrap(sprintf(
-    "**NOTE** OrthoFinder files: SpeciesIDs.txt, SequenceIDs.txt,
-    Orthogroups.tsv and N0.tsv must all be in the %s directory", resultsDir),
-    indent = 0, exdent = 8), sep = "\n")
+    if(verbose)
+      cat(strwrap(sprintf(
+      "**NOTE** OrthoFinder files: SpeciesIDs.txt, SequenceIDs.txt,
+      Orthogroups.tsv and N0.tsv must all be in the %s directory", resultsDir),
+        indent = 0, exdent = 8), sep = "\n")
   }else{
     ############################################################################
     # 2. Make sure that genomeIDs match speciesIDs

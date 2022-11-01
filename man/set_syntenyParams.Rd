@@ -6,7 +6,7 @@
 \alias{annotate_blast}
 \title{Set synteny parameters and parse required data}
 \usage{
-set_syntenyParams(gsParam, overwrite)
+set_syntenyParams(gsParam, overwrite, verbose = TRUE)
 
 annotate_bed(gsParam)
 

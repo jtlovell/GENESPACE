@@ -13,11 +13,16 @@ get_orthofinderVersion(path2orthofinder)
 
 get_diamondVersion(path2diamond)
 
-run_orthofinder(gsParam, genomeIDs = NULL, overwrite = FALSE)
+run_orthofinder(gsParam, genomeIDs = NULL, overwrite = FALSE, verbose = TRUE)
 
-find_ofFiles(orthofinderDir)
+find_ofFiles(orthofinderDir, verbose = TRUE)
 
-find_gsResults(genomeIDs = NULL, resultsDir = NULL, gsParam = NULL)
+find_gsResults(
+  genomeIDs = NULL,
+  resultsDir = NULL,
+  gsParam = NULL,
+  verbose = TRUE
+)
 
 copy_of2results(orthofinderDir, resultsDir, genomeIDs)
 }

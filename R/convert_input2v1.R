@@ -1,9 +1,7 @@
-#' @title Build genespace pangenome
+#' @title convert_input2v1
 #'
 #' @description
-#' \code{convert_input2v1} Convert orthogroup and synteny information into a
-#' pangenome database. Predict locations of orthogroups that are missing a
-#' node in the reference.
+#' \code{convert_input2v1} xxx
 #'
 #' @param existingDir A
 #' @param v1Dir A
@@ -21,29 +19,23 @@
 #' @export
 convert_input2v1 <- function(existingDir, v1Dir){
   if(dir.exists(v1Dir) & length(list.files(v1Dir)) > 0)
-    stop(sprtinf("v1Dir %s exists and is not empty. Cannot overwrite\n",
-                 v1Dir))
+    stop(sprintf("v1Dir %s exists and is not empty. Cannot overwrite\n", v1Dir))
   if(!dir.exists(dirname(v1Dir)))
-    stop(sprtinf("parent directory of v1Dir %s does not exist.\n",
-                 v1Dir))
+    stop(sprintf("parent directory of v1Dir %s does not exist.\n", v1Dir))
   if(!dir.exists(existingDir))
-    stop(sprtinf("existingDir %s does not exist.\n",
-                 existingDir))
+    stop(sprintf("existingDir %s does not exist.\n", existingDir))
 
   pepDir <- file.path(existingDir, "peptide")
   if(!dir.exists(pepDir))
-    stop(sprtinf("peptide directory %s does not exist.\n",
-                 pepDir))
+    stop(sprintf("peptide directory %s does not exist.\n", pepDir))
 
   gffDir <- file.path(existingDir, "gff")
   if(!dir.exists(gffDir))
-    stop(sprtinf("gff directory %s does not exist.\n",
-                 gffDir))
+    stop(sprintf("gff directory %s does not exist.\n", gffDir))
 
   ofDir <- file.path(existingDir, "orthofinder")
   if(!dir.exists(ofDir))
-    stop(sprtinf("orthofinder directory %s does not exist.\n",
-                 ofDir))
+    stop(sprintf("orthofinder directory %s does not exist.\n", ofDir))
 
   if(!dir.exists(v1Dir))
     dir.create(v1Dir)

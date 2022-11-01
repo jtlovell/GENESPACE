@@ -65,17 +65,17 @@ integrate_synteny <- function(gsParam){
   bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
 
   # 2. for each pair of genomes, do linear interpolation, save output
-  cat("Linear interpolation of syntenic positions ... \n")
+  cat("\t##############\n\t5.1 Linear interpolation of syntenic positions ... \n")
   gsParam <- interp_synPos(gsParam)
   md <- data.table(gsParam$annotBlastMd)
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
 
   # 3. Aggregate interpolated positions across all hits to each genome
-  cat("Aggregating positions across genomes ...")
+  cat("\t##############\n\t5.2 Aggregating positions across genomes ...")
   interpChrs <- aggregate_synpos(bed = bed, md = md)
 
   # 3. For each genome, calculate block coordinates
-  cat("Done!\nSplitting syntenic block coordinates by ref. chr. ... ")
+  cat("Done!\n\t##############\n\t5.3 Splitting syntenic block coordinates by ref. chr. ... ")
 
   # -- 3.1 organize the interpolated positions for a merge
   # spFile <- file.path(gsParam$paths$pangenome, sprintf(
@@ -120,8 +120,12 @@ integrate_synteny <- function(gsParam){
   rawBlks <- subset(rawBlks, !duplicated(rawBlks))
   blkComb <- rbindlist(lapply(blkComb, function(x) x$phasedBlks))
   blkComb <- subset(blkComb, !duplicated(blkComb))
-  fwrite(rawBlks, file = file.path(gsParam$paths$results, "blkCoords.txt.gz"))
-  fwrite(blkComb, file = file.path(gsParam$paths$riparian, "refPhasedBlkCoords.txt.gz"))
+  fwrite(
+    rawBlks, file = file.path(gsParam$paths$results, "blkCoords.txt"),
+    sep = "\t", quote = FALSE)
+  fwrite(
+    blkComb, file = file.path(gsParam$paths$riparian, "refPhasedBlkCoords.txt"),
+    sep = "\t", quote = FALSE)
   cat("Done!\n")
   return(gsParam)
 }
@@ -285,7 +289,7 @@ interp_synPos <- function(gsParam){
   md[,interPosFile := NA]
 
   for(i in 1:nrow(md)){
-    cat(md$lab[i])
+    cat("\t...", md$lab[i])
     g1 <- md$query[i]
     g2 <- md$target[i]
     hits <- read_synHits(md$annotBlastFile[i])

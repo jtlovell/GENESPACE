@@ -49,7 +49,8 @@
 pangenome <- function(gsParam,
                       genomeIDs = NULL,
                       refGenome = NULL,
-                      propAssignThresh = .25){
+                      propAssignThresh = .25,
+                      verbose = T){
 
   clus_interp2pg <- function(bed, interp, minScaleProp, synBuff){
     tmp <- merge(
@@ -119,7 +120,8 @@ pangenome <- function(gsParam,
 
   ##############################################################################
   # -- 1.2 read in the bed file
-  cat(sprintf("Building pangenome against %s coordinates\n", refGenome))
+  if(verbose)
+    cat(sprintf("Building pangenome against %s coordinates\n", refGenome))
   bed <- read_combBed(bedFile)
 
   # get list of genes with synteny information
@@ -132,8 +134,9 @@ pangenome <- function(gsParam,
   # -- 1.3 read in the interpolated position data
   interp <- rbindlist(lapply(spFiles, function(x)
     subset(fread(x), interpGenome == refGenome & interpChr %in% u)))
-  cat(sprintf("\t%s of %s genes have interpolated positions against %s\n",
-              sum(bed$ofID %in% interp$ofID), nrow(bed), refGenome))
+  if(verbose)
+    cat(sprintf("\t%s of %s genes have interpolated positions against %s\n",
+                sum(bed$ofID %in% interp$ofID), nrow(bed), refGenome))
 
   ##############################################################################
   ##############################################################################
@@ -312,7 +315,9 @@ pangenome <- function(gsParam,
                value.var = "id", fun.aggregate = list)
   fwrite(pgout, file = pgFile, sep = "\t")
 
-  with(pgout, cat(sprintf("Built pangenome annotation with ...\n\t%s positions\n\t%s syntenic orthogroup anchors\n\t%s tandem array members\n\t%s non-syntenic orthologs\n",
-              uniqueN(pgID), sum(isArrayRep & !isNSOrtho), sum(!isArrayRep & !isNSOrtho), sum(isNSOrtho))))
+  if(verbose)
+    with(pgout, cat(sprintf(
+      "Built pangenome annotation with ...\n\t%s positions\n\t%s syntenic orthogroup anchors\n\t%s tandem array members\n\t%s non-syntenic orthologs\n",
+      uniqueN(pgID), sum(isArrayRep & !isNSOrtho), sum(!isArrayRep & !isNSOrtho), sum(isNSOrtho))))
   return(pgw)
 }
