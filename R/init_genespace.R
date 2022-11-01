@@ -430,6 +430,8 @@ init_genespace <- function(wd,
     useHOGs <- check_logical(useHOGs, onlySingleValue = T)
   rawOrthofinderDir <- check_filePathParam(check_character(
     x = rawOrthofinderDir, onlySingleValue = T))
+  if(is.na(rawOrthofinderDir))
+    rawOrthofinderDir <- "orthofinder"
 
   params <- list(
     useHOGs = useHOGs, nCores = nCores,
@@ -564,11 +566,11 @@ init_genespace <- function(wd,
 
   ##############################################################################
   # -- 4.3 make directories if they do not exist
-  pth2chk <- paths[names(paths) %in% c("orthofinder", "rawOrthofinderDir")]
-  tmp <- sapply(pth2chk, function(x){
-    if(!dir.exists(x))
-      dir.create(x)
-  })
+  pthnms <- c("wd", "peptide", "bed", "results", "syntenicHits", "dotplots", "riparian", "pangenome", "tmp")
+  for(i in pthnms){
+    if(!dir.exists(paths[[i]]))
+      dir.create(paths[[i]])
+  }
 
   ##############################################################################
   # -- 5.4 return the list
