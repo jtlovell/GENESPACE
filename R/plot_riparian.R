@@ -9,38 +9,83 @@
 #' elements: blast (file.path to the original orthofinder run), synteny (
 #' file.path to the directory where syntenic results are stored), genomeIDs (
 #' character vector of genomeIDs).
-#' @param useBlks logical, should blocks be plot (and not regions)?
 #' @param labelTheseGenomes character string of genomes that have labeled chrs
 #' @param invertTheseChrs data.table with two columns, genome and chr containing
-#' the lists of genomes and chromosomes that should be inverted in the plot
-#' @param genomeLabCex chracter expansion of the genome labels
+#' the lists of genomes and chromosomes that should be inverted in the plot.
+#' Not currently implemented.
+#' @param genomeLabCex chracter expansion of the genome labels. Not currently in
+#' use.
 #' @param braidAlpha numeric (0-1) specifying the transparency of the braids
-#' @param braidBorderLwd numeric specifying the weight of borders on the braids
+#' @param braidBorderLwd numeric specifying the weight of borders on the braids.
+#' Not currently in use.
 #' @param genomeIDs character vector at least partially matching the genomeIDs
 #' in gsParam
-#' @param blackBg logical, should the background be dark?
 #' @param refGenome single character string specifying which genome is the ref
-#' @param reorderChrs logical, should chromosomes be re-ordered by synteny?
+#' @param reorderChrsBySynteny logical, should chromosomes be re-ordered by synteny?
 #' @param gapProp numeric (0-1) specifying the proportional size of gaps
 #' relative to the length of the largest genome
 #' @param useOrder logical, should gene rank order be used in lieu of physical
 #' positions?
-#' @param chrLabCex character expansion for the chromosome labels
+#' @param chrLabCex character expansion for the chromosome labels. Not currently
+#' in use.
 #' @param chrBorder character or integer coercible to an R color for the border
-#' of the chromosome regions
+#' of the chromosome regions. Not currently in use.
 #' @param chrFill character or integer coercible to an R color for the interior
 #' fill of the chromosome regions
 #' @param refChrCols if braids should be colored by reference chromosome,
 #' a vector of colors or integers that is coerced into a color palette. If
 #' no coloring by chr, specify NULL.
 #' @param labelChrBiggerThan integer specifying the minimum number of genes or
-#' bp to label a chromosome
-#' @param highlightRef color to highlight the reference chromosomes.
+#' bp to label a chromosome. Not currently in use.
+#' @param highlightRef color to highlight the reference chromosomes. Not
+#' currently in use.
 #' @param chrLabFun function to parse chr IDs to make them more readible
-
+#' @param chrLengths data.table with chromosome lengths
+#' @param faidir file.path to the location of fasta index files
+#' @param blockCoords data.table containing block coordinates
+#' @param minBlkSize interger specifying the minimum block size to plot
+#' @param pdfFile file.path to the pdf device to store the file
+#' @param highlightTheseRegions data.table specifying regions that should be
+#' highlighted
+#' @param scalePlotWidth numeric, scaling factor for plot width. Larger values
+#' make wider plots
+#' @param scalePlotHeight numeric, scaling factor for plot height Larger values
+#' make taller plots
+#' @param chrLabBorderLwd character or integer coercible to an R color for the border
+#' of the chromosome regions.
+#' @param ylabBuff numeric, label buffer around the chromosome labels
+#' @param refChrOrdFun function, to re-order reference chromosomes
+#' @param xlab character string to label the x-axis
+#' @param start1 numeric, start postion of the first block
+#' @param end1 numeric, end postion of the first block
+#' @param start2 numeric, start postion of the second block
+#' @param end2 numeric, end postion of the second block
+#' @param y1 numeric, bottom postion of the block
+#' @param y2 numeric, top postion of the block
+#' @param npts integer, the number of points to use in the curve.
+#' @param keepat integer, the grid size of points to keep
+#' @param xleft numeric, left position of rounded rectangle
+#' @param xright numeric, right position of rounded rectangle
+#' @param ytop numeric, top position of rounded rectangle
+#' @param ybottom numeric, bottom position of rounded rectangle
+#' @param plotWidth numeric, width of the plot
+#' @param plotHeight numeric, height of the plot
+#' @param xrange numeric, x range of data
+#' @param yrange numeric, y range of the data
+#' @param blk data.table of block coordinates
+#' @param regGenome character, region to use for the region
+#' @param regChr character, chr to use for the region
+#' @param regStart numeric, start position to use for the region
+#' @param regEnd numeric, end position to use for the region
+#' @param regID character, id to use for the region
+#' @param regCol color to to use for the region
+#' @param verbose logical, should updates be printed to the console?
+#' @param ... additional arguments passed on to other functions
 #'
-#' @details ...
-#'
+#' @details By default, acts directly on the reference-phased syntenic block
+#' coordinates generated by integrate_synteny(). Uses these positions to
+#' generate linear coordinates for block breakpoints and colors these by
+#' the reference genome chromosomes.
 #'
 #'
 #' @examples
@@ -48,9 +93,10 @@
 #' # see vignette dedicated to plot_riparian
 #' }
 #'
-#' @title plot_riparian
+#' @title Make riparian plots
 #' @description
-#' \code{plot_riparian} plot_riparian
+#' \code{plot_riparian} The main GENESPACE plotting routine, which generate
+#' braided river or 'riparian' plots.
 #' @rdname plot_riparian
 #' @export
 #' @import data.table
@@ -60,6 +106,7 @@ plot_riparian <- function(
     gsParam,
     reorderChrsBySynteny = TRUE,
     refGenome = NULL,
+    invertTheseChrs = NULL,
     labelTheseGenomes = NULL,
     genomeIDs = NULL,
     useOrder = TRUE,
@@ -68,11 +115,17 @@ plot_riparian <- function(
     blockCoords = NULL,
     gapProp = 0.005,
     minBlkSize = 10,
+    genomeLabCex = NULL,
     pdfFile = NULL,
     chrFill = "white",
+    chrLabCex = NULL,
+    chrBorder = NULL,
+    labelChrBiggerThan = NULL,
     highlightTheseRegions = NULL,
+    braidBorderLwd = NULL,
     braidAlpha = .75,
     scalePlotHeight = 1,
+    highlightRef = NULL,
     scalePlotWidth = 0.3,
     chrLabBorderLwd = .1,
     refChrCols = NULL,
@@ -89,6 +142,7 @@ plot_riparian <- function(
 
 
   check_highlightRegParam <- function(x){
+    id <- nhits1 <- nhits2 <- color <- chr1 <- NULL
     if(!is.null(x)){
       # if there are regions to highlight, check and make sure the data look ok
       if(!is.data.frame(x))
@@ -121,6 +175,7 @@ plot_riparian <- function(
   }
 
   check_blockCoordsParam <- function(x){
+    nhits1 <- nhits2 <- color <- lgBlkID <- NULL
     blkCols <- c(
       "genome1", "genome2", "chr1", "chr2", "start1", "end1", "start2",
       "end2", "blkID", "color")
@@ -170,6 +225,9 @@ plot_riparian <- function(
   }
 
   set_blkColors <- function(blk, runType, bg, cols, alpha, refChrOrdFun){
+
+    color <- refChr <- NULL
+
     if(runType == "highlight"){
       if(is.null(cols) || is.na(cols) || !are_colors(cols[1])){
         blk[,color := bg]
@@ -200,6 +258,8 @@ plot_riparian <- function(
 
   subset_toChainedGenomes <- function(genomeIDs,
                                       blk){
+    genome1 <- genome2 <- NULL
+
     genomeOrd <- data.table(
       genome1 = genomeIDs[-length(genomeIDs)], genome2 = genomeIDs[-1])
     genomeOrd[,`:=`(y1 = match(genome1, genomeIDs),
@@ -215,6 +275,9 @@ plot_riparian <- function(
   }
 
   simplify_blkCoords <- function(blk, useOrder, runType){
+
+    start1 <- start2 <- end1 <- end2 <- minStart1 <- minStart2 <- NULL
+
     if(runType %in% c("highlight", "default")){
       if(useOrder){
         tpb <- with(blk, data.table(
@@ -238,6 +301,7 @@ plot_riparian <- function(
   }
 
   get_chrLens <- function(chrLengths, faidir, blk){
+    genome <- end <- NULL
     u <- unique(unlist(blk[,c("genome1", "genome2")]))
     if(is.data.frame(chrLengths)){
       if(!all(c("genome", "chr", "length") %in% colnames(chrLengths))){
@@ -326,6 +390,11 @@ plot_riparian <- function(
   ##############################################################################
   # 1. Get the input data together
   # ref genome and genomeIDs
+
+  blkID <- refChr <- genome1 <- genome2 <- nHits1 <- nHits2 <- chr1 <- chr2 <-
+    ord <- genome <- chr <- gap <- chrstart <- med <- chrend <- start1 <-
+    end1 <- start2 <- end2 <- y <- chrLab <- x <- xend <- yend <- line <- NULL
+
   rg <- refGenome
   gids <- genomeIDs
   if(is.null(genomeIDs))
@@ -412,8 +481,8 @@ plot_riparian <- function(
   ##############################################################################
   # -- 1.6 if highlight these regions, add these in
   if(runType == "highlight"){
-    print(highlightTheseRegions)
-    highlightTheseRegions <<- highlightTheseRegions
+    # print(highlightTheseRegions)
+    # highlightTheseRegions <<- highlightTheseRegions
     blkReg <- with(highlightTheseRegions, calc_regBlkCoords(
       gsParam = gsParam,
       regGenome = genome,
@@ -593,10 +662,10 @@ plot_riparian <- function(
 
 }
 
-#' @title plot_riparianRegs
+#' @title plot specific riparian regions
 #' @description
-#' \code{plot_riparianRegs} plot_riparianRegs
-#' @rdname plot_riparianRegs
+#' \code{plot_riparianRegs} not currently functional
+#' @rdname plot_riparian
 #' @export
 #' @import data.table
 #' @import ggplot2
@@ -723,9 +792,9 @@ round_rect <- function(xleft, ybottom, xright, ytop, plotWidth, plotHeight, xran
 }
 
 
-#' @title calc_regBlkCoords
+#' @title calculate block coordinates for specific regions
 #' @description
-#' \code{calc_regBlkCoords} calc_regBlkCoords
+#' \code{calc_regBlkCoords} allows for regional highlights (see )
 #' @rdname plot_riparian
 #' @import data.table
 #' @importFrom dbscan dbscan frNN
@@ -739,6 +808,10 @@ calc_regBlkCoords <- function(gsParam,
                               regID = NULL,
                               regCol = NULL,
                               minBlkSize){
+
+  isAnchor <- interpGenome <- interpChr <- genome <- chr <- start <- end <-
+    noAnchor <- interpOrd <- query <- target <- lgBlkID <- ofID1 <- ofID2 <-
+    regID1 <- regID2 <- lgBlkID <- genome1 <- genome2 <- blkID <- color <- NULL
 
   if(is.null(regGenome))
     stop("regGenome must be specified to calculate region block coords")
@@ -829,8 +902,14 @@ calc_regBlkCoords <- function(gsParam,
 #' @rdname plot_riparian
 #' @export
 #' @import data.table
+#' @importFrom stats weighted.mean
 #' @export
 get_chrOrder <- function(blk, refGenome, reorderChrsBySynteny, refChrOrdFun){
+
+
+  genome1 <- genome2 <- startOrd1 <- startOrd2 <- endOrd1 <- endOrd2 <-
+    refOrder <- chr1 <- start2 <- end2 <- prop <- n <- wtOrd <- keep <-
+    chr2 <- chrOrd <- chr <- genome <- ord <- NULL
 
   if(reorderChrsBySynteny){
     b <- subset(blk, genome1 == refGenome & genome2 != refGenome)

@@ -5,16 +5,13 @@
 #' pangenome database. Predict locations of orthogroups that are missing a
 #' node in the reference.
 #'
-#' @param gsParam A list of genespace parameters. This should be created
-#' by setup_genespace, but can be built manually. Must have the following
-#' elements: blast (file.path to the original orthofinder run), synteny (
-#' file.path to the directory where syntenic results are stored), genomeIDs (
-#' character vector of genomeIDs).
+#' @param gsParam A list of genespace parameters created by init_genespace.
 #' @param refGenome character string matching one of the genomeIDs in gsParam
 #' @param genomeIDs character vector, specifying which genomes to use. Defaults
 #' to all genomeIDs specification in gsParam.
 #' @param propAssignThresh numeric of length 1, the minimum proportion of genes
 #' in a pangenome entry needed to anchor the physical position to a new location
+#' @param verbose logical, should updates be printed to the console?
 #'
 #' @details The pangenome annotation is a projection of syntenic orthogroups
 #' on the physical coordinate system of a reference genome. The pangenome
@@ -52,10 +49,18 @@ pangenome <- function(gsParam,
                       propAssignThresh = .25,
                       verbose = T){
 
+  ##############################################################################
+  # -- ad hoc function to cluster interpolated positions into a pangenome
   clus_interp2pg <- function(bed, interp, minScaleProp, synBuff){
+
+    og <- interpChr <- interpOrd <- isAnchor <- jumpLeft <- clus <- nClus <-
+      nOgMem <- ofID <- nClusMem <- propInClus <- scaleProp <- pgOrd <-
+      pgID <- NULL
+
     bd <- bed[,c("ofID", "og")]
     bd <- subset(bd, !duplicated(bd))
-    intp <- interp[,c("ofID", "interpGenome", "interpChr", "interpOrd", "isAnchor")]
+    intp <- interp[,c("ofID", "interpGenome",
+                      "interpChr", "interpOrd", "isAnchor")]
     intp <- subset(intp, !duplicated(intp))
 
     tmp <- merge(bd, intp, by = "ofID", allow.cartesian = TRUE)
@@ -68,16 +73,19 @@ pangenome <- function(gsParam,
     tmp[,clus := paste(interpChr, clus)]
     tmp[,nClus := uniqueN(clus), by = "og"]
 
-    # -- alculate the proportions in each placement, dropping those with < 25%
+    # -- calculate the proportions in each placement, dropping those with < 25%
     tmp[,nOgMem := uniqueN(ofID), by = "og"]
     tmp[,nClusMem := uniqueN(ofID), by = c("og", "clus")]
     tmp[,propInClus := nClusMem/nOgMem]
-    tmp[,scaleProp := scale_between(x = propInClus, min = 0, max = 1, scale1toMean = FALSE), by = "og"]
+    tmp[,scaleProp := scale_between(
+      x = propInClus, min = 0, max = 1, scale1toMean = FALSE),
+      by = "og"]
     mNopos <- subset(tmp, scaleProp < minScaleProp)
     tmp <- subset(tmp, scaleProp >= minScaleProp)
 
     # --- get median positions for each orthogroup
-    pg <- tmp[,list(pgOrd = median(interpOrd)), by = c("og", "interpChr", "clus")]
+    pg <- tmp[,list(pgOrd = median(interpOrd)),
+              by = c("og", "interpChr", "clus")]
     setkey(pg, pgOrd)
     pg[,pgID := sprintf("pg_%s", 1:.N)]
     setnames(pg, "interpChr", "pgChr")
@@ -90,6 +98,12 @@ pangenome <- function(gsParam,
   ##############################################################################
   ##############################################################################
   # 1. Read in the required datasets
+
+  genome1 <- genome2 <- hasRef <- genome <- hasRefChr <- interpGenome <-
+    interpChr <- isArrayRep <- noAnchor <- og <- pgID <- pgOrd <- ord <-
+    pgChr <- chr <- diffChr <- notArrayRep <- ordDiff <- isRep <- repGenome <-
+    nGenome <- isNSOrtho <- flag <- gen1 <- id1 <- pgID <- pgID2 <- id <- id2 <-
+    gen2 <- ofID <- medord <- id <- repGene <- NULL
 
   ##############################################################################
   # -- 1.1 get parameters in order
@@ -222,7 +236,8 @@ pangenome <- function(gsParam,
   pglo[,isNSOrtho := FALSE]
 
   # reformat
-  pglo <- pglo[,c("pgID", "pgGenome", "pgChr", "pgOrd", "genome", "og", "isRep","ofID", "id", "isNSOrtho", "isArrayRep")]
+  pglo <- pglo[,c("pgID", "pgGenome", "pgChr", "pgOrd", "genome", "og",
+                  "isRep","ofID", "id", "isNSOrtho", "isArrayRep")]
   setorder(pglo, pgOrd, na.last = T)
 
   ##############################################################################
@@ -308,7 +323,8 @@ pangenome <- function(gsParam,
   pgout[,`:=`(ordDiff = abs(medord - pgOrd),
              diffChr = pgChr == chr,
              notArrayRep = !isArrayRep)]
-  setorder(pgout, pgID, ofID, diffChr, notArrayRep, ordDiff, isNSOrtho, na.last = T)
+  setorder(pgout, pgID, ofID, diffChr,
+           notArrayRep, ordDiff, isNSOrtho, na.last = T)
   pgout <- subset(pgout, !duplicated(paste(pgID, ofID)))
 
   # set those genes with interpolated positions close enough to not NS
@@ -336,6 +352,7 @@ pangenome <- function(gsParam,
   if(verbose)
     with(pgout, cat(sprintf(
       "Built pangenome annotation with ...\n\t%s positions\n\t%s syntenic orthogroup anchors\n\t%s tandem array members\n\t%s non-syntenic orthologs\n",
-      uniqueN(pgID), sum(isArrayRep & !isNSOrtho), sum(!isArrayRep & !isNSOrtho), sum(isNSOrtho))))
+      uniqueN(pgID), sum(isArrayRep & !isNSOrtho),
+      sum(!isArrayRep & !isNSOrtho), sum(isNSOrtho))))
   return(pgw)
 }

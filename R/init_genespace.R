@@ -74,10 +74,13 @@
 #' @param nCores integer of length 1 specifying the number of parallel processes
 #' to run
 #' @param wd file.path where the analysis will be run
-#' @param maxOgPlaces xxxx
-#' @param arrayJump xxxx
-#' @param nSecondaryHits xxxx
-#' @param minPepLen xxxx
+#' @param maxOgPlaces integer of length 1, specifying the max number of unique
+#' placements that an orthogroup can have before being excluded from synteny
+#' @param arrayJump integer of length 1, specifying the maximum distance in
+#' gene rank order between two genes in the same tandem array
+#' @param nSecondaryHits integer of length 1, specifying the number of
+#' secondary hits to look for after masking the primary syntenic regions
+#' @param minPepLen deprecated in V1. All genes in the peptide fasta are used.
 #'
 #' @param outgroup deprecated in V1. See ignoreTheseGenomes.
 #' @param orthofinderMethod deprecated in V1. See onewayBlast.
@@ -99,7 +102,7 @@
 #'
 #' @examples
 #' \dontrun{
-#'
+#' # coming soon
 #' }
 #'
 #' @import data.table

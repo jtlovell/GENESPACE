@@ -40,16 +40,7 @@
 #' @param overwrite logical, should existing files be overwritten?
 #' @param path2fasta deprecated, kept to maintain backwards compatibility
 #' @param path2gff deprecated, kept to maintain backwards compatibility
-#' @param genespaceWd xxxxxxxx
-#' @param genomeID xxxxxxxx
-#' @param presets xxxxxxxx
-#' @param gffIdColumn xxxxxxxx
-#' @param headerEntryIndex  xxxxxxxx
-#' @param headerSep xxxxxxxx
-#' @param gffStripText xxxxxxxx
-#' @param headerStripText xxxxxxxx
-#' @param chrIdDictionary xxxxxxxx
-#' @param troubleShoot  xxxxxxxx
+#' @param genomeID single genomeID to consider
 #' @param ... additional arguments passed on
 #'
 #' @details parse_annotations assumes that you have a 'rawGenomeRepo' directory
@@ -386,8 +377,6 @@ parse_ncbi <- function(rawGenomeRepo,
                        gffString = "gff$|gff3$|gff3\\.gz$|gff\\.gz",
                        faString = "fa$|fasta$|faa$|fa\\.gz$|fasta\\.gz|faa\\.gz",
                        genespaceWd,
-                       presets = "none",
-                       chrIdDictionary = NULL,
                        troubleShoot = FALSE){
 
   outPaths <- parse_annotations(
@@ -399,7 +388,7 @@ parse_ncbi <- function(rawGenomeRepo,
     genespaceWd = genespaceWd,
     presets = "ncbi",
     chrIdDictionary = NULL,
-    troubleShoot = FALSE)
+    troubleShoot = troubleShoot)
 
   return(outPaths)
 }
@@ -417,7 +406,6 @@ parse_phytozome <- function(rawGenomeRepo,
                             gffString = "gff$|gff3$|gff3\\.gz$|gff\\.gz",
                             faString = "fa$|fasta$|faa$|fa\\.gz$|fasta\\.gz|faa\\.gz",
                             genespaceWd,
-                            chrIdDictionary = NULL,
                             troubleShoot = FALSE){
 
   outPaths <- parse_annotations(
@@ -429,7 +417,7 @@ parse_phytozome <- function(rawGenomeRepo,
     genespaceWd = genespaceWd,
     presets = "phytozome",
     chrIdDictionary = NULL,
-    troubleShoot = FALSE)
+    troubleShoot = troubleShoot)
 
   return(outPaths)
 }

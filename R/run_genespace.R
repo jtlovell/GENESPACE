@@ -1,16 +1,16 @@
-#' @title run_genespace
+#' @title The GENESPACE pipeline
 #'
 #' @description
-#' \code{run_genespace} run_genespace
+#' \code{run_genespace} Run the entire GENESPACE pipeline, from begining to end,
+#' with one function call.
 #'
-#' @param gsParam A list of genespace parameters.
-#' @param overwriteBed xx
-#' @param overwriteSynHits xx
-#' @param overwriteOGs xx
+#' @param gsParam A list of genespace parameters created by init_genespace.
+#' @param overwriteBed logical, should the bed file be re-created and
+#' overwritten?
 #'
-#' @details xxx
+#' @details The full genespace pipeline is as follows.
 #' \enumerate{
-#' \item xxx
+#' \item Details coming soon.
 #' }
 #'
 #' @return a gsParam list.
@@ -24,6 +24,8 @@
 run_genespace <- function(gsParam,
                           overwriteBed = FALSE){
 
+  ##############################################################################
+  # ad hoc function to make sure the combined bed file is ok
   check_combBedFile <- function(bedFile, checkOGs = FALSE){
     bedPass <- FALSE
     if(file.exists(bedFile)){
@@ -48,7 +50,6 @@ run_genespace <- function(gsParam,
     return(bedPass)
   }
 
-
   ##############################################################################
   # 1. Run orthofinder ...
   # -- The function checks if an orthofinder run has been completed and if so,
@@ -60,6 +61,22 @@ run_genespace <- function(gsParam,
 
   # -- get the files in order if the run is complete
   gsParam <- run_orthofinder(gsParam = gsParam, verbose = FALSE)
+
+  # -- if the species tree exists, re-order the genomeIDs
+  tmp <- gsParam$ofFiles$speciesTree
+
+  if(requireNamespace("ape", quietly = T)){
+    if(!is.na(tmp) && !is.null(tmp)){
+      if(file.exists(tmp) && length(gsParam$genomeIDs) > 2){
+        treLabs <- ape::ladderize(ape::read.tree(tmp))$tip.label
+        cat(strwrap(sprintf(
+          "re-ordering genomeIDs by the species tree: %s",
+          paste(treLabs, collapse = ", ")), indent = 8, exdent = 16),
+          sep = "\n")
+        gsParam$genomeIDs <- treLabs[treLabs %in% gsParam$genomeIDs]
+      }
+    }
+  }
 
   ##############################################################################
   # 2. Annotate the bed file ...

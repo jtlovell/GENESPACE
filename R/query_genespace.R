@@ -1,13 +1,25 @@
-#' @title convert_input2v1
+#' @title Query GENESPACE results
 #'
 #' @description
-#' \code{convert_input2v1} xxx
+#' \code{query_genespace} For a set of coordinates or gene IDs, extract
+#' orthogroup, syntenic hits and pangenome information.
 #'
-#' @param existingDir A
-#' @param v1Dir A
-#' @details T...
+#' @param gsParam GENESPACE parameter list.
+#' @param regions A data.frame (or data.table) containing the region
+#' information, where each row is one region to query.
+#' @details The regions data.frame must have 6 columns:
+#' chr, start, end, id, genome, dataType. An additional column "regID" is
+#' permitted that gives the identifier for that region. If a gene ID is given,
+#' chr, start and end are ignored. If a geneID is not given, at least a
+#' chromosome must be given. If chromosome is given and start and end are NA,
+#' then they are set to 0 and Inf. Otherwise the interval is queried between
+#' the start and end bp coordinates. The column dataType can be "hits",
+#' "bed", "pangenome", or "all". This specifies which data type is queried.
 #'
-#' @return nothing
+#' @return A list of lists, where the first elements are the three dataTypes (
+#' bed, hits, pangenome). Nested within each of these is a list labeled by
+#' the region ID with the results for each row associated with that particular
+#' data type.
 #'
 #' @examples
 #' \dontrun{
@@ -20,9 +32,15 @@
 query_genespace <- function(gsParam,
                             regions){
 
+
+  regID <- dataType <- genome <- id <- end <- start <- chr <- og <- target <-
+    query <- annotBlastFile <- id1 <- genome1 <- id2 <- genome2 <- pgID <-
+    pgOrd <- pgChr <- flag <- isNSOrtho <- isArrayRep <- repGene <-
+    isRep  <- NULL
+
   ##############################################################################
   # 1. Ensure that the input data looks ok
-  if(!all(colnames(regions) %in% c("chr", "start", "end", "id", "genome", "dataType", "regID")))
+  if(!all(colnames(regions) %in% c("chr", "start", "end", "id", "genome", "dataType")))
     stop("regions input must be a six-column data.frame (or data.table) with the
          columns: chr, start, end, id, genome, and dataType. The genome
          and dataType columns MUST be specified, but the others are optional.

@@ -1,18 +1,21 @@
-#' @title integrate_synteny
+#' @title Integrate syntenic positions across genomes
 #' @description
-#' \code{integrate_synteny} integrate_synteny
+#' \code{integrate_synteny} Linear interpolation and block coordinate phasing
+#' across multiple genomes
 #' @name integrate_synteny
 #'
-#' @param gsParam A list of genespace parameters. This should be created
-#' by init_genespace.
-#' @param genome1 xx
-#' @param genome1 xx
-#' @param hits data.table containing the blast hits, also stored in /synHits
+#' @param gsParam A list of genespace parameters created by init_genespace.
+#'
 #' \cr
 #' If called, \code{integrate_synteny} returns its own arguments.
 #'
-#' @details info here
-
+#' @details Linear interpolation is conducted by using perfectly collinear
+#' syntenic anchors and known fixed positions between any two genomes. The
+#' expected syntenic positions of genes between these anchors (without perfect
+#' positions) are interpolated from the anchor positions. Syntenic block
+#' breakpoints are then calculated for each pair of genomes and also phased
+#' against each reference based on the interpolated syntenic location of
+#' genes in each block.
 
 #' @title integrate_synteny
 #' @description
@@ -22,7 +25,113 @@
 #' @export
 integrate_synteny <- function(gsParam){
 
+  ##############################################################################
+  # -- ad hoc function to add array reps
+  add_arrayReps2bed <- function(bed){
+    n <- ord <- medOrd <- medDiff <- pepLen <- arrayID <- isRep <-
+      isArrayRep <- ofID <- NULL
+    bed[,n := .N, by = "arrayID"]
+    tmp <- subset(bed, n > 1)
+    tmp[,medOrd := as.numeric(median(ord)), by = "arrayID"]
+    tmp[,medDiff := as.numeric(abs(medOrd - ord))]
+    setorder(tmp, arrayID, medDiff, -pepLen)
+    tmp$noAnchor[duplicated(tmp$arrayID)] <- TRUE
+    tmp[,isRep := !duplicated(arrayID)]
+    bed[,isArrayRep := ofID %in% tmp$ofID[tmp$isRep] | n == 1]
+    tmp <- subset(bed, isArrayRep)
+    tmp[,ord := frank(ord, ties.method = "dense"), by = "genome"]
+    di <- tmp$ord; names(di) <- tmp$ofID
+    return(bed)
+  }
+
+  ##############################################################################
+  # -- ad hoc function to add arrays to bed
+  add_array2bed <- function(bed, maxPlaces, synBuff, maxIter = 10){
+
+    # -- we can make arrays for everything except that we want to exclude the
+    # arrays that are huge and problematic
+    genome <- chr <- id <- arrayID <- nOGPlaces <- tord <- ofID <- NULL
+    tmp <- subset(bed, nOGPlaces <= maxPlaces)
+    tmp[,tord := as.numeric(ord)]
+
+    # -- set up the iteration
+    cnt <- 1
+    diffn <- 1
+    tmp[,arrayID := sprintf(
+      "tmp%s", as.integer(as.factor(paste(genome, chr, id))))]
+    while(cnt <= maxIter && diffn > 0){
+      # -- for each iteration, calculate clusters by the size of jump between
+      # genes larger than the synBuffer
+      cnt <- cnt + 1
+      initn <- uniqueN(tmp$arrayID)
+      genome <- chr <- og <- ord <- jumpLeft <- clus <- n <- NULL
+      setkey(tmp, genome, chr, og, tord)
+      tmp[,tord := frank(tord, ties.method = "dense"), by = "genome"]
+      tmp[,jumpLeft := c(synBuff + 1, diff(tord)), by = c("genome", "chr", "og")]
+      tmp[,clus := as.integer(jumpLeft > synBuff), by = c("genome", "chr")]
+      tmp[,clus := cumsum(clus), by = c("genome", "chr", "og")]
+      tmp[,`:=`(
+        arrayID = sprintf("tmp%s",
+                          as.integer(as.factor(paste(genome, chr, og, clus)))),
+        jumpLeft = NULL, clus = NULL)]
+
+      # -- get the new order of genes based on array ID
+      tmp[,n := .N, by = "arrayID"]
+      tmp1 <- subset(tmp, n == 1)
+      tmp2 <- subset(tmp, n > 1)
+      tmp2[,tord := as.numeric(tord)]
+      tmp2[,tord := mean(as.numeric(tord)), by = "arrayID"]
+      tmp <- rbind(tmp1, tmp2)
+      tmp[,tord := frank(tord, ties.method = "dense"), by = "genome"]
+      newn <- uniqueN(tmp$arrayID)
+      diffn <- initn - newn
+    }
+
+    # -- relabel
+    ogID <- NULL
+    lab <- gsub(" ", "0",
+                align_charRight(
+                  as.numeric(factor(tmp$arrayID,
+                                    levels = unique(tmp$arrayID)))))
+    arrv <- sprintf("Arr%s", lab); names(arrv) <- tmp$ofID
+    bed[,arrayID := arrv[ofID]]
+
+    tmp <- subset(bed, is.na(arrayID))
+    wh <- with(tmp,
+               as.numeric(as.factor(paste(genome, chr, og))))
+    lab <- gsub(" ", "0", align_charRight(wh))
+    wh <- which(is.na(bed$arrayID))
+    bed$arrayID[wh] <- sprintf("NoArr%s", lab)
+    return(bed)
+  }
+
+  ##############################################################################
+  # -- ad hoc function to add array info to bed
+  add_arrayInfo2bed <- function(gsParam){
+
+    md <- data.table(gsParam$annotBlastMd)
+    bedFile <- file.path(gsParam$paths$results, "combBed.txt")
+    bed <- read_combBed(bedFile)
+
+    # -- 1.2 find the arrays
+    bed <- add_array2bed(
+      bed = bed,
+      maxPlaces = 4,
+      synBuff = gsParam$params$synBuff,
+      maxIter = 10)
+
+    # -- 1.3 choose the array representative genes
+    bed <- add_arrayReps2bed(bed)
+    write_combBed(x = bed, filepath = bedFile)
+    return(gsParam)
+  }
+
+  ##############################################################################
+  # -- ad hoc function to aggregate syntenic positions
   aggregate_synpos <- function(md, bed){
+
+    query <- target <- genome <- isArrayRep <- chr  <- ord <- interpChr <- NULL
+
     gids <- with(md, unique(c(query, target)))
     interpChrs <- rbindlist(lapply(gids, function(i){
 
@@ -55,7 +164,11 @@ integrate_synteny <- function(gsParam){
     return(interpChrs)
   }
 
+  ##############################################################################
   # 1. add in array information into bed file, using the new OGs
+  lab <- query <- target <- interPosFile <- isAnchor <- lgBlkID <- blkID <-
+    interpGenome <- interpChr <- NULL
+
   gsParam <- add_arrayInfo2bed(gsParam)
 
   md <- data.table(gsParam$annotBlastMd)
@@ -64,12 +177,14 @@ integrate_synteny <- function(gsParam){
 
   bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
 
+  ##############################################################################
   # 2. for each pair of genomes, do linear interpolation, save output
   cat("\t##############\n\t5.1 Linear interpolation of syntenic positions ... \n")
   gsParam <- interp_synPos(gsParam)
   md <- data.table(gsParam$annotBlastMd)
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
 
+  ##############################################################################
   # 3. Aggregate interpolated positions across all hits to each genome
   cat("\t##############\n\t5.2 Aggregating positions across genomes ...")
   interpChrs <- aggregate_synpos(bed = bed, md = md)
@@ -130,14 +245,17 @@ integrate_synteny <- function(gsParam){
   return(gsParam)
 }
 
-#' @title interp_synPos
+#' @title Linear interpolation of syntenic positions
 #' @description
-#' \code{interp_synPos} interp_synPos
+#' \code{interp_synPos} Find the likely position of a gene based on the syntenic
+#' position of its neighbors
 #' @rdname integrate_synteny
 #' @import data.table
 #' @export
 interp_synPos <- function(gsParam){
 
+  ##############################################################################
+  # -- add hoc function to ensure that syntenic anchors are all collinear
   check_synAnchorPos <- function(ord1, ord2, blkSize){
 
     xc <- x <- yc <- y <- clus <- index <- NULL
@@ -203,7 +321,13 @@ interp_synPos <- function(gsParam){
     return(!is.na(dt$clus) & !excl)
   }
 
+  ##############################################################################
+  # -- add hoc function to interpolate syntenic hits position
   interp_hitsPos <- function(hits, bed, blkSize = 5, md){
+
+    genome <- isArrayRep <- chr <- start <- end <- sameOg <- isAnchor <-
+      blkID <- useAsAnch <- ord1 <- ord2 <- anySelf <- ofID1 <- ofID2 <- chr1 <-
+      start1 <- end1 <- chr2 <- start2 <- end2 <- interpRefOrd <- NULL
     # 1. Get the data set up
     # -- 1.1 subset the bed to each genome, key for merge
     bed1 <- subset(bed, genome == hits$genome1[1] & isArrayRep)
@@ -281,6 +405,9 @@ interp_synPos <- function(gsParam){
     }
   }
 
+  isArrayRep <- lab <- query <- target <- interPosFile <- ofID1 <- ofID2 <-
+    genome <- nPlace <- interpOrd <- NULL
+
   bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
   bedrep <- subset(bed, isArrayRep)
 
@@ -316,105 +443,3 @@ interp_synPos <- function(gsParam){
   gsParam$annotBlastMd <- md
   return(gsParam)
 }
-
-#' @title interp_synPos
-#' @description
-#' \code{interp_synPos} interp_synPos
-#' @rdname integrate_synteny
-#' @import data.table
-#' @export
-add_arrayInfo2bed <- function(gsParam){
-
-  add_array2bed <- function(bed, maxPlaces, synBuff, maxIter = 10){
-
-    # -- we can make arrays for everything except that we want to exclude the
-    # arrays that are huge and problematic
-    genome <- chr <- id <- arrayID <- nOGPlaces <- tord <- NULL
-    tmp <- subset(bed, nOGPlaces <= maxPlaces)
-    tmp[,tord := as.numeric(ord)]
-
-    # -- set up the iteration
-    cnt <- 1
-    diffn <- 1
-    tmp[,arrayID := sprintf(
-      "tmp%s", as.integer(as.factor(paste(genome, chr, id))))]
-    while(cnt <= maxIter && diffn > 0){
-      # -- for each iteration, calculate clusters by the size of jump between
-      # genes larger than the synBuffer
-      cnt <- cnt + 1
-      initn <- uniqueN(tmp$arrayID)
-      genome <- chr <- og <- ord <- jumpLeft <- clus <- n <- NULL
-      setkey(tmp, genome, chr, og, tord)
-      tmp[,tord := frank(tord, ties.method = "dense"), by = "genome"]
-      tmp[,jumpLeft := c(synBuff + 1, diff(tord)), by = c("genome", "chr", "og")]
-      tmp[,clus := as.integer(jumpLeft > synBuff), by = c("genome", "chr")]
-      tmp[,clus := cumsum(clus), by = c("genome", "chr", "og")]
-      tmp[,`:=`(
-        arrayID = sprintf("tmp%s",
-                          as.integer(as.factor(paste(genome, chr, og, clus)))),
-        jumpLeft = NULL, clus = NULL)]
-
-      # -- get the new order of genes based on array ID
-      tmp[,n := .N, by = "arrayID"]
-      tmp1 <- subset(tmp, n == 1)
-      tmp2 <- subset(tmp, n > 1)
-      tmp2[,tord := as.numeric(tord)]
-      tmp2[,tord := mean(as.numeric(tord)), by = "arrayID"]
-      tmp <- rbind(tmp1, tmp2)
-      tmp[,tord := frank(tord, ties.method = "dense"), by = "genome"]
-      newn <- uniqueN(tmp$arrayID)
-      diffn <- initn - newn
-    }
-
-    # -- relabel
-    ogID <- NULL
-    lab <- gsub(" ", "0",
-                align_charRight(
-                  as.numeric(factor(tmp$arrayID,
-                                    levels = unique(tmp$arrayID)))))
-    arrv <- sprintf("Arr%s", lab); names(arrv) <- tmp$ofID
-    bed[,arrayID := arrv[ofID]]
-
-    tmp <- subset(bed, is.na(arrayID))
-    wh <- with(tmp,
-               as.numeric(as.factor(paste(genome, chr, og))))
-    lab <- gsub(" ", "0", align_charRight(wh))
-    wh <- which(is.na(bed$arrayID))
-    bed$arrayID[wh] <- sprintf("NoArr%s", lab)
-    return(bed)
-  }
-
-  add_arrayReps2bed <- function(bed){
-    n <- ord <- medOrd <- medDiff <- pepLen <- arrayID <- isRep <-
-      isArrayRep <- ofID <- NULL
-    bed[,n := .N, by = "arrayID"]
-    tmp <- subset(bed, n > 1)
-    tmp[,medOrd := as.numeric(median(ord)), by = "arrayID"]
-    tmp[,medDiff := as.numeric(abs(medOrd - ord))]
-    setorder(tmp, arrayID, medDiff, -pepLen)
-    tmp$noAnchor[duplicated(tmp$arrayID)] <- TRUE
-    tmp[,isRep := !duplicated(arrayID)]
-    bed[,isArrayRep := ofID %in% tmp$ofID[tmp$isRep] | n == 1]
-    tmp <- subset(bed, isArrayRep)
-    tmp[,ord := frank(ord, ties.method = "dense"), by = "genome"]
-    di <- tmp$ord; names(di) <- tmp$ofID
-    return(bed)
-  }
-
-  md <- data.table(gsParam$annotBlastMd)
-  bedFile <- file.path(gsParam$paths$results, "combBed.txt")
-  bed <- read_combBed(bedFile)
-
-  # -- 1.2 find the arrays
-  bed <- add_array2bed(
-    bed = bed,
-    maxPlaces = 4,
-    synBuff = gsParam$params$synBuff,
-    maxIter = 10)
-
-  # -- 1.3 choose the array representative genes
-  bed <- add_arrayReps2bed(bed)
-  write_combBed(x = bed, filepath = bedFile)
-  return(gsParam)
-}
-

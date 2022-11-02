@@ -1,22 +1,25 @@
-#' @title build_synOGs
+#' @title construct syntenic orthogroups from pairwise blast
 #' @description
-#' \code{build_synOGs} build_synOGs
+#' \code{build_synOGs} integrates many pairwise results from synteny into
+#' vectors of syntenic orthogroups. Also can re-run orthofinder within blocks
+#' and re-calculate orthogroups from those results.
 #' @name build_synOGs
 #'
-#' @param gsParam A list of genespace parameters. This should be created
-#' by init_genespace.
-#' @param genome1 xx
-#' @param genome1 xx
-#' @param hits data.table containing the blast hits, also stored in /synHits
+#' @param gsParam A list of genespace parameters created by init_genespace.
+#' @param genome1 character string specifying the first genome to analyze
+#' @param genome2 character string specifying the second genome to analyze
+#' @param onlyInBuffer logical, should only inbuffer hits be retained?
+#' @param overwrite logical, should results be overwritten?
 #' \cr
 #' If called, \code{build_synOGs} returns its own arguments.
 #'
 #' @details info here
 
 
-#' @title run_orthofinderInBlk
+#' @title build syntenic orthogroups
 #' @description
-#' \code{run_orthofinderInBlk} run_orthofinderInBlk
+#' \code{build_synOGs} main function to aggregate syntenic orthogroups into a
+#' single vector
 #' @rdname build_synOGs
 #' @import data.table
 #' @export
@@ -27,6 +30,7 @@ build_synOGs <- function(gsParam){
   bed <- fread(bedFile, na.strings = c("", "NA"), showProgress = F)
 
   cat("\t##############\n\tAggregating syntenic orthogroups ... ")
+  ofID <- ofID1 <- ofID2 <- synOG <- NULL
   soh <- pull_synOgs(gsParam = gsParam)
   ic <- with(soh, clus_igraph(id1 = ofID1, id2 = ofID2))
   bed[,synOG := ic[ofID]]
@@ -37,6 +41,7 @@ build_synOGs <- function(gsParam){
 
   if(gsParam$params$orthofinderInBlk){
     cat("\t##############\n\tRunning Orthofinder within syntenic regions\n")
+    ofID <- ofID1 <- ofID2 <- inblkOG <- og <- NULL
     # -- get the graph of inBlock orthogroups
     synOgHits <- pull_inblkOgs(gsParam)
 
@@ -46,7 +51,7 @@ build_synOGs <- function(gsParam){
     mx <- max(bed$inblkOG, na.rm = T)
     bed$inblkOG[whna] <- paste((mx + 1): (mx + length(whna)))
     bed[,og := inblkOG]
-    fwrite(bed, file = bedFile, showProgress = F, quote = F, sep = "\t")
+    write_combBed(x = bed, filepath = bedFile)
 
     cat("\t##############\n\tRe-annotating the blast files\n")
     gsParam <- annotate_blast(gsParam = gsParam)
@@ -54,19 +59,22 @@ build_synOGs <- function(gsParam){
     gsParam <- synteny(gsParam)
 
   }else{
+    inblkOG <- og <- NULL
     bed[,`:=`(inblkOG = NA, og = synOG)]
-    fwrite(bed, file = bedFile, showProgress = F, quote = F, sep = "\t")
+    write_combBed(x = bed, filepath = bedFile)
   }
   return(gsParam)
 }
 
-#' @title run_orthofinderInBlk
+#' @title extract syntenic orthogroups from hits
 #' @description
-#' \code{run_orthofinderInBlk} run_orthofinderInBlk
+#' \code{pull_synOgs} engine to pull pairwise hits in syntenic orthogroups
 #' @rdname build_synOGs
 #' @import data.table
 #' @export
 pull_synOgs <- function(gsParam, onlyInBuffer = TRUE){
+
+  regID <- sameOg <- sameInblkOg <- inBuffer <- NULL
   ##############################################################################
   # -- 1. Get metadata together
   md <- data.table(gsParam$annotBlastMd)
@@ -87,13 +95,18 @@ pull_synOgs <- function(gsParam, onlyInBuffer = TRUE){
   return(hitsInOgs)
 }
 
-#' @title pull_inblkOgs
+#' @title Run orthofinder in block
 #' @description
-#' \code{pull_inblkOgs} pull_inblkOgs
+#' \code{pull_inblkOgs} Loop through the pairwise combination of genomes and
+#' run orthofinderInBlk
 #' @rdname build_synOGs
 #' @import data.table
 #' @export
-pull_inblkOgs <- function(gsParam, overwrite = FALSE, onlyInBuffer = TRUE){
+pull_inblkOgs <- function(gsParam,
+                          overwrite = FALSE,
+                          onlyInBuffer = TRUE){
+
+  lab <- query <- target <- regID <- sameOg <- sameInblkOg <- inBuffer <- NULL
   ##############################################################################
   # -- 1. Get metadata together
   md <- data.table(gsParam$annotBlastMd)
@@ -113,14 +126,22 @@ pull_inblkOgs <- function(gsParam, overwrite = FALSE, onlyInBuffer = TRUE){
   return(hitsInOgs)
 }
 
-#' @title run_orthofinderInBlk
+#' @title Run orthofinder within blocks
 #' @description
-#' \code{run_orthofinderInBlk} run_orthofinderInBlk
+#' \code{run_orthofinderInBlk} Main engine to run orthofinder in blocks
 #' @rdname build_synOGs
 #' @import data.table
 #' @import parallel
 #' @export
-run_orthofinderInBlk <- function(gsParam, genome1, genome2, overwrite){
+run_orthofinderInBlk <- function(gsParam,
+                                 genome1,
+                                 genome2,
+                                 overwrite){
+
+  query <- target <- ofID1 <- ofID2 <- regID <- rid <- uid1 <- uid2 <-
+    ofID1 <- ofID2 <- sameHog <- hog1 <- hog2 <- sameInblkOg <- NULL
+
+
   blNames <- c(
     "ofID1", "ofID2", "pid", "length", "mismatches","gapopenings", "queryStart",
     "queryEnd", "subjectStart", "subjectEnd", "Evalue", "bitScore", "rid")
@@ -227,7 +248,6 @@ run_orthofinderInBlk <- function(gsParam, genome1, genome2, overwrite){
       unlink(tmpDir, recursive = T)
     dir.create(tmpDir)
 
-
     ########
     # -- 2.2 create the directories for each region
     regIDs <- unique(bl01$rid)
@@ -247,8 +267,8 @@ run_orthofinderInBlk <- function(gsParam, genome1, genome2, overwrite){
       y <- spl01[[j]]
       p0 <- peps0[unique(y$ofID1)]
       p1 <- peps1[unique(y$ofID2)]
-      writeXStringSet(p0, file = file.path(tmpDirs[j], "pep", "g0.fa"))
-      writeXStringSet(p1, file = file.path(tmpDirs[j], "pep", "g1.fa"))
+      writeXStringSet(p0, filepath = file.path(tmpDirs[j], "pep", "g0.fa"))
+      writeXStringSet(p1, filepath = file.path(tmpDirs[j], "pep", "g1.fa"))
     }
 
     ########

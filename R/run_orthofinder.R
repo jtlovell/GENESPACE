@@ -17,6 +17,7 @@
 #' program.
 #' @param path2diamond file path or string the the $PATH to the DIAMOND2
 #' program.
+#' @param verbose logical, should updates be printed to the console?
 #' \cr
 #' If called, \code{run_orthofinder} returns its own arguments.
 #'
@@ -277,7 +278,8 @@ find_ofFiles <- function(orthofinderDir, verbose = TRUE){
 
   # -- make a skeleton list
   ofPaths <- list(
-    SpeciesIDs = NA, SequenceIDs = NA, ogs = NA, hogs = NA, blast = NA)
+    SpeciesIDs = NA, SequenceIDs = NA, ogs = NA,
+    hogs = NA, blast = NA, speciesTree = NA)
 
   ##############################################################################
   # 2. get paths to all expected files
@@ -307,6 +309,11 @@ find_ofFiles <- function(orthofinderDir, verbose = TRUE){
   tmp <- file.path(ofDir, "Phylogenetic_Hierarchical_Orthogroups", "N0.tsv")
   if(file.exists(tmp))
     ofPaths$hogs <- tmp
+
+  # -- species tree
+  tmp <- file.path(ofDir, "Species_Tree", "SpeciesTree_rooted.txt")
+  if(file.exists(tmp))
+    ofPaths$speciesTree <- tmp
 
   if(!is.null(sids)){
     # -- blast files

@@ -2,6 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{utils}
 \alias{utils}
+\alias{.onAttach}
 \alias{check_integer}
 \alias{check_numeric}
 \alias{check_character}
@@ -38,6 +39,8 @@
 \alias{read_intSynPos}
 \title{Generic internal functions used by genespace}
 \usage{
+.onAttach(...)
+
 check_integer(
   x,
   min = -Inf,
@@ -172,6 +175,8 @@ If called, \code{utils} returns its own arguments.}
 \code{utils} Convience functions for genespace, not meant to be called
 directly by the user. Little documentation support provided, use at your own
 risk.
+
+\code{.onAttach} startup messages
 
 \code{check_integer} Checks and parses integer arguments to GENESPACE
 functions. Replaces values of x not in range (min, max) with the minimum or

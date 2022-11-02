@@ -9,6 +9,7 @@
 #' by init_genespace.
 #' @param overwrite logical, should the combBed.txt and synHits be re-generated
 #' if they exist. Default is FALSE.
+#' @param verbose logical, should updates be printed to the console?
 #'
 #' \cr
 #' If called, \code{set_syntenyParams} returns its own arguments.
@@ -375,7 +376,7 @@ annotate_bed <- function(gsParam){
   }))
 
   # -- 2.3 add in gene orders
-  chrn <- n <- chr <- ord <- NULL
+  chrn <- n <- chr <- ord <- start <- NULL
   bed[,chrn := as.numeric(gsub('\\D+','', chr))]
   bed[,n := .N, by = c("genome", "chr")]
   setorder(bed, genome, chrn, chr, -n, start)
@@ -462,6 +463,7 @@ annotate_bed <- function(gsParam){
     cat(sprintf("\t# %s: %s (%s / %s) || %s (%s) || %s (%s) || %s\n",
                 x[1], x[2], x[3], x[4], x[5], x[6], x[8], x[7], x[9]))
   })
+  flag <- NULL
   mdi[,flag := ((nGenesSmallScaff + nDispArray) / nGenes) > 0.05]
   if(any(mdi$flag)){
     cat(strwrap(

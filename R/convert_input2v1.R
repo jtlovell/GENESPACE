@@ -1,11 +1,16 @@
-#' @title convert_input2v1
+#' @title Convert input data formats
 #'
 #' @description
-#' \code{convert_input2v1} xxx
+#' \code{convert_input2v1} Takes an existing GENESPACE <= v0.9.4 run, converts
+#' file formats and copies to a new directory which can be used for GENESPACE >=
+#' v1.0.0.
 #'
-#' @param existingDir A
-#' @param v1Dir A
-#' @details T...
+#' @param existingDir character string coercible to a file.path, pointing to an
+#' existing GENESPACE <= v0.9.4 run.
+#' @param v1Dir character string coercible to a file.path, pointing to a
+#' directory where you want to run GENESPACE >=v1.0.0
+#' @details Directly copies the peptide fasta files and required orthofinder
+#' files. Converts the 1-indexed gff to 0-indexed bed file and re-names them.
 #'
 #' @return nothing
 #'
@@ -59,6 +64,7 @@ convert_input2v1 <- function(existingDir, v1Dir){
                      "character", "character","numeric"))
     genomeID <- gsub(".gff.gz$",  "", basename(i))
     x <- x[,c("chr", "start", "end", "id")]
+    start <- NULL
     x[,start := start - 1]
     bedout <- file.path(v1BedDir, sprintf("%s.bed", genomeID))
     fwrite(x, file = bedout, col.names = FALSE, quote = FALSE, sep = "\t")

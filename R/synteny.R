@@ -29,14 +29,16 @@
 #' @param maxIter integer of length 1, specifying the number of iterations to
 #' allow to split overlapping non-duplicated blocks
 #' @param hits data.table containing the blast hits, also stored in /synHits
+#' @param verbose logical, should updates be printed to the console?
+#'
 #' \cr
 #' If called, \code{synteny} returns its own arguments.
 #'
-#' @details info here
+#' @details Details coming soon.
 
-#' @title synteny
+#' @title Flag syntenic hits
 #' @description
-#' \code{synteny} synteny
+#' \code{synteny} The main engine to call syntenic blocks and regions
 #' @rdname synteny
 #' @import data.table
 #' @import R.utils
@@ -187,9 +189,10 @@ synteny <- function(gsParam, verbose = TRUE){
 }
 
 
-#' @title find_selfSyn
+#' @title Flag synteny in self-hits
 #' @description
-#' \code{find_selfSyn} find_selfSyn
+#' \code{find_selfSyn} Self hits where genes are array reps are the anchors.
+#' Also pulls all inbuffer hits around the anchors
 #' @rdname synteny
 #' @import data.table
 #' @importFrom dbscan dbscan frNN
@@ -198,7 +201,7 @@ find_selfSyn <- function(hits, synRad){
   ##############################################################################
   # 1. get the minimum distance between two gene as either ancOrd or ord
   ofID1 <- ofID2 <- chr1 <- chr2 <- ord1 <- ord2 <- regID <-
-    blkID <- isAnchor <- inBuffer <- NULL
+    blkID <- isAnchor <- inBuffer <- lgBlkID <- NULL
   hits[,isAnchor := ofID1 == ofID2]
   tmp <- subset(hits, chr1 == chr2)
 
@@ -215,9 +218,10 @@ find_selfSyn <- function(hits, synRad){
   return(hits)
 }
 
-#' @title split_ovlBlks
+#' @title Split overlapping non-duplicated blocks
 #' @description
-#' \code{split_ovlBlks} split_ovlBlks
+#' \code{split_ovlBlks} Where syntenic blocks overlap, converts overlapping
+#' regions into RLE and splits accordingly.
 #' @rdname synteny
 #' @import data.table
 #' @importFrom dbscan dbscan frNN
@@ -315,9 +319,9 @@ split_ovlBlks <- function(hits,
 }
 
 
-#' @title find_initialAnchors
+#' @title Find initial collinear anchors
 #' @description
-#' \code{find_initialAnchors} find_initialAnchors
+#' \code{find_initialAnchors} First synteny round to find initial anchors
 #' @rdname synteny
 #' @import data.table
 #' @importFrom stats complete.cases
@@ -361,9 +365,9 @@ find_initialAnchors <- function(hits,
   return(hits)
 }
 
-#' @title find_synRegions
+#' @title Flag large syntenic regions
 #' @description
-#' \code{find_synRegions} find_synRegions
+#' \code{find_synRegions} Second synteny step to find large regions of synteny
 #' @rdname synteny
 #' @import data.table
 #' @importFrom dbscan dbscan frNN
@@ -483,9 +487,10 @@ find_synRegions <- function(hits,
   return(hits)
 }
 
-#' @title find_synBlks
+#' @title flag syntenic blocks
 #' @description
-#' \code{find_synBlks} find_synBlks
+#' \code{find_synBlks} Third synteny step, flagging collinear anchors within
+#' large syntenic regions.
 #' @rdname synteny
 #' @import data.table
 #' @importFrom dbscan dbscan frNN
@@ -497,7 +502,7 @@ find_synBlks <- function(hits,
                          maxIter){
 
   noAnchor <- regID <- isArrayRep1 <- isArrayRep2 <- sr1 <- sr2 <-
-    bitScore <- NULL
+    bitScore <- find_synBlks <- chr1 <- chr2 <- lgBlkID <- NULL
   tmp <- subset(hits, !is.na(regID) & !noAnchor & isArrayRep1 & isArrayRep2)
   tmp[,sr1 := frank(-bitScore, ties.method = "dense"), by = c("regID","ofID1")]
   tmp[,sr2 := frank(-bitScore, ties.method = "dense"), by = c("regID","ofID2")]
@@ -590,9 +595,9 @@ find_synBlks <- function(hits,
   return(hits)
 }
 
-#' @title ggdotplot_blkRegs
+#' @title make dotplots of syntenic hits
 #' @description
-#' \code{ggdotplot_blkRegs} ggdotplot_blkRegs
+#' \code{ggdotplot_blkRegs} ggplot2 integrated graphics to produce dotplots
 #' @rdname synteny
 #' @import data.table
 #' @import ggplot2

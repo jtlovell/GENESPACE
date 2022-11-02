@@ -16,10 +16,31 @@
 #' @param to integer, top end value
 #' @param which character specifying what to use
 #' @param n integer, number of observations
+#' @param id1 character, first id
+#' @param id2 character, second id
+#' @param y numeric, y values
+#' @param hits data.table of syntenic hits
+#' @param mirror logical, should values be mirrored?
+#' @param col color
+#' @param scale1toMean logical, should values be scaled to 1?
+#' @param filepath file.path
+#' @param alpha numeric, transparency
 #' \cr
 #' If called, \code{utils} returns its own arguments.
 #'
 #'
+
+#' @title startup messages
+#' @description
+#' \code{.onAttach} startup messages
+#' @rdname utils
+#' @export
+.onAttach <- function(...) {
+  packageStartupMessage(paste(strwrap(
+    "GENESPACE v1.0.0 (pre-release): synteny and orthology constrained
+    comparative genomics\n",
+    indent = 0, exdent = 8), collapse = "\n"))
+}
 
 #' @title Check parameter value for integer values or vectors
 #' @description
@@ -193,9 +214,9 @@ check_logical <- function(x,
   return(x)
 }
 
-#' @title check_filePathParam
+#' @title check that a file.path is valid
 #' @description
-#' \code{check_filePathParam} check_filePathParam
+#' \code{check_filePathParam} QC of user-specified parameter
 #' @rdname utils
 #' @export
 check_filePathParam <- function(path){
@@ -209,9 +230,9 @@ check_filePathParam <- function(path){
   return(path)
 }
 
-#' @title Check only DNA
+#' @title Check if a sequence is only DNA
 #' @description
-#' \code{check_onlyDNA} Check only DNA
+#' \code{check_onlyDNA} QC to ensure the peptides are actually peptides
 #' @rdname utils
 #' @importFrom Biostrings readAAStringSet DNA_ALPHABET AAStringSet
 #' @export
@@ -224,9 +245,9 @@ check_onlyDNA <- function(path){
 }
 
 
-#' @title read_aaFasta
+#' @title read peptide fasta
 #' @description
-#' \code{read_aaFasta} read_aaFasta
+#' \code{read_aaFasta} read fasta-formatted peptide sequences
 #' @rdname utils
 #' @export
 read_aaFasta <- function(path){
@@ -253,9 +274,9 @@ get_nAA <- function(path){
   return(o)
 }
 
-#' @title read_bed
+#' @title read bed file
 #' @description
-#' \code{read_bed} read_bed
+#' \code{read_bed} read and check a raw bed file with four columns.
 #' @rdname utils
 #' @import data.table
 #' @importFrom stats complete.cases
@@ -278,9 +299,10 @@ read_bed <- function(path){
   return(chk)
 }
 
-#' @title read_bed
+#' @title left-justify
 #' @description
-#' \code{read_bed} read_bed
+#' \code{align_charLeft} for a vector of character strings, add " " to the right
+#' side so they all align to the left when printed
 #' @rdname utils
 #' @import data.table
 #' @export
@@ -292,9 +314,10 @@ align_charLeft <- function(x){
   return( x <- sprintf("%s%s", x, buffBlank))
 }
 
-#' @title read_bed
+#' @title right-justify
 #' @description
-#' \code{read_bed} read_bed
+#' \code{align_charRight} for a vector of character strings, add " " to the left
+#' side so they all align to the right when printed
 #' @rdname utils
 #' @import data.table
 #' @export
@@ -361,9 +384,9 @@ get_nSeqs <- function(path){
 }
 
 
-#' @title check_annotFiles
+#' @title check genespace-formatted annotations
 #' @description
-#' \code{check_annotFiles}
+#' \code{check_annotFiles} ensure the annotations match correctly
 #' @rdname utils
 #' @import data.table
 #' @export
@@ -448,9 +471,9 @@ check_MCScanXhInstall <- function(path){
   return(chk)
 }
 
-#' @title parse_ogs
+#' @title parse OGs
 #' @description
-#' \code{parse_ogs} parse_ogs
+#' \code{parse_ogs} read and parse orthofinder orthogroups.tsv files
 #' @rdname utils
 #' @import data.table
 #' @export
@@ -468,9 +491,10 @@ parse_ogs <- function(path, genomeIDs){
   return(tmp)
 }
 
-#' @title parse_hogs
+#' @title parse HOGs
 #' @description
-#' \code{parse_hogs} parse_hogs
+#' \code{parse_hogs} read and parse orthofinder phylogenetically hierarchical
+#' orthogroup (N0.tsv) files
 #' @rdname utils
 #' @import data.table
 #' @export
@@ -486,9 +510,9 @@ parse_hogs <- function(path, genomeIDs){
   return(tmp)
 }
 
-#' @title parse_orthologues
+#' @title parse orthologs
 #' @description
-#' \code{parse_orthologues} parse_orthologues
+#' \code{parse_orthologues} read and parse orthofinder orthologs
 #' @rdname utils
 #' @import data.table
 #' @export
@@ -513,9 +537,9 @@ parse_orthologues <- function(path){
   return(x)
 }
 
-#' @title round_toInteger
+#' @title round to the nearest integer
 #' @description
-#' \code{round_toInteger} round_toInteger
+#' \code{round_toInteger} flexible rounding to any integer.
 #' @rdname utils
 #' @import data.table
 #' @export
@@ -523,9 +547,10 @@ round_toInteger <- function(x, to){
   round(x/to, 0) * to
 }
 
-#' @title add_rle
+#' @title convert vector to RLE
 #' @description
-#' \code{add_rle} add_rle
+#' \code{add_rle} run-length equivalent conversion, either as the length of the
+#' runs or the unique run ids.
 #' @rdname utils
 #' @import data.table
 #' @export
@@ -537,9 +562,9 @@ add_rle <- function(x, which = "n"){
   }
 }
 
-#' @title gs_colors
+#' @title genespace colors
 #' @description
-#' \code{gs_colors} gs_colors
+#' \code{gs_colors} get a set of colors from the genespace palette
 #' @rdname utils
 #' @import data.table
 #' @importFrom grDevices colorRampPalette
@@ -552,9 +577,9 @@ gs_colors <- function(n = 10){
   return(pal(n))
 }
 
-#' @title clus_igraph
+#' @title clustering via igraph
 #' @description
-#' \code{clus_igraph} Clus_igraph
+#' \code{clus_igraph} cluster connected subgraphs from pairwise observations
 #' @rdname utils
 #' @importFrom igraph graph_from_data_frame clusters
 #' @export
@@ -576,9 +601,9 @@ clus_igraph <- function(id1, id2){
 #' @rdname utils
 #' @import data.table
 #' @export
-interp_linear <- function(x,
-                          y){
+interp_linear <- function(x, y){
 
+  rl <- toInterp <- ip <- NULL
   # -- convert to numeric, to ensure that NAs are correctly specified
   ord1 <- as.numeric(x)
   ord2 <- as.numeric(y)
@@ -627,9 +652,9 @@ interp_linear <- function(x,
   }
 }
 
-#' @title flag_boundingNAs
+#' @title flag first and last run of NAS
 #' @description
-#' \code{flag_boundingNAs} flag_boundingNAs
+#' \code{flag_boundingNAs} For a vector of data, flag the terminal runs of NAs
 #' @rdname utils
 #' @export
 flag_boundingNAs <- function(x){
@@ -669,7 +694,7 @@ calc_blkCoords <- function(hits, mirror = FALSE){
   }
 
   # -- get the genome1 coordinates
-  ofID1 <- start1 <- end1 <- ofID1 <- ord1 <- NULL
+  ofID1 <- start1 <- end1 <- ofID1 <- ord1 <- blkID <- NULL
   setkey(bhits, ord1)
   blks1 <- bhits[,list(
     startBp1 = min(start1), endBp1 = max(end1),
@@ -742,9 +767,9 @@ scale_between <- function(x, min, max, scale1toMean = TRUE){
   }
 }
 
-#' @title read_combBed
+#' @title read combBed file
 #' @description
-#' \code{read_combBed} read_combBed
+#' \code{read_combBed} ensures consistent combBed IO
 #' @rdname utils
 #' @export
 read_combBed <- function(filepath){
@@ -762,9 +787,9 @@ read_combBed <- function(filepath){
   return(bed)
 }
 
-#' @title write_combBed
+#' @title write combBed file
 #' @description
-#' \code{write_combBed} write_combBed
+#' \code{write_combBed} ensures consistent combBed IO
 #' @rdname utils
 #' @export
 write_combBed <- function(x, filepath){
@@ -778,9 +803,9 @@ write_combBed <- function(x, filepath){
 }
 
 
-#' @title read_synHits
+#' @title read synHits file
 #' @description
-#' \code{read_synHits} read_synHits
+#' \code{read_synHits} ensures consistent synHit IO
 #' @rdname utils
 #' @export
 read_synHits <- function(filepath){
@@ -801,9 +826,9 @@ read_synHits <- function(filepath){
   return(hits)
 }
 
-#' @title write_synBlast
+#' @title write synHits file
 #' @description
-#' \code{write_synBlast} write_synBlast
+#' \code{write_synBlast} ensures consistent synHit IO
 #' @rdname utils
 #' @export
 write_synBlast <- function(x, filepath){
@@ -820,7 +845,7 @@ write_synBlast <- function(x, filepath){
 }
 
 
-#' @title add transparency to a color
+#' @title add transparency
 #' @description
 #' \code{add_alpha} add transparency to a color
 #' @rdname utils
@@ -838,9 +863,9 @@ add_alpha <- function(col,
     rgb(x[1], x[2], x[3], alpha = alpha)))
 }
 
-#' @title read_intSynPos
+#' @title read integratedSynPos
 #' @description
-#' \code{read_intSynPos} read_intSynPos
+#' \code{read_intSynPos} read interpolated syntenic position files
 #' @rdname utils
 #' @export
 read_intSynPos <- function(filepath){

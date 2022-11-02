@@ -3,24 +3,20 @@
 #' @description
 #' \code{run_mcscanx} run_mcscanx
 #'
-#' @param hits hits
-#' @param nGaps integer of length 1, specifying the -m param to mcscanx
-#' for the primary MCScanX run. This acts on the results from the initial
-#' MCScanX run.
-#' @param blkSize integer of length 1, specifying the -s param to mcscanx
-#' @param tmpDir tmpDir
-#' @param MCScanX_hCall MCScanX_hCall
+#' @param hits an annotated blast hits data.table.
+#' @param nGaps integer of length 1, specifying the -m param to MCScanX_h
+#' @param blkSize integer of length 1, specifying the -s param to MCScanX_h
+#' @param tmpDir file.path to the temporary directory where MCScanX_h should
+#' be run.
+#' @param MCScanX_hCall file.path pointing to the MCScanX_h executable
 #'
-#' @details xxx
+#' @details runs MCScanX_h
 #'
-#' @return xxx
-#' \enumerate{
-#' \item xxx
-#' }
+#' @return a named vector of collinear block IDs, labeled as 'geneID1 geneID2'.
 #'
 #' @examples
 #' \dontrun{
-#'
+#' # coming soon.
 #' }
 #'
 #' @import data.table
