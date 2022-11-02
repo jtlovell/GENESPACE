@@ -235,14 +235,18 @@ run_orthofinder <- function(gsParam,
         stdout = TRUE, stderr = TRUE)
       cat(paste(c("\t", outp), collapse = "\n\t"))
       gsParam$ofFiles <- find_ofFiles(orthofinderDir = ofDir)
+      ofRun <- TRUE
     }else{
-      cat(strwrap(
+      stop(cat(strwrap(
         "Could not find a valid path to the orthofinder program. To run
         orthofinder, ensure that the program is in the $PATH, the call the
-        function from the shell using: \n", indent = 0, exdent = 8), sep = "\n")
-      cat(sprintf("orthofinder %s", ofComm))
+        function from the shell using: \n", indent = 0, exdent = 8),
+        sprintf("orthofinder %s", ofComm)), sep = "\n")
     }
   }
+
+
+
   return(gsParam)
 }
 

@@ -53,10 +53,12 @@ pangenome <- function(gsParam,
                       verbose = T){
 
   clus_interp2pg <- function(bed, interp, minScaleProp, synBuff){
-    tmp <- merge(
-      bed[,c("ofID", "og")],
-      interp[,c("ofID", "interpGenome", "interpChr", "interpOrd", "isAnchor")],
-      by = "ofID", allow.cartesian = T)
+    bd <- bed[,c("ofID", "og")]
+    bd <- subset(bd, !duplicated(bd))
+    intp <- interp[,c("ofID", "interpGenome", "interpChr", "interpOrd", "isAnchor")]
+    intp <- subset(intp, !duplicated(intp))
+
+    tmp <- merge(bd, intp, by = "ofID", allow.cartesian = TRUE)
 
     # -- cluster nearby hits
     setkey(tmp, og, interpChr, interpOrd, isAnchor)
@@ -133,7 +135,8 @@ pangenome <- function(gsParam,
   ##############################################################################
   # -- 1.3 read in the interpolated position data
   interp <- rbindlist(lapply(spFiles, function(x)
-    subset(fread(x), interpGenome == refGenome & interpChr %in% u)))
+    subset(read_intSynPos(x),
+           interpGenome == refGenome & interpChr %in% u)))
   if(verbose)
     cat(sprintf("\t%s of %s genes have interpolated positions against %s\n",
                 sum(bed$ofID %in% interp$ofID), nrow(bed), refGenome))
@@ -151,7 +154,10 @@ pangenome <- function(gsParam,
 
   ##############################################################################
   # -- 2.2 merge with the bed file by orthogroup
-  pgl <- merge(pgAnch, bed[,c("og", "ofID")], by = "og", allow.cartesian = T)
+  bd <- bed[,c("og", "ofID")]
+  bd <- subset(bd, !duplicated(bd))
+  pga <- subset(pgAnch, !duplicated(pgAnch))
+  pgl <- merge(pga, bd, by = "og", allow.cartesian = TRUE)
 
   ##############################################################################
   # -- 2.3 cluster non-anchor genes and combine
@@ -160,7 +166,10 @@ pangenome <- function(gsParam,
     interp = interp,  minScaleProp = propAssignThresh,
     synBuff = synBuff)
 
-  pglr <- merge(pgRem, bed[,c("og", "ofID")], by = "og", allow.cartesian = T)
+  bd <- bed[,c("og", "ofID")]
+  bd <- subset(bd, !duplicated(bd))
+  pga <- subset(pgRem, !duplicated(pgRem))
+  pglr <- merge(pga, bed[,c("og", "ofID")], by = "og", allow.cartesian = TRUE)
   pglr[,pgID := sprintf("%s_remain", pgID)]
   pgl <- rbind(pgl, pglr)
   setkey(pgl, pgOrd)
@@ -192,8 +201,10 @@ pangenome <- function(gsParam,
   ##############################################################################
   # -- 2.5 Add in genome and array rep info
   # combine skeleton and bed
-  pglo <- merge(pgl, bed[,c("ofID", "genome", "isArrayRep", "ord", "chr", "id")],
-               all.x = T, allow.cartesian = T)
+  pgla <- subset(pgl, !duplicated(pgl))
+  bd <-  bed[,c("ofID", "genome", "isArrayRep", "ord", "chr", "id")]
+  bd <- subset(bd, !duplicated(bd))
+  pglo <- merge(pgla, bd, all.x = TRUE, allow.cartesian = TRUE)
   genomeOrd <- genomeIDs
 
   # determine the representative gene by several nested factors
@@ -247,10 +258,14 @@ pangenome <- function(gsParam,
     tmp <-  subset(tmp, paste(gen1, id1) %in% anchGenes)
     setnames(tmp, c("gen1", "id1"), c("genome", "id"))
 
+    pgi1 <- subset(pgi1, !duplicated(pgi1))
+    pgi2 <- subset(pgi2, !duplicated(pgi2))
+    tmp <- subset(tmp, !duplicated(tmp))
+
     tmp <- merge(
       pgi1,
-      merge(pgi2, tmp, by = c("gen2", "id2"), allow.cartesian = T),
-      by = c("genome", "id"), allow.cartesian = T)
+      merge(pgi2, tmp, by = c("gen2", "id2"), allow.cartesian = TRUE),
+      by = c("genome", "id"), allow.cartesian = TRUE)
     tmp <- subset(tmp, pgID != pgID2)
     tmp <- subset(tmp, !duplicated(paste(id, id2)))
     tmp[,`:=`(ofID = ov[paste(gen2, id2)], id = id2, genome = gen2,
@@ -265,7 +280,10 @@ pangenome <- function(gsParam,
   nsi <- interp[,c("ofID", "interpChr", "interpOrd")]
   setnames(nsi, c("ofID", "pgChr", "pgOrd"))
   nsOrthos[,`:=`(pgChr = NULL, pgOrd = NULL)]
-  nsOrthos <- merge(nsOrthos, nsi, by = "ofID", all.x = T)
+  nsOrthos <- subset(nsOrthos, !duplicated(nsOrthos))
+  nsi <- subset(nsi, !duplicated(nsi))
+  nsOrthos <- merge(nsOrthos, nsi, by = "ofID",
+                    all.x = T, allow.cartesian = TRUE)
 
   ##############################################################################
   # -- 3.5 drop 1x position orthogroups that have non-syntenic orthos to 2x+ ogs

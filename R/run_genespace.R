@@ -56,7 +56,10 @@ run_genespace <- function(gsParam,
   # updated paths
   cat("\n############################", strwrap(
     "1. Running orthofinder (or parsing existing results)", indent = 0, exdent = 8), sep = "\n")
-  gsParam <- run_orthofinder(gsParam, verbose = TRUE)
+  gsParam <- run_orthofinder(gsParam = gsParam, verbose = TRUE)
+
+  # -- get the files in order if the run is complete
+  gsParam <- run_orthofinder(gsParam = gsParam, verbose = FALSE)
 
   ##############################################################################
   # 2. Annotate the bed file ...

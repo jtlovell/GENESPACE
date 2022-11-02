@@ -837,3 +837,22 @@ add_alpha <- function(col,
   return(apply(sapply(col, col2rgb)/255, 2, function(x)
     rgb(x[1], x[2], x[3], alpha = alpha)))
 }
+
+#' @title read_intSynPos
+#' @description
+#' \code{read_intSynPos} read_intSynPos
+#' @rdname utils
+#' @export
+read_intSynPos <- function(filepath){
+  hnames <- c("genome", "ofID", "chr", "ord", "og", "interpGenome",
+              "interpChr", "interpOrd", "isAnchor")
+  hclass <- c("character", "character", "character", "numeric", "character",
+              "character", "character", "numeric", "logical")
+  chk <- strsplit(readLines(filepath, 1), "\t")[[1]]
+  if(!identical(chk, hnames))
+    stop("integratedSynPos file is malformed\n")
+  synpos <- fread(
+    filepath, na.strings = c("", "NA"), select = hnames,
+    colClasses = hclass, showProgress = F)
+  return(synpos)
+}

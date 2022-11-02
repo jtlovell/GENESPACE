@@ -35,6 +35,7 @@
 \alias{read_synHits}
 \alias{write_synBlast}
 \alias{add_alpha}
+\alias{read_intSynPos}
 \title{Generic internal functions used by genespace}
 \usage{
 check_integer(
@@ -121,6 +122,8 @@ read_synHits(filepath)
 write_synBlast(x, filepath)
 
 add_alpha(col, alpha = 1)
+
+read_intSynPos(filepath)
 }
 \arguments{
 \item{x}{single-value parameter, string, integer, numeric, list, vector}
@@ -225,4 +228,6 @@ is not convertible to an integer, returns NA.
 \code{write_synBlast} write_synBlast
 
 \code{add_alpha} add transparency to a color
+
+\code{read_intSynPos} read_intSynPos
 }
