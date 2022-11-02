@@ -3,34 +3,33 @@
 \name{integrate_synteny}
 \alias{integrate_synteny}
 \alias{interp_synPos}
-\alias{add_arrayInfo2bed}
-\title{integrate_synteny}
+\title{Integrate syntenic positions across genomes}
 \usage{
 integrate_synteny(gsParam)
 
 interp_synPos(gsParam)
-
-add_arrayInfo2bed(gsParam)
 }
 \arguments{
-\item{gsParam}{A list of genespace parameters. This should be created
-by init_genespace.}
+\item{gsParam}{A list of genespace parameters created by init_genespace.
 
-\item{genome1}{xx}
-
-\item{hits}{data.table containing the blast hits, also stored in /synHits
 \cr
 If called, \code{integrate_synteny} returns its own arguments.}
 }
 \description{
-\code{integrate_synteny} integrate_synteny
+\code{integrate_synteny} Linear interpolation and block coordinate phasing
+across multiple genomes
 
 \code{integrate_synteny} integrate_synteny
 
-\code{interp_synPos} interp_synPos
-
-\code{interp_synPos} interp_synPos
+\code{interp_synPos} Find the likely position of a gene based on the syntenic
+position of its neighbors
 }
 \details{
-info here
+Linear interpolation is conducted by using perfectly collinear
+syntenic anchors and known fixed positions between any two genomes. The
+expected syntenic positions of genes between these anchors (without perfect
+positions) are interpolated from the anchor positions. Syntenic block
+breakpoints are then calculated for each pair of genomes and also phased
+against each reference based on the interpolated syntenic location of
+genes in each block.
 }

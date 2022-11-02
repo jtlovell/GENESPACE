@@ -2,29 +2,27 @@
 % Please edit documentation in R/run_genespace.R
 \name{run_genespace}
 \alias{run_genespace}
-\title{run_genespace}
+\title{The GENESPACE pipeline}
 \usage{
 run_genespace(gsParam, overwriteBed = FALSE)
 }
 \arguments{
-\item{gsParam}{A list of genespace parameters.}
+\item{gsParam}{A list of genespace parameters created by init_genespace.}
 
-\item{overwriteBed}{xx}
-
-\item{overwriteSynHits}{xx}
-
-\item{overwriteOGs}{xx}
+\item{overwriteBed}{logical, should the bed file be re-created and
+overwritten?}
 }
 \value{
 a gsParam list.
 }
 \description{
-\code{run_genespace} run_genespace
+\code{run_genespace} Run the entire GENESPACE pipeline, from begining to end,
+with one function call.
 }
 \details{
-xxx
+The full genespace pipeline is as follows.
 \enumerate{
-\item xxx
+\item Details coming soon.
 }
 }
 \examples{

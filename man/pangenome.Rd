@@ -13,11 +13,7 @@ pangenome(
 )
 }
 \arguments{
-\item{gsParam}{A list of genespace parameters. This should be created
-by setup_genespace, but can be built manually. Must have the following
-elements: blast (file.path to the original orthofinder run), synteny (
-file.path to the directory where syntenic results are stored), genomeIDs (
-character vector of genomeIDs).}
+\item{gsParam}{A list of genespace parameters created by init_genespace.}
 
 \item{genomeIDs}{character vector, specifying which genomes to use. Defaults
 to all genomeIDs specification in gsParam.}
@@ -26,6 +22,8 @@ to all genomeIDs specification in gsParam.}
 
 \item{propAssignThresh}{numeric of length 1, the minimum proportion of genes
 in a pangenome entry needed to anchor the physical position to a new location}
+
+\item{verbose}{logical, should updates be printed to the console?}
 }
 \value{
 a data.table with lists of gene ids for each genome. Each row

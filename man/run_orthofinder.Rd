@@ -31,9 +31,7 @@ copy_of2results(orthofinderDir, resultsDir, genomeIDs)
 program.}
 
 \item{path2diamond}{file path or string the the $PATH to the DIAMOND2
-program.
-\cr
-If called, \code{run_orthofinder} returns its own arguments.}
+program.}
 
 \item{gsParam}{A list of genespace parameters. This should be created
 by init_genespace.}
@@ -42,6 +40,10 @@ by init_genespace.}
 
 \item{overwrite}{deprecated, retained for backward compatibility. If an
 orthofinder run exists, stops the run and returns a warning.}
+
+\item{verbose}{logical, should updates be printed to the console?
+\cr
+If called, \code{run_orthofinder} returns its own arguments.}
 
 \item{orthofinderDir}{file.path to the orthofinder run. When used with
 copy_of2results, can move files from a separate orthofinder run to

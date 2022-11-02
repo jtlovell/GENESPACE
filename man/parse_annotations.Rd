@@ -48,8 +48,6 @@ parse_ncbi(
   gffString = "gff$|gff3$|gff3\\\\.gz$|gff\\\\.gz",
   faString = "fa$|fasta$|faa$|fa\\\\.gz$|fasta\\\\.gz|faa\\\\.gz",
   genespaceWd,
-  presets = "none",
-  chrIdDictionary = NULL,
   troubleShoot = FALSE
 )
 
@@ -60,7 +58,6 @@ parse_phytozome(
   gffString = "gff$|gff3$|gff3\\\\.gz$|gff\\\\.gz",
   faString = "fa$|fasta$|faa$|fa\\\\.gz$|fasta\\\\.gz|faa\\\\.gz",
   genespaceWd,
-  chrIdDictionary = NULL,
   troubleShoot = FALSE
 )
 
@@ -84,23 +81,32 @@ formatted annotation. Default is any text or .gz file ending in gff3, gff.}
 \item{faString}{same as gffString but for the fasta-formatted peptide
 annotation. Default is any text or .gz file ending in fa, fasta or faa.}
 
-\item{genespaceWd}{xxxxxxxx}
+\item{genespaceWd}{file.path of length 1 specifying the GENESPACE working
+directory. Will make two subdirectories: /bed and /peptide for the parsed
+annotations}
 
-\item{presets}{xxxxxxxx}
+\item{presets}{character string: "none", "phytozome" or "ncbi" which sets
+the below parameters to parse phytozome or ncbi-formatted annotations
+correctly. See details.}
 
-\item{gffIdColumn}{xxxxxxxx}
+\item{gffIdColumn}{character, specifying the field name in the gff3
+attributes column.}
 
-\item{headerEntryIndex}{xxxxxxxx}
+\item{headerEntryIndex}{integer specifying the field index in the fasta
+header which contains the gene ID information to match with the gff.}
 
-\item{headerSep}{xxxxxxxx}
+\item{headerSep}{character used as a field delimiter in the fasta header.}
 
-\item{gffStripText}{xxxxxxxx}
+\item{gffStripText}{regular expression of length 1 specifying a gsub command
+to remove text from the gff ID.}
 
-\item{headerStripText}{xxxxxxxx}
+\item{headerStripText}{like gffStripText, but for the fasta header}
 
-\item{chrIdDictionary}{xxxxxxxx}
+\item{chrIdDictionary}{a named vector where the names are the values in the
+first ("seqnames") gff3 column and the element names in the vector are
+the values to replace.}
 
-\item{troubleShoot}{xxxxxxxx}
+\item{troubleShoot}{logical, should the raw and parsed files be printed?}
 
 \item{overwrite}{logical, should existing files be overwritten?}
 
@@ -108,7 +114,7 @@ annotation. Default is any text or .gz file ending in fa, fasta or faa.}
 
 \item{path2gff}{deprecated, kept to maintain backwards compatibility}
 
-\item{genomeID}{xxxxxxxx}
+\item{genomeID}{single genomeID to consider}
 
 \item{...}{additional arguments passed on}
 }

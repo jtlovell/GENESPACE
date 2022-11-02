@@ -17,9 +17,11 @@ Imports: data.table,
   ggplot2
 Suggests: knitr, 
   rmarkdown, 
-  rtracklayer
+  rtracklayer,
+  ape
 SystemRequirements: MCScanX, 
-  orthofinder
+  orthofinder,
+  diamond
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true

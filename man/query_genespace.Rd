@@ -2,23 +2,35 @@
 % Please edit documentation in R/query_genespace.R
 \name{query_genespace}
 \alias{query_genespace}
-\title{convert_input2v1}
+\title{Query GENESPACE results}
 \usage{
 query_genespace(gsParam, regions)
 }
 \arguments{
-\item{existingDir}{A}
+\item{gsParam}{GENESPACE parameter list.}
 
-\item{v1Dir}{A}
+\item{regions}{A data.frame (or data.table) containing the region
+information, where each row is one region to query.}
 }
 \value{
-nothing
+A list of lists, where the first elements are the three dataTypes (
+bed, hits, pangenome). Nested within each of these is a list labeled by
+the region ID with the results for each row associated with that particular
+data type.
 }
 \description{
-\code{convert_input2v1} xxx
+\code{query_genespace} For a set of coordinates or gene IDs, extract
+orthogroup, syntenic hits and pangenome information.
 }
 \details{
-T...
+The regions data.frame must have 6 columns:
+chr, start, end, id, genome, dataType. An additional column "regID" is
+permitted that gives the identifier for that region. If a gene ID is given,
+chr, start and end are ignored. If a geneID is not given, at least a
+chromosome must be given. If chromosome is given and start and end are NA,
+then they are set to 0 and Inf. Otherwise the interval is queried between
+the start and end bp coordinates. The column dataType can be "hits",
+"bed", "pangenome", or "all". This specifies which data type is queried.
 }
 \examples{
 \dontrun{

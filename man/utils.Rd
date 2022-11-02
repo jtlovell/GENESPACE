@@ -146,7 +146,25 @@ read_intSynPos(filepath)
 
 \item{which}{character specifying what to use}
 
-\item{n}{integer, number of observations
+\item{n}{integer, number of observations}
+
+\item{id1}{character, first id}
+
+\item{id2}{character, second id}
+
+\item{y}{numeric, y values}
+
+\item{hits}{data.table of syntenic hits}
+
+\item{mirror}{logical, should values be mirrored?}
+
+\item{col}{color}
+
+\item{scale1toMean}{logical, should values be scaled to 1?}
+
+\item{filepath}{file.path}
+
+\item{alpha}{numeric, transparency
 \cr
 If called, \code{utils} returns its own arguments.}
 }
@@ -168,19 +186,21 @@ from the vector
 
 \code{check_logical} See check_integer. Same but for logical values.
 
-\code{check_filePathParam} check_filePathParam
+\code{check_filePathParam} QC of user-specified parameter
 
-\code{check_onlyDNA} Check only DNA
+\code{check_onlyDNA} QC to ensure the peptides are actually peptides
 
-\code{read_aaFasta} read_aaFasta
+\code{read_aaFasta} read fasta-formatted peptide sequences
 
 \code{get_nAA} count the number of amino acids by gene
 
-\code{read_bed} read_bed
+\code{read_bed} read and check a raw bed file with four columns.
 
-\code{read_bed} read_bed
+\code{align_charLeft} for a vector of character strings, add " " to the right
+side so they all align to the left when printed
 
-\code{read_bed} read_bed
+\code{align_charRight} for a vector of character strings, add " " to the left
+side so they all align to the right when printed
 
 \code{read_orthofinderSpeciesIDs} Parses the SpeciesIDs.txt file into a
 data.table and returns to R.
@@ -191,27 +211,29 @@ IDs:gene name dictionary into memory.
 \code{get_nSeqs} Counts the number of lines with ">" in a file. If the output
 is not convertible to an integer, returns NA.
 
-\code{check_annotFiles}
+\code{check_annotFiles} ensure the annotations match correctly
 
 \code{check_MCScanXhInstall} check that MCScanX_h can be called
 
-\code{parse_ogs} parse_ogs
+\code{parse_ogs} read and parse orthofinder orthogroups.tsv files
 
-\code{parse_hogs} parse_hogs
+\code{parse_hogs} read and parse orthofinder phylogenetically hierarchical
+orthogroup (N0.tsv) files
 
-\code{parse_orthologues} parse_orthologues
+\code{parse_orthologues} read and parse orthofinder orthologs
 
-\code{round_toInteger} round_toInteger
+\code{round_toInteger} flexible rounding to any integer.
 
-\code{add_rle} add_rle
+\code{add_rle} run-length equivalent conversion, either as the length of the
+runs or the unique run ids.
 
-\code{gs_colors} gs_colors
+\code{gs_colors} get a set of colors from the genespace palette
 
-\code{clus_igraph} Clus_igraph
+\code{clus_igraph} cluster connected subgraphs from pairwise observations
 
 \code{interp_linear} linear interpolation of missing values in x
 
-\code{flag_boundingNAs} flag_boundingNAs
+\code{flag_boundingNAs} For a vector of data, flag the terminal runs of NAs
 
 \code{calc_blkCoords} calc_blkCoords
 
@@ -219,15 +241,15 @@ is not convertible to an integer, returns NA.
 
 \code{scale_between} scale a vector between a range
 
-\code{read_combBed} read_combBed
+\code{read_combBed} ensures consistent combBed IO
 
-\code{write_combBed} write_combBed
+\code{write_combBed} ensures consistent combBed IO
 
-\code{read_synHits} read_synHits
+\code{read_synHits} ensures consistent synHit IO
 
-\code{write_synBlast} write_synBlast
+\code{write_synBlast} ensures consistent synHit IO
 
 \code{add_alpha} add transparency to a color
 
-\code{read_intSynPos} read_intSynPos
+\code{read_intSynPos} read interpolated syntenic position files
 }

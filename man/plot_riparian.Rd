@@ -2,6 +2,7 @@
 % Please edit documentation in R/plot_riparian.R
 \name{plot_riparian}
 \alias{plot_riparian}
+\alias{plot_riparianRegs}
 \alias{calc_curvePolygon}
 \alias{round_rect}
 \alias{calc_regBlkCoords}
@@ -12,19 +13,26 @@ plot_riparian(
   gsParam,
   reorderChrsBySynteny = TRUE,
   refGenome = NULL,
+  invertTheseChrs = NULL,
   labelTheseGenomes = NULL,
   genomeIDs = NULL,
   useOrder = TRUE,
   chrLengths = NULL,
   faidir = NULL,
   blockCoords = NULL,
-  gapProp = 0.01,
+  gapProp = 0.005,
   minBlkSize = 10,
+  genomeLabCex = NULL,
   pdfFile = NULL,
   chrFill = "white",
+  chrLabCex = NULL,
+  chrBorder = NULL,
+  labelChrBiggerThan = NULL,
   highlightTheseRegions = NULL,
+  braidBorderLwd = NULL,
   braidAlpha = 0.75,
   scalePlotHeight = 1,
+  highlightRef = NULL,
   scalePlotWidth = 0.3,
   chrLabBorderLwd = 0.1,
   refChrCols = NULL,
@@ -37,6 +45,8 @@ plot_riparian(
     "physical position")),
   verbose = TRUE
 )
+
+plot_riparianRegs(...)
 
 calc_curvePolygon(
   start1,
@@ -82,7 +92,13 @@ elements: blast (file.path to the original orthofinder run), synteny (
 file.path to the directory where syntenic results are stored), genomeIDs (
 character vector of genomeIDs).}
 
+\item{reorderChrsBySynteny}{logical, should chromosomes be re-ordered by synteny?}
+
 \item{refGenome}{single character string specifying which genome is the ref}
+
+\item{invertTheseChrs}{data.table with two columns, genome and chr containing
+the lists of genomes and chromosomes that should be inverted in the plot.
+Not currently implemented.}
 
 \item{labelTheseGenomes}{character string of genomes that have labeled chrs}
 
@@ -92,58 +108,137 @@ in gsParam}
 \item{useOrder}{logical, should gene rank order be used in lieu of physical
 positions?}
 
+\item{chrLengths}{data.table with chromosome lengths}
+
+\item{faidir}{file.path to the location of fasta index files}
+
+\item{blockCoords}{data.table containing block coordinates}
+
 \item{gapProp}{numeric (0-1) specifying the proportional size of gaps
 relative to the length of the largest genome}
+
+\item{minBlkSize}{interger specifying the minimum block size to plot}
+
+\item{genomeLabCex}{chracter expansion of the genome labels. Not currently in
+use.}
+
+\item{pdfFile}{file.path to the pdf device to store the file}
 
 \item{chrFill}{character or integer coercible to an R color for the interior
 fill of the chromosome regions}
 
+\item{chrLabCex}{character expansion for the chromosome labels. Not currently
+in use.}
+
+\item{chrBorder}{character or integer coercible to an R color for the border
+of the chromosome regions. Not currently in use.}
+
+\item{labelChrBiggerThan}{integer specifying the minimum number of genes or
+bp to label a chromosome. Not currently in use.}
+
+\item{highlightTheseRegions}{data.table specifying regions that should be
+highlighted}
+
+\item{braidBorderLwd}{numeric specifying the weight of borders on the braids.
+Not currently in use.}
+
 \item{braidAlpha}{numeric (0-1) specifying the transparency of the braids}
+
+\item{scalePlotHeight}{numeric, scaling factor for plot height Larger values
+make taller plots}
+
+\item{highlightRef}{color to highlight the reference chromosomes. Not
+currently in use.}
+
+\item{scalePlotWidth}{numeric, scaling factor for plot width. Larger values
+make wider plots}
+
+\item{chrLabBorderLwd}{character or integer coercible to an R color for the border
+of the chromosome regions.}
 
 \item{refChrCols}{if braids should be colored by reference chromosome,
 a vector of colors or integers that is coerced into a color palette. If
 no coloring by chr, specify NULL.}
 
+\item{ylabBuff}{numeric, label buffer around the chromosome labels}
+
+\item{refChrOrdFun}{function, to re-order reference chromosomes}
+
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
 
-\item{useBlks}{logical, should blocks be plot (and not regions)?}
+\item{xlab}{character string to label the x-axis}
 
-\item{invertTheseChrs}{data.table with two columns, genome and chr containing
-the lists of genomes and chromosomes that should be inverted in the plot}
+\item{verbose}{logical, should updates be printed to the console?}
 
-\item{genomeLabCex}{chracter expansion of the genome labels}
+\item{...}{additional arguments passed on to other functions}
 
-\item{braidBorderLwd}{numeric specifying the weight of borders on the braids}
+\item{start1}{numeric, start postion of the first block}
 
-\item{blackBg}{logical, should the background be dark?}
+\item{end1}{numeric, end postion of the first block}
 
-\item{reorderChrs}{logical, should chromosomes be re-ordered by synteny?}
+\item{start2}{numeric, start postion of the second block}
 
-\item{chrLabCex}{character expansion for the chromosome labels}
+\item{end2}{numeric, end postion of the second block}
 
-\item{chrBorder}{character or integer coercible to an R color for the border
-of the chromosome regions}
+\item{y1}{numeric, bottom postion of the block}
 
-\item{labelChrBiggerThan}{integer specifying the minimum number of genes or
-bp to label a chromosome}
+\item{y2}{numeric, top postion of the block}
 
-\item{highlightRef}{color to highlight the reference chromosomes.}
+\item{npts}{integer, the number of points to use in the curve.}
+
+\item{keepat}{integer, the grid size of points to keep}
+
+\item{xleft}{numeric, left position of rounded rectangle}
+
+\item{ybottom}{numeric, bottom position of rounded rectangle}
+
+\item{xright}{numeric, right position of rounded rectangle}
+
+\item{ytop}{numeric, top position of rounded rectangle}
+
+\item{plotWidth}{numeric, width of the plot}
+
+\item{plotHeight}{numeric, height of the plot}
+
+\item{xrange}{numeric, x range of data}
+
+\item{yrange}{numeric, y range of the data}
+
+\item{blk}{data.table of block coordinates}
+
+\item{regGenome}{character, region to use for the region}
+
+\item{regChr}{character, chr to use for the region}
+
+\item{regStart}{numeric, start position to use for the region}
+
+\item{regEnd}{numeric, end position to use for the region}
+
+\item{regID}{character, id to use for the region}
+
+\item{regCol}{color to to use for the region}
 }
 \description{
 \code{plot_riparian} Updated and more accurate version of plot_riparian
 
-\code{plot_riparian} plot_riparian
+\code{plot_riparian} The main GENESPACE plotting routine, which generate
+braided river or 'riparian' plots.
+
+\code{plot_riparianRegs} not currently functional
 
 \code{calc_curvePolygon} from 2d coordinates, make a curve
 
 \code{round_rect} from x-y coordinates, make a rounded rectangle
 
-\code{calc_regBlkCoords} calc_regBlkCoords
+\code{calc_regBlkCoords} allows for regional highlights (see )
 
 \code{get_chrOrder} get_chrOrder
 }
 \details{
-...
+By default, acts directly on the reference-phased syntenic block
+coordinates generated by integrate_synteny(). Uses these positions to
+generate linear coordinates for block breakpoints and colors these by
+the reference genome chromosomes.
 }
 \examples{
 \dontrun{

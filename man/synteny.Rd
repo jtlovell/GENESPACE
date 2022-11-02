@@ -37,9 +37,12 @@ ggdotplot_blkRegs(hits, outDir, gridSize = 20, appendName = "synHits")
 \item{gsParam}{A list of genespace parameters. This should be created
 by init_genespace.}
 
-\item{hits}{data.table containing the blast hits, also stored in /synHits
+\item{verbose}{logical, should updates be printed to the console?
+
 \cr
 If called, \code{synteny} returns its own arguments.}
+
+\item{hits}{data.table containing the blast hits, also stored in /synHits}
 
 \item{synRad}{integer of length 1, taken as the euclidean distance from
 synBuff (* sqrt 2).}
@@ -78,20 +81,23 @@ allow to split overlapping non-duplicated blocks}
 \description{
 \code{synteny} synteny
 
-\code{synteny} synteny
+\code{synteny} The main engine to call syntenic blocks and regions
 
-\code{find_selfSyn} find_selfSyn
+\code{find_selfSyn} Self hits where genes are array reps are the anchors.
+Also pulls all inbuffer hits around the anchors
 
-\code{split_ovlBlks} split_ovlBlks
+\code{split_ovlBlks} Where syntenic blocks overlap, converts overlapping
+regions into RLE and splits accordingly.
 
-\code{find_initialAnchors} find_initialAnchors
+\code{find_initialAnchors} First synteny round to find initial anchors
 
-\code{find_synRegions} find_synRegions
+\code{find_synRegions} Second synteny step to find large regions of synteny
 
-\code{find_synBlks} find_synBlks
+\code{find_synBlks} Third synteny step, flagging collinear anchors within
+large syntenic regions.
 
-\code{ggdotplot_blkRegs} ggdotplot_blkRegs
+\code{ggdotplot_blkRegs} ggplot2 integrated graphics to produce dotplots
 }
 \details{
-info here
+Details coming soon.
 }

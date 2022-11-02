@@ -1,8 +1,16 @@
 # This is **beta** version 1.0.0 of the GENESPACE R package. **USE WITH CAUTION** 
 
-## 1. Quick start 
+There are a couple known issues in this version that we are actively working on. These will be addressed prior to v1.0.1 release in late 2022: 
 
-There are some big changes here compared to v0.9.4 (previous release), see section 2 below. v1.0.0 really is a beta release. There are some known issues that will be resolved before the first full v1.0.1 release, and probably some bugs will come up. If you use this beta version (thanks!), please report any problems you run into and we will address them ASAP. 
+- including the orthofinder species tree to order the genomes in riparian plots. Copying and ladderization of tree will be available to users with `ape` installed. 
+- better parameterization to accomodate highly variable genome sizes in riparian plots
+- parallelization of synteny (and other functions). Currently only a few aspects of GENESPACE v1 are parallelized. This will make things much slower. 
+- issues with multiple-overlapping blocks in riparian plot when the reference genome is polyploid. 
+- examples in the documentation and example data for documentation are not included. 
+
+There are some big changes here compared to v0.9.4 (previous release), see section 2 below. If you use this beta version, thanks! Your testing will help improve this and future releases. Please report any problems you run into and we will address them ASAP. 
+
+## 1. Quick start 
 
 The manuscript describing GENESPACE is now pubished in eLife. [Find the article here](https://elifesciences.org/articles/78526). Please cite this if you use GENESPACE. 
 

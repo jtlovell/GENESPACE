@@ -2,23 +2,28 @@
 % Please edit documentation in R/convert_input2v1.R
 \name{convert_input2v1}
 \alias{convert_input2v1}
-\title{convert_input2v1}
+\title{Convert input data formats}
 \usage{
 convert_input2v1(existingDir, v1Dir)
 }
 \arguments{
-\item{existingDir}{A}
+\item{existingDir}{character string coercible to a file.path, pointing to an
+existing GENESPACE <= v0.9.4 run.}
 
-\item{v1Dir}{A}
+\item{v1Dir}{character string coercible to a file.path, pointing to a
+directory where you want to run GENESPACE >=v1.0.0}
 }
 \value{
 nothing
 }
 \description{
-\code{convert_input2v1} xxx
+\code{convert_input2v1} Takes an existing GENESPACE <= v0.9.4 run, converts
+file formats and copies to a new directory which can be used for GENESPACE >=
+v1.0.0.
 }
 \details{
-T...
+Directly copies the peptide fasta files and required orthofinder
+files. Converts the 1-indexed gff to 0-indexed bed file and re-names them.
 }
 \examples{
 \dontrun{

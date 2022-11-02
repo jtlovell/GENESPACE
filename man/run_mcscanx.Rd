@@ -7,33 +7,29 @@
 run_mcscanx(hits, blkSize, nGaps, tmpDir, MCScanX_hCall)
 }
 \arguments{
-\item{hits}{hits}
+\item{hits}{an annotated blast hits data.table.}
 
-\item{blkSize}{integer of length 1, specifying the -s param to mcscanx}
+\item{blkSize}{integer of length 1, specifying the -s param to MCScanX_h}
 
-\item{nGaps}{integer of length 1, specifying the -m param to mcscanx
-for the primary MCScanX run. This acts on the results from the initial
-MCScanX run.}
+\item{nGaps}{integer of length 1, specifying the -m param to MCScanX_h}
 
-\item{tmpDir}{tmpDir}
+\item{tmpDir}{file.path to the temporary directory where MCScanX_h should
+be run.}
 
-\item{MCScanX_hCall}{MCScanX_hCall}
+\item{MCScanX_hCall}{file.path pointing to the MCScanX_h executable}
 }
 \value{
-xxx
-\enumerate{
-\item xxx
-}
+a named vector of collinear block IDs, labeled as 'geneID1 geneID2'.
 }
 \description{
 \code{run_mcscanx} run_mcscanx
 }
 \details{
-xxx
+runs MCScanX_h
 }
 \examples{
 \dontrun{
-
+# coming soon.
 }
 
 }

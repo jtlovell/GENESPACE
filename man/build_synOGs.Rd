@@ -5,7 +5,7 @@
 \alias{pull_synOgs}
 \alias{pull_inblkOgs}
 \alias{run_orthofinderInBlk}
-\title{build_synOGs}
+\title{construct syntenic orthogroups from pairwise blast}
 \usage{
 build_synOGs(gsParam)
 
@@ -16,25 +16,32 @@ pull_inblkOgs(gsParam, overwrite = FALSE, onlyInBuffer = TRUE)
 run_orthofinderInBlk(gsParam, genome1, genome2, overwrite)
 }
 \arguments{
-\item{gsParam}{A list of genespace parameters. This should be created
-by init_genespace.}
+\item{gsParam}{A list of genespace parameters created by init_genespace.}
 
-\item{genome1}{xx}
+\item{onlyInBuffer}{logical, should only inbuffer hits be retained?}
 
-\item{hits}{data.table containing the blast hits, also stored in /synHits
+\item{overwrite}{logical, should results be overwritten?
 \cr
 If called, \code{build_synOGs} returns its own arguments.}
+
+\item{genome1}{character string specifying the first genome to analyze}
+
+\item{genome2}{character string specifying the second genome to analyze}
 }
 \description{
-\code{build_synOGs} build_synOGs
+\code{build_synOGs} integrates many pairwise results from synteny into
+vectors of syntenic orthogroups. Also can re-run orthofinder within blocks
+and re-calculate orthogroups from those results.
 
-\code{run_orthofinderInBlk} run_orthofinderInBlk
+\code{build_synOGs} main function to aggregate syntenic orthogroups into a
+single vector
 
-\code{run_orthofinderInBlk} run_orthofinderInBlk
+\code{pull_synOgs} engine to pull pairwise hits in syntenic orthogroups
 
-\code{pull_inblkOgs} pull_inblkOgs
+\code{pull_inblkOgs} Loop through the pairwise combination of genomes and
+run orthofinderInBlk
 
-\code{run_orthofinderInBlk} run_orthofinderInBlk
+\code{run_orthofinderInBlk} Main engine to run orthofinder in blocks
 }
 \details{
 info here

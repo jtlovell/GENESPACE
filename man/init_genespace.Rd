@@ -107,7 +107,8 @@ mode run within orthofinder should be --more-sensitive (default, FALSE) or
 \item{nCores}{integer of length 1 specifying the number of parallel processes
 to run}
 
-\item{maxOgPlaces}{xxxx}
+\item{maxOgPlaces}{integer of length 1, specifying the max number of unique
+placements that an orthogroup can have before being excluded from synteny}
 
 \item{blkSize}{integer of length 1, specifying the -s param to mcscanx}
 
@@ -120,12 +121,14 @@ to consider a hit syntenic. This parameter is also used to limit the search
 radius in dbscan-based blk calculation. Larger values will return larger
 tandem arrays but also may permit inclusion of spurious non-syntenic networks}
 
-\item{arrayJump}{xxxx}
+\item{arrayJump}{integer of length 1, specifying the maximum distance in
+gene rank order between two genes in the same tandem array}
 
 \item{onlyOgAnchors}{logical, should only hits in orthogroups be considered
 for anchors?}
 
-\item{nSecondaryHits}{xxxx}
+\item{nSecondaryHits}{integer of length 1, specifying the number of
+secondary hits to look for after masking the primary syntenic regions}
 
 \item{nGapsSecond}{see nGaps, but passed to secondary hits after masking
 primary hits.}
@@ -148,7 +151,7 @@ construction of secondary hits.}
 
 \item{speciesIDs}{deprecated in V1. See `parse_annotations`.}
 
-\item{minPepLen}{xxxx}
+\item{minPepLen}{deprecated in V1. All genes in the peptide fasta are used.}
 
 \item{versionIDs}{deprecated in V1. See `parse_annotations`.}
 
@@ -179,7 +182,7 @@ annotation and assembly files.
 }
 \examples{
 \dontrun{
-
+# coming soon
 }
 
 }

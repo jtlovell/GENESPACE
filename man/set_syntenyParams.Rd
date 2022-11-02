@@ -17,7 +17,9 @@ annotate_blast(gsParam)
 by init_genespace.}
 
 \item{overwrite}{logical, should the combBed.txt and synHits be re-generated
-if they exist. Default is FALSE.
+if they exist. Default is FALSE.}
+
+\item{verbose}{logical, should updates be printed to the console?
 
 \cr
 If called, \code{set_syntenyParams} returns its own arguments.}
