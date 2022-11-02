@@ -413,6 +413,7 @@ find_gsResults <- function(genomeIDs = NULL,
       ofPaths$SequenceIDs <- file.path(resultsDir, "SequenceIDs.txt")
       ofPaths$ogs <- file.path(resultsDir, "Orthogroups.tsv")
       ofPaths$hogs <- file.path(resultsDir, "N0.tsv")
+      ofPaths$speciesTree <- file.path(resultsDir, "SpeciesTree_rooted.txt")
       ofPaths$blast <- blMd
     }
   }
@@ -433,7 +434,7 @@ copy_of2results <- function(orthofinderDir, resultsDir, genomeIDs){
   ofFiles <- find_ofFiles(ofDir)
 
   # -- copy the single files to the parent results dir
-  tmp <- unlist(ofFiles[c("SpeciesIDs", "SequenceIDs", "ogs", "hogs")])
+  tmp <- unlist(ofFiles[c("SpeciesIDs", "SequenceIDs", "ogs", "hogs", "speciesTree")])
   tmp <- tmp[!is.na(tmp)]
   tmp <- tmp[file.exists(tmp)]
   nu <- file.copy(unlist(tmp), resDir)

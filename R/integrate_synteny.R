@@ -179,18 +179,18 @@ integrate_synteny <- function(gsParam){
 
   ##############################################################################
   # 2. for each pair of genomes, do linear interpolation, save output
-  cat("\t##############\n\t5.1 Linear interpolation of syntenic positions ... \n")
+  cat("\t##############\n\tLinear interpolation of syntenic positions ... \n")
   gsParam <- interp_synPos(gsParam)
   md <- data.table(gsParam$annotBlastMd)
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
 
   ##############################################################################
   # 3. Aggregate interpolated positions across all hits to each genome
-  cat("\t##############\n\t5.2 Aggregating positions across genomes ...")
+  cat("\t##############\n\tAggregating positions across genomes ...")
   interpChrs <- aggregate_synpos(bed = bed, md = md)
 
   # 3. For each genome, calculate block coordinates
-  cat("Done!\n\t##############\n\t5.3 Splitting syntenic block coordinates by ref. chr. ... ")
+  cat("Done!\n\t##############\n\tSplitting syntenic block coordinates by ref. chr. ... ")
 
   # -- 3.1 organize the interpolated positions for a merge
   # spFile <- file.path(gsParam$paths$pangenome, sprintf(
