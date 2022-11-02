@@ -66,7 +66,7 @@ plot_riparian <- function(
     chrLengths = NULL,
     faidir = NULL,
     blockCoords = NULL,
-    gapProp = 0.01,
+    gapProp = 0.005,
     minBlkSize = 10,
     pdfFile = NULL,
     chrFill = "white",
