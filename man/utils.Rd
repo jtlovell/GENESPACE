@@ -37,6 +37,7 @@
 \alias{write_synBlast}
 \alias{add_alpha}
 \alias{read_intSynPos}
+\alias{write_intSynPos}
 \title{Generic internal functions used by genespace}
 \usage{
 .onAttach(...)
@@ -127,6 +128,8 @@ write_synBlast(x, filepath)
 add_alpha(col, alpha = 1)
 
 read_intSynPos(filepath)
+
+write_intSynPos(x, filepath)
 }
 \arguments{
 \item{x}{single-value parameter, string, integer, numeric, list, vector}
@@ -255,6 +258,8 @@ runs or the unique run ids.
 \code{write_synBlast} ensures consistent synHit IO
 
 \code{add_alpha} add transparency to a color
+
+\code{read_intSynPos} read interpolated syntenic position files
 
 \code{read_intSynPos} read interpolated syntenic position files
 }

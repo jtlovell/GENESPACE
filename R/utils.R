@@ -881,3 +881,16 @@ read_intSynPos <- function(filepath){
     colClasses = hclass, showProgress = F)
   return(synpos)
 }
+
+#' @title read integratedSynPos
+#' @description
+#' \code{read_intSynPos} read interpolated syntenic position files
+#' @rdname utils
+#' @export
+write_intSynPos <- function(x, filepath){
+  hnames <- c("genome", "ofID", "chr", "ord", "og", "interpGenome",
+              "interpChr", "interpOrd", "isAnchor")
+  x <- x[,hnames, with = F]
+  fwrite(x, file = filepath, showProgress = F, quote = F, sep = "\t")
+}
+

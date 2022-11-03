@@ -131,7 +131,7 @@ integrate_synteny <- function(gsParam){
   aggregate_synpos <- function(md, bed){
 
     query <- target <- genome <- isArrayRep <- chr  <- ord <- interpChr <- NULL
-
+    md <- md
     gids <- with(md, unique(c(query, target)))
     interpChrs <- rbindlist(lapply(gids, function(i){
 
@@ -141,8 +141,8 @@ integrate_synteny <- function(gsParam){
 
       # -- 2.2 read in the interpolated positions (stored in the tmp dir)
       interps <- rbindlist(lapply(which(!is.na(mds$interPosFile)), function(j)
-        read_intSynPos(mds$interPosFile[j])))
-
+        if(file.exists(mds$interPosFile[j]))
+          read_intSynPos(mds$interPosFile[j])))
 
       # -- 2.3 match the interpolated and bed columns
       beda <- subset(beds, isArrayRep)[,c("genome", "ofID", "chr", "ord", "og")]
@@ -438,7 +438,7 @@ interp_synPos <- function(gsParam){
       spFile <- file.path(gsParam$paths$tmp, sprintf(
         "%s_vs_%s.interpSynPos.txt", g1, g2))
       md$interPosFile[i] <- spFile
-      fwrite(synPos, file = spFile, sep = "\t", quote = FALSE)
+      write_intSynPos(x = synPos, filepath = spFile)
     }
   }
   gsParam$annotBlastMd <- md

@@ -64,7 +64,6 @@ synteny <- function(gsParam, verbose = TRUE){
   # -- loop through the metadata
   blMdOut <- rbindlist(lapply(1:nrow(blMd), function(i){
     x <- blMd[i,]
-    print(x)
     hits <- read_synHits(x$annotBlastFile)
     queryGenome <- hits$genome1[1]
     targetGenome <- hits$genome2[1]
