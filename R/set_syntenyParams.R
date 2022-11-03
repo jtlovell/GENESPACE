@@ -569,7 +569,8 @@ annotate_blast <- function(gsParam){
     bl[,`:=`(og1 = NULL, og2 = NULL, noAnchor1 = NULL, noAnchor2 = NULL)]
     cat(sprintf(", same og = %s\n", sum(bl$sameOg)))
 
-    bl[,`:=`(isAnchor = NA, inBuffer = NA, regID = NA, blkID = NA, lgBlkID = NA)]
+    bl[,`:=`(isAnchor = NA, inBuffer = NA, regID = NA,
+             blkID = NA, lgBlkID = NA, sameInblkOg = NA)]
     blf <- file.path(
       gsParam$paths$syntenicHits,
       sprintf("%s_vs_%s.synBlast.txt.gz", synMd$query[i], synMd$target[i]))

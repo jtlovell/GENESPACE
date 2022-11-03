@@ -64,11 +64,14 @@ synteny <- function(gsParam, verbose = TRUE){
   # -- loop through the metadata
   blMdOut <- rbindlist(lapply(1:nrow(blMd), function(i){
     x <- blMd[i,]
+    print(x)
     hits <- read_synHits(x$annotBlastFile)
+    queryGenome <- hits$genome1[1]
+    targetGenome <- hits$genome2[1]
     cat("\t...", x$lab)
     ############################################################################
     # 1. intragenomic hits
-    if(x$query == x$target){
+    if(queryGenome == targetGenome){
       hits <- find_selfSyn(
         hits = hits, synRad = x$synRad)
 

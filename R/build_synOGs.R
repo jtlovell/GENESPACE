@@ -27,7 +27,7 @@ build_synOGs <- function(gsParam){
 
   # -- read in the combined bed file
   bedFile <- file.path(gsParam$paths$results, "combBed.txt")
-  bed <- fread(bedFile, na.strings = c("", "NA"), showProgress = F)
+  bed <- read_combBed(bedFile)
 
   cat("\t##############\n\tAggregating syntenic orthogroups ... ")
   ofID <- ofID1 <- ofID2 <- synOG <- NULL
@@ -153,21 +153,22 @@ run_orthofinderInBlk <- function(gsParam,
   # -- 1. Get the data read in
   ########
   # -- 1.1 parse the annotated blast metadata
+
   md <- data.table(gsParam$annotBlastMd)
   x <- subset(md, query == genome1 & target == genome2)
+
   if(nrow(x) == 0){
     tmp <- genome2
     genome2 <- genome1
     genome1 <- tmp
   }
+
   if(nrow(x) > 1)
     stop(sprintf("genome1: %s and genome2: %s are not unique in gsParam\n",
                  genome1, genome2))
-
   ########
   # 1.2 read in and parse the annotated blast file
-  allBlast <- fread(
-    x$annotBlastFile, showProgress = F, na.strings = c("NA", ""))
+  allBlast <- read_synHits(x$annotBlastFile)
 
   # -- add unique identifier to geneIDs (in case of intragenomic)
   allBlast[,`:=`(ofID1 = sprintf("%s_g1", ofID1),
@@ -186,7 +187,8 @@ run_orthofinderInBlk <- function(gsParam,
   }else{
     # -- make a new variable `rid` that is a unique regionID vector
     sb01[,rid := sprintf("reg%s", as.numeric(as.factor(regID)))]
-
+    targetGenome <- sb01$genome2[1]
+    queryGenome <- sb01$genome1[1]
     # -- subset to only regions with enough genes in each genome
     sb01[,`:=`(uid1 = uniqueN(ofID1), uid2 = uniqueN(ofID2)), by = "rid"]
     sb01 <- subset(sb01, uid1 >= 40 & uid2 >= 40)
@@ -198,9 +200,9 @@ run_orthofinderInBlk <- function(gsParam,
     ########
     # -- 1.3 read in and parse the peptides
     peps0 <- read_aaFasta(file.path(
-      gsParam$paths$peptide, sprintf("%s.fa", x$query)))
+      gsParam$paths$peptide, sprintf("%s.fa", queryGenome)))
     peps1 <- read_aaFasta(file.path(
-      gsParam$paths$peptide, sprintf("%s.fa", x$target)))
+      gsParam$paths$peptide, sprintf("%s.fa", targetGenome)))
 
     # -- subset peptides to only genes in the hits
     peps0 <- peps0[unique(sb01$id1)]
@@ -219,13 +221,13 @@ run_orthofinderInBlk <- function(gsParam,
     setnames(bl10, blNames)
 
     # -- if self hits, just re-name
-    if(x$query == x$target){
+    if(targetGenome == queryGenome){
       bl00 <- data.table(bl01)
       bl11 <- data.table(bl10)
     }else{
       # -- if not, read in and parse the intragenomic files
-      p0md <- subset(md, query == target & query == x$query)
-      p1md <- subset(md, query == target & query == x$target)
+      p0md <- subset(md, query == target & query == queryGenome)
+      p1md <- subset(md, query == target & query == targetGenome)
       bl00 <- fread(
         p0md$annotBlastFile, showProgress = F, na.strings = c("NA", ""),
         select = blNames[1:12])
@@ -370,8 +372,6 @@ run_orthofinderInBlk <- function(gsParam,
   # -- 3.5 write the blast file, with the new column `sameInblkOg`
   allBlast[,`:=`(ofID1 = gsub("_g1$", "", ofID1),
                  ofID2 = gsub("_g2$", "", ofID2))]
-  fwrite(
-    allBlast, file = x$annotBlastFile,
-    quote = F, sep = "\t", showProgress = FALSE)
+  write_synBlast(allBlast, filepath = x$annotBlastFile)
   return(allBlast)
 }

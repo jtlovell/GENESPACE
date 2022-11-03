@@ -141,7 +141,7 @@ integrate_synteny <- function(gsParam){
 
       # -- 2.2 read in the interpolated positions (stored in the tmp dir)
       interps <- rbindlist(lapply(which(!is.na(mds$interPosFile)), function(j)
-        fread(mds$interPosFile[j], na.strings = c("NA", ""))))
+        read_intSynPos(mds$interPosFile[j])))
 
 
       # -- 2.3 match the interpolated and bed columns
@@ -210,7 +210,8 @@ integrate_synteny <- function(gsParam){
       na.strings = c("", "NA"),
       select = c("ofID1", "chr1", "start1", "end1", "ord1", "genome1",
                  "ofID2", "chr2", "start2", "end2", "ord2", "genome2",
-                 "isAnchor", "lgBlkID")),
+                 "isAnchor", "lgBlkID"),
+      showProgress = FALSE),
       isAnchor & !is.na(lgBlkID))
 
     # -- merge with interp via genome1
@@ -237,10 +238,10 @@ integrate_synteny <- function(gsParam){
   blkComb <- subset(blkComb, !duplicated(blkComb))
   fwrite(
     rawBlks, file = file.path(gsParam$paths$results, "blkCoords.txt"),
-    sep = "\t", quote = FALSE)
+    sep = "\t", quote = FALSE, showProgress = FALSE)
   fwrite(
     blkComb, file = file.path(gsParam$paths$riparian, "refPhasedBlkCoords.txt"),
-    sep = "\t", quote = FALSE)
+    sep = "\t", quote = FALSE, showProgress = FALSE)
   cat("Done!\n")
   return(gsParam)
 }

@@ -814,12 +814,12 @@ read_synHits <- function(filepath){
     "ofID2", "chr2", "start2", "end2", "id2", "ord2", "genome2", "isArrayRep2",
     "pid", "length", "mismatches", "gapopenings", "queryStart", "queryEnd",
     "subjectStart", "subjectEnd", "Evalue", "bitScore", "sameOg", "noAnchor",
-    "isAnchor", "inBuffer", "regID", "blkID", "lgBlkID")
+    "isAnchor", "inBuffer", "regID", "blkID", "lgBlkID", "sameInblkOg")
   cl <- c("numeric", "character", "logical")
   chk <- strsplit(readLines(filepath, 1), "\t")[[1]]
   if(!identical(chk, hnames))
     stop("synhits.txt file is malformed\n")
-  hc <- cl[c(2,2,1,1,2,1,2,3,2,2,1,1,2,1,2,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,2,2,2)]
+  hc <- cl[c(2,2,1,1,2,1,2,3,2,2,1,1,2,1,2,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,2,2,2,3)]
   hits <- fread(
     filepath, na.strings = c("", "NA"), select = hnames,
     colClasses = hc, showProgress = F)
@@ -837,7 +837,7 @@ write_synBlast <- function(x, filepath){
     "ofID2", "chr2", "start2", "end2", "id2", "ord2", "genome2", "isArrayRep2",
     "pid", "length", "mismatches", "gapopenings", "queryStart", "queryEnd",
     "subjectStart", "subjectEnd", "Evalue", "bitScore", "sameOg", "noAnchor",
-    "isAnchor", "inBuffer", "regID", "blkID", "lgBlkID")
+    "isAnchor", "inBuffer", "regID", "blkID", "lgBlkID", "sameInblkOg")
   if(!all(hnames %in% colnames(x)))
     stop("synhits data.table is malformed\n")
   x <- x[,hnames, with = F]
