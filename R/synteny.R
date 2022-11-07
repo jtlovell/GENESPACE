@@ -67,6 +67,10 @@ synteny <- function(gsParam, verbose = TRUE){
     hits <- read_synHits(x$annotBlastFile)
     queryGenome <- hits$genome1[1]
     targetGenome <- hits$genome2[1]
+
+    targetPloidy <- gsParam$ploidy[targetGenome]
+    queryPloidy <- gsParam$ploidy[queryGenome]
+
     cat("\t...", x$lab)
     ############################################################################
     # 1. intragenomic hits
@@ -83,8 +87,8 @@ synteny <- function(gsParam, verbose = TRUE){
           hits = hitsMask,
           nGaps = x$nGaps,
           blkSize = x$blkSize,
-          topn1 = x$ploidy2 - 1,
-          topn2 = x$ploidy1 - 1,
+          topn1 = targetPloidy - 1,
+          topn2 = queryPloidy - 1,
           MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
           tmpDir = gsParam$paths$tmp,
           onlyOgAnchors = x$onlyOgAnchors)
@@ -112,8 +116,8 @@ synteny <- function(gsParam, verbose = TRUE){
         hits = hits,
         nGaps = x$nGaps,
         blkSize = x$blkSize,
-        topn1 = x$ploidy2,
-        topn2 = x$ploidy1,
+        topn1 = targetPloidy,
+        topn2 = queryPloidy,
         MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
         tmpDir = gsParam$paths$tmp,
         onlyOgAnchors = x$onlyOgAnchors)
@@ -143,8 +147,8 @@ synteny <- function(gsParam, verbose = TRUE){
         hits = hitsMask,
         nGaps = x$nGapsSecond,
         blkSize = x$blkSizeSecond,
-        topn1 = x$ploidy2 * x$nSecondaryHits,
-        topn2 = x$ploidy1 * x$nSecondaryHits,
+        topn1 = targetPloidy * x$nSecondaryHits,
+        topn2 = queryPloidy * x$nSecondaryHits,
         MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
         tmpDir = gsParam$paths$tmp,
         onlyOgAnchors = x$onlyOgAnchors)
@@ -167,7 +171,7 @@ synteny <- function(gsParam, verbose = TRUE){
     }
     x[,`:=`(
       nRegionHits = sum(!is.na(hits$regID)),
-      nRegions =uniqueN(hits$regID, na.rm = T),
+      nRegions = uniqueN(hits$regID, na.rm = T),
       nAnchorHits = sum(hits$isAnchor),
       nBlks = uniqueN(hits$lgBlkID, na.rm = T),
       nSVs = uniqueN(hits$lgBlkID, na.rm = T) -
@@ -255,6 +259,7 @@ split_ovlBlks <- function(hits,
         blkID <- ofID1 <- ofID2 <- sameOg <- n <- rl <- newblkID <- NULL
         hs <- rbind(h1, h2)
         setkey(hs, ord1, ord2)
+        if(nrow(hs))
         hs[,rl := add_rle(blkID, which = "id")]
         if(dropSmallNonOGBlks){
           hs[,`:=`(nOgHits = sum(sameOg),
@@ -380,6 +385,7 @@ find_synRegions <- function(hits,
                             nGaps,
                             synRad,
                             tmpDir,
+                            onlyOgAnchors,
                             MCScanX_hCall){
 
   # -- 1 potential anchors are all hits that are not `noAnchor`
@@ -398,6 +404,9 @@ find_synRegions <- function(hits,
     return(subset(x, 1:nrow(x) %in% wh)[,c("ofID1", "ofID2")])
   })), paste(ofID1, ofID2))
   tmp <- subset(tmp, paste(ofID1, ofID2) %in% ofInBuff)
+  sameOg <- NULL
+  if(onlyOgAnchors)
+    tmp <- subset(tmp, sameOg)
 
   # -- 3 run mcscanx
   tmp <- tmp[,c("ofID1", "ofID2", "chr1", "chr2", "ord1", "ord2", "bitScore")]

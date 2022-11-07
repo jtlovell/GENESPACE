@@ -27,7 +27,15 @@ find_initialAnchors(
   MCScanX_hCall
 )
 
-find_synRegions(hits, blkSize, nGaps, synRad, tmpDir, MCScanX_hCall)
+find_synRegions(
+  hits,
+  blkSize,
+  nGaps,
+  synRad,
+  tmpDir,
+  onlyOgAnchors,
+  MCScanX_hCall
+)
 
 find_synBlks(hits, blkSize, inBufferRadius, dropSmallNonOGBlks, maxIter)
 
