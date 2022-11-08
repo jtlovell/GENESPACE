@@ -6,14 +6,7 @@
 \alias{annotate_blast}
 \title{Set synteny parameters and parse required data}
 \usage{
-set_syntenyParams(
-  gsParam,
-  overwrite = FALSE,
-  verbose = TRUE,
-  plotSize = 8,
-  dotsPerIn = 64,
-  makePlots = TRUE
-)
+set_syntenyParams(gsParam, overwrite = FALSE, verbose = TRUE)
 
 annotate_bed(gsParam)
 

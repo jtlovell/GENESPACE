@@ -67,10 +67,7 @@
 #' @export
 set_syntenyParams <- function(gsParam,
                               overwrite = FALSE,
-                              verbose = TRUE,
-                              plotSize = 8,
-                              dotsPerIn = 64,
-                              makePlots = TRUE){
+                              verbose = TRUE){
 
   # -- if there is not combined bed file, make it
   bedFile <- file.path(gsParam$paths$results, "combBed.txt")
@@ -96,10 +93,7 @@ set_syntenyParams <- function(gsParam,
   if(("annotBlastMd" %in% names(gsParam) && overwrite) ||
      !"annotBlastMd" %in% names(gsParam))
     gsParam <- annotate_blast(
-      gsParam = gsParam,
-      plotSize = plotSize,
-      dotsPerIn = dotsPerIn,
-      makePlots = makePlots)
+      gsParam = gsParam)
 
   # -- add ploidy
   ploidy1 <- ploidy2 <- query <- target <- synBuff <- NULL
