@@ -43,6 +43,7 @@
 #' @import data.table
 #' @import R.utils
 #' @importFrom dbscan dbscan frNN
+#' @importFrom parallel mclapply
 #' @export
 synteny <- function(gsParam, verbose = TRUE){
   ##############################################################################

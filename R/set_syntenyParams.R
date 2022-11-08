@@ -749,7 +749,7 @@ annotate_blast <- function(gsParam,
 
     if(makePlots){
       cat("Done! Making plots ... ")
-      tmp <- lapply(1:length(out), function(i){
+      tmp <- mclapply(1:length(out), mc.cores = nCores, function(i){
         pdf(out[[i]]$md$dotplotFile,
             height = out[[i]]$md$pltHt,
             width = out[[i]]$md$pltWt)

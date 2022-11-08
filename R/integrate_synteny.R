@@ -252,6 +252,7 @@ integrate_synteny <- function(gsParam){
 #' position of its neighbors
 #' @rdname integrate_synteny
 #' @import data.table
+#' @importFrom parallel mclapply
 #' @export
 interp_synPos <- function(gsParam){
 
