@@ -564,7 +564,7 @@ annotate_blast <- function(gsParam){
 
     if(nCores > 1)
       cat(sprintf(
-        "\t# Chunk %s / %s (%s) ... ",
+        "\t# Chunk %s / %s (%s) ... \n",
         chnki, max(synMd$chunk), format(Sys.time(), "%X")))
 
     chnk <- data.table(synMdSpl[[chnki]])
