@@ -649,8 +649,8 @@ annotate_blast <- function(gsParam,
                             sprintf("%s_vs_%s.rawHits.pdf",
                                     chnk$query[i], chnk$target[i]))
         # pdf(dpFile, height = ht, width = wd*1.07)
-        hits[,ngene1 := uniqueN(ofID1), by = "chr1"]
-        hits[,ngene2 := uniqueN(ofID2), by = "chr2"]
+        hits[,ngene1 := uniqueN(ofID1[!noAnchor & isArrayRep1]), by = "chr1"]
+        hits[,ngene2 := uniqueN(ofID2[!noAnchor & isArrayRep2]), by = "chr2"]
         hc <- subset(hits, sameOg & ngene1 > 50 & ngene2 > 50)
         hc <- hc[,list(n = .N), by = c("chr1", "chr2", "rnd1", "rnd2")]
         setorder(hc, -n)
