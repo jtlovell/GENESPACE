@@ -348,7 +348,6 @@ interp_synPos <- function(gsParam){
     anch[,anySelf := any(ofID1 == ofID2), by = "blkID"]
     anch <- subset(anch, !anySelf)
     if(nrow(anch) < blkSize){
-      cat("no non-self blocks found, skipping interpolation\n")
       return(NULL)
     }else{
       splAnch <- split(anch[,c("ofID1", "ofID2", "blkID")], by = "blkID")
@@ -426,9 +425,10 @@ interp_synPos <- function(gsParam){
   blMdOut <- rbindlist(lapply(1:length(synMdSpl), function(chnki){
     chnk <- data.table(synMdSpl[[chnki]])
 
-    cat(sprintf(
-      "\t# Chunk %s / %s (%s) ... \n",
-      chnki, max(md$chunk), format(Sys.time(), "%X")))
+    if(nCores > 1)
+      cat(sprintf(
+        "\t# Chunk %s / %s (%s) ... \n",
+        chnki, max(md$chunk), format(Sys.time(), "%X")))
 
     outChnk <- rbindlist(mclapply(1:nrow(chnk), mc.cores = nCores, function(i){
       g1 <- chnk$query[i]

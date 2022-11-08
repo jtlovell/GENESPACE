@@ -17,7 +17,7 @@ set_syntenyParams(
 
 annotate_bed(gsParam)
 
-annotate_blast(gsParam, plotSize = 8, dotsPerIn = 64, makePlots = TRUE)
+annotate_blast(gsParam)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created

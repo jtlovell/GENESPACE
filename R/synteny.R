@@ -65,7 +65,12 @@ synteny <- function(gsParam, verbose = TRUE){
 
   # split the metadata into chunks
   blMd[,selfOnly := query == target & ploidy1 == 1 & ploidy2 == 1]
-  setorder(blMd, -selfOnly, -totalHits, -sameOgHits)
+  if("oHits" %in% colnames(blMd)){
+    setorder(blMd, -selfOnly, -oHits, -tHits)
+  }else{
+    blMd[, size := file.size(annotBlastFile)]
+    setorder(blMd, -selfOnly, -size)
+  }
 
   nCores <- gsParam$params$nCores
   blMd[,chunk := rep(1:.N, each = nCores)[1:.N]]
@@ -77,9 +82,10 @@ synteny <- function(gsParam, verbose = TRUE){
   blMdOut <- rbindlist(lapply(1:length(synMdSpl), function(chnki){
     chnk <- data.table(synMdSpl[[chnki]])
 
-    cat(sprintf(
-      "\t# Chunk %s / %s (%s) ... \n",
-      chnki, max(blMd$chunk), format(Sys.time(), "%X")))
+    if(nCores > 1)
+      cat(sprintf(
+        "\t# Chunk %s / %s (%s) ... \n",
+        chnki, max(blMd$chunk), format(Sys.time(), "%X")))
 
     outChnk <- rbindlist(mclapply(1:nrow(chnk), mc.cores = nCores, function(i){
       x <- chnk[i,]
@@ -190,23 +196,21 @@ synteny <- function(gsParam, verbose = TRUE){
           blkSize = x$blkSizeSecond)
         hits <- rbind(subset(hits, !is.na(regID)), hitsMask)
       }
-      x[,`:=`(
-        nRegionHits = sum(!is.na(hits$regID)),
-        nRegions = uniqueN(hits$regID, na.rm = T),
-        nAnchorHits = sum(hits$isAnchor),
-        nBlks = uniqueN(hits$lgBlkID, na.rm = T),
-        nSVs = uniqueN(hits$lgBlkID, na.rm = T) -
-          uniqueN(paste(hits$chr1, hits$chr2)[!is.na(hits$lgBlkID)]))]
 
       nRegionHits <- nRegions <- nAnchorHits <- nBlks <- nSVs <- NULL
 
-      # ggdotplot_blkRegs(
-      #   hits = hits,
-      #   outDir = gsParam$paths$dotplots,
-      #   appendName = "synHits")
+      out <- with(hits, data.table(
+        lab = chnk$lab[i],
+        nRegionHits = sum(!is.na(regID)),
+        nRegions = uniqueN(regID, na.rm = T),
+        nAnchorHits = sum(isAnchor),
+        nBlks = uniqueN(lgBlkID, na.rm = T),
+        nSVs = uniqueN(lgBlkID, na.rm = T) -
+          uniqueN(paste(chr1, chr2)[!is.na(lgBlkID)])))
+      out <- data.table(x, out)
 
       write_synBlast(x = hits, filepath = x$annotBlastFile)
-      return(x)
+      return(out)
     }))
 
     with(outChnk, cat(sprintf(

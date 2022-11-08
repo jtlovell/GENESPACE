@@ -73,7 +73,6 @@ build_synOGs <- function(gsParam){
 #' @import data.table
 #' @export
 pull_synOgs <- function(gsParam, onlyInBuffer = TRUE){
-
   regID <- sameOg <- sameInblkOg <- inBuffer <- NULL
   ##############################################################################
   # -- 1. Get metadata together

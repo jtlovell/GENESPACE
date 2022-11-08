@@ -500,10 +500,7 @@ annotate_bed <- function(gsParam){
 #' @importFrom grDevices pdf dev.off rgb
 #' @importFrom parallel mclapply
 #' @export
-annotate_blast <- function(gsParam,
-                           plotSize = 8,
-                           dotsPerIn = 64,
-                           makePlots = TRUE){
+annotate_blast <- function(gsParam){
   ##############################################################################
   # 1. Build the blast file metadata
 
@@ -565,9 +562,10 @@ annotate_blast <- function(gsParam,
 
   outmd <- rbindlist(lapply(1:length(synMdSpl), function(chnki){
 
-    cat(sprintf(
-      "\t# Chunk %s / %s (%s) ... ",
-      chnki, max(synMd$chunk), format(Sys.time(), "%X")))
+    if(nCores > 1)
+      cat(sprintf(
+        "\t# Chunk %s / %s (%s) ... ",
+        chnki, max(synMd$chunk), format(Sys.time(), "%X")))
 
     chnk <- data.table(synMdSpl[[chnki]])
 
@@ -610,14 +608,13 @@ annotate_blast <- function(gsParam,
         sprintf("%s_vs_%s.synBlast.txt.gz", chnk$query[i], chnk$target[i]))
 
       write_synBlast(bl, filepath = blf)
-      chnk$annotBlastFile[i] <- blf
-      chnk[,`:=`(totalHits = nrow(bl), sameOgHits = sum(bl$sameOg))]
-      return(chnk)
+      return(data.table(
+        query = chnk$query[i], target = chnk$target[i], annotBlastFile = blf,
+        lab = chnk$lab[i], tHits = nrow(bl), oHits = sum(bl$sameOg)))
     }))
 
-    cat("Done!\n")
     with(out, cat(sprintf("\t...%stotal hits = %s, same og = %s\n",
-                           lab, totalHits, sameOgHits)))
+                           lab, tHits, oHits)))
     return(out)
   }))
   gsParam$annotBlastMd <- outmd
