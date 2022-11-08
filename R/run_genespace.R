@@ -149,10 +149,12 @@ run_genespace <- function(gsParam,
   ##############################################################################
   # 7. Build the pan-genome annotations and riparian plots
   # -- loops through each genome and uses that as the reference
+  glab <- align_charLeft(sprintf("%s: ",c("genome", gsParam$genomeIDs)))
+  names(glab) <- c("head", gsParam$genomeIDs)
   cat("\n############################", strwrap(
     "7. Building pan-genome annotations and riparian plots",
     indent = 0, exdent = 8),
-    "\tgenome: n pos. || n array || n NS ortho", sep = "\n")
+    sprintf("\t...%sn pos. || n array || n NS ortho", glab["head"]), sep = "\n")
   for(refi in gsParam$genomeIDs){
     tmp <- plot_riparian(
       gsParam = gsParam, verbose = FALSE, refGenome = refi)
@@ -174,14 +176,14 @@ run_genespace <- function(gsParam,
       gsParam = gsParam, refGenome = refi, verbose = F)
     pgout <- fread(file.path(gsParam$paths$pangenome,
                              sprintf("%s_refPangenomeAnnot.txt", refi)))
-    with(pgout, cat(sprintf("\t... %s: %s || %s || %s\n",
-                            refi, uniqueN(pgID), sum(!isArrayRep & !isNSOrtho), sum(isNSOrtho))))
-
+    with(pgout, cat(sprintf(
+      "\t...%s%s || %s || %s\n",
+      glab[refi], uniqueN(pgID), sum(!isArrayRep & !isNSOrtho), sum(isNSOrtho))))
   }
 
   gpFile <- file.path(gsParam$paths$results, "gsParams.rda")
-  cat("############################", strwrap(sprintf(
-    "GENESPACE run complete! All results are stored in %s in the following subdirectories:",
+  cat("\n############################", strwrap(sprintf(
+    "GENESPACE run complete!\n All results are stored in %s in the following subdirectories:",
     gsParam$paths$wd), indent = 0, exdent = 0),
     "\traw dotplots           : /dotplots (...rawHits.pdf)",
     "\tsyntenic block dotplots: /dotplots (...synHits.pdf)",

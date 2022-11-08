@@ -186,7 +186,7 @@ integrate_synteny <- function(gsParam){
 
   ##############################################################################
   # 3. Aggregate interpolated positions across all hits to each genome
-  cat("\t##############\n\tAggregating positions across genomes ...")
+  cat("\t##############\n\tAggregating positions across genomes ... ")
   interpChrs <- aggregate_synpos(bed = bed, md = md)
 
   # 3. For each genome, calculate block coordinates
@@ -416,31 +416,71 @@ interp_synPos <- function(gsParam){
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
   md[,interPosFile := NA]
 
-  for(i in 1:nrow(md)){
-    cat("\t...", md$lab[i])
-    g1 <- md$query[i]
-    g2 <- md$target[i]
-    hits <- read_synHits(md$annotBlastFile[i])
-    synPos <- interp_hitsPos(
-      hits = subset(hits, ofID1 %in% bedrep$ofID & ofID2 %in% bedrep$ofID),
-      bed = subset(bedrep, genome %in% c(g1, g2)),
-      md = md)
-    if(!is.null(synPos)){
-      synPos[,nPlace := uniqueN(interpOrd, na.rm = T),
-             by = c("ofID", "genome")]
-      synPos$nPlace[synPos$nPlace >= 2] <- "2+"
-      tab <- synPos[,list(n = .N), by = c("genome", "nPlace")]
-      with(tab, cat(sprintf(
-        "1x = %s/%s || 2+x = %s/%s || 0x = %s/%s\n",
-        n[genome == g1 & nPlace == "1"],  n[genome == g2 & nPlace == "1"],
-        n[genome == g1 & nPlace == "2+"],  n[genome == g2 & nPlace == "2+"],
-        n[genome == g1 & nPlace == "0"],  n[genome == g2 & nPlace == "0"])))
-      spFile <- file.path(gsParam$paths$tmp, sprintf(
-        "%s_vs_%s.interpSynPos.txt", g1, g2))
-      md$interPosFile[i] <- spFile
-      write_intSynPos(x = synPos, filepath = spFile)
+  nCores <- gsParam$params$nCores
+  md[,chunk := rep(1:.N, each = nCores)[1:.N]]
+
+  synMdSpl <- split(md, by = "chunk")
+
+  # -- loop through the metadata
+  blMdOut <- rbindlist(lapply(1:length(synMdSpl), function(chnki){
+    chnk <- data.table(synMdSpl[[chnki]])
+
+    cat(sprintf(
+      "\t# Chunk %s / %s (%s) ... \n",
+      chnki, max(md$chunk), format(Sys.time(), "%X")))
+
+    outChnk <- rbindlist(mclapply(1:nrow(chnk), mc.cores = nCores, function(i){
+      g1 <- chnk$query[i]
+      g2 <- chnk$target[i]
+      hits <- read_synHits(chnk$annotBlastFile[i])
+      synPos <- interp_hitsPos(
+        hits = subset(hits, ofID1 %in% bedrep$ofID & ofID2 %in% bedrep$ofID),
+        bed = subset(bedrep, genome %in% c(g1, g2)),
+        md = chnk)
+      if(!is.null(synPos)){
+        synPos[,nPlace := uniqueN(interpOrd, na.rm = T),
+               by = c("ofID", "genome")]
+        synPos$nPlace[synPos$nPlace >= 2] <- "2+"
+        spFile <- file.path(gsParam$paths$tmp, sprintf(
+          "%s_vs_%s.interpSynPos.txt", g1, g2))
+
+        chnk$interPosFile[i] <- spFile
+        write_intSynPos(x = synPos, filepath = spFile)
+
+        tab <- synPos[,list(n = .N), by = c("genome", "nPlace")]
+        toprint <- with(tab, data.table(
+          lab = chnk$lab[i],
+          n11 = n[genome == g1 & nPlace == "1"],
+          n21 = n[genome == g2 & nPlace == "1"],
+          n12 = n[genome == g1 & nPlace == "2+"],
+          n22 = n[genome == g2 & nPlace == "2+"],
+          n10 = n[genome == g1 & nPlace == "0"],
+          n20 = n[genome == g2 & nPlace == "0"]))
+      }else{
+        toprint <- data.table(
+          lab = chnk$lab[i], n11 = NA, n21 = NA,  n12 = NA,  n22 = NA,
+          n10 = NA, n20 = NA)
+      }
+      return(toprint)
+    }))
+
+
+    if(any(is.na(outChnk$n11))){
+      with(subset(outChnk, is.na(n11)), cat(sprintf(
+          "\t...%sno non-self blocks found, skipping interpolation\n",
+          lab)))
     }
-  }
+    if(any(!is.na(outChnk$n11))){
+      with(subset(outChnk, !is.na(n11)),  cat(sprintf(
+        "\t...%s1x = %s/%s || 2+x = %s/%s || 0x = %s/%s\n",
+        lab, n11, n21, n12, n22, n10, n20)))
+    }
+
+    return(md)
+  }))
+  md[,interPosFile := file.path(gsParam$paths$tmp, sprintf(
+    "%s_vs_%s.interpSynPos.txt", query, target))]
+  md$interPosFile[!file.exists(md$interPosFile)] <- NA
   gsParam$annotBlastMd <- md
   return(gsParam)
 }

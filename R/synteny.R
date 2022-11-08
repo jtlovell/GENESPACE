@@ -61,134 +61,158 @@ synteny <- function(gsParam, verbose = TRUE){
 
   query <- target <- lab <- NULL
   blMd[,lab := align_charLeft(sprintf("%s v. %s:", query, target))]
+
+  # split the metadata into chunks
+  blMd[,selfOnly := query == target & ploidy1 == 1 & ploidy2 == 1]
+  setorder(blMd, -selfOnly, -totalHits, -sameOgHits)
+
+  nCores <- gsParam$params$nCores
+  blMd[,chunk := rep(1:.N, each = nCores)[1:.N]]
+  blMd[,`:=`(selfOnly = NULL)]
+
+  synMdSpl <- split(blMd, by = "chunk")
+
   # -- loop through the metadata
-  blMdOut <- rbindlist(lapply(1:nrow(blMd), function(i){
-    x <- blMd[i,]
-    hits <- read_synHits(x$annotBlastFile)
-    queryGenome <- hits$genome1[1]
-    targetGenome <- hits$genome2[1]
+  blMdOut <- rbindlist(lapply(1:length(synMdSpl), function(chnki){
+    chnk <- data.table(synMdSpl[[chnki]])
 
-    targetPloidy <- gsParam$ploidy[targetGenome]
-    queryPloidy <- gsParam$ploidy[queryGenome]
+    cat(sprintf(
+      "\t# Chunk %s / %s (%s) ... \n",
+      chnki, max(blMd$chunk), format(Sys.time(), "%X")))
 
-    cat("\t...", x$lab)
-    ############################################################################
-    # 1. intragenomic hits
-    if(queryGenome == targetGenome){
-      hits <- find_selfSyn(
-        hits = hits, synRad = x$synRad)
+    outChnk <- rbindlist(mclapply(1:nrow(chnk), mc.cores = nCores, function(i){
+      x <- chnk[i,]
+      hits <- read_synHits(x$annotBlastFile)
+      queryGenome <- hits$genome1[1]
+      targetGenome <- hits$genome2[1]
 
-      ########################################################################
-      # 2. self hits if ploidy > 1
-      if(x$ploidy1 > 1){
+      targetPloidy <- gsParam$ploidy[targetGenome]
+      queryPloidy <- gsParam$ploidy[queryGenome]
+
+      ############################################################################
+      # 1. intragenomic hits
+      if(queryGenome == targetGenome){
+        hits <- find_selfSyn(
+          hits = hits, synRad = x$synRad)
+
+        ########################################################################
+        # 2. self hits if ploidy > 1
+        if(x$ploidy1 > 1){
+          regID <- NULL
+          hitsMask <- subset(hits, is.na(regID))
+          hitsMask <- find_initialAnchors(
+            hits = hitsMask,
+            nGaps = x$nGaps,
+            blkSize = x$blkSize,
+            topn1 = targetPloidy - 1,
+            topn2 = queryPloidy - 1,
+            MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
+            tmpDir = gsParam$paths$tmp,
+            onlyOgAnchors = x$onlyOgAnchors)
+
+          hitsMask <- find_synRegions(
+            hits = hitsMask,
+            blkSize = x$blkSize,
+            MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
+            tmpDir = gsParam$paths$tmp,
+            nGaps = x$nGaps,
+            synRad = x$synRad,
+            onlyOgAnchors = x$onlyOgAnchors)
+
+          hitsMask <- find_synBlks(
+            hits = hitsMask,
+            dropSmallNonOGBlks = x$onlyOgAnchors,
+            inBufferRadius = x$inBufferRadius,
+            maxIter = 10,
+            blkSize = x$blkSize)
+          hits <- rbind(subset(hits, !is.na(regID)), hitsMask)
+        }
+      }else{
+        ##########################################################################
+        # 3. intergenomic hits
+        hits <- find_initialAnchors(
+          hits = hits,
+          nGaps = x$nGaps,
+          blkSize = x$blkSize,
+          topn1 = targetPloidy,
+          topn2 = queryPloidy,
+          MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
+          tmpDir = gsParam$paths$tmp,
+          onlyOgAnchors = x$onlyOgAnchors)
+
+        hits <- find_synRegions(
+          hits = hits,
+          blkSize = x$blkSize,
+          MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
+          tmpDir = gsParam$paths$tmp,
+          nGaps = x$nGaps,
+          synRad = x$synRad,
+          onlyOgAnchors = x$onlyOgAnchors)
+
+        hits <- find_synBlks(
+          hits = hits,
+          dropSmallNonOGBlks = x$onlyOgAnchors,
+          inBufferRadius = x$inBufferRadius,
+          maxIter = 10,
+          blkSize = x$blkSize)
+      }
+
+      ##########################################################################
+      # 4. secondary hits
+      if(x$nSecondaryHits > 0){
         regID <- NULL
         hitsMask <- subset(hits, is.na(regID))
         hitsMask <- find_initialAnchors(
           hits = hitsMask,
-          nGaps = x$nGaps,
-          blkSize = x$blkSize,
-          topn1 = targetPloidy - 1,
-          topn2 = queryPloidy - 1,
+          nGaps = x$nGapsSecond,
+          blkSize = x$blkSizeSecond,
+          topn1 = targetPloidy * x$nSecondaryHits,
+          topn2 = queryPloidy * x$nSecondaryHits,
           MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
           tmpDir = gsParam$paths$tmp,
           onlyOgAnchors = x$onlyOgAnchors)
 
         hitsMask <- find_synRegions(
           hits = hitsMask,
-          blkSize = x$blkSize,
+          blkSize = x$blkSizeSecond,
           MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
           tmpDir = gsParam$paths$tmp,
-          nGaps = x$nGaps,
-          synRad = x$synRad)
+          nGaps = x$nGapsSecond,
+          synRad = x$synRad,
+          onlyOgAnchors = x$onlyOgAnchors)
 
         hitsMask <- find_synBlks(
           hits = hitsMask,
-          dropSmallNonOGBlks = x$onlyOgAnchors,
+          dropSmallNonOGBlks = x$onlyOgAnchorsSecond,
           inBufferRadius = x$inBufferRadius,
           maxIter = 10,
-          blkSize = x$blkSize)
+          blkSize = x$blkSizeSecond)
         hits <- rbind(subset(hits, !is.na(regID)), hitsMask)
       }
-    }else{
-      ##########################################################################
-      # 3. intergenomic hits
-      hits <- find_initialAnchors(
+      x[,`:=`(
+        nRegionHits = sum(!is.na(hits$regID)),
+        nRegions = uniqueN(hits$regID, na.rm = T),
+        nAnchorHits = sum(hits$isAnchor),
+        nBlks = uniqueN(hits$lgBlkID, na.rm = T),
+        nSVs = uniqueN(hits$lgBlkID, na.rm = T) -
+          uniqueN(paste(hits$chr1, hits$chr2)[!is.na(hits$lgBlkID)]))]
+
+      nRegionHits <- nRegions <- nAnchorHits <- nBlks <- nSVs <- NULL
+
+      ggdotplot_blkRegs(
         hits = hits,
-        nGaps = x$nGaps,
-        blkSize = x$blkSize,
-        topn1 = targetPloidy,
-        topn2 = queryPloidy,
-        MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
-        tmpDir = gsParam$paths$tmp,
-        onlyOgAnchors = x$onlyOgAnchors)
+        outDir = gsParam$paths$dotplots,
+        appendName = "synHits")
 
-      hits <- find_synRegions(
-        hits = hits,
-        blkSize = x$blkSize,
-        MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
-        tmpDir = gsParam$paths$tmp,
-        nGaps = x$nGaps,
-        synRad = x$synRad)
+      write_synBlast(x = hits, filepath = x$annotBlastFile)
+      return(x)
+    }))
 
-      hits <- find_synBlks(
-        hits = hits,
-        dropSmallNonOGBlks = x$onlyOgAnchors,
-        inBufferRadius = x$inBufferRadius,
-        maxIter = 10,
-        blkSize = x$blkSize)
-    }
+    with(outChnk, cat(sprintf(
+      "\t...%s %s hits in %s regions || %s anchors (%s blks, %s SVs)\n",
+      lab, nRegionHits, nRegions, nAnchorHits, nBlks, nSVs)))
 
-    ##########################################################################
-    # 4. secondary hits
-    if(x$nSecondaryHits > 0){
-      regID <- NULL
-      hitsMask <- subset(hits, is.na(regID))
-      hitsMask <- find_initialAnchors(
-        hits = hitsMask,
-        nGaps = x$nGapsSecond,
-        blkSize = x$blkSizeSecond,
-        topn1 = targetPloidy * x$nSecondaryHits,
-        topn2 = queryPloidy * x$nSecondaryHits,
-        MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
-        tmpDir = gsParam$paths$tmp,
-        onlyOgAnchors = x$onlyOgAnchors)
-
-      hitsMask <- find_synRegions(
-        hits = hitsMask,
-        blkSize = x$blkSizeSecond,
-        MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
-        tmpDir = gsParam$paths$tmp,
-        nGaps = x$nGapsSecond,
-        synRad = x$synRad)
-
-      hitsMask <- find_synBlks(
-        hits = hitsMask,
-        dropSmallNonOGBlks = x$onlyOgAnchorsSecond,
-        inBufferRadius = x$inBufferRadius,
-        maxIter = 10,
-        blkSize = x$blkSizeSecond)
-      hits <- rbind(subset(hits, !is.na(regID)), hitsMask)
-    }
-    x[,`:=`(
-      nRegionHits = sum(!is.na(hits$regID)),
-      nRegions = uniqueN(hits$regID, na.rm = T),
-      nAnchorHits = sum(hits$isAnchor),
-      nBlks = uniqueN(hits$lgBlkID, na.rm = T),
-      nSVs = uniqueN(hits$lgBlkID, na.rm = T) -
-        uniqueN(paste(hits$chr1, hits$chr2)[!is.na(hits$lgBlkID)]))]
-
-    nRegionHits <- nRegions <- nAnchorHits <- nBlks <- nSVs <- NULL
-    with(x, cat(sprintf(
-      " %s hits in %s regions || %s anchors (%s blks, %s SVs)\n",
-      nRegionHits, nRegions, nAnchorHits, nBlks, nSVs)))
-
-    ggdotplot_blkRegs(
-      hits = hits,
-      outDir = gsParam$paths$dotplots,
-      appendName = "synHits")
-
-    write_synBlast(x = hits, filepath = x$annotBlastFile)
-    return(x)
+    return(outChnk)
   }))
   gsParam$annotBlastMd <- blMdOut
   return(gsParam)
@@ -260,7 +284,7 @@ split_ovlBlks <- function(hits,
         hs <- rbind(h1, h2)
         setkey(hs, ord1, ord2)
         if(nrow(hs))
-        hs[,rl := add_rle(blkID, which = "id")]
+          hs[,rl := add_rle(blkID, which = "id")]
         if(dropSmallNonOGBlks){
           hs[,`:=`(nOgHits = sum(sameOg),
                    n = min(c(uniqueN(ofID1, na.rm = T),
@@ -281,9 +305,9 @@ split_ovlBlks <- function(hits,
   }
 
   ord1 <- ord2 <- blkID <- i.blkID <- sameOg <- ofID1 <- ofID2 <-
-  bc <- tmp[,list(start1 = min(ord1), end1 = max(ord1),
-                  start2 = min(ord2), end2 = max(ord2)),
-            by = c("chr1", "chr2", "blkID")]
+    bc <- tmp[,list(start1 = min(ord1), end1 = max(ord1),
+                    start2 = min(ord2), end2 = max(ord2)),
+              by = c("chr1", "chr2", "blkID")]
   bc2 <- with(bc, data.table(
     blkID = blkID, chr = chr2, start = start2, end = end2,
     key = c("chr","start","end")))

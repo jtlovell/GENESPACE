@@ -6,11 +6,18 @@
 \alias{annotate_blast}
 \title{Set synteny parameters and parse required data}
 \usage{
-set_syntenyParams(gsParam, overwrite, verbose = TRUE)
+set_syntenyParams(
+  gsParam,
+  overwrite = FALSE,
+  verbose = TRUE,
+  plotSize = 8,
+  dotsPerIn = 64,
+  makePlots = TRUE
+)
 
 annotate_bed(gsParam)
 
-annotate_blast(gsParam)
+annotate_blast(gsParam, plotSize = 8, dotsPerIn = 64, makePlots = TRUE)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
