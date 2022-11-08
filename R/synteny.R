@@ -200,10 +200,10 @@ synteny <- function(gsParam, verbose = TRUE){
 
       nRegionHits <- nRegions <- nAnchorHits <- nBlks <- nSVs <- NULL
 
-      ggdotplot_blkRegs(
-        hits = hits,
-        outDir = gsParam$paths$dotplots,
-        appendName = "synHits")
+      # ggdotplot_blkRegs(
+      #   hits = hits,
+      #   outDir = gsParam$paths$dotplots,
+      #   appendName = "synHits")
 
       write_synBlast(x = hits, filepath = x$annotBlastFile)
       return(x)
@@ -284,14 +284,22 @@ split_ovlBlks <- function(hits,
         blkID <- ofID1 <- ofID2 <- sameOg <- n <- rl <- newblkID <- NULL
         hs <- rbind(h1, h2)
         setkey(hs, ord1, ord2)
-        if(nrow(hs))
+        if(nrow(hs) > blkSize*2){
           hs[,rl := add_rle(blkID, which = "id")]
+        }else{
+          hs[,rl := 1]
+        }
+
         if(dropSmallNonOGBlks){
           hs[,`:=`(nOgHits = sum(sameOg),
                    n = min(c(uniqueN(ofID1, na.rm = T),
                              uniqueN(ofID2, na.rm = T)))), by = "rl"]
           hs <- subset(hs, n >= blkSize | nOgHits > 0)
-          hs[,rl := add_rle(blkID, which = "id")]
+          if(nrow(hs) > blkSize*2){
+            hs[,rl := add_rle(blkID, which = "id")]
+          }else{
+            hs[,rl := 1]
+          }
         }
         hs[,newblkID := paste(blkID, rl)]
         return(hs)
@@ -324,13 +332,21 @@ split_ovlBlks <- function(hits,
         blkID <- ofID1 <- ofID2 <- sameOg <- n <- rl <- newblkID <- NULL
         hs <- rbind(h1, h2)
         setkey(hs, ord2, ord1)
-        hs[,rl := add_rle(blkID, which = "id")]
+        if(nrow(hs) > blkSize*2){
+          hs[,rl := add_rle(blkID, which = "id")]
+        }else{
+          hs[,rl := 1]
+        }
         if(dropSmallNonOGBlks){
           hs[,`:=`(nOgHits = sum(sameOg),
                    n = min(c(uniqueN(ofID1, na.rm = T),
                              uniqueN(ofID2, na.rm = T)))), by = "rl"]
           hs <- subset(hs, n >= blkSize | nOgHits > 0)
-          hs[,rl := add_rle(blkID, which = "id")]
+          if(nrow(hs) > blkSize*2){
+            hs[,rl := add_rle(blkID, which = "id")]
+          }else{
+            hs[,rl := 1]
+          }
         }
         hs[,newblkID := paste(blkID, rl)]
         return(hs)
@@ -629,114 +645,4 @@ find_synBlks <- function(hits,
   })), paste(ofID1, ofID2))
   hits[,inBuffer := paste(ofID1, ofID2) %in% ofInBuff]
   return(hits)
-}
-
-#' @title make dotplots of syntenic hits
-#' @description
-#' \code{ggdotplot_blkRegs} ggplot2 integrated graphics to produce dotplots
-#' @rdname synteny
-#' @import data.table
-#' @import ggplot2
-#' @importFrom grDevices pdf dev.off rgb
-#' @importFrom dbscan dbscan frNN
-#' @export
-ggdotplot_blkRegs <- function(hits,
-                              outDir,
-                              gridSize = 20,
-                              appendName = "synHits"){
-
-  blkCols <- sample(
-    gs_colors(20),
-    uniqueN(hits$lgBlkID, na.rm = T),
-    replace = T)
-  regCols <- sample(
-    gs_colors(20),
-    uniqueN(hits$regID, na.rm = T),
-    replace = T)
-
-  tp <- data.table(hits)
-  un1 <- uniqueN(tp$ofID1)
-  un2 <- uniqueN(tp$ofID2)
-
-  ofID1 <- ofID2 <- sameOg <- ngene1 <- ngene2 <- ord1 <- ord2 <- NULL
-  tp[,ngene1 := uniqueN(ofID1), by = "chr1"]
-  tp[,ngene2 := uniqueN(ofID2), by = "chr2"]
-  tp <- subset(tp, sameOg & ngene1 > gridSize & ngene2 > gridSize)
-  tp[,`:=`(rnd1 = round_toInteger(ord1, gridSize),
-           rnd2 = round_toInteger(ord2, gridSize))]
-
-  if(un1 > un2){
-    ht <- 12
-    wd <- ht * (un1/un2)
-  }else{
-    wd <- 12
-    ht <- wd * (un2/un1)
-  }
-
-  dpFile <- file.path(
-    outDir, sprintf("%s_vs_%s.%s.pdf",
-                    hits$genome1[1], hits$genome2[1], appendName))
-  pdf(dpFile, height = ht, width = wd)
-
-  isAnchor <- n <- rnd1 <- rnd2 <- chr1 <- chr2 <- ns1 <- ns2 <- lgBlkID <-
-    regID <- NULL
-  hcBlk <- subset(tp, isAnchor)[,list(
-    n = .N),
-    by = c("chr1", "chr2", "rnd1", "rnd2", "lgBlkID")]
-  hcBlk[,ns2 := sum(n), by = c("chr2")]
-  hcBlk[,ns2 := sum(n), by = c("chr2")]
-  hcBlk$n[hcBlk$n > 20] <- 20
-  p1 <- ggplot(hcBlk, aes(rnd1, rnd2, col = lgBlkID)) +
-    geom_point(size = .01) +
-    scale_color_manual(values = blkCols, guide = "none") +
-    scale_x_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hcBlk$rnd1), by = 1e3))+
-    scale_y_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hcBlk$rnd2), by = 1e3))+
-    theme(panel.background = element_rect(fill = "black"),
-          panel.grid.minor = element_blank(),
-          panel.grid.major = element_line(color = rgb(1,1,1,.2), size = .2, linetype = 2),
-          panel.spacing = unit(.1, "mm"),
-          axis.text = element_blank(),
-          axis.ticks = element_blank(),
-          strip.background = element_blank(),
-          strip.text.x = element_text(angle = 90, family = "Helvetica", size = 5),
-          strip.text.y.left = element_text(angle = 0, family = "Helvetica", size = 5),
-          axis.title = element_text( family = "Helvetica", size = 6),
-          plot.title = element_text( family = "Helvetica", size = 7)) +
-    facet_grid(chr2 ~ chr1, scales = "free", space = "free", as.table = F, switch = "both")+
-    labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                     hits$genome1[1], uniqueN(hits$ofID1)),
-         y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                     hits$genome2[1], uniqueN(hits$ofID2)),
-         title = sprintf("Syntenic block anchor blast hits, colored by blockID, %s-gene window", gridSize))
-
-  hcBlk <- subset(tp, !is.na(regID))[,list(n = .N), by = c("chr1", "chr2", "rnd1", "rnd2", "regID")]
-  hcBlk[,ns2 := sum(n), by = c("chr2")]
-  hcBlk[,ns2 := sum(n), by = c("chr2")]
-  hcBlk$n[hcBlk$n > 10] <- 10
-  p2 <- ggplot(hcBlk, aes(rnd1, rnd2, col = regID, alpha = n)) +
-    geom_point(pch = ".") +
-    scale_color_manual(values = blkCols, guide = "none") +
-    scale_alpha_continuous(guide = "none", range = c(.2, 1)) +
-    scale_x_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hcBlk$rnd1), by = 1e3))+
-    scale_y_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hcBlk$rnd2), by = 1e3))+
-    theme(panel.background = element_rect(fill = "black"),
-          panel.grid.minor = element_blank(),
-          panel.grid.major = element_line(color = rgb(1,1,1,.2), size = .2, linetype = 2),
-          panel.spacing = unit(.1, "mm"),
-          axis.text = element_blank(),
-          axis.ticks = element_blank(),
-          strip.background = element_blank(),
-          strip.text.x = element_text(angle = 90, family = "Helvetica", size = 5),
-          strip.text.y.left = element_text(angle = 0, family = "Helvetica", size = 5),
-          axis.title = element_text( family = "Helvetica", size = 6),
-          plot.title = element_text( family = "Helvetica", size = 7)) +
-    facet_grid(chr2 ~ chr1, scales = "free", space = "free", as.table = F, switch = "both")+
-    labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                     hits$genome1[1], uniqueN(hits$ofID1)),
-         y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                     hits$genome2[1], uniqueN(hits$ofID2)),
-         title = sprintf("All blast hits proximate to syntenic regions, colored by regionID, %s-gene window thresholded at 10 hits", gridSize))
-  print(p1)
-  print(p2)
-  dev.off()
 }

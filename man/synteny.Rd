@@ -7,7 +7,6 @@
 \alias{find_initialAnchors}
 \alias{find_synRegions}
 \alias{find_synBlks}
-\alias{ggdotplot_blkRegs}
 \title{synteny}
 \usage{
 synteny(gsParam, verbose = TRUE)
@@ -38,8 +37,6 @@ find_synRegions(
 )
 
 find_synBlks(hits, blkSize, inBufferRadius, dropSmallNonOGBlks, maxIter)
-
-ggdotplot_blkRegs(hits, outDir, gridSize = 20, appendName = "synHits")
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -103,8 +100,6 @@ regions into RLE and splits accordingly.
 
 \code{find_synBlks} Third synteny step, flagging collinear anchors within
 large syntenic regions.
-
-\code{ggdotplot_blkRegs} ggplot2 integrated graphics to produce dotplots
 }
 \details{
 Details coming soon.

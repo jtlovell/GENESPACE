@@ -548,12 +548,7 @@ annotate_blast <- function(gsParam,
   setnames(bed2, paste0(names(bed2), "2"))
   annotBlastFile <- NULL
   synMd[,annotBlastFile := NA]
-  # print(synMd)
-  # synMd[,`:=`(nSeqQuery = nseqs[query],
-  #             nSeqTarget = nseqs[target],
-  #             ploidyQuery = gsParam$ploidy[query],
-  #             ploidyTarget = gsParam$ploidy[target])]
-  # synMd[,tmp := query == target & ploidyQuery == 1 & ploidyTarget == 1]
+
   synMd[,`:=`(size1 = ifelse(!is.na(queryBlast),
                              file.size(queryBlast), file.size(targetBlast)),
               size2 = ifelse(!is.na(targetBlast),
@@ -576,7 +571,7 @@ annotate_blast <- function(gsParam,
 
     chnk <- data.table(synMdSpl[[chnki]])
 
-    out <- mclapply(1:nrow(chnk), mc.cores = nCores, function(i){
+    out <- rbindlist(mclapply(1:nrow(chnk), mc.cores = nCores, function(i){
       # -- 2.1 read in the blast file(s)
       bl <- fread(
         chnk$queryBlast[i],
@@ -616,157 +611,14 @@ annotate_blast <- function(gsParam,
 
       write_synBlast(bl, filepath = blf)
       chnk$annotBlastFile[i] <- blf
+      chnk[,`:=`(totalHits = nrow(bl), sameOgHits = sum(bl$sameOg))]
+      return(chnk)
+    }))
 
-      # -- 2.5 summarize the hits, make plots
-      if(makePlots){
-        hits <- data.table(bl)
-
-        un1 <- uniqueN(hits$ofID1)
-        un2 <- uniqueN(hits$ofID2)
-        if(un1 > un2){
-          ht <- plotSize
-          wd <- ht * (un1/un2)
-        }else{
-          wd <- plotSize
-          ht <- wd * (un2/un1)
-        }
-
-        x <- max(hits$ord1, na.rm = T)
-        y <- max(hits$ord2, na.rm = T)
-
-        ordPerIn <- x / dotsPerIn
-        totDots <- wd * dotsPerIn
-        xrnd2 <- floor(x / totDots)
-
-        ordPerIn <- y / dotsPerIn
-        totDots <- ht * dotsPerIn
-        yrnd2 <- floor(y / totDots)
-
-        hits[,`:=`(rnd1 = round_toInteger(ord1, xrnd2),
-                   rnd2 = round_toInteger(ord2, yrnd2))]
-
-        dpFile <- file.path(gsParam$paths$dotplots,
-                            sprintf("%s_vs_%s.rawHits.pdf",
-                                    chnk$query[i], chnk$target[i]))
-        # pdf(dpFile, height = ht, width = wd*1.07)
-        hits[,ngene1 := uniqueN(ofID1[!noAnchor & isArrayRep1]), by = "chr1"]
-        hits[,ngene2 := uniqueN(ofID2[!noAnchor & isArrayRep2]), by = "chr2"]
-        hc <- subset(hits, sameOg & ngene1 > 50 & ngene2 > 50)
-        hc <- hc[,list(n = .N), by = c("chr1", "chr2", "rnd1", "rnd2")]
-        setorder(hc, -n)
-        hc[,ns2 := sum(n), by = c("chr2")]
-        hc$n[hc$n > 20] <- 20
-        p1 <- ggplot(subset(hc, n > 1), aes(rnd1, rnd2, col = n)) +
-          geom_point(pch = ".") +
-          scale_color_viridis_c(begin = .1, trans = "log10") +
-          scale_x_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hc$rnd1), by = 1e3))+
-          scale_y_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hc$rnd2), by = 1e3))+
-          theme(panel.background = element_rect(fill = "black"),
-                panel.grid.minor = element_blank(),
-                panel.grid.major = element_line(color = rgb(1,1,1,.2), size = .2, linetype = 2),
-                panel.spacing = unit(.1, "mm"),
-                axis.text = element_blank(),
-                axis.ticks = element_blank(),
-                strip.background = element_blank(),
-                strip.text.x = element_text(angle = 90, family = "Helvetica", size = 5),
-                strip.text.y.left = element_text(angle = 0, family = "Helvetica", size = 5),
-                axis.title = element_text( family = "Helvetica", size = 6),
-                plot.title = element_text( family = "Helvetica", size = 7)) +
-          facet_grid(chr2 ~ chr1, scales = "free", space = "free", as.table = F, switch = "both")+
-          labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                           hits$genome1[1], uniqueN(hits$ofID1)),
-               y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                           hits$genome2[1], uniqueN(hits$ofID2)),
-               title = sprintf("Blast hits where query and target are in the same OG, %s/%s-gene x/y window thresholded at 20 hits", xrnd2, yrnd2))
-
-        hc <- subset(hits, bitScore > 100 & ngene1 > 50 & ngene2 > 50)
-        hc <- hc[,list(n = .N), by = c("chr1", "chr2", "rnd1", "rnd2")]
-        hc[,ns2 := sum(n), by = c("chr2")]
-        hc[,ns2 := sum(n), by = c("chr2")]
-        hc$n[hc$n > 20] <- 20
-        p0 <- ggplot(subset(hc, n > 1), aes(rnd1, rnd2, col = n)) +
-          geom_point(pch = ".") +
-          scale_color_viridis_c(begin = .1, trans = "log10") +
-          scale_x_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hc$rnd1), by = 1e3))+
-          scale_y_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hc$rnd2), by = 1e3))+
-          theme(panel.background = element_rect(fill = "black"),
-                panel.grid.minor = element_blank(),
-                panel.grid.major = element_line(color = rgb(1,1,1,.2), size = .2, linetype = 2),
-                panel.spacing = unit(.1, "mm"),
-                axis.text = element_blank(),
-                axis.ticks = element_blank(),
-                strip.background = element_blank(),
-                strip.text.x = element_text(angle = 90, family = "Helvetica", size = 5),
-                strip.text.y.left = element_text(angle = 0, family = "Helvetica", size = 5),
-                axis.title = element_text( family = "Helvetica", size = 6),
-                plot.title = element_text( family = "Helvetica", size = 7)) +
-          facet_grid(chr2 ~ chr1, scales = "free", space = "free", as.table = F, switch = "both")+
-          labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                           hits$genome1[1], uniqueN(hits$ofID1)),
-               y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                           hits$genome2[1], uniqueN(hits$ofID2)),
-               title = sprintf("All blast hits, with bitscore > 100, %s/%s-gene x/y window thresholded at 20 hits", xrnd2, yrnd2))
-
-        hc <- subset(hits, !noAnchor & sameOg & ngene1 > 50 & ngene2 > 50)
-        hc <- hc[,list(n = .N), by = c("chr1", "chr2", "rnd1", "rnd2")]
-        hc[,ns2 := sum(n), by = c("chr2")]
-        hc[,ns2 := sum(n), by = c("chr2")]
-        hc$n[hc$n > 20] <- 20
-        p2 <- ggplot(subset(hc, n > 1), aes(rnd1, rnd2, col = n)) +
-          geom_point(pch = ".") +
-          scale_color_viridis_c(begin = .1, trans = "log10") +
-          scale_x_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hc$rnd1), by = 1e3))+
-          scale_y_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hc$rnd2), by = 1e3))+
-          theme(panel.background = element_rect(fill = "black"),
-                panel.grid.minor = element_blank(),
-                panel.grid.major = element_line(color = rgb(1,1,1,.2), size = .2, linetype = 2),
-                panel.spacing = unit(.1, "mm"),
-                axis.text = element_blank(),
-                axis.ticks = element_blank(),
-                strip.background = element_blank(),
-                strip.text.x = element_text(angle = 90, family = "Helvetica", size = 5),
-                strip.text.y.left = element_text(angle = 0, family = "Helvetica", size = 5),
-                axis.title = element_text( family = "Helvetica", size = 6),
-                plot.title = element_text( family = "Helvetica", size = 7)) +
-          facet_grid(chr2 ~ chr1, scales = "free", space = "free", as.table = F, switch = "both")+
-          labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                           hits$genome1[1], uniqueN(hits$ofID1)),
-               y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                           hits$genome2[1], uniqueN(hits$ofID2)),
-               title = sprintf("Only blast hits to be considered for initial syntenic anchors,  %s/%s-gene x/y window thresholded at 20 hits", xrnd2, yrnd2))
-
-      }else{
-        p0 = NULL; p1 = NULL; p2 = NULL; dpFile = NA; ht = 8; wd = 8
-      }
-
-      out <- data.table(chnk[i,])
-      out[,`:=`(totalHits = nrow(bl), sameOgHits = sum(bl$sameOg),
-                dotplotFile = dpFile,
-                pltHt = ht, pltWt = wd*1.07)]
-
-      return(list(md = out, p0 = p0, p1 = p1, p2 = p2))
-    })
-
-    if(makePlots){
-      cat("Done! Making plots ... ")
-      tmp <- lapply(1:length(out), function(i){
-        pdf(out[[i]]$md$dotplotFile,
-            height = out[[i]]$md$pltHt,
-            width = out[[i]]$md$pltWt)
-        print(out[[i]]$p0)
-        print(out[[i]]$p1)
-        print(out[[i]]$p2)
-        dev.off()
-      })
-    }
-
-    outa <- rbindlist(lapply(out, function(x) x$md))
     cat("Done!\n")
-    outa[,`:=`(pltHt = NULL, pltWt = NULL, dotplotFile = NULL)]
-    with(outa, cat(sprintf("\t...%stotal hits = %s, same og = %s\n",
+    with(out, cat(sprintf("\t...%stotal hits = %s, same og = %s\n",
                            lab, totalHits, sameOgHits)))
-
-    return(outa)
+    return(out)
   }))
   gsParam$annotBlastMd <- outmd
   return(gsParam)
