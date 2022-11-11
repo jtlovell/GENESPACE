@@ -397,7 +397,8 @@ plot_riparian <- function(
 
   blkID <- refChr <- genome1 <- genome2 <- nHits1 <- nHits2 <- chr1 <- chr2 <-
     ord <- genome <- chr <- gap <- chrstart <- med <- chrend <- start1 <-
-    end1 <- start2 <- end2 <- y <- chrLab <- x <- xend <- yend <- line <- NULL
+    end1 <- start2 <- end2 <- y <- chrLab <- x <- xend <- yend <- line <-
+    diffMax <- totLen <- ngaps <- NULL
 
   rg <- refGenome
   gids <- genomeIDs

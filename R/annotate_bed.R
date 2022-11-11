@@ -228,6 +228,7 @@ annotate_bed <- function(gsParam){
 
   # -- 0.9 add small chromosome flag to bed file
   add_smallChr2bed <- function(bed, blkSize){
+    smallChr <- nGenes <- nChrs <- NULL
     cat(sprintf(
       "\n\t##############\n\tFlagging chrs. w/ < %s unique orthogroups\n",
       blkSize * 2))
@@ -252,6 +253,7 @@ annotate_bed <- function(gsParam){
 
   # -- 0.10 add overdispersed og flag to bedfile
   add_dispOG2bed <- function(bed, arrayJump){
+    dispOG <- nGenes <- nOgs <- NULL
     cat("\t##############\n\tFlagging over-dispered OGs\n")
     bed <- add_nOGplaces2bed(bed = bed, arrayJump = arrayJump)
     bed[,dispOG := nOGPlaces > maxOgPlaces[genome]]
@@ -301,10 +303,10 @@ annotate_bed <- function(gsParam){
   combBedFile <- file.path(gsParam$paths$results, "combBed.txt")
 
   # -- null out env variables
-  chrn <- n <- chr <- ord <- start <- bed <- noAnchor <- arrayID <- chr <- n <-
-    ofID <- pepLen <- arrayID <- isArrayRep <- globOG <- globHOG <- synOG <-
-    inblkOG <- og <- globHOG <- globOG <- genome <- nOGPlaces <- isArrayRep <-
-    tmp <- n <- maxPlaces <- NULL
+  chrn <- chr <- ord <- start <- bed <- noAnchor <- arrayID <- ofID <- pepLen <-
+    isArrayRep <- globOG <- globHOG <- synOG <- inblkOG <- og <- globHOG <-
+    genome <- nOGPlaces <- tmp <- n <- maxPlaces <- bedDir <- smallChr <-
+    dispOG <- nGenesInArray <- nArr <- nGenes <- nOGs <- NULL
 
   ##############################################################################
   # 2. combine bed files

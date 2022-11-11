@@ -28,7 +28,7 @@ init_genespace(
   nSecondaryHits = 0,
   nGapsSecond = nGaps * 2,
   blkSizeSecond = blkSize,
-  blkBufferSecond = blkRadius,
+  blkRadiusSecond = blkRadius,
   onlyOgAnchorsSecond = FALSE,
   outgroup = ignoreTheseGenomes,
   nSecondHits = nSecondaryHits,
@@ -118,6 +118,11 @@ placements that an orthogroup can have before being excluded from synteny}
 for the primary MCScanX run. This acts on the results from the initial
 MCScanX run.}
 
+\item{blkRadius}{integer of length 1, specifying the search radius in 2d
+clustering to assign hits to the same block. This is a sensitive parameter
+as smaller values will result in more blocks, gaps and SV. Typically using
+2x or greater blkSize is fine.}
+
 \item{synBuff}{Numeric > 0, specifying the distance from an anchor
 to consider a hit syntenic. This parameter is also used to limit the search
 radius in dbscan-based blk calculation. Larger values will return larger
@@ -136,6 +141,9 @@ secondary hits to look for after masking the primary syntenic regions}
 primary hits.}
 
 \item{blkSizeSecond}{see blkSize, but passed to the secondary scan if
+nSecondaryHits > 0.}
+
+\item{blkRadiusSecond}{see blkRadius, but passed to the secondary scan if
 nSecondaryHits > 0.}
 
 \item{onlyOgAnchorsSecond}{logical should only hits in orthogroups be

@@ -58,6 +58,9 @@ synBuff (* sqrt 2).}
 \item{onlyOgAnchors}{logical of length 1, should anchors only be in the same
 OG?}
 
+\item{blkRadius}{integer of length 1, specifying the search area to cluster
+hits into blocks}
+
 \item{tmpDir}{file.path of length 1, pointing to the tmp directory, taken
 from gsParam}
 
@@ -73,14 +76,14 @@ genome 2. Typically taken from ploidy in gsParam}
 
 \item{outDir}{file.path of length 1, pointing to the directory to write plots}
 
+\item{minGenes2plot}{integer, minimum unique orthogroups on a chromosome
+for it to be plotted}
+
 \item{appendName}{character string of length 1, to append to plot file name}
 
-\item{gridSize}{integer of length 1,}
+\item{dotsPerIn}{integer, number of dots to plot per inch.}
 
-\item{inBufferRadius}{integer of length 1,}
-
-\item{maxIter}{integer of length 1, specifying the number of iterations to
-allow to split overlapping non-duplicated blocks}
+\item{plotSize}{numeric, length in inches of the shortest plot dimension}
 }
 \description{
 \code{synteny} synteny

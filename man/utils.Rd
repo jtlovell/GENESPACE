@@ -38,6 +38,8 @@
 \alias{add_alpha}
 \alias{read_intSynPos}
 \alias{write_intSynPos}
+\alias{get_orthofinderVersion}
+\alias{get_diamondVersion}
 \title{Generic internal functions used by genespace}
 \usage{
 .onAttach(...)
@@ -130,8 +132,16 @@ add_alpha(col, alpha = 1)
 read_intSynPos(filepath)
 
 write_intSynPos(x, filepath)
+
+get_orthofinderVersion(filepath)
+
+get_diamondVersion(filepath)
 }
 \arguments{
+\item{...}{additional parameters passed on to other functions
+\cr
+If called, \code{utils} returns its own arguments.}
+
 \item{x}{single-value parameter, string, integer, numeric, list, vector}
 
 \item{min}{if x is an integer or numeric, the minimum value allowed}
@@ -170,9 +180,7 @@ write_intSynPos(x, filepath)
 
 \item{scale1toMean}{logical, should values be scaled to 1?}
 
-\item{alpha}{numeric, transparency
-\cr
-If called, \code{utils} returns its own arguments.}
+\item{alpha}{numeric, transparency}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called
@@ -262,4 +270,10 @@ runs or the unique run ids.
 \code{read_intSynPos} read interpolated syntenic position files
 
 \code{read_intSynPos} read interpolated syntenic position files
+
+\code{get_orthofinderVersion} Checks that orthofinder is installed and if so,
+returns the installed version.
+
+\code{get_diamondVersion} Checks that DIAMOND is installed and if so,
+returns the installed version.
 }

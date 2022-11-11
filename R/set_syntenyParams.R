@@ -20,8 +20,12 @@
 #' called directly, use with caution.
 #' @rdname set_syntenyParams
 #' @import data.table
+#' @importFrom utils combn
 #' @export
 set_syntenyParams <- function(gsParam){
+
+  query <- target <- tmp1 <- genNum1 <- genNum2 <- tmp2 <- query1 <-
+    fs1 <- fs2 <- queryBlast <- synHits <- synBuff <- NULL
 
   resultsDir <- gsParam$paths$results
   synHitsDir <- gsParam$paths$syntenicHits

@@ -13,7 +13,8 @@ annotate_blast <- function(gsParam){
 
   bitScore <- ofID1 <- ofID2 <- og1 <- og2 <- og <- noAnchor1 <- ns1 <- ns2 <-
     noAnchor2 <- noAnchor <- rnd1 <- rnd2 <- ngene1 <- ngene2 <- sameOg <-
-    ord1 <- ord2 <- ancOrd1 <- ancOrd2 <- n <- NULL
+    ord1 <- ord2 <- ancOrd1 <- ancOrd2 <- n <- queryBlast <- targetBlast <-
+    wt <- size1 <- size2 <- chunk <- lab <- query <- target <- NULL
 
   blNames <- c(
     "ofID1", "ofID2", "pid", "length", "mismatches","gapopenings",

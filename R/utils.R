@@ -25,6 +25,7 @@
 #' @param scale1toMean logical, should values be scaled to 1?
 #' @param filepath file.path
 #' @param alpha numeric, transparency
+#' @param ... additional parameters passed on to other functions
 #' \cr
 #' If called, \code{utils} returns its own arguments.
 #'
@@ -898,7 +899,7 @@ write_intSynPos <- function(x, filepath){
 #' @description
 #' \code{get_orthofinderVersion} Checks that orthofinder is installed and if so,
 #' returns the installed version.
-#' @rdname run_orthofinder
+#' @rdname utils
 #' @export
 get_orthofinderVersion <- function(filepath){
   # -- check if orthofinder is callable
@@ -921,7 +922,7 @@ get_orthofinderVersion <- function(filepath){
 #' @description
 #' \code{get_diamondVersion} Checks that DIAMOND is installed and if so,
 #' returns the installed version.
-#' @rdname run_orthofinder
+#' @rdname utils
 #' @export
 get_diamondVersion <- function(filepath){
   path <- path.expand(filepath)

@@ -163,6 +163,10 @@ no coloring by chr, specify NULL.}
 
 \item{ylabBuff}{numeric, label buffer around the chromosome labels}
 
+\item{scaleGapSize}{numeric 0-1, specifying the gap scaling level, where 0 means
+all gaps are the same size regardless of genome size. 1 means that the
+genomes sizes are all nearly the same and smaller genomes have larger gaps.}
+
 \item{refChrOrdFun}{function, to re-order reference chromosomes}
 
 \item{chrLabFun}{function to parse chr IDs to make them more readible}

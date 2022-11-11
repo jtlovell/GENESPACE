@@ -7,6 +7,8 @@
 #' @param gsParam A list of genespace parameters created by init_genespace.
 #' @param overwriteBed logical, should the bed file be re-created and
 #' overwritten?
+#' @param overwriteSynHits logial, should the annotated blast files be
+#' overwritten?
 #'
 #' @details The full genespace pipeline is as follows.
 #' \enumerate{
@@ -35,13 +37,21 @@ run_genespace <- function(gsParam,
   # -- 1.1 Check for existing parsed orthofinder results
   cat("\tChecking for existing orthofinder results ...\n")
   gsParam <- set_syntenyParams(gsParam)
-  noResults <- is.na(gsParam$synteny$SpeciesIDs)
+  if("synteny" %in% names(gsParam)){
+    noResults <- is.na(gsParam$synteny$SpeciesIDs)
+  }else{
+    noResults <- TRUE
+  }
 
   ##############################################################################
   # -- 1.2 If no results exist, check for raw orthofinder run
   if(noResults){
-    chkOf <- find_ofFiles(gsParam$paths$rawOrthofinder)
-    noOrthofinder <- is.na(chkOf[[1]])
+    if(dir.exists(gsParam$paths$rawOrthofinder)){
+      chkOf <- find_ofFiles(gsParam$paths$rawOrthofinder)
+      noOrthofinder <- is.na(chkOf[[1]])
+    }else{
+      noOrthofinder <- TRUE
+    }
   }else{
     noOrthofinder <- FALSE
   }
@@ -52,8 +62,8 @@ run_genespace <- function(gsParam,
     with(gsParam, copy_of2results(
       orthofinderDir = paths$rawOrthofinder, resultsDir = paths$results))
   }
-  gsParam <- set_syntenyParams(gsParam)
-  noResults <- is.na(gsParam$synteny$SpeciesIDs)
+
+  # noResults <- is.na(gsParam$synteny$SpeciesIDs)
   if(!noResults)
     cat("\t... found existing run, not re-running orthofinder\n")
 
@@ -61,6 +71,8 @@ run_genespace <- function(gsParam,
   # -- 1.4 if no orthofinder run, make one
   if(noResults)
     tmp <- run_orthofinder(gsParam = gsParam, verbose = TRUE)
+
+  gsParam <- set_syntenyParams(gsParam)
 
   ##############################################################################
   # -- 1.5 get the files in order if the run is complete

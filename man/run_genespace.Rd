@@ -11,6 +11,9 @@ run_genespace(gsParam, overwriteBed = FALSE, overwriteSynHits = FALSE)
 
 \item{overwriteBed}{logical, should the bed file be re-created and
 overwritten?}
+
+\item{overwriteSynHits}{logial, should the annotated blast files be
+overwritten?}
 }
 \value{
 a gsParam list.

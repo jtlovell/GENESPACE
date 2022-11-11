@@ -142,7 +142,7 @@ init_genespace <- function(wd,
                            nSecondaryHits = 0,
                            nGapsSecond = nGaps * 2,
                            blkSizeSecond = blkSize,
-                           blkBufferSecond = blkRadius,
+                           blkRadiusSecond = blkRadius,
                            onlyOgAnchorsSecond = FALSE,
 
                            # -- deprecated arguments here for backwards compat.
@@ -418,7 +418,7 @@ init_genespace <- function(wd,
                 blkSizeSecond))
 
     blkRadiusSecond <- check_integer(
-      x = blkBufferSecond, min = 1, max = Inf, default = 5)
+      x = blkRadiusSecond, min = 1, max = Inf, default = 5)
     cat(sprintf("%s\n\tonly orthogroup hits in secondary block ... ",
                 blkRadiusSecond))
 

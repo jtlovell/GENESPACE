@@ -260,7 +260,7 @@ interp_synPos <- function(gsParam){
   # -- add hoc function to ensure that syntenic anchors are all collinear
   check_synAnchorPos <- function(ord1, ord2, blkSize){
 
-    xc <- x <- yc <- y <- clus <- index <- NULL
+    xc <- x <- yc <- y <- clus <- index <- chunk <- n11 <- NULL
 
     # -- convert to vectors
     ord1 <- as.integer(ord1)
@@ -407,7 +407,7 @@ interp_synPos <- function(gsParam){
   }
 
   isArrayRep <- lab <- query <- target <- interPosFile <- ofID1 <- ofID2 <-
-    genome <- nPlace <- interpOrd <- NULL
+    genome <- nPlace <- interpOrd <- chunk <- n11 <- NULL
 
   bed <- read_combBed(gsParam$synteny$combBed)
   bedrep <- subset(bed, isArrayRep)

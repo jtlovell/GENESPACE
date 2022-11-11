@@ -22,13 +22,15 @@
 #' OG?
 #' @param MCScanX_hCall file.path to MCScanX_h, taken from gsParam
 #' @param outDir file.path of length 1, pointing to the directory to write plots
-#' @param gridSize integer of length 1,
 #' @param appendName character string of length 1, to append to plot file name
-#' @param inBufferRadius integer of length 1,
+#' @param blkRadius integer of length 1, specifying the search area to cluster
+#' hits into blocks
 #' @param dropSmallNonOGBlks logical of length 1,
-#' @param maxIter integer of length 1, specifying the number of iterations to
-#' allow to split overlapping non-duplicated blocks
 #' @param hits data.table containing the blast hits, also stored in /synHits
+#' @param dotsPerIn integer, number of dots to plot per inch.
+#' @param plotSize numeric, length in inches of the shortest plot dimension
+#' @param minGenes2plot integer, minimum unique orthogroups on a chromosome
+#' for it to be plotted
 #' @param verbose logical, should updates be printed to the console?
 #'
 #' \cr
@@ -49,8 +51,10 @@ synteny <- function(gsParam, verbose = TRUE){
   ##############################################################################
   # 1. setup
   # -- 1.1 get env vars set up
-  query <- target <- lab <- NULL
-  nRegionHits <- nRegions <- nAnchorHits <- nBlks <- nSVs <- NULL
+  query <- target <- lab <- nRegionHits <- nRegions <- nAnchorHits <- nBlks <-
+    nSVs <- selfOnly <- queryPloidy <- targetPloidy <- nGlobOgHits <- synHits <-
+    nTotalHits <- chunk <- inBuffer <- NULL
+
   nCores <- gsParam$params$nCores
 
   # -- 1.2 check that files are all ok
@@ -189,8 +193,8 @@ synteny <- function(gsParam, verbose = TRUE){
 find_selfSyn <- function(hits, synRad){
   ##############################################################################
   # 1. get the minimum distance between two gene as either ancOrd or ord
-  ofID1 <- ofID2 <- chr1 <- chr2 <- ord1 <- ord2 <- regID <-
-    blkID <- isAnchor <- inBuffer <- lgBlkID <- NULL
+  ofID1 <- ofID2 <- chr1 <- chr2 <- ord1 <- ord2 <- regID <- genome1 <- n <-
+    blkID <- isAnchor <- inBuffer <- lgBlkID <- genome2 <- NULL
   hits[,isAnchor := ofID1 == ofID2]
   tmp <- subset(hits, chr1 == chr2)
   chrs2search <- tmp[,list(n = diff(range(ord1))), by = "chr1"]
@@ -347,6 +351,11 @@ synteny_engine <- function(hits,
                            synRad,
                            MCScanX_hCall){
 
+
+  noAnchor <- isArrayRep1 <- isArrayRep2 <- sameOg <- sr1 <- bitScore <- sr2 <-
+    ord1 <- ord2 <- isAnchor <- ofID1 <- ofID2 <- chr1 <- chr2 <- blkID <-
+    nAnchorHits <- genome1 <- genome2 <- NULL
+
   ################################################################################
   # 1. Find initial syntenic anchors
   tmp <- subset(hits, !noAnchor & isArrayRep1 & isArrayRep2)
@@ -354,8 +363,8 @@ synteny_engine <- function(hits,
     tmp <- subset(tmp, sameOg)
 
   # -- 1.2 subset to top n hits / gene
-  tmp[,sr1 := frank(-bitScore, ties.method = "dense"), by = "ofID1"]
-  tmp[,sr2 := frank(-bitScore, ties.method = "dense"), by = "ofID2"]
+  tmp[,sr1 := frank(-round(bitScore, -1), ties.method = "dense"), by = "ofID1"]
+  tmp[,sr2 := frank(-round(bitScore, -1), ties.method = "dense"), by = "ofID2"]
   tmp <- subset(tmp, sr1 <= topn1 & sr2 <= topn2)
 
   # -- 1.3 rerank order
@@ -501,7 +510,9 @@ ggdotplot <- function(hits,
                       dotsPerIn = 256,
                       plotSize = 12,
                       verbose = is.null(outDir)){
-  ofID1 <- ofID2 <- sameOg <- ngene1 <- ngene2 <- ord1 <- ord2 <- NULL
+  ofID1 <- ofID2 <- sameOg <- ngene1 <- ngene2 <- ord1 <- ord2 <- blkID <-
+    inBuffer <- rnd2 <- rnd1 <- ns2 <- n <- isArrayRep2 <- isArrayRep1 <-
+    noAnchor <- NULL
 
   tp <- data.table(hits)
 

@@ -29,7 +29,7 @@ build_synOGs <- function(gsParam){
   bed <- read_combBed(gsParam$synteny$combBed)
 
   cat("\t##############\n\tAggregating syntenic orthogroups ... ")
-  ofID <- ofID1 <- ofID2 <- synOG <- NULL
+  ofID <- ofID1 <- ofID2 <- synOG <- bedFile <- NULL
   soh <- pull_synOgs(gsParam = gsParam)
   ic <- with(soh, clus_igraph(id1 = ofID1, id2 = ofID2))
   bed[,synOG := ic[ofID]]
@@ -72,7 +72,7 @@ build_synOGs <- function(gsParam){
 #' @import data.table
 #' @export
 pull_synOgs <- function(gsParam, onlyInBuffer = TRUE){
-  regID <- sameOg <- sameInblkOg <- inBuffer <- NULL
+  regID <- sameOg <- sameInblkOg <- inBuffer <- blkID <- NULL
   ##############################################################################
   # -- 1. Get metadata together
   md <- data.table(gsParam$synteny$blast)
