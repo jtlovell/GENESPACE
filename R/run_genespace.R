@@ -22,48 +22,62 @@
 #'
 #' @export
 run_genespace <- function(gsParam,
-                          overwriteBed = FALSE){
+                          overwriteBed = FALSE,
+                          overwriteSynHits = FALSE){
+  gsParam$paths$rawOrthofinder <- gsParam$paths$orthofinder
+  ##############################################################################
+  # 1. Run orthofinder ...
+  cat("\n############################", strwrap(
+    "1. Running orthofinder (or parsing existing results)",
+    indent = 0, exdent = 8), sep = "\n")
 
   ##############################################################################
-  # ad hoc function to make sure the combined bed file is ok
-  check_combBedFile <- function(bedFile, checkOGs = FALSE){
-    bedPass <- FALSE
-    if(file.exists(bedFile)){
+  # -- 1.1 Check for existing parsed orthofinder results
+  cat("\tChecking for existing orthofinder results ...\n")
+  gsParam <- set_syntenyParams(gsParam)
+  noResults <- is.na(gsParam$synteny$SpeciesIDs)
 
-      # -- check that the bed file has all the columns needed
-      bedNames <- c("chr", "start", "end", "id", "ofID", "pepLen",
-                    "ord", "genome", "arrayID", "isArrayRep", "globOG", "globHOG",
-                    "synOG", "inblkOG", "noAnchor", "og")
-      bedHed <- strsplit(readLines(bedFile, 1), "\t")[[1]]
-
-      # -- check that all the genomes are present in the bed file
-      if(all(bedNames %in% bedHed)){
-        bed <- read_combBed(bedFile)
-        bedPass <- all(!is.na(bed$og)) && all(gsParam$genomeIDs %in% bed$genome)
-        if(checkOGs){
-          bedPass <- bedPass & all(!is.na(bed$synOG))
-          if(gsParam$params$orthofinderInBlk & bedPass)
-            bedPass <- all(!is.na(bed$inblkOG))
-        }
-      }
-    }
-    return(bedPass)
+  ##############################################################################
+  # -- 1.2 If no results exist, check for raw orthofinder run
+  if(noResults){
+    chkOf <- find_ofFiles(gsParam$paths$rawOrthofinder)
+    noOrthofinder <- is.na(chkOf[[1]])
+  }else{
+    noOrthofinder <- FALSE
   }
 
   ##############################################################################
-  # 1. Run orthofinder ...
-  # -- The function checks if an orthofinder run has been completed and if so,
-  # (optionally) moves the files and returns a new gsParam object with the
-  # updated paths
-  cat("\n############################", strwrap(
-    "1. Running orthofinder (or parsing existing results)", indent = 0, exdent = 8), sep = "\n")
-  gsParam <- run_orthofinder(gsParam = gsParam, verbose = TRUE)
+  # -- 1.3 If raw results exist, copy them over
+  if(!noOrthofinder){
+    with(gsParam, copy_of2results(
+      orthofinderDir = paths$rawOrthofinder, resultsDir = paths$results))
+  }
+  gsParam <- set_syntenyParams(gsParam)
+  noResults <- is.na(gsParam$synteny$SpeciesIDs)
+  if(!noResults)
+    cat("\t... found existing run, not re-running orthofinder\n")
 
-  # -- get the files in order if the run is complete
-  gsParam <- run_orthofinder(gsParam = gsParam, verbose = FALSE)
+  ##############################################################################
+  # -- 1.4 if no orthofinder run, make one
+  if(noResults)
+    tmp <- run_orthofinder(gsParam = gsParam, verbose = TRUE)
 
-  # -- if the species tree exists, re-order the genomeIDs
-  tmp <- gsParam$ofFiles$speciesTree
+  ##############################################################################
+  # -- 1.5 get the files in order if the run is complete
+  if(noResults){
+    chkOf <- find_ofFiles(gsParam$paths$orthofinder)
+    noOrthofinder <- is.na(chkOf[[1]])
+    if(noOrthofinder)
+      stop("could not find orthofinder files!")
+    with(gsParam, copy_of2results(
+      orthofinderDir = paths$orthofinder,
+      resultsDir = paths$results))
+  }
+  gsParam <- set_syntenyParams(gsParam)
+
+  ##############################################################################
+  # -- 1.6 if the species tree exists, re-order the genomeIDs
+  tmp <- gsParam$synteny$speciesTree
 
   if(requireNamespace("ape", quietly = T)){
     if(!is.na(tmp) && !is.null(tmp)){
@@ -79,23 +93,23 @@ run_genespace <- function(gsParam,
   }
 
   ##############################################################################
-  # 2. Annotate the bed file ...
-  # -- This first checks if an annotated bed file (if overwriteBed = T) exists
-  # and, if not, concatenates all the bed files and builds a new combBed.txt
-  # file including array information
-  hasBed <- check_combBedFile(
-    bedFile = file.path(gsParam$paths$results, "combBed.txt"))
-  if(hasBed && overwriteBed)
+  # 2. Get the data ready for synteny
+  hasBed <- FALSE
+  bedf <- gsParam$synteny$combBed
+  if(file.exists(bedf))
+    hasBed <- is.data.table(read_combBed(bedf))
+  if(overwriteBed)
     hasBed <- FALSE
 
   if(!hasBed){
     cat("\n############################", strwrap(
-      "2. Combining and annotating the bed files with orthogroups and tandem
-      array information ... ", indent = 0, exdent = 8), sep = "\n")
+      "2. Combining and annotating bed files w/ OGs and tandem array info ... ",
+      indent = 0, exdent = 8), sep = "\n")
     bed <- annotate_bed(gsParam = gsParam)
   }else{
     cat("\n############################", strwrap(
-      "2. Annotated/concatenated bed file exists", indent = 0, exdent = 8), sep = "\n")
+      "2. Annotated/concatenated bed file exists", indent = 0, exdent = 8),
+      sep = "\n")
   }
 
   ##############################################################################
@@ -103,17 +117,24 @@ run_genespace <- function(gsParam,
   # -- First make sure that the blast files are all there, then go through
   # and annotate them with the combined bed file
   # -- This also makes the first round of dotplots
-  gsf <- find_gsResults(
-    resultsDir = gsParam$paths$results,
-    genomeIDs = gsParam$genomeIDs, verbose = FALSE)
-  gids <- unique(unlist(gsf$blast[,1:2]))
-  if(!(all(!is.na(unlist(gsf[1:4]))) && all(gsParam$genomeIDs %in% gids)))
-    stop("could not find complete blast hits")
+  # -- 3.1 check if all the synHits files exist. If so, and !overwriteSynHits
+  # don't re-annotate
+  hasHits <- FALSE
+  if(all(file.exists(gsParam$synteny$blast$synHits)))
+    if(!overwriteSynHits)
+      hasHits <- TRUE
 
-  cat("\n############################", strwrap(
-    "3. Combining and annotating the blast files with orthogroup info ...",
-    indent = 0, exdent = 8), sep = "\n")
-  gsParam <- annotate_blast(gsParam = gsParam)
+  # -- 3.2 iterate through and annotate all synHits files
+  if(!hasHits){
+    cat("\n############################", strwrap(
+      "3. Combining and annotating the blast files with orthogroup info ...",
+      indent = 0, exdent = 8), sep = "\n")
+    gsParam <- annotate_blast(gsParam = gsParam)
+  }else{
+    cat("\n############################", strwrap(
+      "3. Annotated/blast files exists", indent = 0, exdent = 8),
+      sep = "\n")
+  }
 
   ##############################################################################
   # 4. Run synteny

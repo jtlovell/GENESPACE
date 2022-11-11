@@ -130,6 +130,7 @@ plot_riparian <- function(
     chrLabBorderLwd = .1,
     refChrCols = NULL,
     ylabBuff = NULL,
+    scaleGapSize = 0.25,
     refChrOrdFun = function(x)
       frank(list(as.numeric(gsub('\\D+','', x)), x), ties.method = "random"),
     chrLabFun = function(x)
@@ -175,7 +176,7 @@ plot_riparian <- function(
   }
 
   check_blockCoordsParam <- function(x){
-    nhits1 <- nhits2 <- color <- lgBlkID <- NULL
+    nhits1 <- nhits2 <- color <- NULL
     blkCols <- c(
       "genome1", "genome2", "chr1", "chr2", "start1", "end1", "start2",
       "end2", "blkID", "color")
@@ -439,7 +440,6 @@ plot_riparian <- function(
     blk <- subset(
       fread(file.path(gsParam$paths$riparian, "refPhasedBlkCoords.txt"),
             na.strings = c("", "NA")), refGenome == rg)
-    blk[,blkID := paste(blkID, refChr)]
   }
 
   # raw blocks if highlighting
@@ -447,7 +447,9 @@ plot_riparian <- function(
     blk <- fread(file.path(gsParam$paths$results, "blkCoords.txt"),
                  na.strings = c("", "NA"))
   }
-  blk[,blkID := paste(genome1, genome2, blkID)]
+
+  if(!rg %in% c(blk$genome1, blk$genome2))
+    stop("refGenome ", rg, " isn't in the block coordinates\n")
 
   # subset to just daisy chained hits
   blk <- subset(blk, nHits1 >= minBlkSize & nHits2 >= minBlkSize)
@@ -518,8 +520,13 @@ plot_riparian <- function(
   clens[,ord := chrOrd[paste(genome, chr)]]
   setkey(clens, genome, ord)
 
-  gapSize <- round(gapProp * sum(clens$length[clens$genome == rg]))
-  clens[,gap := c(0, rep(gapSize, (.N)-1)), by = "genome"]
+  maxGapSize <- round(gapProp * sum(clens$length[clens$genome == rg]))
+  genomeSize <- clens[,list(totLen = sum(length), ngaps = .N), by = "genome"]
+  genomeSize[,diffMax := (max(totLen) - totLen)/ngaps]
+  genomeSize[,gapSize := maxGapSize + (diffMax * scaleGapSize)]
+  gapSize <- genomeSize$gapSize; names(gapSize) <- genomeSize$genome
+
+  clens[,gap := c(0, rep(gapSize[genome], (.N)-1)), by = "genome"]
   clens[,chrstart := cumsum(c(1, (length[-.N]+1)) + gap), by = "genome"]
   clens[,med := sum(length + gap)/2, by = "genome"]
   clens[,`:=`(chrend = chrstart + length, gap = NULL)]
@@ -810,8 +817,8 @@ calc_regBlkCoords <- function(gsParam,
                               minBlkSize){
 
   isAnchor <- interpGenome <- interpChr <- genome <- chr <- start <- end <-
-    noAnchor <- interpOrd <- query <- target <- lgBlkID <- ofID1 <- ofID2 <-
-    regID1 <- regID2 <- lgBlkID <- genome1 <- genome2 <- blkID <- color <- NULL
+    noAnchor <- interpOrd <- query <- target <- ofID1 <- ofID2 <-
+    regID1 <- regID2 <- genome1 <- genome2 <- blkID <- color <- NULL
 
   if(is.null(regGenome))
     stop("regGenome must be specified to calculate region block coords")
@@ -868,24 +875,24 @@ calc_regBlkCoords <- function(gsParam,
     return(out)
   }))
 
-  md <- gsParam$annotBlastMd
+  md <- gsParam$synteny$blast
   ug <- with(blk, unique(paste(c(genome1, genome2), c(genome2, genome1))))
   uc <- with(blk, unique(paste(genome1, genome2)))
   mdo <- subset(md, paste(query, target) %in% ug)
   u <- unique(regList$ofID)
-  rhits <- rbindlist(lapply(mdo$annotBlastFile, function(i)
+  rhits <- rbindlist(lapply(mdo$synHits, function(i)
     subset(fread(
       i, na.strings = c("", "NA"),
       select = c("ofID1", "chr1", "start1", "end1", "ord1", "genome1",
                  "ofID2", "chr2", "start2", "end2", "ord2", "genome2",
-                 "isAnchor", "lgBlkID")),
-      isAnchor & !is.na(lgBlkID) & ofID1 %in% u & ofID2 %in% u)))
+                 "isAnchor", "blkID")),
+      isAnchor & !is.na(blkID) & ofID1 %in% u & ofID2 %in% u)))
   rg1 <- with(regList, data.table(ofID1 = ofID, regID1 = regID, color = color))
   rg2 <- with(regList, data.table(ofID2 = ofID, regID2 = regID))
   rh <- merge(rg1, merge(rg2, rhits, by = "ofID2", allow.cartesian = T),
               by = "ofID1", allow.cartesian = T)
   rh <- subset(rh, regID1 == regID2)
-  rh[,`:=`(hlRegID = regID1, blkID = sprintf("%s_hlreg%s",lgBlkID, regID1),
+  rh[,`:=`(hlRegID = regID1, blkID = sprintf("%s_hlreg%s", blkID,  regID1),
            regID1 = NULL, regID2 = NULL)]
 
   out <- calc_blkCoords(rh, mirror = T)

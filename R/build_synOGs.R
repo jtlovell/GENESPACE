@@ -26,8 +26,7 @@
 build_synOGs <- function(gsParam){
 
   # -- read in the combined bed file
-  bedFile <- file.path(gsParam$paths$results, "combBed.txt")
-  bed <- read_combBed(bedFile)
+  bed <- read_combBed(gsParam$synteny$combBed)
 
   cat("\t##############\n\tAggregating syntenic orthogroups ... ")
   ofID <- ofID1 <- ofID2 <- synOG <- NULL
@@ -61,7 +60,7 @@ build_synOGs <- function(gsParam){
   }else{
     inblkOG <- og <- NULL
     bed[,`:=`(inblkOG = NA, og = synOG)]
-    write_combBed(x = bed, filepath = bedFile)
+    write_combBed(x = bed, filepath = gsParam$synteny$combBed)
   }
   return(gsParam)
 }
@@ -76,14 +75,14 @@ pull_synOgs <- function(gsParam, onlyInBuffer = TRUE){
   regID <- sameOg <- sameInblkOg <- inBuffer <- NULL
   ##############################################################################
   # -- 1. Get metadata together
-  md <- data.table(gsParam$annotBlastMd)
+  md <- data.table(gsParam$synteny$blast)
   # -- for each line in metadata
   hitsInOgs <- rbindlist(lapply(1:nrow(md), function(i){
     allBlast <- fread(
-      md$annotBlastFile[i], showProgress = F, na.strings = c("NA", ""))
+      md$synHits[i], showProgress = F, na.strings = c("NA", ""))
 
     # -- subset to only hits in regions
-    out <- subset(allBlast, !is.na(regID) & sameOg)
+    out <- subset(allBlast, !is.na(blkID) & sameOg)
     out[,sameInblkOg := TRUE]
     if(onlyInBuffer)
       out <- subset(out, inBuffer)
@@ -349,7 +348,7 @@ run_orthofinderInBlk <- function(gsParam,
     hogout <- rbindlist(lapply(names(spl01), function(j){
       y <- spl01[[j]]
       if(file.exists(hogf[j])){
-        z <- parse_hogs(path = hogf[j], genomeIDs = c("g0", "g1"))
+        z <- parse_hogs(filepath = hogf[j], genomeIDs = c("g0", "g1"))
         hogv <- z$hogID; names(hogv) <- z$id
         y[,`:=`(hog1 = hogv[ofID1], hog2 = hogv[ofID2])]
         y[,sameHog := hog1 == hog2]

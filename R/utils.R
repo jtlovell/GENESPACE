@@ -219,15 +219,15 @@ check_logical <- function(x,
 #' \code{check_filePathParam} QC of user-specified parameter
 #' @rdname utils
 #' @export
-check_filePathParam <- function(path){
-  if(is.null(path))
-    path <- NA
-  path <- path.expand(check_character(
-    x = path, default = NA, na.rm = FALSE))
-  chk <- dir.exists(path) || file.exists(path)
+check_filePathParam <- function(filepath){
+  if(is.null(filepath))
+    filepath <- NA
+  filepath <- path.expand(check_character(
+    x = filepath, default = NA, na.rm = FALSE))
+  chk <- dir.exists(filepath) || file.exists(filepath)
   if(!chk)
-    path <- NA
-  return(path)
+    filepath <- NA
+  return(filepath)
 }
 
 #' @title Check if a sequence is only DNA
@@ -281,11 +281,11 @@ get_nAA <- function(path){
 #' @import data.table
 #' @importFrom stats complete.cases
 #' @export
-read_bed <- function(path){
+read_bed <- function(filepath){
   chk <- tryCatch(
     {
       suppressWarnings(suppressMessages(fread(
-        path, verbose = FALSE, showProgress = FALSE, select = 1:4,
+        filepath, verbose = FALSE, showProgress = FALSE, select = 1:4,
         colClasses = c("character", "numeric", "numeric", "character"),
         header = FALSE, col.names = c("chr", "start", "end", "id"))))
     },
@@ -336,9 +336,9 @@ align_charRight <- function(x){
 #' @rdname utils
 #' @import data.table
 #' @export
-read_orthofinderSpeciesIDs <- function(path){
+read_orthofinderSpeciesIDs <- function(filepath){
   si <- fread(
-    path,
+    filepath,
     sep = ":",
     header = F,
     col.names = c("genomeNum", "genome"),
@@ -357,10 +357,10 @@ read_orthofinderSpeciesIDs <- function(path){
 #' @rdname utils
 #' @import data.table
 #' @export
-read_orthofinderSequenceIDs <- function(path){
+read_orthofinderSequenceIDs <- function(filepath){
 
   gi <- fread(
-    path,
+    filepath,
     header = F,
     sep = ":",
     col.names = c("ofID","id"),
@@ -377,8 +377,8 @@ read_orthofinderSequenceIDs <- function(path){
 #' is not convertible to an integer, returns NA.
 #' @rdname utils
 #' @export
-get_nSeqs <- function(path){
-  nseq <- system2("grep", "-c '>'", path, stdout = TRUE, stderr = TRUE)
+get_nSeqs <- function(filepath){
+  nseq <- system2("grep", "-c '>'", filepath, stdout = TRUE, stderr = TRUE)
   suppressWarnings(nseq <- as.integer(nseq))
   return(nseq)
 }
@@ -390,10 +390,10 @@ get_nSeqs <- function(path){
 #' @rdname utils
 #' @import data.table
 #' @export
-check_annotFiles <- function(path, genomeIDs){
+check_annotFiles <- function(filepath, genomeIDs){
 
   # -- make sure the working directory is OK
-  wd <- check_filePathParam(path)
+  wd <- check_filePathParam(filepath)
   if(is.na(wd))
     stop("couldn't find working directory:", wd)
 
@@ -452,8 +452,8 @@ check_annotFiles <- function(path, genomeIDs){
 #' \code{check_MCScanXhInstall} check that MCScanX_h can be called
 #' @rdname utils
 #' @export
-check_MCScanXhInstall <- function(path){
-  path <- check_filePathParam(path)
+check_MCScanXhInstall <- function(filepath){
+  path <- check_filePathParam(filepath)
   if(is.na(path)){
     chk <- NA
   }else{
@@ -477,9 +477,9 @@ check_MCScanXhInstall <- function(path){
 #' @rdname utils
 #' @import data.table
 #' @export
-parse_ogs <- function(path, genomeIDs){
+parse_ogs <- function(filepath, genomeIDs){
   id <- genome <- Orthogroup <- NULL
-  tmp <- fread(path, showProgress = F, verbose = F)
+  tmp <- fread(filepath, showProgress = F, verbose = F)
   tmp <- melt(
     tmp, id.vars = "Orthogroup", measure.vars = genomeIDs,
     variable.name = "genome", value.name = "id")
@@ -498,9 +498,9 @@ parse_ogs <- function(path, genomeIDs){
 #' @rdname utils
 #' @import data.table
 #' @export
-parse_hogs <- function(path, genomeIDs){
+parse_hogs <- function(filepath, genomeIDs){
   id <- genome <- HOG <- NULL
-  tmp <- fread(path, showProgress = F, verbose = F)
+  tmp <- fread(filepath, showProgress = F, verbose = F)
   tmp <- melt(
     tmp, id.vars = "HOG", measure.vars = genomeIDs,
     variable.name = "genome", value.name = "id")
@@ -516,9 +516,9 @@ parse_hogs <- function(path, genomeIDs){
 #' @rdname utils
 #' @import data.table
 #' @export
-parse_orthologues <- function(path){
+parse_orthologues <- function(filepath){
   orthID <- id1 <- id2 <- NULL
-  x <- fread(path, showProgress = F)
+  x <- fread(filepath, showProgress = F)
   refID <- colnames(x)[2]
   altID <- colnames(x)[3]
   setnames(x, c("og", "id1", "id2"))
@@ -894,3 +894,69 @@ write_intSynPos <- function(x, filepath){
   fwrite(x, file = filepath, showProgress = F, quote = F, sep = "\t")
 }
 
+#' @title Get the version of the orthofinder install
+#' @description
+#' \code{get_orthofinderVersion} Checks that orthofinder is installed and if so,
+#' returns the installed version.
+#' @rdname run_orthofinder
+#' @export
+get_orthofinderVersion <- function(filepath){
+  # -- check if orthofinder is callable
+  path <- path.expand(filepath)
+  wh <- Sys.which(as.character(path))
+  isThere <- basename(wh) == "orthofinder"
+  # -- if orthofinder is installed, check version
+  if(isThere){
+    ver <- system2(path, "-h", stdout = TRUE)[2]
+    ver <- strsplit(ver, " ")[[1]][3]
+    vern <- strsplit(ver, ".", fixed = T)[[1]]
+    vern <- as.numeric(sprintf("%s.%s%s", vern[1], vern[2], vern[3]))
+    return(vern)
+  }else{
+    return(NA)
+  }
+}
+
+#' @title Get the version of the DIAMOND install
+#' @description
+#' \code{get_diamondVersion} Checks that DIAMOND is installed and if so,
+#' returns the installed version.
+#' @rdname run_orthofinder
+#' @export
+get_diamondVersion <- function(filepath){
+  path <- path.expand(filepath)
+  chk <- tryCatch(
+    {
+      system2(path, "help",
+              stdout = TRUE, stderr = FALSE)[1]
+    },
+    error = function(err) {
+      return(NA)
+    }
+  )
+  if(!is.na(chk)){
+    ver <- strsplit(gsub(" |diamond|v", "", chk),"(", fixed = T)[[1]][1]
+    vern <- strsplit(ver, ".", fixed = T)[[1]]
+    vern <- as.numeric(sprintf("%s.%s%s", vern[1], vern[2], vern[3]))
+    chk <- vern
+  }
+  return(chk)
+}
+
+
+theme_genespace <- function(panelBg = "black"){
+  theme(panel.background = element_rect(fill = panelBg),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(
+          color = rgb(1, 1, 1, .2), size = .2, linetype = 2),
+        panel.spacing = unit(.1, "mm"),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        strip.background = element_blank(),
+        strip.text.x = element_text(
+          angle = 90, family = "Helvetica", size = 5),
+        strip.text.y.left = element_text(
+          angle = 0, family = "Helvetica", size = 5),
+        axis.title = element_text(family = "Helvetica", size = 6),
+        plot.title = element_text(family = "Helvetica", size = 7))
+}

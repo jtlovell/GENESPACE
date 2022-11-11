@@ -37,6 +37,7 @@ plot_riparian(
   chrLabBorderLwd = 0.1,
   refChrCols = NULL,
   ylabBuff = NULL,
+  scaleGapSize = 0.25,
   refChrOrdFun = function(x) frank(list(as.numeric(gsub("\\\\D+", "", x)), x),
     ties.method = "random"),
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf|chromosome|scaffold|^lg|_", "",

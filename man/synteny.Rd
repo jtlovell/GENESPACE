@@ -4,9 +4,8 @@
 \alias{synteny}
 \alias{find_selfSyn}
 \alias{split_ovlBlks}
-\alias{find_initialAnchors}
-\alias{find_synRegions}
-\alias{find_synBlks}
+\alias{synteny_engine}
+\alias{ggdotplot}
 \title{synteny}
 \usage{
 synteny(gsParam, verbose = TRUE)
@@ -15,28 +14,28 @@ find_selfSyn(hits, synRad)
 
 split_ovlBlks(hits, dropSmallNonOGBlks, blkSize)
 
-find_initialAnchors(
+synteny_engine(
   hits,
-  nGaps,
+  onlyOgAnchors,
   blkSize,
+  blkRadius,
+  tmpDir,
   topn1,
   topn2,
-  tmpDir,
-  onlyOgAnchors,
-  MCScanX_hCall
-)
-
-find_synRegions(
-  hits,
-  blkSize,
   nGaps,
   synRad,
-  tmpDir,
-  onlyOgAnchors,
   MCScanX_hCall
 )
 
-find_synBlks(hits, blkSize, inBufferRadius, dropSmallNonOGBlks, maxIter)
+ggdotplot(
+  hits,
+  outDir = NULL,
+  minGenes2plot = 100,
+  appendName = "synHits",
+  dotsPerIn = 256,
+  plotSize = 12,
+  verbose = is.null(outDir)
+)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -56,7 +55,11 @@ synBuff (* sqrt 2).}
 
 \item{blkSize}{integer of length 1, minimum block size}
 
-\item{nGaps}{integer of length 1, number of gaps (-m) to allow}
+\item{onlyOgAnchors}{logical of length 1, should anchors only be in the same
+OG?}
+
+\item{tmpDir}{file.path of length 1, pointing to the tmp directory, taken
+from gsParam}
 
 \item{topn1}{integer of length 1, specifying the top n scoring hits in
 genome 1. Typically taken from ploidy in gsParam}
@@ -64,24 +67,20 @@ genome 1. Typically taken from ploidy in gsParam}
 \item{topn2}{integer of length 1, specifying the top n scoring hits in
 genome 2. Typically taken from ploidy in gsParam}
 
-\item{tmpDir}{file.path of length 1, pointing to the tmp directory, taken
-from gsParam}
-
-\item{onlyOgAnchors}{logical of length 1, should anchors only be in the same
-OG?}
+\item{nGaps}{integer of length 1, number of gaps (-m) to allow}
 
 \item{MCScanX_hCall}{file.path to MCScanX_h, taken from gsParam}
+
+\item{outDir}{file.path of length 1, pointing to the directory to write plots}
+
+\item{appendName}{character string of length 1, to append to plot file name}
+
+\item{gridSize}{integer of length 1,}
 
 \item{inBufferRadius}{integer of length 1,}
 
 \item{maxIter}{integer of length 1, specifying the number of iterations to
 allow to split overlapping non-duplicated blocks}
-
-\item{outDir}{file.path of length 1, pointing to the directory to write plots}
-
-\item{gridSize}{integer of length 1,}
-
-\item{appendName}{character string of length 1, to append to plot file name}
 }
 \description{
 \code{synteny} synteny
@@ -94,12 +93,11 @@ Also pulls all inbuffer hits around the anchors
 \code{split_ovlBlks} Where syntenic blocks overlap, converts overlapping
 regions into RLE and splits accordingly.
 
-\code{find_initialAnchors} First synteny round to find initial anchors
+\code{synteny_engine} The main engine for synteny discovery. Takes a "hits"
+data.table and classifies block IDs, whether a gene is an anchor in the block
+and whether it is within a syntenic buffer of the block anchor hits.
 
-\code{find_synRegions} Second synteny step to find large regions of synteny
-
-\code{find_synBlks} Third synteny step, flagging collinear anchors within
-large syntenic regions.
+\code{ggdotplot} ggplot2 integrated graphics to produce dotplots
 }
 \details{
 Details coming soon.

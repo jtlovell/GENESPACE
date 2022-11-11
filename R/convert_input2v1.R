@@ -74,6 +74,5 @@ convert_input2v1 <- function(existingDir, v1Dir){
   gids <- gsub(".fa$", "", list.files(v1PepDir))
   ofFiles <- copy_of2results(
     orthofinderDir = ofDir,
-    resultsDir = v1ResDir,
-    genomeIDs = gids)
+    resultsDir = v1ResDir)
 }

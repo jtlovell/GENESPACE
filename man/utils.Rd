@@ -69,7 +69,7 @@ check_character(
 
 check_logical(x, default = NA, na.rm = FALSE, onlySingleValue = length(x) <= 1)
 
-check_filePathParam(path)
+check_filePathParam(filepath)
 
 check_onlyDNA(path)
 
@@ -77,27 +77,27 @@ read_aaFasta(path)
 
 get_nAA(path)
 
-read_bed(path)
+read_bed(filepath)
 
 align_charLeft(x)
 
 align_charRight(x)
 
-read_orthofinderSpeciesIDs(path)
+read_orthofinderSpeciesIDs(filepath)
 
-read_orthofinderSequenceIDs(path)
+read_orthofinderSequenceIDs(filepath)
 
-get_nSeqs(path)
+get_nSeqs(filepath)
 
-check_annotFiles(path, genomeIDs)
+check_annotFiles(filepath, genomeIDs)
 
-check_MCScanXhInstall(path)
+check_MCScanXhInstall(filepath)
 
-parse_ogs(path, genomeIDs)
+parse_ogs(filepath, genomeIDs)
 
-parse_hogs(path, genomeIDs)
+parse_hogs(filepath, genomeIDs)
 
-parse_orthologues(path)
+parse_orthologues(filepath)
 
 round_toInteger(x, to)
 
@@ -144,6 +144,8 @@ write_intSynPos(x, filepath)
 
 \item{onlySingleValue}{logical, should long a single valuebe returned?}
 
+\item{filepath}{file.path}
+
 \item{path}{file path character string}
 
 \item{genomeIDs}{character vector of genomeIDs}
@@ -167,8 +169,6 @@ write_intSynPos(x, filepath)
 \item{col}{color}
 
 \item{scale1toMean}{logical, should values be scaled to 1?}
-
-\item{filepath}{file.path}
 
 \item{alpha}{numeric, transparency
 \cr

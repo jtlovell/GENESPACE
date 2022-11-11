@@ -55,6 +55,10 @@
 #' for the primary MCScanX run. This acts on the results from the initial
 #' MCScanX run.
 #' @param blkSize integer of length 1, specifying the -s param to mcscanx
+#' @param blkRadius integer of length 1, specifying the search radius in 2d
+#' clustering to assign hits to the same block. This is a sensitive parameter
+#' as smaller values will result in more blocks, gaps and SV. Typically using
+#' 2x or greater blkSize is fine.
 #' @param nSecondHits integer of length 1, specifying the number of blast
 #' hits to include after masking.
 #' @param synBuff Numeric > 0, specifying the distance from an anchor
@@ -64,6 +68,8 @@
 #' @param nGapsSecond see nGaps, but passed to secondary hits after masking
 #' primary hits.
 #' @param blkSizeSecond see blkSize, but passed to the secondary scan if
+#' nSecondaryHits > 0.
+#' @param blkRadiusSecond see blkRadius, but passed to the secondary scan if
 #' nSecondaryHits > 0.
 #' @param synBuffSecond see syntenyBuffer. Applied only to synteny
 #' construction of secondary hits.
@@ -128,6 +134,7 @@ init_genespace <- function(wd,
                            maxOgPlaces = ploidy * 8,
                            blkSize = 5,
                            nGaps = 5,
+                           blkRadius = blkSize * 5,
                            synBuff = 100,
                            arrayJump = ceiling(synBuff/2),
                            onlyOgAnchors = TRUE,
@@ -135,6 +142,7 @@ init_genespace <- function(wd,
                            nSecondaryHits = 0,
                            nGapsSecond = nGaps * 2,
                            blkSizeSecond = blkSize,
+                           blkBufferSecond = blkRadius,
                            onlyOgAnchorsSecond = FALSE,
 
                            # -- deprecated arguments here for backwards compat.
@@ -375,6 +383,10 @@ init_genespace <- function(wd,
   cat(sprintf("%s\n\tcollinear block size ... ", nCores))
   blkSize <- check_integer(x = blkSize, min = 1, max = Inf, default = 5)
 
+  # -- block size
+  cat(sprintf("%s\n\tcollinear block search radius ... ", nCores))
+  blkRadius <- check_integer(x = blkRadius, min = 1, max = Inf, default = 25)
+
   # -- n. gaps
   cat(sprintf("%s\n\tn gaps in collinear block ... ", blkSize))
   nGaps <- check_integer(x = nGaps, min = 1, max = Inf, default = 5)
@@ -395,19 +407,28 @@ init_genespace <- function(wd,
   # -- if nSecondary hits > 0, parameterize those, otherwise set to NA
   if(nSecondaryHits > 0){
     cat(sprintf("%s\n\tn gaps in secondary blocks ... ", nSecondaryHits))
+
     nGapsSecond <- check_integer(
       x = nGapsSecond, min = 1, max = Inf, default = 5)
     cat(sprintf("%s\n\tsecondardy block size ... ", nGapsSecond))
+
     blkSizeSecond <- check_integer(
       x = blkSizeSecond, min = 1, max = Inf, default = 5)
-    cat(sprintf("%s\n\tonly orthogroup hits in secondary block ... ",
+    cat(sprintf("%s\n\tsecondardy block search buffer size ... ",
                 blkSizeSecond))
+
+    blkRadiusSecond <- check_integer(
+      x = blkBufferSecond, min = 1, max = Inf, default = 5)
+    cat(sprintf("%s\n\tonly orthogroup hits in secondary block ... ",
+                blkRadiusSecond))
+
     onlyOgAnchorsSecond <- check_logical(onlyOgAnchorsSecond)
     cat(sprintf("%s\n ... ", onlyOgAnchorsSecond))
   }else{
     cat(sprintf("%s\n", nSecondaryHits))
     nGapsSecond <- NA
     blkSizeSecond <- NA
+    blkRadiusSecond <- NA
     onlyOgAnchorsSecond <- NA
   }
 
@@ -425,29 +446,31 @@ init_genespace <- function(wd,
     cat(strwrap(
       "**NOTE** 'diamondMode' specification is deprecated in GENESPACE V1. If
       you wish to increase sensitivity, set `diamond_ultra_sens` to TRUE. Other
-      diamond modes (e.g. --fast) are no longer supported in GENESPACE\n", indent = 8, exdent = 8),
+      diamond modes (e.g. --fast) are no longer supported in GENESPACE\n",
+      indent = 8, exdent = 8),
       sep = "\n")
 
   orthofinderInBlk <- check_logical(orthofinderInBlk, onlySingleValue = T)
+
   if(!is.na(useHOGs))
     useHOGs <- check_logical(useHOGs, onlySingleValue = T)
   rawOrthofinderDir <- check_filePathParam(check_character(
     x = rawOrthofinderDir, onlySingleValue = T))
   if(is.na(rawOrthofinderDir))
-    rawOrthofinderDir <- "orthofinder"
+    rawOrthofinderDir <- file.path(wd, "orthofinder")
 
   params <- list(
-    useHOGs = useHOGs, nCores = nCores,
-    orthofinderInBlk = orthofinderInBlk, blkSize = blkSize, nGaps = nGaps,
-    synBuff = synBuff, onlyOgAnchors = onlyOgAnchors,
-    nSecondaryHits = nSecondaryHits, blkSizeSecond = blkSizeSecond,
+    useHOGs = useHOGs, nCores = nCores, orthofinderInBlk = orthofinderInBlk,
+    blkRadius = blkRadius, blkSize = blkSize, nGaps = nGaps, synBuff = synBuff,
+    onlyOgAnchors = onlyOgAnchors, nSecondaryHits = nSecondaryHits,
+    blkSizeSecond = blkSizeSecond, blkRadiusSecond = blkRadiusSecond,
     nGapsSecond = nGapsSecond, onlyOgAnchorsSecond = onlyOgAnchorsSecond)
 
   ##############################################################################
   ##############################################################################
   # 2. Check annotation files
   cat("Checking annotation files (.bed and peptide .fa):\n")
-  inFiles <- check_annotFiles(path = wd, genomeIDs = genomeIDs)
+  inFiles <- check_annotFiles(filepath = wd, genomeIDs = genomeIDs)
 
   ##############################################################################
   ##############################################################################

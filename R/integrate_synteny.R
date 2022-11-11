@@ -110,7 +110,7 @@ integrate_synteny <- function(gsParam){
   add_arrayInfo2bed <- function(gsParam){
 
     md <- data.table(gsParam$annotBlastMd)
-    bedFile <- file.path(gsParam$paths$results, "combBed.txt")
+    bedFile <- gsParam$synteny$combBed
     bed <- read_combBed(bedFile)
 
     # -- 1.2 find the arrays
@@ -148,7 +148,6 @@ integrate_synteny <- function(gsParam){
       beda <- subset(beds, isArrayRep)[,c("genome", "ofID", "chr", "ord", "og")]
       beda[,`:=`(interpGenome = genome, interpChr = chr,
                  interpOrd = ord, isAnchor = TRUE)]
-
       inta <- subset(interps, !is.na(interpChr) & genome == i)
       inta <- inta[,colnames(beda), with = F]
 
@@ -175,13 +174,13 @@ integrate_synteny <- function(gsParam){
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
   md[,interPosFile := NA]
 
-  bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
+  bed <- read_combBed(gsParam$synteny$combBed)
 
   ##############################################################################
   # 2. for each pair of genomes, do linear interpolation, save output
   cat("\t##############\n\tLinear interpolation of syntenic positions ... \n")
   gsParam <- interp_synPos(gsParam)
-  md <- data.table(gsParam$annotBlastMd)
+  md <- data.table(gsParam$synteny$blast)
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
 
   ##############################################################################
@@ -206,13 +205,14 @@ integrate_synteny <- function(gsParam){
     g1 <- md$query[j]
     g2 <- md$target[j]
     hits <- subset(fread(
-      md$annotBlastFile[j],
+      md$synHits[j],
       na.strings = c("", "NA"),
       select = c("ofID1", "chr1", "start1", "end1", "ord1", "genome1",
                  "ofID2", "chr2", "start2", "end2", "ord2", "genome2",
-                 "isAnchor", "lgBlkID"),
+                 "isAnchor", "blkID"),
       showProgress = FALSE),
-      isAnchor & !is.na(lgBlkID))
+      isAnchor & !is.na(blkID))
+    hits[,lgBlkID := blkID]
 
     # -- merge with interp via genome1
     tmp <- merge(interp1, hits, by = "ofID1", allow.cartesian = T)
@@ -409,10 +409,10 @@ interp_synPos <- function(gsParam){
   isArrayRep <- lab <- query <- target <- interPosFile <- ofID1 <- ofID2 <-
     genome <- nPlace <- interpOrd <- NULL
 
-  bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
+  bed <- read_combBed(gsParam$synteny$combBed)
   bedrep <- subset(bed, isArrayRep)
 
-  md <- data.table(gsParam$annotBlastMd)
+  md <- data.table(gsParam$synteny$blast)
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
   md[,interPosFile := NA]
 
@@ -431,32 +431,29 @@ interp_synPos <- function(gsParam){
         chnki, max(md$chunk), format(Sys.time(), "%X")))
 
     outChnk <- rbindlist(mclapply(1:nrow(chnk), mc.cores = nCores, function(i){
+
       g1 <- chnk$query[i]
       g2 <- chnk$target[i]
-      hits <- read_synHits(chnk$annotBlastFile[i])
+      hits <- read_synHits(chnk$synHits[i])
       synPos <- interp_hitsPos(
         hits = subset(hits, ofID1 %in% bedrep$ofID & ofID2 %in% bedrep$ofID),
         bed = subset(bedrep, genome %in% c(g1, g2)),
         md = chnk)
+
       if(!is.null(synPos)){
         synPos[,nPlace := uniqueN(interpOrd, na.rm = T),
                by = c("ofID", "genome")]
         synPos$nPlace[synPos$nPlace >= 2] <- "2+"
         spFile <- file.path(gsParam$paths$tmp, sprintf(
           "%s_vs_%s.interpSynPos.txt", g1, g2))
-
         chnk$interPosFile[i] <- spFile
         write_intSynPos(x = synPos, filepath = spFile)
-
-        tab <- synPos[,list(n = .N), by = c("genome", "nPlace")]
-        toprint <- with(tab, data.table(
-          lab = chnk$lab[i],
-          n11 = n[genome == g1 & nPlace == "1"],
-          n21 = n[genome == g2 & nPlace == "1"],
-          n12 = n[genome == g1 & nPlace == "2+"],
-          n22 = n[genome == g2 & nPlace == "2+"],
-          n10 = n[genome == g1 & nPlace == "0"],
-          n20 = n[genome == g2 & nPlace == "0"]))
+        synPos[,nPlace := factor(nPlace, levels = c("0", "1", "2+"))]
+        tab <- with(synPos, table(genome, nPlace))
+        toprint <- data.table(
+          lab = chnk$lab[i], n11 = tab[g1, "1"], n21 = tab[g2, "1"],
+          n12 = tab[g1, "2+"], n22 = tab[g2, "2+"],
+          n10 = tab[g1, "0"],  n20 = tab[g2, "0"])
       }else{
         toprint <- data.table(
           lab = chnk$lab[i], n11 = NA, n21 = NA,  n12 = NA,  n22 = NA,
@@ -482,6 +479,7 @@ interp_synPos <- function(gsParam){
   md[,interPosFile := file.path(gsParam$paths$tmp, sprintf(
     "%s_vs_%s.interpSynPos.txt", query, target))]
   md$interPosFile[!file.exists(md$interPosFile)] <- NA
-  gsParam$annotBlastMd <- md
+  mdv <- md$interPosFile; names(mdv) <- with(md, paste(query, target))
+  gsParam$synteny$blast[,interPosFile := mdv[paste(query, target)]]
   return(gsParam)
 }
