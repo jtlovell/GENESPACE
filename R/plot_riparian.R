@@ -523,7 +523,7 @@ plot_riparian <- function(
   setkey(clens, genome, ord)
 
   maxGapSize <- round(gapProp * sum(clens$length[clens$genome == rg]))
-  genomeSize <- clens[,list(totLen = sum(length), ngaps = .N), by = "genome"]
+  genomeSize <- clens[,list(totLen = sum(as.numeric(length)), ngaps = .N), by = "genome"]
   genomeSize[,diffMax := (max(totLen) - totLen)/ngaps]
   genomeSize[,gapSize := maxGapSize + (diffMax * scaleGapSize)]
   gapSize <- genomeSize$gapSize; names(gapSize) <- genomeSize$genome
