@@ -92,7 +92,6 @@ synteny <- function(gsParam, verbose = TRUE){
       # -- 2.1 read in the metadata and hits
       x <- chnk[i,]
       hits <- read_synHits(x$synHits)
-      print(x)
 
       ############################################################################
       # 1. intragenomic hits

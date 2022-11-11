@@ -79,6 +79,9 @@
 #' @param regEnd numeric, end position to use for the region
 #' @param regID character, id to use for the region
 #' @param regCol color to to use for the region
+#' @param scaleGapSize numeric 0-1, specifying the gap scaling level, where 0 means
+#' all gaps are the same size regardless of genome size. 1 means that the
+#' genomes sizes are all nearly the same and smaller genomes have larger gaps.
 #' @param verbose logical, should updates be printed to the console?
 #' @param ... additional arguments passed on to other functions
 #'
@@ -483,8 +486,6 @@ plot_riparian <- function(
   ##############################################################################
   # -- 1.6 if highlight these regions, add these in
   if(runType == "highlight"){
-    # print(highlightTheseRegions)
-    # highlightTheseRegions <<- highlightTheseRegions
     blkReg <- with(highlightTheseRegions, calc_regBlkCoords(
       gsParam = gsParam,
       regGenome = genome,
