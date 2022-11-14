@@ -164,68 +164,6 @@ annotate_bed <- function(gsParam){
     return(bed)
   }
 
-  # -- 0.8 get summary stats for og/hog matching with ploidy
-  check_ploidyOgMatch <- function(ploidy, bed){
-    genome <- nGenome <- nGenes <- ofID <- n <- nOGs <- smPloid <- NULL
-    cat("\t##############\n\tChecking which type of orthogroup best matches ploidy\n")
-    tmp <- data.table(genome = names(ploidy), ploidy = ploidy)
-    bed[,nGenome := uniqueN(genome), by = "globOG"]
-    cat(sprintf("\t%s OGs (of %s) with %s genes (of %s) hit all genomes\n",
-                uniqueN(bed$globOG[bed$nGenome == nrow(tmp)]),
-                uniqueN(bed$globOG),
-                uniqueN(bed$ofID[bed$nGenome == nrow(tmp)]),
-                uniqueN(bed$ofID)))
-    cnts <- subset(bed, nGenome == nrow(tmp))
-    cnts <- cnts[,list(nGenes = uniqueN(ofID)), by = c("globOG", "genome")]
-    cnts <- cnts[,list(n = .N), by = c("genome", "nGenes")]
-    ogCnt <- merge(tmp, cnts, by = "genome", all = T)
-    ogCnt[,smPloid := ploidy == nGenes]
-    ogCnt <- ogCnt[,list(nOGs = sum(n), type = "OG"), by = c("genome", "smPloid")]
-
-    bed[,nGenome := uniqueN(genome), by = "globHOG"]
-    cat(sprintf("\t%s HOGs (of %s) with %s genes (of %s) hit all genomes\n",
-                uniqueN(bed$globHOG[bed$nGenome == nrow(tmp)]),
-                uniqueN(bed$globHOG),
-                uniqueN(bed$ofID[bed$nGenome == nrow(tmp)]),
-                uniqueN(bed$ofID)))
-    cnts <- subset(bed, nGenome == nrow(tmp))
-    cnts <- cnts[,list(nGenes = uniqueN(ofID)), by = c("globHOG", "genome")]
-    cnts <- cnts[,list(n = .N), by = c("genome", "nGenes")]
-    hogCnt <- merge(tmp, cnts, by = "genome", all = T)
-    hogCnt[,smPloid := ploidy == nGenes]
-    hogCnt <- hogCnt[,list(nOGs = sum(n), type = "HOG"), by = c("genome", "smPloid")]
-    cnts <- rbind(ogCnt, hogCnt)
-    tp <- dcast(cnts, genome ~ type + smPloid, value.var = "nOGs")
-    tp <- rbind(tp,
-                matrix(c(genome = "total",
-                         colSums(tp[,-1,with = F])),nrow =  1), use.names = F)
-
-    pOG <- pHOG <- genome <- HOG <- OG <- HOG_TRUE <- HOG_FALSE <- OG_TRUE <-
-      OG_FALSE <- NULL
-    tp[,`:=`(pHOG = as.numeric(HOG_TRUE)/(as.numeric(HOG_FALSE) + as.numeric(HOG_TRUE)),
-             pOG = as.numeric(OG_TRUE)/(as.numeric(OG_FALSE) + as.numeric(OG_TRUE)))]
-    tp[,`:=`(pHOG = round(pHOG*100, 2), pOG = round(pOG*100,2))]
-
-    md <- tp[,list(genome = align_charLeft(c("#", sprintf("...%s",genome))),
-                   HOG = align_charLeft(c("match, not, % (HOGs)",
-                                          sprintf("%s, %s, %s", HOG_TRUE, HOG_FALSE, pHOG))),
-                   OG = align_charLeft(c("match, not, % (OGs)",
-                                         sprintf("%s, %s, %s", OG_TRUE, OG_FALSE, pOG))))]
-    nu <- apply(md, 1, function(x){
-      x <- unlist(x)
-      cat(sprintf("\t%s: %s || %s\n", x[1], x[2], x[3]))
-    })
-    tmp <- subset(tp, genome == "total")
-    if(tmp$pHOG > tmp$pOG){
-      useHOGs <- TRUE
-      cat("\t**NOTE** HOGs better match ploidy than OGs. Setting useHOGs = TRUE")
-    }else{
-      useHOGs <- FALSE
-      cat("\t**NOTE** OGs better match ploidy than HOGs. Setting useHOGs = FALSE")
-    }
-    return(useHOGs)
-  }
-
   # -- 0.9 add small chromosome flag to bed file
   add_smallChr2bed <- function(bed, blkSize){
     smallChr <- nGenes <- nChrs <- NULL
@@ -344,26 +282,21 @@ annotate_bed <- function(gsParam){
   bed <- add_og2bed(bed = bed, gsParam = gsParam)
 
   # -- 3.4 hier orthogroup IDs
-
-
-
-  ##############################################################################
-  # 4. Arrays and multi-placed orthogroups
-  if(is.null(useHOGs) || is.na(useHOGs))
-    useHOGs <- check_ploidyOgMatch(bed = bed, ploidy = ploidy)
-
   if(useHOGs){
     bed <- add_hog2bed(bed = bed, gsParam = gsParam)
   }else{
     bed[,globHOG := NA]
   }
 
-
   if(useHOGs){
     bed[,og := globHOG]
   }else{
     bed[,og := globOG]
   }
+
+  ##############################################################################
+  # 4. Arrays and multi-placed orthogroups
+
 
   # -- 4.1 Flag problematic chromosomes with < blkSize * 2 Ogs
   bed <- add_smallChr2bed(bed = bed, blkSize = blkSize)

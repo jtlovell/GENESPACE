@@ -38,7 +38,7 @@
 #' @export
 .onAttach <- function(...) {
   packageStartupMessage(paste(strwrap(
-    "GENESPACE v1.0.0 (pre-release): synteny and orthology constrained
+    "GENESPACE v1.0.1 (pre-release): synteny and orthology constrained
     comparative genomics\n",
     indent = 0, exdent = 8), collapse = "\n"))
 }
@@ -786,6 +786,49 @@ read_combBed <- function(filepath){
     filepath, na.strings = c("", "NA"), select = bedNames,
     colClasses = bedClass, showProgress = F)
   return(bed)
+}
+
+#' @title read pangenome file
+#' @description
+#' \code{read_pangenome} ensures consistent pangenome IO
+#' @rdname utils
+#' @export
+read_pangenome <- function(filepath){
+
+  flag <- isNSOrtho <- isArrayRep <- id <- repGene <- isRep <- NULL
+
+  if(!file.exists(filepath))
+    stop("could not find pangenome file:", filepath, "\n")
+
+  pgNames <- c(
+    "pgID", "pgGenome", "pgChr", "pgOrd", "genome", "og", "isRep", "ofID", "id",
+    "isNSOrtho", "isArrayRep")
+  chk <- strsplit(readLines(filepath, 1), "\t")[[1]]
+  if(!identical(chk, pgNames))
+    stop("refPangenomeAnnot.txt file is malformed\n")
+  pgout <- fread(filepath, showProgress = FALSE, na.strings = c("", "NA"))
+  pgw <- data.table(pgout)
+  pgw[,flag := ifelse(isNSOrtho, "*", ifelse(!isArrayRep, "+", ""))]
+  pgw[,id := sprintf("%s%s", id, flag)]
+  pgw[,repGene := id[isRep][1], by = "pgID"]
+  pgw <- dcast(pgw, pgID + pgGenome + pgChr + pgOrd + og + repGene ~ genome,
+               value.var = "id", fun.aggregate = list)
+  return(pgw)
+}
+
+#' @title write pangenome file
+#' @description
+#' \code{write_pangenome} ensures consistent pangenome IO
+#' @rdname utils
+#' @export
+write_pangenome <- function(x, filepath){
+  pgNames <- c(
+    "pgID", "pgGenome", "pgChr", "pgOrd", "genome", "og", "isRep", "ofID", "id",
+    "isNSOrtho", "isArrayRep")
+  if(!all(pgNames %in% colnames(x)))
+    stop("pangenomedata.table is malformed\n")
+  x <- x[,pgNames, with = F]
+  fwrite(x, file = filepath, showProgress = F, quote = F, sep = "\t")
 }
 
 #' @title write combBed file

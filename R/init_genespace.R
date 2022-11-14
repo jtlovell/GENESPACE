@@ -126,7 +126,7 @@ init_genespace <- function(wd,
 
                            onewayBlast = FALSE,
                            orthofinderInBlk = any(ploidy > 1),
-                           useHOGs = NA,
+                           useHOGs = TRUE,
                            rawOrthofinderDir = NA,
                            diamondUltraSens = FALSE,
 
@@ -452,8 +452,7 @@ init_genespace <- function(wd,
 
   orthofinderInBlk <- check_logical(orthofinderInBlk, onlySingleValue = T)
 
-  if(!is.na(useHOGs))
-    useHOGs <- check_logical(useHOGs, onlySingleValue = T)
+  useHOGs <- check_logical(useHOGs, onlySingleValue = T)
   rawOrthofinderDir <- check_filePathParam(check_character(
     x = rawOrthofinderDir, onlySingleValue = T))
   if(is.na(rawOrthofinderDir))
@@ -570,8 +569,6 @@ init_genespace <- function(wd,
   # 4. Build the parameter output
   ##############################################################################
   # -- 4.1 check orthofinder run parameters
-  orthofinderInBlk <- check_logical(orthofinderInBlk, onlySingleValue = T)
-  useHOGs <- check_logical(useHOGs, onlySingleValue = T)
   ofParams <- list(diamondUltraSens, onewayBlast, orthofinderInBlk, useHOGs)
   names(ofParams) <- c("diamondUltraSens", "onewayBlast", "ofInBlk", "useHOGs")
 

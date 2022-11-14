@@ -14,7 +14,7 @@ init_genespace(
   path2mcscanx = "MCScanX",
   onewayBlast = FALSE,
   orthofinderInBlk = any(ploidy > 1),
-  useHOGs = NA,
+  useHOGs = TRUE,
   rawOrthofinderDir = NA,
   diamondUltraSens = FALSE,
   nCores = min(c(detectCores()/2, 16)),

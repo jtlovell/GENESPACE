@@ -353,7 +353,7 @@ pangenome <- function(gsParam,
   pgw[,repGene := id[isRep][1], by = "pgID"]
   pgw <- dcast(pgw, pgID + pgGenome + pgChr + pgOrd + og + repGene ~ genome,
                value.var = "id", fun.aggregate = list)
-  fwrite(pgout, file = pgFile, sep = "\t")
+  write_pangenome(pgout, filepath = pgFile)
 
   if(verbose)
     with(pgout, cat(sprintf(

@@ -32,6 +32,8 @@
 \alias{are_colors}
 \alias{scale_between}
 \alias{read_combBed}
+\alias{read_pangenome}
+\alias{write_pangenome}
 \alias{write_combBed}
 \alias{read_synHits}
 \alias{write_synBlast}
@@ -120,6 +122,10 @@ are_colors(col)
 scale_between(x, min, max, scale1toMean = TRUE)
 
 read_combBed(filepath)
+
+read_pangenome(filepath)
+
+write_pangenome(x, filepath)
 
 write_combBed(x, filepath)
 
@@ -258,6 +264,10 @@ runs or the unique run ids.
 \code{scale_between} scale a vector between a range
 
 \code{read_combBed} ensures consistent combBed IO
+
+\code{read_pangenome} ensures consistent pangenome IO
+
+\code{write_pangenome} ensures consistent pangenome IO
 
 \code{write_combBed} ensures consistent combBed IO
 

@@ -112,8 +112,20 @@ run_genespace <- function(gsParam,
     }
   }
 
-  if(is.na(gsParam$synteny$hogs))
-    gsParam$params$useHOGs <- FALSE
+  # -- 1.7 if useHOGs, check if the N0.tsv file exists
+  useHOGs <- gsParam$params$useHOGs
+  if(useHOGs){
+    if(is.na(gsParam$synteny$hogs)){
+      useHOGs <- FALSE
+    }else{
+      if(!file.exists(gsParam$synteny$hogs)){
+        useHOGs <- FALSE
+      }
+    }
+  }
+  gsParam$params$useHOGs <- useHOGs
+  useHOGs <- NULL
+
   ##############################################################################
   # 2. Get the data ready for synteny
   hasBed <- FALSE
