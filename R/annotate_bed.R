@@ -344,6 +344,14 @@ annotate_bed <- function(gsParam){
   bed <- add_og2bed(bed = bed, gsParam = gsParam)
 
   # -- 3.4 hier orthogroup IDs
+
+
+
+  ##############################################################################
+  # 4. Arrays and multi-placed orthogroups
+  if(is.null(useHOGs) || is.na(useHOGs))
+    useHOGs <- check_ploidyOgMatch(bed = bed, ploidy = ploidy)
+
   if(useHOGs){
     bed <- add_hog2bed(bed = bed, gsParam = gsParam)
   }else{
@@ -351,10 +359,6 @@ annotate_bed <- function(gsParam){
   }
 
 
-  ##############################################################################
-  # 4. Arrays and multi-placed orthogroups
-  if(is.null(useHOGs) || is.na(useHOGs))
-    useHOGs <- check_ploidyOgMatch(bed = bed, ploidy = ploidy)
   if(useHOGs){
     bed[,og := globHOG]
   }else{
