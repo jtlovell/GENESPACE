@@ -344,7 +344,12 @@ annotate_bed <- function(gsParam){
   bed <- add_og2bed(bed = bed, gsParam = gsParam)
 
   # -- 3.4 hier orthogroup IDs
-  bed <- add_hog2bed(bed = bed, gsParam = gsParam)
+  if(useHOGs){
+    bed <- add_hog2bed(bed = bed, gsParam = gsParam)
+  }else{
+    bed[,globHOG := NA]
+  }
+
 
   ##############################################################################
   # 4. Arrays and multi-placed orthogroups
@@ -401,8 +406,7 @@ annotate_bed <- function(gsParam){
 
   bed[,noAnchor := noAnchor | !isArrayRep]
 
-  bed[,`:=`(
-    nGenome = NULL, n = NULL)]
+  bed[,`:=`(n = NULL)]
 
   write_combBed(
     x = bed, filepath = combBedFile)

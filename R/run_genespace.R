@@ -58,9 +58,17 @@ run_genespace <- function(gsParam,
 
   ##############################################################################
   # -- 1.3 If raw results exist, copy them over
-  if(!noOrthofinder){
+  if(!noOrthofinder && noResults){
     with(gsParam, copy_of2results(
       orthofinderDir = paths$rawOrthofinder, resultsDir = paths$results))
+
+    if(dir.exists(gsParam$paths$rawOrthofinder)){
+      chkOf <- find_ofFiles(gsParam$paths$rawOrthofinder)
+      noOrthofinder <- is.na(chkOf[[1]])
+      noResults <- noOrthofinder
+    }else{
+      noOrthofinder <- TRUE
+    }
   }
 
   # noResults <- is.na(gsParam$synteny$SpeciesIDs)
@@ -104,6 +112,8 @@ run_genespace <- function(gsParam,
     }
   }
 
+  if(is.na(gsParam$synteny$hogs))
+    gsParam$params$useHOGs <- FALSE
   ##############################################################################
   # 2. Get the data ready for synteny
   hasBed <- FALSE

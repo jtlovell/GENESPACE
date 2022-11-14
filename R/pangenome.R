@@ -268,48 +268,50 @@ pangenome <- function(gsParam,
 
   ##############################################################################
   # -- 3.3 query each ortholog file
-  nsOrthos <- rbindlist(lapply(orthoFiles$file, function(i){
-    tmp <- parse_orthologues(i)
-    tmp <-  subset(tmp, paste(gen1, id1) %in% anchGenes)
-    setnames(tmp, c("gen1", "id1"), c("genome", "id"))
+  if(!all(is.na(orthoFiles$file))){
+    nsOrthos <- rbindlist(lapply(orthoFiles$file, function(i){
+      tmp <- parse_orthologues(i)
+      tmp <-  subset(tmp, paste(gen1, id1) %in% anchGenes)
+      setnames(tmp, c("gen1", "id1"), c("genome", "id"))
 
-    pgi1 <- subset(pgi1, !duplicated(pgi1))
-    pgi2 <- subset(pgi2, !duplicated(pgi2))
-    tmp <- subset(tmp, !duplicated(tmp))
+      pgi1 <- subset(pgi1, !duplicated(pgi1))
+      pgi2 <- subset(pgi2, !duplicated(pgi2))
+      tmp <- subset(tmp, !duplicated(tmp))
 
-    tmp <- merge(
-      pgi1,
-      merge(pgi2, tmp, by = c("gen2", "id2"), allow.cartesian = TRUE),
-      by = c("genome", "id"), allow.cartesian = TRUE)
-    tmp <- subset(tmp, pgID != pgID2)
-    tmp <- subset(tmp, !duplicated(paste(id, id2)))
-    tmp[,`:=`(ofID = ov[paste(gen2, id2)], id = id2, genome = gen2,
-              isNSOrtho = TRUE)]
-    tmp <- tmp[,colnames(pglo), with = F]
-    return(tmp)
-  }))
-  nsOrthos[,isRep := FALSE]
+      tmp <- merge(
+        pgi1,
+        merge(pgi2, tmp, by = c("gen2", "id2"), allow.cartesian = TRUE),
+        by = c("genome", "id"), allow.cartesian = TRUE)
+      tmp <- subset(tmp, pgID != pgID2)
+      tmp <- subset(tmp, !duplicated(paste(id, id2)))
+      tmp[,`:=`(ofID = ov[paste(gen2, id2)], id = id2, genome = gen2,
+                isNSOrtho = TRUE)]
+      tmp <- tmp[,colnames(pglo), with = F]
+      return(tmp)
+    }))
+    nsOrthos[,isRep := FALSE]
 
-  ##############################################################################
-  # -- 3.4 put real interpolated positions back in
-  nsi <- interp[,c("ofID", "interpChr", "interpOrd")]
-  setnames(nsi, c("ofID", "pgChr", "pgOrd"))
-  nsOrthos[,`:=`(pgChr = NULL, pgOrd = NULL)]
-  nsOrthos <- subset(nsOrthos, !duplicated(nsOrthos))
-  nsi <- subset(nsi, !duplicated(nsi))
-  nsOrthos <- merge(nsOrthos, nsi, by = "ofID",
-                    all.x = T, allow.cartesian = TRUE)
+    ##############################################################################
+    # -- 3.4 put real interpolated positions back in
+    nsi <- interp[,c("ofID", "interpChr", "interpOrd")]
+    setnames(nsi, c("ofID", "pgChr", "pgOrd"))
+    nsOrthos[,`:=`(pgChr = NULL, pgOrd = NULL)]
+    nsOrthos <- subset(nsOrthos, !duplicated(nsOrthos))
+    nsi <- subset(nsi, !duplicated(nsi))
+    nsOrthos <- merge(nsOrthos, nsi, by = "ofID",
+                      all.x = T, allow.cartesian = TRUE)
 
-  ##############################################################################
-  # -- 3.5 drop 1x position orthogroups that have non-syntenic orthos to 2x+ ogs
-  ns2x <- subset(nsOrthos, pgID %in% pg2x$pgID)
-  pg2x <- rbind(pg2x, ns2x)
-  ns1x <- subset(nsOrthos, pgID %in% pg1x$pgID[!pg1x$ofID %in% pg2x$ofID])
-  pg1x[,flag := ofID %in% pg2x$ofID]
-  pg1x[,flag := all(flag), by = "pgID"]
-  pg1x <- subset(pg1x, !flag)
-  pg1x[,flag := NULL]
-  pg1x <- rbind(pg1x, ns1x)
+    ##############################################################################
+    # -- 3.5 drop 1x position orthogroups that have non-syntenic orthos to 2x+ ogs
+    ns2x <- subset(nsOrthos, pgID %in% pg2x$pgID)
+    pg2x <- rbind(pg2x, ns2x)
+    ns1x <- subset(nsOrthos, pgID %in% pg1x$pgID[!pg1x$ofID %in% pg2x$ofID])
+    pg1x[,flag := ofID %in% pg2x$ofID]
+    pg1x[,flag := all(flag), by = "pgID"]
+    pg1x <- subset(pg1x, !flag)
+    pg1x[,flag := NULL]
+    pg1x <- rbind(pg1x, ns1x)
+  }
 
   # combine
   pgout <- rbind(pg1x, pg2x)
@@ -321,14 +323,18 @@ pangenome <- function(gsParam,
   pgout[,chr := cv[ofID]]
   pgout[, medord := pgOrd[isRep], by = "pgID"]
   pgout[,`:=`(ordDiff = abs(medord - pgOrd),
-             diffChr = pgChr == chr,
-             notArrayRep = !isArrayRep)]
+              diffChr = pgChr == chr,
+              notArrayRep = !isArrayRep)]
   setorder(pgout, pgID, ofID, diffChr,
            notArrayRep, ordDiff, isNSOrtho, na.last = T)
   pgout <- subset(pgout, !duplicated(paste(pgID, ofID)))
 
   # set those genes with interpolated positions close enough to not NS
-  pgout$isNSOrtho[with(pgout, isNSOrtho & ordDiff < synBuff & !diffChr)] <- FALSE
+  if(!all(is.na(orthoFiles$file))){
+    pgout$isNSOrtho[with(pgout, isNSOrtho & ordDiff < synBuff & !diffChr)] <- FALSE
+  }else{
+    pgout[,isNSOrtho := FALSE]
+  }
   pgout <- pgout[,colnames(pg1x), with = F]
   pgout[,`:=`(pgChr = pgChr[isRep], pgOrd = pgOrd[isRep]), by = "pgID"]
 

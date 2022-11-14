@@ -45,7 +45,7 @@ set_syntenyParams <- function(gsParam){
       "SpeciesIDs.txt", "SequenceIDs.txt", "Orthogroups.tsv",
       "N0.tsv", "SpeciesTree_rooted.txt"))
     names(fs) <- c("SpeciesIDs", "SequenceIDs", "ogs", "hogs", "speciesTree")
-    if(!all(file.exists(fs[1:4])))
+    if(!all(file.exists(fs[1:3])))
       runPass <- FALSE
   }
 
@@ -127,9 +127,6 @@ set_syntenyParams <- function(gsParam){
     blMd$queryOrthologs[!file.exists(blMd$queryOrthologs)] <- NA
     blMd$targetOrthologs[!file.exists(blMd$targetOrthologs)] <- NA
     blMd$targetOrthologs[with(blMd, queryOrthologs == targetOrthologs)] <- NA
-    if(with(blMd, any(query != target &
-                      (is.na(queryOrthologs) | is.na(targetOrthologs)))))
-      runPass <- FALSE
   }
 
   ##############################################################################
@@ -164,9 +161,11 @@ set_syntenyParams <- function(gsParam){
       hogs = file.path(resultsDir, "N0.tsv"),
       speciesTree = file.path(resultsDir, "SpeciesTree_rooted.txt"),
       blast = blMd)
-
+  if(!file.exists(file.path(resultsDir, "N0.tsv")) & runPass)
+    gsParam$synteny$hogs <- NA
+  if(!file.exists(file.path(resultsDir, "SpeciesTree_rooted.txt")) & runPass)
+    gsParam$synteny$speciesTree <- NA
   return(gsParam)
-
 }
 
 #' @title find orthofinder results files
@@ -244,11 +243,7 @@ find_ofFiles <- function(orthofinderDir){
   # 6. HOGs
   if(hasRun){
     tmp <- file.path(ofDir, "Phylogenetic_Hierarchical_Orthogroups", "N0.tsv")
-    if(file.exists(tmp)){
-      ofPaths$hogs <- tmp
-    }else{
-      hasRun <- FALSE
-    }
+    ofPaths$hogs <- tmp
   }
 
   ##############################################################################
@@ -317,7 +312,12 @@ copy_of2results <- function(orthofinderDir, resultsDir){
   ofFiles <- find_ofFiles(ofDir)
 
   # -- copy the single files to the parent results dir
-  tmp <- unlist(ofFiles[c("SpeciesIDs", "SequenceIDs", "ogs", "hogs", "speciesTree")])
+  if(file.exists(ofFiles$hogs)){
+    tmp <- unlist(ofFiles[c("SpeciesIDs", "SequenceIDs", "ogs", "hogs", "speciesTree")])
+  }else{
+    tmp <- unlist(ofFiles[c("SpeciesIDs", "SequenceIDs", "ogs", "speciesTree")])
+  }
+
   tmp <- tmp[!is.na(tmp)]
   tmp <- tmp[file.exists(tmp)]
   nu  <- file.copy(unlist(tmp), resDir)
