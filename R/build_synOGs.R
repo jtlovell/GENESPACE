@@ -72,7 +72,7 @@ build_synOGs <- function(gsParam){
 #' @import data.table
 #' @export
 pull_synOgs <- function(gsParam, onlyInBuffer = TRUE){
-  regID <- sameOg <- sameInblkOg <- inBuffer <- blkID <- NULL
+  blkID <- sameOg <- sameInblkOg <- inBuffer <- blkID <- NULL
   ##############################################################################
   # -- 1. Get metadata together
   md <- data.table(gsParam$synteny$blast)
@@ -104,7 +104,7 @@ pull_inblkOgs <- function(gsParam,
                           overwrite = FALSE,
                           onlyInBuffer = TRUE){
 
-  lab <- query <- target <- regID <- sameOg <- sameInblkOg <- inBuffer <- NULL
+  lab <- query <- target <- blkID <- sameOg <- sameInblkOg <- inBuffer <- NULL
   ##############################################################################
   # -- 1. Get metadata together
   md <- data.table(gsParam$annotBlastMd)
@@ -114,7 +114,7 @@ pull_inblkOgs <- function(gsParam,
     cat("\t...", md$lab[i])
     inblkOgs <- with(md[i,], run_orthofinderInBlk(
       gsParam = gsParam, genome1 = query, genome2 = target, overwrite = overwrite))
-    out <- subset(inblkOgs, !is.na(regID) & (sameOg | sameInblkOg))
+    out <- subset(inblkOgs, !is.na(blkID) & (sameOg | sameInblkOg))
     if(onlyInBuffer)
       out <- subset(out, inBuffer)
     out <- out[,c("ofID1", "ofID2")]
@@ -134,9 +134,10 @@ pull_inblkOgs <- function(gsParam,
 run_orthofinderInBlk <- function(gsParam,
                                  genome1,
                                  genome2,
-                                 overwrite){
+                                 overwrite,
+                                 allow){
 
-  query <- target <- ofID1 <- ofID2 <- regID <- rid <- uid1 <- uid2 <-
+  query <- target <- ofID1 <- ofID2 <- blkID <- rid <- uid1 <- uid2 <-
     ofID1 <- ofID2 <- sameHog <- hog1 <- hog2 <- sameInblkOg <- NULL
 
 
@@ -166,25 +167,33 @@ run_orthofinderInBlk <- function(gsParam,
                  genome1, genome2))
   ########
   # 1.2 read in and parse the annotated blast file
-  allBlast <- read_synHits(x$annotBlastFile)
+  allBlast <- read_synHits(x$synHits)
 
   # -- add unique identifier to geneIDs (in case of intragenomic)
-  allBlast[,`:=`(ofID1 = sprintf("%s_g1", ofID1),
-                 ofID2 = sprintf("%s_g2", ofID2))]
 
   # -- subset to only hits in regions
-  sb01 <- subset(allBlast, !is.na(regID))
+  sb01 <- subset(allBlast, !is.na(blkID))
 
   cat(sprintf("%s synhits || %s in global OGs ", nrow(sb01), sum(sb01$sameOg)))
-  rr <- "sameInblkOg" %in% colnames(allBlast)
-  if(rr)
-    rr <- all(!is.na(allBlast$sameInblkOg)) & !overwrite
-  if(rr){
+  dontRerun <- "sameInblkOg" %in% colnames(allBlast)
+  if(dontRerun)
+    dontRerun <- all(!is.na(allBlast$sameInblkOg)) & !overwrite
+  if(dontRerun)
     cat(sprintf("|| %s in inBlk OGs (pre-existing file)\n",
                 sum(allBlast$sameInblkOg)))
-  }else{
+
+  sb01[,hasSelf := any(ofID1 %in% ofID2), by = "blkID"]
+  onlySelf <- sum(!sb01$hasSelf) < gsParam$params$blkSize
+  if(onlySelf)
+    cat("|| no non-self blocks for inBlk Orthofinder\n")
+  sb01 <- subset(sb01, !hasSelf)
+
+  sb01[,`:=`(ofID1 = sprintf("%s_g1", ofID1),
+             ofID2 = sprintf("%s_g2", ofID2))]
+
+  if(!onlySelf && !dontRerun){
     # -- make a new variable `rid` that is a unique regionID vector
-    sb01[,rid := sprintf("reg%s", as.numeric(as.factor(regID)))]
+    sb01[,rid := sprintf("reg%s", as.numeric(as.factor(blkID)))]
     targetGenome <- sb01$genome2[1]
     queryGenome <- sb01$genome1[1]
     # -- subset to only regions with enough genes in each genome
@@ -250,8 +259,8 @@ run_orthofinderInBlk <- function(gsParam,
 
     ########
     # -- 2.2 create the directories for each region
-    regIDs <- unique(bl01$rid)
-    tmpDirs <- sapply(regIDs, function(j){
+    blkIDs <- unique(bl01$rid)
+    tmpDirs <- sapply(blkIDs, function(j){
       pth <- file.path(tmpDir, j)
       if(dir.exists(pth))
         unlink(pth, recursive = T)
@@ -263,7 +272,7 @@ run_orthofinderInBlk <- function(gsParam,
     ########
     # -- 2.3 subset and write peptides
     spl01 <- split(sb01, by = "rid")
-    for(j in regIDs){
+    for(j in blkIDs){
       y <- spl01[[j]]
       p0 <- peps0[unique(y$ofID1)]
       p1 <- peps1[unique(y$ofID2)]
@@ -330,26 +339,41 @@ run_orthofinderInBlk <- function(gsParam,
 
     ########
     # -- 3.2 call orthofinder and get the paths to the HOG files
+    allowInBlkOGs <- TRUE
     hogf <- mclapply(names(spl01), mc.cores = gsParam$params$nCores, function(j){
       if(file.exists(ofDirs[j])){
         outp <- system2(
           ofcall,
           comms[j],
           stdout = TRUE, stderr = TRUE)
-        HOG <- find_ofFiles(
-          orthofinderDir = file.path(dirname(ofDirs[j]), "OrthoFinder"))$hogs
-        return(HOG)
+        HOG <- list.files(
+          dirname(ofDirs[j]),
+          pattern = "N0.tsv",
+          recursive = T, full.names = T)
+        if(length(HOG) ==  1){
+          tmp <- parse_hogs(filepath = HOG, genomeIDs = c("g0", "g1"))
+          setnames(tmp, 1, "ogID")
+          return(tmp)
+        }else{
+          if(allowInBlkOGs){
+            OG <- list.files(
+              dirname(ofDirs[j]),
+              pattern = "Orthogroups.tsv",
+              recursive = T, full.names = T)
+            return(parse_ogs(filepath = OG, genomeIDs = c("g0", "g1")))
+          }
+        }
       }
     })
-    hogf <- unlist(hogf); names(hogf) <- names(spl01)
+    names(hogf) <- names(spl01)
 
     ########
     # -- 3.3 merge hogs with blast files
     hogout <- rbindlist(lapply(names(spl01), function(j){
       y <- spl01[[j]]
-      if(file.exists(hogf[j])){
-        z <- parse_hogs(filepath = hogf[j], genomeIDs = c("g0", "g1"))
-        hogv <- z$hogID; names(hogv) <- z$id
+      z <- hogf[[j]]
+      if(length(z) == 3){
+        hogv <- z$ogID; names(hogv) <- z$id
         y[,`:=`(hog1 = hogv[ofID1], hog2 = hogv[ofID2])]
         y[,sameHog := hog1 == hog2]
         return(subset(y, sameHog)[,c("ofID1", "ofID2")])
@@ -358,18 +382,14 @@ run_orthofinderInBlk <- function(gsParam,
 
     ########
     # -- 3.4 get unique pairs of genes in the same inblk HOG
-    u <- with(hogout, paste(ofID1, ofID2))
+    u <- with(hogout, paste(gsub("_g1$", "", ofID1), gsub("_g2$", "", ofID2)))
     allBlast[,sameInblkOg := paste(ofID1, ofID2) %in% u]
-    allBlast[,`:=`(ofID1 = gsub("_g1$", "", ofID1),
-                   ofID2 = gsub("_g2$", "", ofID2))]
 
     cat(sprintf("|| %s in inBlk OGs\n", sum(allBlast$sameInblkOg)))
   }
 
   ########
   # -- 3.5 write the blast file, with the new column `sameInblkOg`
-  allBlast[,`:=`(ofID1 = gsub("_g1$", "", ofID1),
-                 ofID2 = gsub("_g2$", "", ofID2))]
   write_synBlast(allBlast, filepath = x$annotBlastFile)
   return(allBlast)
 }

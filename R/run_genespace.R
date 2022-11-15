@@ -180,6 +180,7 @@ run_genespace <- function(gsParam,
     "4. Flagging synteny for each pair of genomes ...",
     indent = 0, exdent = 8), sep = "\n")
   gsParam <- synteny(gsParam = gsParam, overwrite = overwriteSynHits)
+  gparsv <<- gsParam
 
   ##############################################################################
   # 5. Build syntenic orthogroups
