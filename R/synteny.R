@@ -202,7 +202,7 @@ synteny <- function(gsParam, verbose = TRUE, overwrite = TRUE){
 
     return(outChnk)
   }))
-  gsParam$annotBlastMd <- blMdOut
+  gsParam$synteny$blast <- blMdOut
   return(gsParam)
 }
 

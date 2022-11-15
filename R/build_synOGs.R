@@ -107,11 +107,10 @@ pull_inblkOgs <- function(gsParam,
   lab <- query <- target <- blkID <- sameOg <- sameInblkOg <- inBuffer <- NULL
   ##############################################################################
   # -- 1. Get metadata together
-  md <- data.table(gsParam$annotBlastMd)
-  md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
+  md <- data.table(gsParam$synteny$blast)
   # -- for each line in metadata
   hitsInOgs <- rbindlist(lapply(1:nrow(md), function(i){
-    cat("\t...", md$lab[i])
+    cat(sprintf("\t...%s ", md$lab[i]))
     inblkOgs <- with(md[i,], run_orthofinderInBlk(
       gsParam = gsParam, genome1 = query, genome2 = target, overwrite = overwrite))
     out <- subset(inblkOgs, !is.na(blkID) & (sameOg | sameInblkOg))
@@ -153,7 +152,7 @@ run_orthofinderInBlk <- function(gsParam,
   ########
   # -- 1.1 parse the annotated blast metadata
 
-  md <- data.table(gsParam$annotBlastMd)
+  md <- data.table(gsParam$synteny$blast)
   x <- subset(md, query == genome1 & target == genome2)
 
   if(nrow(x) == 0){
@@ -236,12 +235,12 @@ run_orthofinderInBlk <- function(gsParam,
       p0md <- subset(md, query == target & query == queryGenome)
       p1md <- subset(md, query == target & query == targetGenome)
       bl00 <- fread(
-        p0md$annotBlastFile, showProgress = F, na.strings = c("NA", ""),
+        p0md$synHits, showProgress = F, na.strings = c("NA", ""),
         select = blNames[1:12])
       bl00[,`:=`(ofID1 = sprintf("%s_g1", ofID1),
                  ofID2 = sprintf("%s_g1", ofID2))]
       bl11 <- fread(
-        p1md$annotBlastFile, showProgress = F, na.strings = c("NA", ""),
+        p1md$synHits, showProgress = F, na.strings = c("NA", ""),
         select = blNames[1:12])
       bl11[,`:=`(ofID1 = sprintf("%s_g2", ofID1),
                  ofID2 = sprintf("%s_g2", ofID2))]
@@ -390,6 +389,6 @@ run_orthofinderInBlk <- function(gsParam,
 
   ########
   # -- 3.5 write the blast file, with the new column `sameInblkOg`
-  write_synBlast(allBlast, filepath = x$annotBlastFile)
+  write_synBlast(allBlast, filepath = x$synHits)
   return(allBlast)
 }
