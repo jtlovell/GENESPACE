@@ -195,7 +195,20 @@ synteny <- function(gsParam, verbose = TRUE){
       out[,`:=`(nTotalHits = nrow(hits),
                 nGlobOgHits = sum(hits$sameOg))]
       write_synBlast(x = hits, filepath = x$synHits)
-      ggdotplot(hits = hits, outDir = gsParam$paths$dotplots)
+
+      l1 <- mean(table(hits$chr1[hits$sameOg]))/10
+      l2 <- mean(table(hits$chr2[hits$sameOg]))/10
+
+      dps <- gsParam$params$dotplots
+      if(dps == "check"){
+        ggdotplot(hits = hits, outDir = gsParam$paths$dotplots,
+                  minGenes2plot = min(c(l1, l2), maxFacets = 10000))
+      }else{
+        if(dps == "always"){
+          ggdotplot(hits = hits, outDir = gsParam$paths$dotplots,
+                    minGenes2plot = min(c(l1, l2), maxFacets = Inf))
+        }
+      }
 
       return(out)
     }))
@@ -538,6 +551,7 @@ ggdotplot <- function(hits,
                       appendName = "synHits",
                       dotsPerIn = 256,
                       plotSize = 12,
+                      maxFacets = 10000,
                       verbose = is.null(outDir)){
   ofID1 <- ofID2 <- sameOg <- ngene1 <- ngene2 <- ord1 <- ord2 <- blkID <-
     inBuffer <- rnd2 <- rnd1 <- ns2 <- n <- isArrayRep2 <- isArrayRep1 <-
@@ -585,38 +599,52 @@ ggdotplot <- function(hits,
   un2 <- uniqueN(tp$ofID2)
 
   setorder(hc, n)
-  p1 <- ggplot(subset(hc, n > 1), aes(rnd1, rnd2, col = n)) +
-    geom_point(pch = ".") +
-    scale_color_viridis_c(begin = .1, trans = "log10", guide = "none") +
-    scale_x_continuous(expand = c(0,0),
-                       breaks = seq(from = 1e3, to = max(hc$rnd1), by = 1e3))+
-    scale_y_continuous(expand = c(0,0),
-                       breaks = seq(from = 1e3, to = max(hc$rnd2), by = 1e3))+
-    theme_genespace()+
-    facet_grid(chr2 ~ chr1, scales = "free",
-               space = "free", as.table = F, switch = "both")+
-    labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                     hits$genome1[1], uniqueN(hits$ofID1)),
-         y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                     hits$genome2[1], uniqueN(hits$ofID2)),
-         title = sprintf("Blast hits where query and target are in the same OG, %s/%s-gene x/y window thresholded at 20 hits", xrnd2, yrnd2))
+  if(median(hc$n) > 5)
+    hc <- subset(hc, n > 1)
+  nfacets <- nrow(with(hc, expand.grid(unique(chr1), unique(chr2))))
+  if(nfacets < maxFacets){
+    p1 <- ggplot(hc, aes(rnd1, rnd2, col = n)) +
+      geom_point(pch = ".") +
+      scale_color_viridis_c(begin = .1, trans = "log10", guide = "none") +
+      scale_x_continuous(expand = c(0,0),
+                         breaks = seq(from = 1e3, to = max(hc$rnd1), by = 1e3))+
+      scale_y_continuous(expand = c(0,0),
+                         breaks = seq(from = 1e3, to = max(hc$rnd2), by = 1e3))+
+      theme_genespace()+
+      facet_grid(chr2 ~ chr1, scales = "free",
+                 space = "free", as.table = F, switch = "both")+
+      labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
+                       hits$genome1[1], uniqueN(hits$ofID1)),
+           y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
+                       hits$genome2[1], uniqueN(hits$ofID2)),
+           title = sprintf("Blast hits where query and target are in the same OG, %s/%s-gene x/y window thresholded at 20 hits", xrnd2, yrnd2))
+  }else{
+    p1 <- NULL
+  }
 
   hcBlk <- subset(tp, sameOg & inBuffer & ngene1 > minGenes2plot & ngene2 > minGenes2plot)
   hcBlk <- hcBlk[,list(n = .N), by = c("chr1", "chr2", "rnd1", "rnd2", "blkID")]
   blkCols <- sample(gs_colors(uniqueN(hcBlk$blkID)))
-  p2 <- ggplot(subset(hcBlk, n > 1), aes(x = rnd1, y = rnd2, col = blkID)) +
-    geom_point(pch = ".") +
-    scale_color_manual(values = blkCols, guide = "none") +
-    scale_x_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hcBlk$rnd1), by = 1e3))+
-    scale_y_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hcBlk$rnd2), by = 1e3))+
-    theme_genespace() +
-    facet_grid(chr2 ~ chr1, scales = "free", space = "free", as.table = F, switch = "both")+
-    labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                     hits$genome1[1], uniqueN(hits$ofID1[hits$isAnchor])),
-         y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
-                     hits$genome2[1], uniqueN(hits$ofID2[hits$isAnchor])),
-         title = sprintf("Syntenic anchor blast hits, colored by block ID"))
 
+  if(median(hcBlk$n) > 5)
+    hcBlk <- subset(hcBlk, n > 1)
+  nfacets <- nrow(with(hc, expand.grid(unique(chr1), unique(chr2))))
+  if(nfacets < maxFacets){
+    p2 <- ggplot(hcBlk, aes(x = rnd1, y = rnd2, col = blkID)) +
+      geom_point(pch = ".") +
+      scale_color_manual(values = blkCols, guide = "none") +
+      scale_x_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hcBlk$rnd1), by = 1e3))+
+      scale_y_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hcBlk$rnd2), by = 1e3))+
+      theme_genespace() +
+      facet_grid(chr2 ~ chr1, scales = "free", space = "free", as.table = F, switch = "both")+
+      labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
+                       hits$genome1[1], uniqueN(hits$ofID1[hits$isAnchor])),
+           y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
+                       hits$genome2[1], uniqueN(hits$ofID2[hits$isAnchor])),
+           title = sprintf("Syntenic anchor blast hits, colored by block ID"))
+  }else{
+    p2 <- NULL
+  }
 
   if(is.null(outDir)){
     if(verbose)
@@ -629,9 +657,10 @@ ggdotplot <- function(hits,
     if(verbose)
       cat(sprintf("writing to file: %s", dpFile))
     pdf(dpFile, height = ht, width = wd)
-    print(p1)
-    print(p2)
+    if(!is.null(p1))
+      print(p1)
+    if(!is.null(p2))
+      print(p2)
     dev.off()
   }
 }
-

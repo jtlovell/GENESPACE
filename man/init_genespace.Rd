@@ -30,6 +30,7 @@ init_genespace(
   blkSizeSecond = blkSize,
   blkRadiusSecond = blkRadius,
   onlyOgAnchorsSecond = FALSE,
+  dotplots = "check",
   outgroup = ignoreTheseGenomes,
   nSecondHits = nSecondaryHits,
   synBuffSecond = NULL,
@@ -148,6 +149,12 @@ nSecondaryHits > 0.}
 
 \item{onlyOgAnchorsSecond}{logical should only hits in orthogroups be
 considered for anchors in secondary blocks?}
+
+\item{dotplots}{character string either "always", "never", or "check".
+Default (check) only writes a dotplot if there are < 10k unique chromosome
+combinations (facets). "always" means that dotplots are made regardless of
+facet numbers, which can be very slow in some instances. "never" is by far
+the fastest method, but also never produces dotplots.}
 
 \item{outgroup}{deprecated in V1. See ignoreTheseGenomes.}
 

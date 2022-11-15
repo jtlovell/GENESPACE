@@ -987,7 +987,11 @@ get_diamondVersion <- function(filepath){
   return(chk)
 }
 
-
+#' @title theme_genespace
+#' @description
+#' \code{theme_genespace} theme_genespace
+#' @rdname utils
+#' @export
 theme_genespace <- function(panelBg = "black"){
   theme(panel.background = element_rect(fill = panelBg),
         panel.grid.minor = element_blank(),

@@ -8,7 +8,7 @@
 \alias{ggdotplot}
 \title{synteny}
 \usage{
-synteny(gsParam, verbose = TRUE, overwrite = TRUE)
+synteny(gsParam, verbose = TRUE)
 
 find_selfSyn(hits, synRad)
 
@@ -34,6 +34,7 @@ ggdotplot(
   appendName = "synHits",
   dotsPerIn = 256,
   plotSize = 12,
+  maxFacets = 10000,
   verbose = is.null(outDir)
 )
 }

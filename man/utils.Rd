@@ -42,6 +42,7 @@
 \alias{write_intSynPos}
 \alias{get_orthofinderVersion}
 \alias{get_diamondVersion}
+\alias{theme_genespace}
 \title{Generic internal functions used by genespace}
 \usage{
 .onAttach(...)
@@ -142,6 +143,8 @@ write_intSynPos(x, filepath)
 get_orthofinderVersion(filepath)
 
 get_diamondVersion(filepath)
+
+theme_genespace(panelBg = "black")
 }
 \arguments{
 \item{...}{additional parameters passed on to other functions
@@ -286,4 +289,6 @@ returns the installed version.
 
 \code{get_diamondVersion} Checks that DIAMOND is installed and if so,
 returns the installed version.
+
+\code{theme_genespace} theme_genespace
 }

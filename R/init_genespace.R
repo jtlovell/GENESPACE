@@ -87,6 +87,11 @@
 #' @param nSecondaryHits integer of length 1, specifying the number of
 #' secondary hits to look for after masking the primary syntenic regions
 #' @param minPepLen deprecated in V1. All genes in the peptide fasta are used.
+#' @param dotplots character string either "always", "never", or "check".
+#' Default (check) only writes a dotplot if there are < 10k unique chromosome
+#' combinations (facets). "always" means that dotplots are made regardless of
+#' facet numbers, which can be very slow in some instances. "never" is by far
+#' the fastest method, but also never produces dotplots.
 #'
 #' @param outgroup deprecated in V1. See ignoreTheseGenomes.
 #' @param orthofinderMethod deprecated in V1. See onewayBlast.
@@ -144,6 +149,8 @@ init_genespace <- function(wd,
                            blkSizeSecond = blkSize,
                            blkRadiusSecond = blkRadius,
                            onlyOgAnchorsSecond = FALSE,
+
+                           dotplots = "check",
 
                            # -- deprecated arguments here for backwards compat.
                            outgroup = ignoreTheseGenomes,
@@ -311,6 +318,8 @@ init_genespace <- function(wd,
   cat("Checking Working Directory ... ")
   wd <- check_wd(wd)
 
+  dotplots <- match.arg(dotplots, choices = c("always", "never", "check"))
+
   # -- make sure that the genome IDs are good
   cat("Checking user-defined parameters ...\n\tGenome IDs & ploidy ... ")
   if(is.null(genomeIDs)){
@@ -348,14 +357,17 @@ init_genespace <- function(wd,
     maxOgPlaces <- maxOgPlaces[!names(maxOgPlaces) %in% outgroup]
   }
 
+  if(is.na(outgroup)){
+    cat()
+  }
   cat(sprintf(
-    "\n\t\t%s\n\tOutgroup ... ",
+    "\n\t\t%s",
     paste(apply(cbind(align_charLeft(genomeIDs), ploidy), 1, function(x)
       paste(x, collapse = ": ")), collapse = "\n\t\t")), sep = "\n")
   if(is.na(outgroup)){
-    cat("NONE\n")
+    cat("\tOutgroup ... NONE\n")
   }else{
-    cat(strwrap(sprintf("%s", paste(outgroup, collapse = ", ")),
+    cat(strwrap(sprintf("\tOutgroup ... %s", paste(outgroup, collapse = ", ")),
                 indent = 0, exdent = 16))
   }
 
@@ -454,7 +466,8 @@ init_genespace <- function(wd,
     blkRadius = blkRadius, blkSize = blkSize, nGaps = nGaps, synBuff = synBuff,
     onlyOgAnchors = onlyOgAnchors, nSecondaryHits = nSecondaryHits,
     blkSizeSecond = blkSizeSecond, blkRadiusSecond = blkRadiusSecond,
-    nGapsSecond = nGapsSecond, onlyOgAnchorsSecond = onlyOgAnchorsSecond)
+    nGapsSecond = nGapsSecond, onlyOgAnchorsSecond = onlyOgAnchorsSecond,
+    dotplots = dotplots)
 
   ##############################################################################
   ##############################################################################
