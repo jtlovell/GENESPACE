@@ -326,7 +326,7 @@ interp_synPos <- function(gsParam){
   ##############################################################################
   # -- add hoc function to interpolate syntenic hits position
   interp_hitsPos <- function(hits, bed, blkSize = 5){
-    hits <<- hits; bed <<- bed;  blkSize <<- blkSize
+    # hits <<- hits; bed <<- bed;  blkSize <<- blkSize
     genome <- isArrayRep <- chr <- start <- end <- sameOg <- isAnchor <-
       blkID <- useAsAnch <- ord1 <- ord2 <- anySelf <- ofID1 <- ofID2 <- chr1 <-
       start1 <- end1 <- chr2 <- start2 <- end2 <- interpRefOrd <- NULL
@@ -340,87 +340,93 @@ interp_synPos <- function(gsParam){
     # -- 1.2 subset to potential anchor hits
     blkSize2 <- ceiling(blkSize/2)
     anch <- subset(hits, sameOg & isAnchor & !is.na(blkID))
+    anch[,hasSelf := any(ofID1 %in% ofID2), by = "blkID"]
+    anch <- subset(anch, !hasSelf)
 
-    # -- 1.3 determine fully collinear hits
-    anch[,useAsAnch := check_synAnchorPos(
-      ord1 = ord1, ord2 = ord2, blkSize = blkSize), by = "blkID"]
-    anch <- subset(anch, useAsAnch)
-    anch[,anySelf := any(ofID1 == ofID2), by = "blkID"]
-    anch <- subset(anch, !anySelf)
     if(nrow(anch) < blkSize){
       return(NULL)
     }else{
-      splAnch <- split(anch[,c("ofID1", "ofID2", "blkID")], by = "blkID")
+      # -- 1.3 determine fully collinear hits
+      anch[,useAsAnch := check_synAnchorPos(
+        ord1 = ord1, ord2 = ord2, blkSize = blkSize), by = "blkID"]
+      anch <- subset(anch, useAsAnch)
+      anch[,anySelf := any(ofID1 == ofID2), by = "blkID"]
+      anch <- subset(anch, !anySelf)
+      if(nrow(anch) < blkSize){
+        return(NULL)
+      }else{
+        splAnch <- split(anch[,c("ofID1", "ofID2", "blkID")], by = "blkID")
 
-      # -- 1.4 get anchor block coordinates
-      anchCoord1 <- anch[,list(chr = chr1[1], start = min(start1), end = max(end1)),
-                         by = "blkID"]
-      setkey(anchCoord1, chr, start, end)
-      anchCoord2 <- anch[,list(chr = chr2[2], start = min(start2), end = max(end2)),
-                         by = "blkID"]
-      setkey(anchCoord2, chr, start, end)
+        # -- 1.4 get anchor block coordinates
+        anchCoord1 <- anch[,list(chr = chr1[1], start = min(start1), end = max(end1)),
+                           by = "blkID"]
+        setkey(anchCoord1, chr, start, end)
+        anchCoord2 <- anch[,list(chr = chr2[2], start = min(start2), end = max(end2)),
+                           by = "blkID"]
+        setkey(anchCoord2, chr, start, end)
 
-      # -- 1.5 f overlap join
-      bedCoord1 <- split(foverlaps(anchCoord1, bed1), by = "blkID")
-      bedCoord2 <- split(foverlaps(anchCoord2, bed2), by = "blkID")
-      blkIDs <- intersect(names(bedCoord1), names(bedCoord2))
+        # -- 1.5 f overlap join
+        bedCoord1 <- split(foverlaps(anchCoord1, bed1), by = "blkID")
+        bedCoord2 <- split(foverlaps(anchCoord2, bed2), by = "blkID")
+        blkIDs <- intersect(names(bedCoord1), names(bedCoord2))
 
-      # 2. Interpolate by block
-      interpd <- rbindlist(lapply(blkIDs, function(i){
+        # 2. Interpolate by block
+        interpd <- rbindlist(lapply(blkIDs, function(i){
 
-        g12 <- subset(anch, blkID == i)[,c("ofID1", "ofID2", "blkID")]
-        c1 <- range(which(bed$ofID %in% g12$ofID1))
-        c2 <- range(which(bed$ofID %in% g12$ofID2))
-        b1 <- with(bed[c1[1]:c1[2], ], data.table(
-          chr1 = chr, ord1 = ord, ofID1 = ofID))
-        b2 <- with(bed[c2[1]:c2[2], ], data.table(
-          chr2 = chr, ord2 = ord, ofID2 = ofID))
-        g12 <- merge(b1, merge(b2, g12, by = "ofID2", all = T), by = "ofID1", all = T)
-        # print(i)
-        # # -- 2.1 merge anchors with all genes in the block
-        gen1 <- bed$genome[c1[1]]
-        gen2 <- bed$genome[c2[1]]
-        chromo1 <- b1$chr[1]
-        chromo2 <- b2$chr[1]
-        # g1 <- with(bedCoord1[[i]], data.table(ofID1 = ofID, chr1 = chr, ord1 = ord))
-        # g2 <- with(bedCoord2[[i]], data.table(ofID2 = ofID, chr2 = chr, ord2 = ord))
-        # g12 <- merge(g1, merge(
-        #   g2, splAnch[[i]], by = "ofID2", all = T), by = "ofID1", all = T)
+          g12 <- subset(anch, blkID == i)[,c("ofID1", "ofID2", "blkID")]
+          c1 <- range(which(bed$ofID %in% g12$ofID1))
+          c2 <- range(which(bed$ofID %in% g12$ofID2))
+          b1 <- with(bed[c1[1]:c1[2], ], data.table(
+            chr1 = chr, ord1 = ord, ofID1 = ofID))
+          b2 <- with(bed[c2[1]:c2[2], ], data.table(
+            chr2 = chr, ord2 = ord, ofID2 = ofID))
+          g12 <- merge(b1, merge(b2, g12, by = "ofID2", all = T), by = "ofID1", all = T)
+          # print(i)
+          # # -- 2.1 merge anchors with all genes in the block
+          gen1 <- bed$genome[c1[1]]
+          gen2 <- bed$genome[c2[1]]
+          chromo1 <- b1$chr[1]
+          chromo2 <- b2$chr[1]
+          # g1 <- with(bedCoord1[[i]], data.table(ofID1 = ofID, chr1 = chr, ord1 = ord))
+          # g2 <- with(bedCoord2[[i]], data.table(ofID2 = ofID, chr2 = chr, ord2 = ord))
+          # g12 <- merge(g1, merge(
+          #   g2, splAnch[[i]], by = "ofID2", all = T), by = "ofID1", all = T)
 
-        # -- 2.2 Do genome 1 (merge, strip leading / trailing nas, interp ofID2)
-        tmp1 <- subset(g12, !is.na(ofID1) & !is.na(ord1))
-        setkey(tmp1, ord1)
-        tmp1 <- subset(tmp1, !flag_boundingNAs(ofID2))
-        if(nrow(tmp1) > 1){
-          tmp1[,interpRefOrd := interp_linear(x = ord2, y = ord1)]
-        }else{
-          tmp2[,interpRefOrd := ord2]
-        }
+          # -- 2.2 Do genome 1 (merge, strip leading / trailing nas, interp ofID2)
+          tmp1 <- subset(g12, !is.na(ofID1) & !is.na(ord1))
+          setkey(tmp1, ord1)
+          tmp1 <- subset(tmp1, !flag_boundingNAs(ofID2))
+          if(nrow(tmp1) > 1){
+            tmp1[,interpRefOrd := interp_linear(x = ord2, y = ord1)]
+          }else{
+            tmp2[,interpRefOrd := ord2]
+          }
 
-        # -- 2.3 Do genome 2 (merge, strip leading / trailing nas, interp ofID1)
-        tmp2 <- subset(g12, !is.na(ofID2) & !is.na(ord2))
-        setkey(tmp2, ord2)
-        tmp2 <- subset(tmp2, !flag_boundingNAs(ofID1))
-        if(nrow(tmp2) > 1){
-          tmp2[,interpRefOrd := interp_linear(x = ord1, y = ord2)]
-        }else{
-          tmp2[,interpRefOrd := ord1]
-        }
+          # -- 2.3 Do genome 2 (merge, strip leading / trailing nas, interp ofID1)
+          tmp2 <- subset(g12, !is.na(ofID2) & !is.na(ord2))
+          setkey(tmp2, ord2)
+          tmp2 <- subset(tmp2, !flag_boundingNAs(ofID1))
+          if(nrow(tmp2) > 1){
+            tmp2[,interpRefOrd := interp_linear(x = ord1, y = ord2)]
+          }else{
+            tmp2[,interpRefOrd := ord1]
+          }
 
 
-        o1 <- with(tmp1, data.table(
-          ofID = ofID1, interpChr = chromo2,
-          interpGenome = gen2, interpOrd = interpRefOrd, isAnchor = !is.na(ofID2)))
-        o2 <- with(tmp2, data.table(
-          ofID = ofID2, interpChr = chromo1,
-          interpGenome = gen1, interpOrd = interpRefOrd, isAnchor = !is.na(ofID1)))
-        out <- rbind(o1, o2)
-        return(out)
-      }))
+          o1 <- with(tmp1, data.table(
+            ofID = ofID1, interpChr = chromo2,
+            interpGenome = gen2, interpOrd = interpRefOrd, isAnchor = !is.na(ofID2)))
+          o2 <- with(tmp2, data.table(
+            ofID = ofID2, interpChr = chromo1,
+            interpGenome = gen1, interpOrd = interpRefOrd, isAnchor = !is.na(ofID1)))
+          out <- rbind(o1, o2)
+          return(out)
+        }))
 
-      interpout <- merge(bed, interpd, by = "ofID", all = T, allow.cartesian = T)
-      interpout <- subset(interpout, !duplicated(interpout))
-      return(interpout)
+        interpout <- merge(bed, interpd, by = "ofID", all = T, allow.cartesian = T)
+        interpout <- subset(interpout, !duplicated(interpout))
+        return(interpout)
+      }
     }
   }
 

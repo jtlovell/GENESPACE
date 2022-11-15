@@ -184,14 +184,35 @@ run_genespace <- function(gsParam,
 
   ##############################################################################
   # 5. Build syntenic orthogroups
+
+  cat("\n############################", strwrap(
+    "5. Building synteny-constrained orthogroups ... ",
+    indent = 0, exdent = 8), sep = "\n")
+
   # -- in the case of a bunch of haploid genomes, this just aggregates
   # orthogroups and splits them by membership in syntenic regions
+  cat("\tAggregating syntenic orthogroups ... ")
+  gsParam <- build_synOGs(gsParam)
+  cat("Done\n")
+
   # -- in the case of polyploid genomes, this also runs orthofinder in blocks,
   # then re-runs synteny and re-aggregates blocks,.
-  cat("\n############################", strwrap(
-    "5. Building synteny-constrained orthogroups ...",
-    indent = 0, exdent = 8), sep = "\n")
-  gsParam <- build_synOGs(gsParam)
+  if(gsParam$params$orthofinderInBlk){
+
+    # -- returns the gsparam obj and overwrites the bed file with a new og col
+    cat("\t##############\n\tRunning Orthofinder within syntenic regions\n")
+    gsParam <- run_orthofinderInBlk(
+      gsParam = gsParam, overwrite = overwriteSynHits, onlyInBuffer = TRUE)
+
+    # -- takes the new og column and refreshes the sameOG column in blast files
+    cat("\tDone!\n\tRe-annotating blast files ...\n")
+    gsParam <- annotate_blast(gsParam = gsParam)
+
+    # -- re-run synteny with new sameOG column
+    cat("\tDone!\n\tRe-running synteny ...\n")
+    gsParam <- synteny(gsParam = gsParam, overwrite = TRUE)
+
+  }
 
   ##############################################################################
   # 6. Integrate syntenic positions across genomes

@@ -187,6 +187,11 @@ synteny <- function(gsParam, verbose = TRUE, overwrite = TRUE){
         nBlks = uniqueN(blkID, na.rm = T),
         nSVs = uniqueN(blkID, na.rm = T) -
           uniqueN(paste(chr1, chr2)[!is.na(blkID)])))
+
+      if("nAnchorHits" %in% colnames(x)){
+        x[,`:=`(nAnchorHits = NULL, lab = NULL, nBufferHits = NULL, nBlks = NULL, nSVs = NULL)]
+      }
+
       out <- data.table(x, out)
       out[,`:=`(nTotalHits = nrow(hits),
                 nGlobOgHits = sum(hits$sameOg))]
@@ -562,8 +567,10 @@ ggdotplot <- function(hits,
   totDots <- ht * dotsPerIn
   yrnd2 <- floor(y / totDots)
 
+
   tp[,`:=`(rnd1 = round_toInteger(ord1, xrnd2),
            rnd2 = round_toInteger(ord2, yrnd2))]
+  tp <- subset(tp, complete.cases(tp[,c("rnd1", "rnd2", "chr1", "chr2")]))
 
   # pdf(dpFile, height = ht, width = wd*1.07)
   tp[,ngene1 := uniqueN(ofID1[!noAnchor & isArrayRep1]), by = "chr1"]
