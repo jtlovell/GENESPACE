@@ -4,7 +4,12 @@
 \alias{run_genespace}
 \title{The GENESPACE pipeline}
 \usage{
-run_genespace(gsParam, overwriteBed = FALSE, overwriteSynHits = FALSE)
+run_genespace(
+  gsParam,
+  overwrite = FALSE,
+  overwriteBed = overwrite,
+  overwriteSynHits = overwrite
+)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters created by init_genespace.}

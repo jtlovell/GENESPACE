@@ -168,7 +168,7 @@ annotate_bed <- function(gsParam){
   add_smallChr2bed <- function(bed, blkSize){
     smallChr <- nGenes <- nChrs <- NULL
     cat(sprintf(
-      "\n\t##############\n\tFlagging chrs. w/ < %s unique orthogroups\n",
+      "\t##############\n\tFlagging chrs. w/ < %s unique orthogroups\n",
       blkSize * 2))
     bed[,smallChr := uniqueN(og) < (blkSize * 2), by = c("genome", "chr")]
     tab <- bed[,list(nGenes = sum(smallChr),

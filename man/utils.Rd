@@ -129,7 +129,7 @@ write_pangenome(x, filepath)
 
 write_combBed(x, filepath)
 
-read_synHits(filepath)
+read_synHits(filepath, ...)
 
 write_synBlast(x, filepath)
 

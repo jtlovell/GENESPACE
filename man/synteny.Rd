@@ -8,7 +8,7 @@
 \alias{ggdotplot}
 \title{synteny}
 \usage{
-synteny(gsParam, verbose = TRUE)
+synteny(gsParam, verbose = TRUE, overwrite = TRUE)
 
 find_selfSyn(hits, synRad)
 

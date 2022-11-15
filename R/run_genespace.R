@@ -24,8 +24,9 @@
 #'
 #' @export
 run_genespace <- function(gsParam,
-                          overwriteBed = FALSE,
-                          overwriteSynHits = FALSE){
+                          overwrite = FALSE,
+                          overwriteBed = overwrite,
+                          overwriteSynHits = overwrite){
   gsParam$paths$rawOrthofinder <- gsParam$paths$orthofinder
   ##############################################################################
   # 1. Run orthofinder ...
@@ -174,10 +175,11 @@ run_genespace <- function(gsParam,
   # 4. Run synteny
   # -- goes through each pair of genomes and pulls syntenic anchors and the hits
   # nearby. This is the main engine of genespace
+
   cat("\n############################", strwrap(
     "4. Flagging synteny for each pair of genomes ...",
     indent = 0, exdent = 8), sep = "\n")
-  gsParam <- synteny(gsParam = gsParam)
+  gsParam <- synteny(gsParam = gsParam, overwrite = overwriteSynHits)
 
   ##############################################################################
   # 5. Build syntenic orthogroups

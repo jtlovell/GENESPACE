@@ -852,7 +852,7 @@ write_combBed <- function(x, filepath){
 #' \code{read_synHits} ensures consistent synHit IO
 #' @rdname utils
 #' @export
-read_synHits <- function(filepath){
+read_synHits <- function(filepath, ...){
   hnames <- c(
     "ofID1", "chr1", "start1", "end1", "id1", "ord1", "genome1", "isArrayRep1",
     "ofID2", "chr2", "start2", "end2", "id2", "ord2", "genome2", "isArrayRep2",
@@ -866,7 +866,7 @@ read_synHits <- function(filepath){
   hc <- cl[c(2,2,1,1,2,1,2,3,2,2,1,1,2,1,2,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,2,2,2,3)]
   hits <- fread(
     filepath, na.strings = c("", "NA"), select = hnames,
-    colClasses = hc, showProgress = F)
+    colClasses = hc, showProgress = F, ...)
   return(hits)
 }
 
