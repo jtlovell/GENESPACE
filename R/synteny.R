@@ -47,7 +47,7 @@
 #' @importFrom dbscan dbscan frNN
 #' @importFrom parallel mclapply
 #' @export
-synteny <- function(gsParam, verbose = TRUE, overwrite = TRUE){
+synteny <- function(gsParam, verbose = TRUE){
   ##############################################################################
   # 1. setup
   # -- 1.1 get env vars set up
@@ -80,26 +80,26 @@ synteny <- function(gsParam, verbose = TRUE, overwrite = TRUE){
   synMdSpl <- split(blMd, by = "chunk")
 
   # -- 1.2 Check and see if all files are there and have good blkID calls
-  if(!overwrite){
-    tmpFiles <- blMd$synHits
-    if(all(file.exists(tmpFiles))){
-      chkd <- sapply(tmpFiles, function(x){
-        chk <- !is.na(tryCatch(
-          read_synHits(x, nrows = 2)$ofID1[1],
-          error = function(err) NA))
-        if(chk){
-          chk <- sum(complete.cases(fread(
-            x, select = c("blkID", "isAnchor", "inBuffer"),
-            na.strings = c("", "NA")))) >= gsParam$params$blkSize
-        }
-        return(chk)
-      })
-      if(all(chkd))
-        overwrite <- FALSE
-    }else{
-      overwrite <- TRUE
-    }
-  }
+  # if(!overwrite){
+  #   tmpFiles <- blMd$synHits
+  #   if(all(file.exists(tmpFiles))){
+  #     chkd <- sapply(tmpFiles, function(x){
+  #       chk <- !is.na(tryCatch(
+  #         read_synHits(x, nrows = 2)$ofID1[1],
+  #         error = function(err) NA))
+  #       if(chk){
+  #         chk <- sum(complete.cases(fread(
+  #           x, select = c("blkID", "isAnchor", "inBuffer"),
+  #           na.strings = c("", "NA")))) >= gsParam$params$blkSize
+  #       }
+  #       return(chk)
+  #     })
+  #     if(all(chkd))
+  #       overwrite <- FALSE
+  #   }else{
+  #     overwrite <- TRUE
+  #   }
+  # }
 
   ##############################################################################
   # -- 2. loop through each chunk
@@ -121,63 +121,62 @@ synteny <- function(gsParam, verbose = TRUE, overwrite = TRUE){
 
       ############################################################################
       # 1. intragenomic hits
-      if(overwrite){
-        if(x$query == x$target){
-          hits <- find_selfSyn(
-            hits = hits, synRad = x$synRad)
 
-          ########################################################################
-          # 2. self hits if ploidy > 1
-          if(x$queryPloidy > 1){
-            hitsMask <- subset(hits, !inBuffer)
-            hitsSelf <- subset(hits, inBuffer)
-            hitsMask <- synteny_engine(
-              hits = hitsMask,
-              nGaps = x$nGaps,
-              blkRadius = x$blkRadius,
-              blkSize = x$blkSize,
-              synRad = x$synRad,
-              topn1 = x$targetPloidy - 1,
-              topn2 = x$queryPloidy - 1,
-              MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
-              tmpDir = gsParam$paths$tmp,
-              onlyOgAnchors = x$onlyOgAnchors)
-            hits <- rbind(hitsMask, hitsSelf)
-          }
-        }else{
-          ##########################################################################
-          # 3. intergenomic hits
-          hits <- synteny_engine(
-            hits = hits,
+      if(x$query == x$target){
+        hits <- find_selfSyn(
+          hits = hits, synRad = x$synRad)
+
+        ########################################################################
+        # 2. self hits if ploidy > 1
+        if(x$queryPloidy > 1){
+          hitsMask <- subset(hits, !inBuffer)
+          hitsSelf <- subset(hits, inBuffer)
+          hitsMask <- synteny_engine(
+            hits = hitsMask,
             nGaps = x$nGaps,
-            blkSize = x$blkSize,
             blkRadius = x$blkRadius,
-            topn1 = x$targetPloidy,
-            topn2 = x$queryPloidy,
+            blkSize = x$blkSize,
             synRad = x$synRad,
+            topn1 = x$targetPloidy - 1,
+            topn2 = x$queryPloidy - 1,
             MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
             tmpDir = gsParam$paths$tmp,
             onlyOgAnchors = x$onlyOgAnchors)
+          hits <- rbind(hitsMask, hitsSelf)
         }
-
+      }else{
         ##########################################################################
-        # 4. secondary hits
-        if(x$nSecondaryHits > 0){
-          hitsMask <- subset(hits, !inBuffer)
-          hitsPrim <- subset(hits, inBuffer)
-          hitsMask <- synteny_engine(
-            hits = hitsMask,
-            nGaps = x$nGapsSecond,
-            blkSize = x$blkSizeSecond,
-            blkRadius = x$blkRadiusSecond,
-            topn1 = x$targetPloidy,
-            topn2 = x$queryPloidy,
-            synRad = x$synRad,
-            MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
-            tmpDir = gsParam$paths$tmp,
-            onlyOgAnchors = x$onlyOgAnchorsSecond)
-          hits <- rbind(hitsMask, hitsPrim)
-        }
+        # 3. intergenomic hits
+        hits <- synteny_engine(
+          hits = hits,
+          nGaps = x$nGaps,
+          blkSize = x$blkSize,
+          blkRadius = x$blkRadius,
+          topn1 = x$targetPloidy,
+          topn2 = x$queryPloidy,
+          synRad = x$synRad,
+          MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
+          tmpDir = gsParam$paths$tmp,
+          onlyOgAnchors = x$onlyOgAnchors)
+      }
+
+      ##########################################################################
+      # 4. secondary hits
+      if(x$nSecondaryHits > 0){
+        hitsMask <- subset(hits, !inBuffer)
+        hitsPrim <- subset(hits, inBuffer)
+        hitsMask <- synteny_engine(
+          hits = hitsMask,
+          nGaps = x$nGapsSecond,
+          blkSize = x$blkSizeSecond,
+          blkRadius = x$blkRadiusSecond,
+          topn1 = x$targetPloidy,
+          topn2 = x$queryPloidy,
+          synRad = x$synRad,
+          MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
+          tmpDir = gsParam$paths$tmp,
+          onlyOgAnchors = x$onlyOgAnchorsSecond)
+        hits <- rbind(hitsMask, hitsPrim)
       }
 
       out <- with(hits, data.table(
@@ -196,8 +195,8 @@ synteny <- function(gsParam, verbose = TRUE, overwrite = TRUE){
       out[,`:=`(nTotalHits = nrow(hits),
                 nGlobOgHits = sum(hits$sameOg))]
       write_synBlast(x = hits, filepath = x$synHits)
-      if(!overwrite)
-        ggdotplot(hits = hits, outDir = gsParam$paths$dotplots)
+      ggdotplot(hits = hits, outDir = gsParam$paths$dotplots)
+
       return(out)
     }))
 

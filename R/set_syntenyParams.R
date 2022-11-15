@@ -32,6 +32,13 @@ set_syntenyParams <- function(gsParam){
   genomeIDs  <- gsParam$genomeIDs
   ploidy     <- gsParam$ploidy
 
+  if(!is.na(gsParam$outgroup)){
+    gids <- c(genomeIDs, gsParam$outgroup)
+    gids <- gids[!duplicated(gids)]
+  }else{
+    gids <- genomeIDs
+  }
+
   ##############################################################################
   # 1. check that the results directory exists
   runPass <- TRUE
@@ -53,7 +60,7 @@ set_syntenyParams <- function(gsParam){
   # 3. check that the genomeIDs are all represented in the speciesIDs.txt
   if(runPass){
     sids <- read_orthofinderSpeciesIDs(fs["SpeciesIDs"])
-    chk <- all(genomeIDs %in% names(sids)) && all(names(sids) %in% genomeIDs)
+    chk <- all(gids %in% names(sids)) && all(names(sids) %in% gids)
     if(!chk)
       runPass <- FALSE
   }

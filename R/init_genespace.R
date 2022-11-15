@@ -131,7 +131,7 @@ init_genespace <- function(wd,
                            diamondUltraSens = FALSE,
 
                            nCores = min(c(detectCores()/2, 16)),
-                           maxOgPlaces = ploidy * 8,
+                           maxOgPlaces = 8,
                            blkSize = 5,
                            nGaps = 5,
                            blkRadius = blkSize * 5,
@@ -189,21 +189,6 @@ init_genespace <- function(wd,
       x <- rep(x, length(genomeIDs))
     if(length(x) != length(genomeIDs))
       stop("problem with ploidy - length not same as genomeIDs (or 1)\n")
-    names(x) <- genomeIDs
-    if(!is.null(outgroup) || !is.na(outgroup))
-      x <- x[!names(x) %in% outgroup]
-    return(x)
-  }
-
-  ##############################################################################
-  check_ogPlaces <- function(maxOgPlaces, genomeIDs, outgroup){
-    x <- check_integer(maxOgPlaces)
-    if(any(is.na(x)) || any(is.null(x)))
-      stop("problem with maxOgPlaces - could not coerce all to integers\n")
-    if(length(x) == 1)
-      x <- rep(x, length(genomeIDs))
-    if(length(x) != length(genomeIDs))
-      stop("problem with maxOgPlaces - length not same as genomeIDs (or 1)\n")
     names(x) <- genomeIDs
     if(!is.null(outgroup) || !is.na(outgroup))
       x <- x[!names(x) %in% outgroup]
@@ -353,12 +338,20 @@ init_genespace <- function(wd,
   # -- check that ploidy is good
   ploidy <- check_ploidy(
     ploidy = ploidy, genomeIDs = genomeIDs, outgroup = outgroup)
-  maxOgPlaces <- check_ogPlaces(
-    maxOgPlaces = maxOgPlaces, genomeIDs = genomeIDs, outgroup = outgroup)
+  maxOgPlaces <- check_integer(maxOgPlaces)
+  maxOgPlaces <- ploidy * maxOgPlaces; names(maxOgPlaces) <- names(ploidy)
+
+  # -- if there are outgroups, strip these out of the genomeIDs and ploidy
+  if(!is.na(outgroup) && any(outgroup %in% genomeIDs) && !is.null(outgroup)){
+    genomeIDs <- genomeIDs[!genomeIDs %in% outgroup]
+    ploidy <- ploidy[!names(ploidy) %in% outgroup]
+    maxOgPlaces <- maxOgPlaces[!names(maxOgPlaces) %in% outgroup]
+  }
+
   cat(sprintf(
     "\n\t\t%s\n\tOutgroup ... ",
     paste(apply(cbind(align_charLeft(genomeIDs), ploidy), 1, function(x)
-      paste(x, collapse = ": ")), collapse = "\n\t\t")))
+      paste(x, collapse = ": ")), collapse = "\n\t\t")), sep = "\n")
   if(is.na(outgroup)){
     cat("NONE\n")
   }else{
@@ -366,11 +359,9 @@ init_genespace <- function(wd,
                 indent = 0, exdent = 16))
   }
 
-  # -- if there are outgroups, strip these out of the genomeIDs and ploidy
-  if(!is.na(outgroup) && any(outgroup %in% genomeIDs) && !is.null(outgroup)){
-    genomeIDs <- genomeIDs[!genomeIDs %in% outgroup]
-    ploidy <- ploidy[!names(ploidy) %in% outgroup]
-  }
+  gids <- genomeIDs
+
+
 
   ##############################################################################
   # -- 1.2 synteny parameters
@@ -469,7 +460,7 @@ init_genespace <- function(wd,
   ##############################################################################
   # 2. Check annotation files
   cat("Checking annotation files (.bed and peptide .fa):\n")
-  inFiles <- check_annotFiles(filepath = wd, genomeIDs = genomeIDs)
+  inFiles <- check_annotFiles(filepath = wd, genomeIDs = gids)
 
   ##############################################################################
   ##############################################################################

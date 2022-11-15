@@ -179,7 +179,7 @@ run_genespace <- function(gsParam,
   cat("\n############################", strwrap(
     "4. Flagging synteny for each pair of genomes ...",
     indent = 0, exdent = 8), sep = "\n")
-  gsParam <- synteny(gsParam = gsParam, overwrite = overwriteSynHits)
+  gsParam <- synteny(gsParam = gsParam)
   gparsv <<- gsParam
 
   ##############################################################################
@@ -210,7 +210,7 @@ run_genespace <- function(gsParam,
 
     # -- re-run synteny with new sameOG column
     cat("\tDone!\n\tRe-running synteny ...\n")
-    gsParam <- synteny(gsParam = gsParam, overwrite = TRUE)
+    gsParam <- synteny(gsParam = gsParam)
 
   }
 

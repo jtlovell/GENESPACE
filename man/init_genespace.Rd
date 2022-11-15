@@ -18,7 +18,7 @@ init_genespace(
   rawOrthofinderDir = NA,
   diamondUltraSens = FALSE,
   nCores = min(c(detectCores()/2, 16)),
-  maxOgPlaces = ploidy * 8,
+  maxOgPlaces = 8,
   blkSize = 5,
   nGaps = 5,
   blkRadius = blkSize * 5,
