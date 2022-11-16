@@ -109,9 +109,10 @@ set_syntenyParams <- function(gsParam){
     # -- query genome is the one with the larger file as the query
     blMd[,query1 := fs1 >= fs2]
     blMd[,`:=`(queryBlast = ifelse(query1, tmp1, tmp2),
-               targetBlast = ifelse(target == query, NA,
+               targetBlast = ifelse(target == query | tmp1 == tmp2, NA,
                                     ifelse(query1, tmp2, tmp1)))]
     blMd <- subset(blMd, queryBlast == tmp1)
+    blMd <- subset(blMd, !duplicated(queryBlast))
     blMd <- blMd[,c("query", "target", "queryPloidy", "targetPloidy",
                     "queryBlast", "targetBlast")]
 

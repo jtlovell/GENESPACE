@@ -29,6 +29,8 @@ run_orthofinderInBlk <- function(gsParam,
   # -- 1. Get metadata together
   bed <- read_combBed(gsParam$synteny$combBed)
   md <- data.table(gsParam$synteny$blast)
+  if(!"lab" %in% colnames(md))
+    md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
 
   ##############################################################################
   # -- 2 for each line in metadata
@@ -221,7 +223,7 @@ ofInBlk_engine <- function(gsParam,
     # -- 2.4 make the orthofinder input files
     ofcall <- gsParam$shellCalls$orthofinder
 
-    ofDirs <- unlist(mclapply(names(spl01), mc.cores = nCores, function(j){
+    ofDirs <- rbindlist(mclapply(names(spl01), mc.cores = nCores, function(j){
       pdir <- file.path(tmpDirs[j], "pep")
       odir <- file.path(tmpDirs[j], "orthofinder")
       if(dir.exists(odir))
@@ -231,22 +233,47 @@ ofInBlk_engine <- function(gsParam,
         ofcall, ofComm, stdout = TRUE, stderr = TRUE)
       fp <- list.files(
         path = odir, pattern = "SequenceIDs.txt", full.names = T, recursive = T)
-      return(fp)
+      out <- data.table(regID = j, path = dirname(fp))
+      return(out)
     }))
-    names(ofDirs) <- names(spl01)
+    # names(ofDirs) <- names(spl01)
 
     ########
-    # -- 2.5 read in sequenceIDs, re-name blasts, write blasts
+    # -- 2.5 read in sequenceIDs, re-name blasts, write blasts, make command
     write_blast <- function(blastHits, filepath){
       fwrite(
         blastHits, file = filepath,
         sep = "\t", quote = F, row.names = F,
         col.names = F, showProgress = F)
     }
+    read_hogog <- function(path, genomeIDs, allowInBlkOGs){
+      HOG <- list.files(path, pattern = "N0.tsv", recursive = T, full.names = T)
+      if(length(HOG) ==  1){
+        ogOut <- parse_hogs(filepath = HOG, genomeIDs = genomeIDs)
+        setnames(ogOut, 1, "ogID")
+        return(ogOut)
+      }else{
+        if(allowInBlkOGs){
+          OG <- list.files(
+            path, pattern = "Orthogroups.tsv",
+            recursive = T, full.names = T)
+          if(length(OG) == 1){
+            ogOut <- parse_ogs(filepath = OG, genomeIDs = genomeIDs)
+          }else{
+            ogOut <- NULL
+          }
+        }
+      }
+      return(ogOut)
+    }
 
-    bl <- sapply(names(spl01), function(j){
-      if(file.exists(ofDirs[j])){
-        sids <- read_orthofinderSequenceIDs(ofDirs[j])
+    inblkHOGs <- rbindlist(mclapply(1:nrow(ofDirs), mc.cores = nCores, function(k){
+      print(k)
+      j <- ofDirs$regID[k]
+      regj <- ofDirs$path[k]
+      sidf <- file.path(regj, "SequenceIDs.txt")
+      if(file.exists(sidf)){
+        sids <- read_orthofinderSequenceIDs(sidf)
         idv <- sids$ofID; names(idv) <- sids$id
         y <- data.table(spl01[[j]])
         u1 <- unique(y$ofID1)
@@ -259,62 +286,37 @@ ofInBlk_engine <- function(gsParam,
         y10[,`:=`(ofID1 = idv[ofID1], ofID2 = idv[ofID2])]
         y00[,`:=`(ofID1 = idv[ofID1], ofID2 = idv[ofID2])]
         y11[,`:=`(ofID1 = idv[ofID1], ofID2 = idv[ofID2])]
-        write_blast(y01, file.path(dirname(ofDirs[j]), "Blast0_1.txt.gz"))
-        write_blast(y10, file.path(dirname(ofDirs[j]), "Blast1_0.txt.gz"))
-        write_blast(y00, file.path(dirname(ofDirs[j]), "Blast0_0.txt.gz"))
-        write_blast(y11, file.path(dirname(ofDirs[j]), "Blast1_1.txt.gz"))
-      }
-    })
+        write_blast(y01, file.path(regj, "Blast0_1.txt.gz"))
+        write_blast(y10, file.path(regj, "Blast1_0.txt.gz"))
+        write_blast(y00, file.path(regj, "Blast0_0.txt.gz"))
+        write_blast(y11, file.path(regj, "Blast1_1.txt.gz"))
 
-    ##############################################################################
-    # -- 3. Run orthofinder within block
-    ########
-    # -- 3.1 make the orthofinder commands
-    comms <- sapply(names(spl01), function(j){
-      if(file.exists(ofDirs[j]))
-        return(sprintf("-b %s -t 1 -a 1 -X", dirname(ofDirs[j])))
-    })
+        comm <- sprintf("-b %s -t 1 -a 1 -X", regj)
 
-    ########
-    # -- 3.2 call orthofinder and get the paths to the HOG files
-    allowInBlkOGs <- TRUE
-    hogf <- mclapply(names(spl01), mc.cores = nCores, function(j){
-      if(file.exists(ofDirs[j])){
-        outp <- system2(
-          ofcall,
-          comms[j],
-          stdout = TRUE, stderr = TRUE)
-        HOG <- list.files(
-          dirname(ofDirs[j]),
-          pattern = "N0.tsv",
-          recursive = T, full.names = T)
-        if(length(HOG) ==  1){
-          tmp <- parse_hogs(filepath = HOG, genomeIDs = c("g0", "g1"))
-          setnames(tmp, 1, "ogID")
-          return(tmp)
-        }else{
-          if(allowInBlkOGs){
-            OG <- list.files(
-              dirname(ofDirs[j]),
-              pattern = "Orthogroups.tsv",
-              recursive = T, full.names = T)
-            return(parse_ogs(filepath = OG, genomeIDs = c("g0", "g1")))
-          }
-        }
+        outp <- system2(ofcall, comm, stdout = TRUE, stderr = TRUE)
+        ogout <- read_hogog(
+          path = regj, genomeIDs = c("g0", "g1"), allowInBlkOGs = TRUE)
+        if(!is.null(ogout))
+          ogout[,regID := j]
+      }else{
+        ogout <- NULL
       }
-    })
-    names(hogf) <- names(spl01)
+      return(ogout)
+    }))
 
     ########
     # -- 3.3 merge hogs with blast files
-    hogout <- rbindlist(lapply(names(spl01), function(j){
+    splhog <- split(inblkHOGs, by = "regID")
+    hogout <- rbindlist(lapply(names(splhog), function(j){
       y <- spl01[[j]]
-      z <- hogf[[j]]
-      if(length(z) == 3){
+      z <- splhog[[j]]
+      if(length(z) == 4){
         hogv <- z$ogID; names(hogv) <- z$id
         y[,`:=`(hog1 = hogv[ofID1], hog2 = hogv[ofID2])]
         y[,sameHog := hog1 == hog2]
         return(subset(y, sameHog)[,c("ofID1", "ofID2")])
+      }else{
+        return(NULL)
       }
     }))
 

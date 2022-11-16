@@ -92,6 +92,9 @@
 #' combinations (facets). "always" means that dotplots are made regardless of
 #' facet numbers, which can be very slow in some instances. "never" is by far
 #' the fastest method, but also never produces dotplots.
+#' @param maskBuffer numeric (default = 500), the minimum distance that a
+#' secondary (or homeolog w/in polyploid genome) block can be created relative
+#' to an existing block.
 #'
 #' @param outgroup deprecated in V1. See ignoreTheseGenomes.
 #' @param orthofinderMethod deprecated in V1. See onewayBlast.
@@ -149,6 +152,7 @@ init_genespace <- function(wd,
                            blkSizeSecond = blkSize,
                            blkRadiusSecond = blkRadius,
                            onlyOgAnchorsSecond = FALSE,
+                           maskBuffer = 500,
 
                            dotplots = "check",
 
@@ -368,7 +372,7 @@ init_genespace <- function(wd,
     cat("\tOutgroup ... NONE\n")
   }else{
     cat(strwrap(sprintf("\tOutgroup ... %s", paste(outgroup, collapse = ", ")),
-                indent = 0, exdent = 16))
+                indent = 8, exdent = 16), sep = "\n")
   }
 
   gids <- genomeIDs
@@ -434,6 +438,8 @@ init_genespace <- function(wd,
     blkRadiusSecond <- NA
     onlyOgAnchorsSecond <- NA
   }
+  maskBuffer <- check_numeric(
+    maskBuffer, default = 500, onlySingleValue = T, na.rm = T)
 
   ##############################################################################
   # -- 1.3 basic argument checking (just do the checking, no reporting)
@@ -467,7 +473,7 @@ init_genespace <- function(wd,
     onlyOgAnchors = onlyOgAnchors, nSecondaryHits = nSecondaryHits,
     blkSizeSecond = blkSizeSecond, blkRadiusSecond = blkRadiusSecond,
     nGapsSecond = nGapsSecond, onlyOgAnchorsSecond = onlyOgAnchorsSecond,
-    dotplots = dotplots)
+    dotplots = dotplots, maskBuffer = maskBuffer)
 
   ##############################################################################
   ##############################################################################

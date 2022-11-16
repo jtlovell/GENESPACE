@@ -129,6 +129,10 @@ synteny <- function(gsParam, verbose = TRUE){
         ########################################################################
         # 2. self hits if ploidy > 1
         if(x$queryPloidy > 1){
+          # -- re-mask hits ...
+          # mask_anchorHits <- function(hits, maskBuffer){
+          #
+          # }
           hitsMask <- subset(hits, !inBuffer)
           hitsSelf <- subset(hits, inBuffer)
           hitsMask <- synteny_engine(
@@ -476,11 +480,12 @@ synteny_engine <- function(hits,
     minPts = blkSize)$cluster,
     by = c("chr1", "chr2")]
 
+  tmp[,blkID := paste("blk", as.numeric(as.factor(paste(chr1, chr2, blkID))))]
   # -- 3.3 split overlapping blocks
   tmp <- split_ovlBlks(
     tmp,
     dropSmallNonOGBlks = onlyOgAnchors,
-    blkSize = blkSize)
+    blkSize = blkSize*2)
   anchu <- tmp$blkID; names(anchu) <- with(tmp, paste(ofID1, ofID2))
 
   hits[,blkID := anchu[paste(ofID1, ofID2)]]
@@ -495,40 +500,38 @@ synteny_engine <- function(hits,
 
   # -- 4.2 get block coordinates
   blks <- subset(tmp, isAnchor)[,list(
-    start1 = min(ord1), end1 = max(ord1),
-    start2 = min(ord2), end2 = max(ord2),
+    start1 = min(start1), end1 = max(end1),
+    start2 = min(start2), end2 = max(end2),
     nAnchorHits = .N),
     by = c("chr1", "chr2", "blkID")]
   blks <- subset(blks, complete.cases(blks) & nAnchorHits > blkSize)
   setorder(blks, -nAnchorHits)
 
-  # -- 4.3 split out hits by chr
-  tmpOut <- data.table(tmp[0,])
-  for(i in 1:nrow(blks)){
-    y <- blks[i,]
-    x <- subset(tmp, chr1 == y$chr1 & chr2 == y$chr2)
-    x[, isAnchor := blkID == y$blkID]
+  # -- 4.3 split out hits by blk coords
+  b1 <- blks[,c("chr1", "start1" ,"end1", "blkID")]
+  b2 <- blks[,c("chr2", "start2" ,"end2", "blkID")]
+  setkey(b1, chr1, start1, end1)
+  setkey(b2, chr2, start2, end2)
+  setkey(tmp, chr1, start1, end1)
+  t1 <- foverlaps(b1, tmp)
+  t1[,`:=`(i.start1 = NULL, i.end1 = NULL, blkID1 = i.blkID, i.blkID = NULL)]
+  setkey(t1, chr2, start2, end2)
+  t2 <- foverlaps(b2, t1)
+  t2[,`:=`(i.start2 = NULL, i.end2 = NULL, blkID2 = i.blkID, i.blkID = NULL)]
+  tmpOut <- subset(t2, blkID1 == blkID2)
+  tmpOut[,blkID := paste(genome1, genome2, as.numeric(as.factor(paste(chr1, chr2, blkID1))))]
+  spl <- split(tmpOut, by = "blkID")
+  ofInBuff <- with(rbindlist(lapply(spl, function(x){
+    nn <- with(x, frNN(x = data.frame(ord1, ord2), eps = synRad))
+    wh <- unique(c(which(x$isAnchor), unlist(nn$id[x$isAnchor])))
+    return(subset(x, 1:nrow(x) %in% wh)[,c("ofID1", "ofID2")])
+  })), paste(ofID1, ofID2))
+  tmpOut <- subset(tmpOut, paste(ofID1, ofID2) %in% ofInBuff)
 
-    # -- only hits within coordinates of block
-    x <- subset(x, ord1 >= y$start1 & ord1 <= y$end1 &
-                  ord2 >= y$start2 & ord2 <= y$end2)
-    if(nrow(x) > blkSize){
-      # -- only hits within synBuff of anchor
-      nn <- with(x, frNN(x = data.frame(ord1, ord2), eps = synRad))
-      wh <- unique(c(which(x$isAnchor), unlist(nn$id[x$isAnchor])))
-      out <- subset(x, 1:nrow(x) %in% wh)
-      out[,`:=`(isAnchor = !is.na(blkID),
-                blkID = y$blkID,
-                inBuffer = TRUE)]
-      u <- with(out, paste(ofID1, ofID2))
-      tmp <- subset(tmp, !paste(ofID1, ofID2) %in% u)
-      tmpOut <- rbind(tmpOut, out)
-    }
-  }
-  tmpOut[,blkID := paste(genome1, genome2, as.numeric(as.factor(paste(chr1, chr2, blkID))))]
   bu <- with(tmpOut, paste(ofID1, ofID2))
   au <- with(subset(tmpOut, isAnchor), paste(ofID1, ofID2))
   bid <- tmpOut$blkID; names(bid) <- with(tmpOut, paste(ofID1, ofID2))
+
   hits[,`:=`(blkID = bid[paste(ofID1, ofID2)],
              inBuffer = paste(ofID1, ofID2) %in% bu,
              isAnchor = paste(ofID1, ofID2) %in% au)]
