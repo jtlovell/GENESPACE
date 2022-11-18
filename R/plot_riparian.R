@@ -734,7 +734,7 @@ calc_curvePolygon <- function(start1,
     return(cbind(x[wh], y[wh]))
   }
 
-  # scaledCurve <<- cosine_points(npts = npts, keepat = keepat)
+  scaledCurve <- cosine_points(npts = npts, keepat = keepat)
   # print(scaledCurve)
   if (!is.null(end1) | !is.null(end2)) {
     sc1 <- scaledCurve[,1]
