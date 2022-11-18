@@ -38,6 +38,7 @@ plot_riparian(
   refChrCols = NULL,
   ylabBuff = NULL,
   scaleGapSize = 0.25,
+  addThemes = NULL,
   refChrOrdFun = function(x) frank(list(as.numeric(gsub("\\\\D+", "", x)), x),
     ties.method = "random"),
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf|chromosome|scaffold|^lg|_", "",
@@ -57,6 +58,7 @@ calc_curvePolygon(
   y1,
   y2,
   npts = 250,
+  addvert = 0,
   keepat = round(npts/20)
 )
 

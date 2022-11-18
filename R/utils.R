@@ -38,7 +38,7 @@
 #' @export
 .onAttach <- function(...) {
   packageStartupMessage(paste(strwrap(
-    "GENESPACE v1.0.3 (pre-release): synteny and orthology constrained
+    "GENESPACE v1.0.4 (pre-release): synteny and orthology constrained
     comparative genomics\n",
     indent = 0, exdent = 8), collapse = "\n"))
 }
@@ -360,15 +360,10 @@ read_orthofinderSpeciesIDs <- function(filepath){
 #' @export
 read_orthofinderSequenceIDs <- function(filepath){
 
-  gi <- fread(
-    filepath,
-    header = F,
-    sep = ":",
-    col.names = c("ofID","id"),
-    colClasses = c("character","character"))
-
-  ofID <- NULL
+  gi <- data.table(readLines(filepath))
+  gi[,c("ofID", "id") := tstrsplit(V1, ": ")]
   gi[,c("genomeNum", "geneNum") := tstrsplit(ofID, "_", type.convert = T)]
+  gi[,V1 := NULL]
   return(gi)
 }
 
@@ -435,6 +430,8 @@ check_annotFiles <- function(filepath, genomeIDs){
     pf <- ifelse((ui/un) < .95, "FAIL", "PASS")
     cat(sprintf("\t%s: %s / %s geneIDs exactly match (%s)\n",
                 labs[i], ui, un, pf))
+    if(any(grepl(": ", names(aa), fixed = T)))
+      stop("some genes have ': ' in the names. This string cannot be in gene names as it is used as the dictionary separator by OrthoFinder")
     return(data.table(
       genomeID = genomeIDs[i],
       bedFile = bedFiles[i],

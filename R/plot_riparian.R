@@ -134,6 +134,7 @@ plot_riparian <- function(
     refChrCols = NULL,
     ylabBuff = NULL,
     scaleGapSize = 0.25,
+    addThemes = NULL,
     refChrOrdFun = function(x)
       frank(list(as.numeric(gsub('\\D+','', x)), x), ties.method = "random"),
     chrLabFun = function(x)
@@ -413,7 +414,7 @@ plot_riparian <- function(
   # plot defaults
 
   if(is.null(ylabBuff))
-    ylabBuff <- length(gids)/40
+    ylabBuff <- length(gids) / 80
   plotHeight <- (sqrt(length(gids)) * scalePlotHeight) + 2
 
   if(!is.null(pdfFile))
@@ -422,6 +423,9 @@ plot_riparian <- function(
   if(is.null(pdfFile))
     pdfFile <- file.path(gsParam$paths$riparian, sprintf(
       "%s_%s.riparian.pdf", rg, ifelse(useOrder, "geneOrder", "bp")))
+
+  if(!all(c("gg", "theme") %in% class(addThemes)))
+    addThemes <- NULL
 
   ##############################################################################
   # -- 1.1 determine runtype from parameters
@@ -557,10 +561,21 @@ plot_riparian <- function(
   plotWidth <- (sqrt(max(maxChrChars)) * scalePlotWidth) + 6
 
   # -- 4.1 polygon matrix
+  if(!is.null(addThemes)){
+    if(addThemes[[1]] == "ateAcid"){
+      addvert <- 1
+      addThemes <- NULL
+    }else{
+      addvert <- 0
+    }
+  }else{
+    addvert <- 0
+  }
+
   plist <- rbindlist(lapply(1:nrow(tpb), function(i){
     x <- with(tpb[i, ], calc_curvePolygon(
       start1 = xs1, end1 = xe1, start2 = xs2,
-      end2 = xe2, y1 = y1, y2 = y2))
+      end2 = xe2, y1 = y1, y2 = y2, addvert = addvert))
     x[,`:=`(blkID = tpb$blkID[i], col = tpb$col[i])]
     return(x)
   }))
@@ -644,6 +659,9 @@ plot_riparian <- function(
           axis.text.y = element_text(family = "Helvetica", size = 7))+
     labs(x = xlab)
 
+  if(!is.null(addThemes))
+    p <- p + addThemes
+
   # -- write the plot
   if(verbose)
     cat(strwrap(sprintf("writing plot to %s", pdfFile), indent = 8, exdent = 8), sep = "\n")
@@ -695,6 +713,7 @@ calc_curvePolygon <- function(start1,
                               y1,
                               y2,
                               npts = 250,
+                              addvert = 0,
                               keepat = round(npts / 20)){
   cosine_points <- function(npts, keepat){
     # initial number of points
@@ -715,20 +734,27 @@ calc_curvePolygon <- function(start1,
     return(cbind(x[wh], y[wh]))
   }
 
-  scaledCurve <- cosine_points(npts = npts, keepat = keepat)
+  # scaledCurve <<- cosine_points(npts = npts, keepat = keepat)
+  # print(scaledCurve)
   if (!is.null(end1) | !is.null(end2)) {
+    sc1 <- scaledCurve[,1]
+    sc2 <- scaledCurve[,2]
+    if(addvert > 0){
+      sc1 <- c(rep(sc1[1], addvert), sc1, rep(sc1[length(sc1)], addvert))
+      sc12 <- c(rep(sc2[1], addvert), sc2, rep(sc2[length(sc2)], addvert))
+    }
     tp <- rbind(
       start1 = data.table(
         x = start1, y = y1),
       poly1 = data.table(
-        x = scale_between(x = scaledCurve[,1], min = start1, max = start2),
-        y = scale_between(x = scaledCurve[,2], min = y1, max = y2)),
+        x = scale_between(x = sc1, min = start1, max = start2),
+        y = scale_between(x = sc2, min = y1, max = y2)),
       start2 = data.table(x = start2, y = y2),
       end2 = data.table(
         x = end2, y = y2),
       poly2 = data.table(
-        x = scale_between(x = scaledCurve[,1], min = end2, max = end1),
-        y = scale_between(x = scaledCurve[,2], min = y2, max = y1)),
+        x = scale_between(x = sc1, min = end2, max = end1),
+        y = scale_between(x = sc2, min = y2, max = y1)),
       end1 = data.table(
         x = end1, y = y1))
   }else{
@@ -736,6 +762,7 @@ calc_curvePolygon <- function(start1,
       x = scale_between(x = scaledCurve[,1], min = start1, max = start2),
       y = scale_between(x = scaledCurve[,2], min = y1, max = y2))
   }
+
   return(tp)
 }
 

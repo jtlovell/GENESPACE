@@ -30,6 +30,7 @@ init_genespace(
   blkSizeSecond = blkSize,
   blkRadiusSecond = blkRadius,
   onlyOgAnchorsSecond = FALSE,
+  maskBuffer = 500,
   dotplots = "check",
   outgroup = ignoreTheseGenomes,
   nSecondHits = nSecondaryHits,
@@ -149,6 +150,10 @@ nSecondaryHits > 0.}
 
 \item{onlyOgAnchorsSecond}{logical should only hits in orthogroups be
 considered for anchors in secondary blocks?}
+
+\item{maskBuffer}{numeric (default = 500), the minimum distance that a
+secondary (or homeolog w/in polyploid genome) block can be created relative
+to an existing block.}
 
 \item{dotplots}{character string either "always", "never", or "check".
 Default (check) only writes a dotplot if there are < 10k unique chromosome

@@ -258,14 +258,22 @@ match_fasta2gff <- function(path2fasta,
       headerStripText <- "gene=|\\[|\\]"
       # -- get ncbi chromosome - seqid dictionary from the gff
       if(is.null(chrIdDictionary)){
+        chrIDs2mask <- c("NA", "none", "unknown")
         chrIDs <- data.table(data.frame(rtracklayer::readGFF(
           filepath = path2gff,
           filter = list(type = "region"),
           tags = c("chromosome"))))
+
+        # -- ensure that problematic chromosome names are not replaced
+        wh <- which(is.na(chrIDs$chromosome))
+        chrIDs$chromosome[wh] <- chrIDs$seqid[wh]
+        wh <- which(tolower(chrIDs$chromosome) %in% chrIDs2mask)
+        chrIDs$chromosome[wh] <- chrIDs$seqid[wh]
+
         seqid <- chromosome <- NULL
         chrIDs <- subset(chrIDs, !is.na(seqid) & !is.na(chromosome))
-        chrIdDictionary <- chrIDs$chromosome
-        names(chrIdDictionary) <- chrIDs$seqid
+        chrIdDictionary <- as.character(chrIDs$chromosome)
+        names(chrIdDictionary) <- as.character(chrIDs$seqid)
         chrIdDictionary <- chrIdDictionary[!duplicated(names(chrIdDictionary))]
       }
     }else{
