@@ -165,7 +165,7 @@ integrate_synteny <- function(gsParam){
 
   ##############################################################################
   # 1. add in array information into bed file, using the new OGs
-  lab <- query <- target <- interPosFile <- isAnchor <- lgBlkID <- blkID <-
+  lab <- query <- target <- interPosFile <- isAnchor <- tmpBlk <- blkID <-
     interpGenome <- interpChr <- NULL
 
   gsParam <- add_arrayInfo2bed(gsParam)
@@ -212,22 +212,22 @@ integrate_synteny <- function(gsParam){
                  "isAnchor", "blkID"),
       showProgress = FALSE),
       isAnchor & !is.na(blkID))
-    hits[,lgBlkID := blkID]
+    hits[,tmpBlk := blkID]
 
     # -- merge with interp via genome1
     tmp <- merge(interp1, hits, by = "ofID1", allow.cartesian = T)
     tmp[,blkID := sprintf("%sXXXgrpbyXXX%sXXXgrpbyXXX%s",
-                          gsub("_", "", lgBlkID), interpGenome, interpChr)]
+                          gsub("_", "", tmpBlk), interpGenome, interpChr)]
     tmpb1 <-  calc_blkCoords(tmp, mirror = T)
     tmpb1[,c("blkID", "refGenome", "refChr") := tstrsplit(blkID, "XXXgrpbyXXX")]
 
     # -- merge with interp via genome2
     tmp <- merge(interp2, hits, by = "ofID2", allow.cartesian = T)
     tmp[,blkID := sprintf("%sXXXgrpbyXXX%sXXXgrpbyXXX%s",
-                          gsub("_", "", lgBlkID), interpGenome, interpChr)]
+                          gsub("_", "", tmpBlk), interpGenome, interpChr)]
     tmpb2 <-  calc_blkCoords(tmp, mirror = T)
     tmpb2[,c("blkID", "refGenome", "refChr") := tstrsplit(blkID, "XXXgrpbyXXX")]
-    hits[,blkID := lgBlkID]
+    hits[,blkID := tmpBlk]
     out <- list(rawBlks = calc_blkCoords(hits),
                 phasedBlks = rbind(tmpb1, tmpb2))
     return(out)
@@ -327,9 +327,9 @@ interp_synPos <- function(gsParam){
   # -- add hoc function to interpolate syntenic hits position
   interp_hitsPos <- function(hits, bed, blkSize = 5){
     # hits <<- hits; bed <<- bed;  blkSize <<- blkSize
-    genome <- isArrayRep <- chr <- start <- end <- sameOg <- isAnchor <-
+    genome <- isArrayRep <- chr <- start <- end <- sameOg <- isAnchor <- end2 <-
       blkID <- useAsAnch <- ord1 <- ord2 <- anySelf <- ofID1 <- ofID2 <- chr1 <-
-      start1 <- end1 <- chr2 <- start2 <- end2 <- interpRefOrd <- NULL
+      start1 <- end1 <- chr2 <- start2 <- interpRefOrd <- hasSelf <- NULL
     # 1. Get the data set up
     # -- 1.1 subset the bed to each genome, key for merge
     bed1 <- subset(bed, genome == hits$genome1[1] & isArrayRep)

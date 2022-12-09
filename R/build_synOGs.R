@@ -44,7 +44,7 @@ build_synOGs <- function(gsParam){
   whna <- which(is.na(bed$synOG))
   mx <- max(bed$synOG, na.rm = T)
   bed$synOG[whna] <- paste((mx + 1): (mx + length(whna)))
-
+  bed[,og := synOG]
   write_combBed(x = bed, filepath = gsParam$synteny$combBed)
   return(gsParam)
 }

@@ -1,4 +1,4 @@
-# This is **beta** version 1.0.3 of the GENESPACE R package. **USE WITH CAUTION** 
+# This is **beta** version 1.0.4 of the GENESPACE R package. **USE WITH CAUTION** 
 
 This is (hopefully) the last beta release of v1 GENESPACE. We expect a full release to the main branch in early December 2022. If you use this beta version, thanks! Your testing will help improve this and future releases. Please report any problems you run into and we will address them ASAP. 
 
@@ -33,6 +33,51 @@ gpar <- run_genespace(gsParam = gpar)
 
 You can then explore the results using `query_genespace` (see section 5: exploring the results). For example, this lets you pull out genes in regions of interest across all genomes
 
+## Running with example data
+
+We recommend doing a test run from real data before applying GENESPACE to your own datasets. To help facilitate this, run these commands in R (assuming valid installation)
+
+```
+# -- specify these parameters so that they are valid paths in your system 
+genomeRepo <- "~/Desktop/gs_v1_runs/rawGenomeRepo/"
+wd <- "~/Desktop/gs_v1_runs/test4readme2"
+path2mcscanx <- "~/Desktop/programs/MCScanX/"
+
+# -- download files to your system from NCBI 
+# (also can be accomplished with) download_exampleData()
+dir.create(file.path(genomeRepo, "human"))
+download.file(
+  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_translated_cds.faa.gz",
+  destfile = file.path(genomeRepo, "human", "GCF_000001405.40_GRCh38.p14_translated_cds.faa.gz"))
+download.file(
+  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.gff.gz",
+  destfile = file.path(genomeRepo, "human", "GCF_000001405.40_GRCh38.p14_genomic.gff.gz"))
+
+dir.create(file.path(genomeRepo, "chicken"))
+download.file(
+  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/699/485/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_translated_cds.faa.gz",
+  destfile = file.path(genomeRepo, "chicken", "GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_translated_cds.faa.gz"))
+download.file(
+  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/699/485/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_genomic.gff.gz",
+  destfile = file.path(genomeRepo, "chicken", "GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_genomic.gff.gz"))
+
+# -- reformat the annotations
+parsedPaths <- parse_annotations(
+  rawGenomeRepo = genomeRepo, 
+  genomeDirs = c("human", "chicken"),
+  genomeIDs = c("human", "chicken"),
+  presets = "ncbi", 
+  genespaceWd = wd)
+
+# -- intialize the genespace run
+gpar <- init_genespace(
+  wd = wd, nCores = 1,
+  path2mcscanx = path2mcscanx)
+
+# -- run the genespace pipeline
+out <- run_genespace(gpar)
+```
+
 ## 1. Software installation
 
 Installation for v1 is identical to v0.9.4. Use the same conda (or other) installation environment as before. To install from scratch, you need R, a few 3rd party programs and a few R packages. Here is how to install these:
@@ -54,6 +99,7 @@ conda install -c bioconda orthofinder
 ```
 
 If conda is not available on your machine, you can install orthofinder from a number of other sources. See [orthofinder documentation](https://github.com/davidemms/OrthoFinder) for details.  
+Regardless of how `OrthoFinder` is installed, ensure that you have `OrthoFinder` version >= 2.5.4 and `DIAMOND` version >= 2.0.14.152.
 
 #### 1.3 Install MCScanX
 
@@ -219,6 +265,20 @@ There are lots of parameters that can be combined to parse every annotation form
 Parsing can take some troubleshooting, which can be aided by setting `troubleshoot = TRUE`. This prints the first 10 lines of the raw and parsed gff and fasta headers. For some annotation types, you may need to give a fairly complex regular expression to gffStripText or headerStripText. For example, if the fasta name has some additional unwanted info after the last "." in the name: `headerStripText = '[.][^.]+$'`. 
 
 
+## 3. Running GENESPACE
+
+#### 3.1. Considerations for parameterization
+
+
+#### 3.2 One line to run it all
+
+
+#### 3.3 Running orthofinder separately
+
+
+#### 
+
+
 ## 3. The GENESPACE pipeline
 
 #### 3.1 Changes to GENESPACE v0.9.4 --> v1.0.2+
@@ -241,6 +301,7 @@ Parsing can take some troubleshooting, which can be aided by setting `troublesho
   11. `plot_riparian()` function generalization that allows the user to specify a block coordinate matrix and nothing else (allowing plotting of data from other packages). 
   12. replace `orthofinderMethod = "fast"` with `onewayOF = TRUE` to match the new `orthofinder -1` specification. 
   13. a new function `query_genespace()`, allows positional or orthology based queries of pan-genome, pairwise hits, or raw orthogroups/orthologues. 
+  14. Use of phylogenetically hierarchical orthogroups (HOGs) instead of default orthogroups (in most cases) to be inline with orthofinder best practices
 
 #### 3.2 Running orthofinder
 
@@ -249,7 +310,6 @@ By default, GENESPACE runs the full OrthoFinder program internally from R. If an
 For very large runs, we highly recommend running OrthoFinder outside of R. You can do this by using `init_genespace(..., path2orthofinder = NA)`. When you use `run_genespace` with the resulting gs parameters, GENESPACE will prepare the input files and print the OrthoFinder command to the console before killing the run. You can then run that command in your shell or on a server separately. 
 
 Once orthofinder is run, you can point to the output directory via `init_genespace(..., rawOrthofinderDir = "/path/to/run")`, or just put it in the /orthofinder directory in your GENESPACE wd. GENESPACE will find the necessary results, QC them, and if all looks good, move them to the /results directory and begin the pipeline. 
-
 
 #### 3.3 Aggregating orthofinder information
 
@@ -263,156 +323,89 @@ The information from the combBed file are added to the blast files to produce an
 
 #### 3.4 Calculating pairwise synteny
 
-The function `synteny` annotates each unique pairwise synHits file with three columns: "isAnchor", "inBuffer" and "blkID". If blkID is NA and inBuffer == FALSE, that blast hit is not syntenic. Otherwise, the hit is syntenic and may be used for direct syntenic position interpolation if isAnchor == TRUE. These flags are determined through a three step process: First, potential syntenic anchors are extracted from the synHits as !noAnchor, (and if onlyOgAnchors = TRUE, sameOg) and are the topN scoring hits for each gene. topN = ploidy of the alternate genome. These potential anchor hits are fed into MCScanX. Those in collinear blocks are potential syntenic anchors. Second, potential syntenic anchors are clustered into large regions with dbscan where the search radius is the `synBuffer`. Potential syntenic anchors are then re-called by re-running MCScanX on the anchors within a region. Finally, syntenic anchors are clustered into blocks using dbscan.
+The information stored in the combined/annotated bed file is merged with the blast results to make synHits matrices. The function `synteny` annotates each unique pairwise synHits file with three columns: "isAnchor", "inBuffer" and "blkID". If blkID is NA and inBuffer == FALSE, that blast hit is not syntenic. Otherwise, the hit is syntenic and may be used for direct syntenic position interpolation if isAnchor == TRUE. 
+
+These flags are determined through a three step process. First, potential syntenic anchors are extracted from the synHits as !noAnchor, (and if onlyOgAnchors = TRUE, sameOg) and are the topN scoring hits for each gene. topN = ploidy of the alternate genome. These potential anchor hits are fed into MCScanX. Those in collinear blocks are potential syntenic anchors. Second, potential syntenic anchors are clustered into large regions with dbscan where the search radius is the `synBuffer`. Potential syntenic anchors are then re-called by re-running MCScanX on the anchors within a region. Finally, syntenic anchors are clustered into blocks using dbscan.
 
 #### 3.5 Mapping syntenic positions across genomes
 
+## 4. Output file formats
 
-#### 3.6 The synHits output format
+GENESPACE produces four results stored as text files. 
 
+#### 4.1 The synHits output format
 
-#### 3.7 The pangenome output format
+The main output of GENESPACE are the annotated blast hits, called synHits. These files are pairwise between two genomes (or within a genome) and collapse reciprocal hits into a single file (to save space + time). 
 
+The query (genome 1) and target (genome 2) gene position information are taken directly from the combBed.txt file. These data, which have names corresponding exactly to the combBed.txt header, fill the first 16 columns of the synBlast.txt.gz files. The next 10 columns are the standard blast8 fields (minus the query and target IDs). Finally, there are 6 columns added by GENESPACE synteny pipeline: 
 
-#### 3.8 The combBed.txt file
+1. 'sameOg': TRUE/FALSE, are the query and target genes in the same orthogroup (defined by the og column in the combBed file)
+2. 'noAnchor': TRUE/FALSE, is either the query or the target flagged as noAnchor in the combBed file?
+3. 'isAnchor': TRUE/FALSE, is this blast hit a syntenic anchor, and thereby a valid coordinate to connect positions between genomes?
+4. 'inBuffer': TRUE/FALSE, is this blast hit within a buffered radius of a syntenic anchor?
+5. 'blkID': unique syntenic block identifier
+6. 'sameInblkOg': like sameOg, but just for inBlkOrthofinder
 
+#### 4.2 The pangenome output format
 
+The function `pangenome` converts orthogroup and position data into a single matrix. This is stored in the /pangenome directory. This is the raw data that goes into the pangenome-annotation output (position x genome matrix). The refPangenomeAnnot.txt file contains 11 columns:
 
-The only inputs required for genespace are a directory containing matched annotations in /peptide and /bed subdirectories and the path to the MCScanX installation.
+1. 'pgID': the unique position-by-orthogroup combination identifier. Each row in the pangenome-annotation is a unique value of this field. 
+2. 'pgGenome': the reference genome
+3. 'pgChr': the chromosome (syntenic or actual) on the reference genome
+4. 'pgOrd': the gene-rank order position (interpolated or actual) on the reference genome
+5. 'genome': genome of the focal gene (id column)
+6. 'og': orthogroup ID taken from the combBed.txt file
+7. 'isRep': TRUE/FALSE, is this gene the representative gene for this pgID?
+8. 'ofID': orthofinder gene ID
+9. 'id': bed-specified gene ID
+10. 'isNSOrtho': TRUE/FALSE, is this gene a non-syntenic ortholog to the representative gene?  If so, flag with "*" in the pangenome-annotation. 
+11. 'isArrayRep': TRUE/FALSE, is this gene a non-representative tandem array member? If so, flag with "+" in the pangenome-annotation. 
 
-```
-gpar <- init_genespace(
-    wd = "/path/to/GENESPACE/workingDir", 
-    path2mcscanx = "/path/to/MCScanX")
-```
+#### 4.3 The combBed.txt file
 
-This initializes a run where each genome is named following the file names in the peptide and /bed subdirectories and assumes that all genomes are haploid. 
-
-### 5.2 Specifying custom paths to diamond and orthofinder
-
-Installation of orthofinder (and diamond) represents one of the most common issues getting GENESPACE up and running. If you cannot install into a conda environment and open R from there (or put orthofinder in the path), you will to specify a custom path to the orthofinder and diamond program installations through `init_genespace(..., path2orthofinder = "path/to/orthofinder", path2diamond = "path/to/diamond")`. 
-
-### 5.3 Specifying ploidy
-
-Genome ploidy represents the most common required customization. If all of your genomes have the same ploidy, they can be set by specifying a single value. For example for all diploid genomes (likely representing inbred tetraploid genomes) `init_genespace(..., ploidy = 2)`. 
-
-However, you may only have a couple higher ploidy genomes. In this case, its preferable to specify both the genomeIDs and ploidy to ensure you have the right ploidy matching the right genome. For example: `init_genespace(..., ploidy = c(1, 2, 1), genomeIDs = c("species1", "species2", "species3"))`, where two genomes are haploid and one is an outbred diploid. 
-
-#### 3.4 Main parameters to `init_genespace`
-
-There are many ways to customize the GENESPACE run. Check the helpfile for `init_genespace` for details about them all. Here are the other most common:
-
-- `useHOGs` - should hierarchical orthogroups be used instead of global orthogroups. HOGs tend to split arrays and better reflect orthologs. Global orthogroups better capture paralogous regions. Default (NA) chooses whichever matches the ploidy of the genomes best. 
-- `outgroup` or `ignoreTheseGenomes` - genomeIDs that should only be used in the orthofinder run but not considered for synteny etc. If not specified, all genomes are used. `outgroup` is a bit of a missnomer and the argument is kept here for now for better backwards compatibility to <v1. 
-- `blkSize` - default is 5. This is the minimum number of anchored blast hits needed to call a syntenic block. 
-- `nGaps` - default is 5. Passed to `MCScanX -m` as the maximum number of gaps in a syntenic block. 
-- `synBuff` - default is 100. This is the maximum euclidean distance (in gene-rank order units) from a syntenic anchor for a gene to be considered in the syntenic buffer. Also the minimum distance between two genes to split a tandem array into two clusters.   
-- `nCores` - the number of parallel processes to run
-- `orthofinderInBlk` - should OrthoFinder be re-run within each large syntenic region? Default is TRUE if any genome ploidy > 1. 
-
-
-
-
-
-  
-
-### 1.3 If you are starting from scratch ... 
-
-Previously GENESPACE operated on raw gff and peptide annotations. The internal conversion to a simpler format caused most of the reported errors. To simplify this and reduce errors, GENESPACE now only takes processed .bed and .fasta annotations. See below, but in short, these are standard 4-column bed files where the 4th column in the gene ID, which exactly matches the header in the fasta file. 
-
-Before running GENESPACE you need to either build these files yourself (and store them in /bed and /peptide) subdirectories. Alternatively, with the right parameterization, `parse_annotations()` can do the formatting for you.
-
-Below is an example of how to run the full GENESPACE pipeline between human and chicken genomes from NCBI:
-
-First off, make a directory to store the raw genome annotation files
+Here are the first two lines of the combBed.txt file for the human-chicken (shown just whitespace delimited here).
 
 ```
-genomeRepo <- file.path("~/Downloads/testGenespace/rawRepo")
-if(!dir.exists(genomeRepo))
-  dir.create(genomeRepo)
-dir.create(file.path(genomeRepo, "human"))
-dir.create(file.path(genomeRepo, "chicken"))
+chr start end id ofID pepLen ord genome arrayID isArrayRep globOG globHOG synOG inblkOG noAnchor og
+1 7227 96035 TBCE 1_17482 578 922 human NoArr17298 TRUE OG0011962 NA 7295 NA FALSE 7295
+1 7273 18867 MTX1 1_11094 466 923 human NoArr15947 TRUE OG0002010 NA 1124 NA FALSE 1124
 ```
 
-Then download human annotation from NCBI
+Column definitions:
 
-```
-download.file(
-  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_translated_cds.faa.gz",
-  destfile = file.path(genomeRepo, "human", "GCF_000001405.40_GRCh38.p14_translated_cds.faa.gz"))
-download.file(
-  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.gff.gz",
-  destfile = file.path(genomeRepo, "human", "GCF_000001405.40_GRCh38.p14_genomic.gff.gz"))
-```
+1. 'chr': chromosome identifier copied from the bed file
+2. 'start': gene start position copied from the bed file
+3. 'end': gene end position copied from the bed file
+4. 'id': gene identifier copied from the bed file
+5. 'ofID': unique orthofinder ID taken from SequenceIDs.txt
+6. 'pepLen': number of amino acids in the predicted peptide
+7. 'ord': gene rank order position along the entire genome
+8. 'genome': unique genome ID, taken from the bed file name
+9. 'arrayID': tandem array identifier, if the field begins with "NoArr", then this gene is not part of a tandem array
+10. 'isArrayRep': TRUE/FALSE specifying whether a gene is the representative (closest physically to the median position of the array)
+11. 'globOG': global orthogroup ID, taken from orthogroups.tsv
+12. 'globHOG': global phylogenetically hierarchical orthogroup, taken from N0.tsv
+13. 'synOG': syntenic OG (or HOG if useHOGs = TRUE) where only genes that are members of syntenic blast hits are allowed to be in the same subgraph (OG)
+14. 'inblkOG': if inBlkOrthofinder = TRUE, this is the re-calculated HOG within each syntenic block
+15. 'noAnchor': TRUE/FALSE whether the gene can be considered for synteny
+16. 'og': changes depending on the stage of the run. Initially it is the globHOG or globOG. Then after synteny, it is populated with synOG. Lastly, may be populated with inblkOG. 
 
-And chicken from NCBI
+#### 4.4 The syntenic block coordinates
 
-```
-download.file(
-  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/699/485/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_translated_cds.faa.gz",
-  destfile = file.path(genomeRepo, "chicken", "GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_translated_cds.faa.gz"))
-download.file(
-  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/699/485/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_genomic.gff.gz",
-  destfile = file.path(genomeRepo, "chicken", "GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_genomic.gff.gz"))
-```
+This file, stored in /results/blkCoords.txt, contains pairwise block coordinates for each pair of genomes (genome1, genome2; 1 or 2 appended to the column name indicates that this data is associated with either genome1 or genome2 respectively). For each genome, there are 15 columns:
 
-Then parse the annotations into the simplified GENESPACE bed and fasta. See 4.3 (automatic parsing of annotations) for more details. 
-
-```
-wd <- "~/Downloads/testGenespace/verts"
-parsedPaths <- parse_annotations(
-  rawGenomeRepo = genomeRepo, 
-  genomeDirs = c("human", "chicken"),
-  genomeIDs = c("human", "chicken"),
-  presets = "ncbi", 
-  genespaceWd = wd)
-```
-
-Now, we can initialize the GENESPACE run
-
-```
-gpar <- init_genespace(
-  wd = wd, 
-  path2mcscanx = "/path/to/MCScanX/")
-```
-
-Finally, with all the parameters set and the annotations formatted, we can run the entire GENESPACE pipe with one function call:
-
-```
-gpar <- run_genespace(gsParam = gpar)
-```
-
-
-
-
-
-### 3.3 Open an interactive R session
-
-You can open R using the the GUI, Rstudio, or as an interactive session in the terminal. If you are using a conda environment or specifying the path to orthofinder in the `$PATH`, you need to enter an R interactive session from that shell environment, which can be done by either calling `R` (for command line interface) `open -na rstudio` if using Rstudio. 
-
-### 3.4 Install GENESPACE R package
-
-Once in R, GENESPACE can be installed directly from github via:
-
-```
-if (!requireNamespace("devtools", quietly = TRUE))
-    install.packages("devtools")
-devtools::install_github("jtlovell/GENESPACE")
-```
-
-### 3.5 Install R dependencies
-
-The above command will install the CRAN-sourced dependencies (`data.table`, `dbscan` and `R.utils`). The bioconductor dependencies (`rtracklayer` and `Biostrings`) need to be installed separately via:
-
-```
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install(c("Biostrings", "rtracklayer"))
-```
-
-
-
-## 5. Setting and checking GENESPACE parameters
-
-### 5.1 Initalizing the GENESPACE run with defaults
-
+1. 'chr': chromosome ID
+2. 'minBp': lowest basepair (bp) position
+3. 'maxBp': greatest basepair (bp) position
+4. 'minOrd': lowest gene rank order (ord) position
+5. 'maxOrd': highest gene rank order (ord) position
+6. 'minGene': lowest position gene ID in the block
+7. 'maxGene': higest position gene ID in the block
+8. 'nHits': number of hits
+9. 'startBp': begining bp position (taking into account orientation)
+10. 'endBp': end bp position (taking into account orientation)
+11. 'startOrd': begining ord position (taking into account orientation)
+12. 'endOrd': end ord position  (taking into account orientation)
+13. 'firstGene': first gene in the block (taking into account orientation)
+14. 'lastGene': last gene in the block (taking into account orientation)

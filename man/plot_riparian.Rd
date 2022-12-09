@@ -169,6 +169,8 @@ no coloring by chr, specify NULL.}
 all gaps are the same size regardless of genome size. 1 means that the
 genomes sizes are all nearly the same and smaller genomes have larger gaps.}
 
+\item{addThemes}{ggplot2 themes to add to the riparian plot}
+
 \item{refChrOrdFun}{function, to re-order reference chromosomes}
 
 \item{chrLabFun}{function to parse chr IDs to make them more readible}
@@ -192,6 +194,8 @@ genomes sizes are all nearly the same and smaller genomes have larger gaps.}
 \item{y2}{numeric, top postion of the block}
 
 \item{npts}{integer, the number of points to use in the curve.}
+
+\item{addvert}{funny stuff here}
 
 \item{keepat}{integer, the grid size of points to keep}
 

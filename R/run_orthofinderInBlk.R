@@ -9,7 +9,7 @@
 #' @param onlyInBuffer logical, should only inbuffer hits be retained?
 #' @param overwrite logical, should results be overwritten?
 #' \cr
-#' If called, \code{build_synOGs} returns its own arguments.
+#' If called, \code{run_orthofinderInBlk} returns its own arguments.
 #'
 #' @details info here
 
@@ -17,14 +17,15 @@
 #' @description
 #' \code{pull_inblkOgs} Loop through the pairwise combination of genomes and
 #' run orthofinderInBlk
-#' @rdname build_synOGs
+#' @rdname run_orthofinderInBlk
 #' @import data.table
 #' @export
 run_orthofinderInBlk <- function(gsParam,
                                  overwrite = FALSE,
                                  onlyInBuffer = TRUE){
 
-  lab <- query <- target <- blkID <- sameOg <- sameInblkOg <- inBuffer <- NULL
+  lab <- query <- target <- blkID <- sameOg <- sameInblkOg <- inBuffer <-
+    inblkOG <- ofID <- og <- NULL
   ##############################################################################
   # -- 1. Get metadata together
   bed <- read_combBed(gsParam$synteny$combBed)
@@ -66,18 +67,17 @@ run_orthofinderInBlk <- function(gsParam,
 #' @title Run orthofinder within blocks
 #' @description
 #' \code{run_orthofinderInBlk} Main engine to run orthofinder in blocks
-#' @rdname build_synOGs
+#' @rdname run_orthofinderInBlk
 #' @import data.table
 #' @import parallel
 #' @export
 ofInBlk_engine <- function(gsParam,
                            genome1,
                            genome2,
-                           overwrite,
-                           allow){
+                           overwrite){
 
-  query <- target <- ofID1 <- ofID2 <- blkID <- rid <- uid1 <- uid2 <-
-    ofID1 <- ofID2 <- sameHog <- hog1 <- hog2 <- sameInblkOg <- NULL
+  query <- target <- ofID1 <- ofID2 <- blkID <- rid <- uid1 <- uid2 <- regID <-
+    ofID1 <- ofID2 <- sameHog <- hog1 <- hog2 <- sameInblkOg <- hasSelf <- NULL
 
 
   blNames <- c(

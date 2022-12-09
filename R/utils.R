@@ -300,7 +300,7 @@ read_bed <- function(filepath){
   return(chk)
 }
 
-#' @title left-justify
+#' @title left justify
 #' @description
 #' \code{align_charLeft} for a vector of character strings, add " " to the right
 #' side so they all align to the left when printed
@@ -315,7 +315,7 @@ align_charLeft <- function(x){
   return( x <- sprintf("%s%s", x, buffBlank))
 }
 
-#' @title right-justify
+#' @title right justify
 #' @description
 #' \code{align_charRight} for a vector of character strings, add " " to the left
 #' side so they all align to the right when printed
@@ -359,7 +359,7 @@ read_orthofinderSpeciesIDs <- function(filepath){
 #' @import data.table
 #' @export
 read_orthofinderSequenceIDs <- function(filepath){
-
+  V1 <- ofID <- NULL
   gi <- data.table(readLines(filepath))
   gi[,c("ofID", "id") := tstrsplit(V1, ": ")]
   gi[,c("genomeNum", "geneNum") := tstrsplit(ofID, "_", type.convert = T)]
@@ -667,9 +667,10 @@ flag_boundingNAs <- function(x){
   return(z)
 }
 
-#' @title calc_blkCoords
+#' @title calculate syntenic block coordinates
 #' @description
-#' \code{calc_blkCoords} calc_blkCoords
+#' \code{calc_blkCoords} from a hits object, determine block coordinates,
+#' orientation and membership
 #' @rdname utils
 #' @import data.table
 #' @importFrom stats cor
@@ -790,7 +791,7 @@ read_combBed <- function(filepath){
 #' \code{read_pangenome} ensures consistent pangenome IO
 #' @rdname utils
 #' @export
-read_pangenome <- function(filepath){
+read_pangenome <- function(filepath, which = "wide"){
 
   flag <- isNSOrtho <- isArrayRep <- id <- repGene <- isRep <- NULL
 
@@ -805,11 +806,15 @@ read_pangenome <- function(filepath){
     stop("refPangenomeAnnot.txt file is malformed\n")
   pgout <- fread(filepath, showProgress = FALSE, na.strings = c("", "NA"))
   pgw <- data.table(pgout)
-  pgw[,flag := ifelse(isNSOrtho, "*", ifelse(!isArrayRep, "+", ""))]
-  pgw[,id := sprintf("%s%s", id, flag)]
-  pgw[,repGene := id[isRep][1], by = "pgID"]
-  pgw <- dcast(pgw, pgID + pgGenome + pgChr + pgOrd + og + repGene ~ genome,
-               value.var = "id", fun.aggregate = list)
+
+  if(which == "wide"){
+    pgw[,flag := ifelse(isNSOrtho, "*", ifelse(!isArrayRep, "+", ""))]
+    pgw[,id := sprintf("%s%s", id, flag)]
+    pgw[,repGene := id[isRep][1], by = "pgID"]
+    pgw <- dcast(pgw, pgID + pgGenome + pgChr + pgOrd + og + repGene ~ genome,
+                 value.var = "id", fun.aggregate = list)
+  }
+
   return(pgw)
 }
 
@@ -855,12 +860,12 @@ read_synHits <- function(filepath, ...){
     "ofID2", "chr2", "start2", "end2", "id2", "ord2", "genome2", "isArrayRep2",
     "pid", "length", "mismatches", "gapopenings", "queryStart", "queryEnd",
     "subjectStart", "subjectEnd", "Evalue", "bitScore", "sameOg", "noAnchor",
-    "isAnchor", "inBuffer", "regID", "blkID", "lgBlkID", "sameInblkOg")
+    "isAnchor", "inBuffer", "blkID", "sameInblkOg")
   cl <- c("numeric", "character", "logical")
   chk <- strsplit(readLines(filepath, 1), "\t")[[1]]
   if(!identical(chk, hnames))
     stop("synhits.txt file is malformed\n")
-  hc <- cl[c(2,2,1,1,2,1,2,3,2,2,1,1,2,1,2,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,2,2,2,3)]
+  hc <- cl[c(2,2,1,1,2,1,2,3,2,2,1,1,2,1,2,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,2,3)]
   hits <- fread(
     filepath, na.strings = c("", "NA"), select = hnames,
     colClasses = hc, showProgress = F, ...)
@@ -878,7 +883,7 @@ write_synBlast <- function(x, filepath){
     "ofID2", "chr2", "start2", "end2", "id2", "ord2", "genome2", "isArrayRep2",
     "pid", "length", "mismatches", "gapopenings", "queryStart", "queryEnd",
     "subjectStart", "subjectEnd", "Evalue", "bitScore", "sameOg", "noAnchor",
-    "isAnchor", "inBuffer", "regID", "blkID", "lgBlkID", "sameInblkOg")
+    "isAnchor", "inBuffer", "blkID", "sameInblkOg")
   if(!all(hnames %in% colnames(x)))
     stop("synhits data.table is malformed\n")
   x <- x[,hnames, with = F]
@@ -892,8 +897,7 @@ write_synBlast <- function(x, filepath){
 #' @rdname utils
 #' @importFrom grDevices col2rgb rgb
 #' @export
-add_alpha <- function(col,
-                      alpha = 1){
+add_alpha <- function(col, alpha = 1){
 
   if(missing(col) || !all(are_colors(col)))
     stop("Colors are misspecified\n")
@@ -984,13 +988,14 @@ get_diamondVersion <- function(filepath){
   return(chk)
 }
 
-#' @title theme_genespace
+#' @title ggplot2 theme for genespace
 #' @description
-#' \code{theme_genespace} theme_genespace
+#' \code{theme_genespace} specifies publication-style themes. Col here is the
+#' color of the panel.background.
 #' @rdname utils
 #' @export
-theme_genespace <- function(panelBg = "black"){
-  theme(panel.background = element_rect(fill = panelBg),
+theme_genespace <- function(col = "black"){
+  theme(panel.background = element_rect(fill = col),
         panel.grid.minor = element_blank(),
         panel.grid.major = element_line(
           color = rgb(1, 1, 1, .2), size = .2, linetype = 2),
@@ -1004,4 +1009,43 @@ theme_genespace <- function(panelBg = "black"){
           angle = 0, family = "Helvetica", size = 5),
         axis.title = element_text(family = "Helvetica", size = 6),
         plot.title = element_text(family = "Helvetica", size = 7))
+}
+
+#' @title download example data
+#' @description
+#' \code{download_exampleData} downloads chicken and human annotations from NCBI
+#' @rdname utils
+#' @importFrom utils download.file
+#' @export
+download_exampleData <- function(filepath){
+
+  path <- path.expand(check_character(filepath))
+  if(!dir.exists(path)){
+    if(!dir.exists(dirname(path))){
+      stop(sprintf("%s and its parent directory do not exist. provide a path to a valid directory."))
+    }else{
+      dir.create(path)
+    }
+  }
+
+  hpath <- file.path(path, "human")
+  cat(sprintf("Downloading human data to %s ... ", hpath))
+  download.file(
+    url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_translated_cds.faa.gz",
+    destfile = file.path(hpath, "GCF_000001405.40_GRCh38.p14_translated_cds.faa.gz"))
+  download.file(
+    url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.gff.gz",
+    destfile = file.path(hpath, "GCF_000001405.40_GRCh38.p14_genomic.gff.gz"))
+
+
+  cpath <- file.path(path, "chicken")
+  cat(sprintf("Done!\nDownloading chicken data to %s ...", cpath))
+  download.file(
+    url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/699/485/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_translated_cds.faa.gz",
+    destfile = file.path(cpath, "GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_translated_cds.faa.gz"))
+  download.file(
+    url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/699/485/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_genomic.gff.gz",
+    destfile = file.path(cpath, "GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_genomic.gff.gz"))
+  cat("Done!")
+  return(path)
 }

@@ -112,8 +112,7 @@ annotate_blast <- function(gsParam){
       bl[,noAnchor := noAnchor1 | noAnchor2]
       bl[,`:=`(og1 = NULL, og2 = NULL, noAnchor1 = NULL, noAnchor2 = NULL)]
 
-      bl[,`:=`(isAnchor = NA, inBuffer = NA, regID = NA,
-               blkID = NA, lgBlkID = NA, sameInblkOg = NA)]
+      bl[,`:=`(isAnchor = NA, inBuffer = NA, blkID = NA, sameInblkOg = NA)]
 
       write_synBlast(bl, filepath = x$synHits)
       x[,`:=`(nTotalHits = nrow(bl), nGlobOgHits = sum(bl$sameOg))]

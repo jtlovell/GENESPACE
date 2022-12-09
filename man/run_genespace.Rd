@@ -14,6 +14,9 @@ run_genespace(
 \arguments{
 \item{gsParam}{A list of genespace parameters created by init_genespace.}
 
+\item{overwrite}{logical, should all raw files be overwritten except
+orthofinder results}
+
 \item{overwriteBed}{logical, should the bed file be re-created and
 overwritten?}
 
@@ -24,18 +27,63 @@ overwritten?}
 a gsParam list.
 }
 \description{
-\code{run_genespace} Run the entire GENESPACE pipeline, from begining to end,
+\code{run_genespace} Run the entire GENESPACE pipeline from beginning to end
 with one function call.
 }
 \details{
-The full genespace pipeline is as follows.
+The function calls required to run the full genespace pipeline are
+printed below. See each function for detailed descriptions. Also, see
+`init_genespace`for details on parameter specifications.
+
 \enumerate{
-\item Details coming soon.
+\item `run_orthofinder` runs orthofinder or finds and copies over data from
+a previous run.
+\item `set_syntenyParams` converts parameters in the gsParam list into a
+matrix of file paths and parameters for each pairwise combination of query
+and target genomes
+\item `annotate_bed` reads in all of the bed files, concatenates them and
+adds some important additional information, including gene rank order,
+orthofinder IDs, orthogroup information, tandem array identity etc.
+\item `annotate_blast` reads in all the blast files and adds information from
+the annotated/combined bed file
+\item `synteny` is the main engine for genespace. this flags syntenic blocks
+and make dotplots
+\item `build_synOGs` integrates syntenic orthogroups across all blast files
+\item `run_orthofinderInBlk` optionally re-runs orthofinder within each
+syntenic block, returning phylogenetically hierarchical orthogroups (HOGs)
+\item `integrate_synteny` interpolates syntenic position of all genes across
+all genomes
+\item `pangenome` combines positional and orthogroup information into a
+single matrix anchored to the gene order coordinates of a single reference
+\item `plot_riparian` is the primary genespace plotting routine, which stacks
+the genomes and connects syntenic regions to color-coded reference
+chromosomes
 }
 }
 \examples{
 \dontrun{
-# coming soon
+###############################################
+# -- change paths to those valid on your system
+genomeRepo <- "~/path/to/store/rawGenomes"
+wd <- "~/path/to/genespace/workingDirectory"
+path2mcscanx <- "~/path/to/MCScanX/"
+###############################################
+
+dir.create(genomeRepo)
+wd <- download_exampleData(path = wd)
+
+parsedPaths <- parse_annotations(
+  rawGenomeRepo = genomeRepo,
+  genomeDirs = c("human", "chicken"),
+  genomeIDs = c("human", "chicken"),
+  presets = "ncbi",
+  genespaceWd = wd)
+
+gpar <- init_genespace(
+  wd = wd, nCores = 4,
+  path2mcscanx = path2mcscanx)
+
+out <- run_genespace(gpar)
 }
 
 }

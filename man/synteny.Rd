@@ -85,6 +85,9 @@ for it to be plotted}
 \item{dotsPerIn}{integer, number of dots to plot per inch.}
 
 \item{plotSize}{numeric, length in inches of the shortest plot dimension}
+
+\item{maxFacets}{integer, the maximum number of facets allowed for a plot to
+be made if make plots (dotplots) == "check".}
 }
 \description{
 \code{synteny} synteny

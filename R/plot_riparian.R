@@ -79,9 +79,11 @@
 #' @param regEnd numeric, end position to use for the region
 #' @param regID character, id to use for the region
 #' @param regCol color to to use for the region
+#' @param addvert funny stuff here
 #' @param scaleGapSize numeric 0-1, specifying the gap scaling level, where 0 means
 #' all gaps are the same size regardless of genome size. 1 means that the
 #' genomes sizes are all nearly the same and smaller genomes have larger gaps.
+#' @param addThemes ggplot2 themes to add to the riparian plot
 #' @param verbose logical, should updates be printed to the console?
 #' @param ... additional arguments passed on to other functions
 #'
@@ -447,13 +449,13 @@ plot_riparian <- function(
   if(runType == "default"){
     blk <- subset(
       fread(file.path(gsParam$paths$riparian, "refPhasedBlkCoords.txt"),
-            na.strings = c("", "NA")), refGenome == rg)
+            na.strings = c("", "NA"), showProgress = FALSE), refGenome == rg)
   }
 
   # raw blocks if highlighting
   if(runType == "highlight"){
     blk <- fread(file.path(gsParam$paths$results, "blkCoords.txt"),
-                 na.strings = c("", "NA"))
+                 na.strings = c("", "NA"), showProgress = FALSE)
   }
 
   if(!rg %in% c(blk$genome1, blk$genome2))
@@ -865,7 +867,9 @@ calc_regBlkCoords <- function(gsParam,
     "%sintegratedSynPos.txt", gsParam$genomeIDs))
   u <- paste(regGenome, regChr)
   interp <- rbindlist(lapply(spFiles, function(x)
-    subset(fread(x), isAnchor & paste(interpGenome, interpChr) %in% u & genome != interpGenome)))
+    subset(
+      read_intSynPos(x), isAnchor &
+        paste(interpGenome, interpChr) %in% u & genome != interpGenome)))
 
   if(!all(regChr %in% interp$interpChr))
     warning("some regChr are not in the reference genome")
@@ -914,7 +918,7 @@ calc_regBlkCoords <- function(gsParam,
       i, na.strings = c("", "NA"),
       select = c("ofID1", "chr1", "start1", "end1", "ord1", "genome1",
                  "ofID2", "chr2", "start2", "end2", "ord2", "genome2",
-                 "isAnchor", "blkID")),
+                 "isAnchor", "blkID"), showProgress = FALSE),
       isAnchor & !is.na(blkID) & ofID1 %in% u & ofID2 %in% u)))
   rg1 <- with(regList, data.table(ofID1 = ofID, regID1 = regID, color = color))
   rg2 <- with(regList, data.table(ofID2 = ofID, regID2 = regID))

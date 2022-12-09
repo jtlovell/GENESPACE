@@ -43,6 +43,7 @@
 \alias{get_orthofinderVersion}
 \alias{get_diamondVersion}
 \alias{theme_genespace}
+\alias{download_exampleData}
 \title{Generic internal functions used by genespace}
 \usage{
 .onAttach(...)
@@ -144,7 +145,9 @@ get_orthofinderVersion(filepath)
 
 get_diamondVersion(filepath)
 
-theme_genespace(panelBg = "black")
+theme_genespace(col = "black")
+
+download_exampleData(filepath)
 }
 \arguments{
 \item{...}{additional parameters passed on to other functions
@@ -260,7 +263,8 @@ runs or the unique run ids.
 
 \code{flag_boundingNAs} For a vector of data, flag the terminal runs of NAs
 
-\code{calc_blkCoords} calc_blkCoords
+\code{calc_blkCoords} from a hits object, determine block coordinates,
+orientation and membership
 
 \code{are_colors} check if a vector is coercible to R colors
 
@@ -290,5 +294,8 @@ returns the installed version.
 \code{get_diamondVersion} Checks that DIAMOND is installed and if so,
 returns the installed version.
 
-\code{theme_genespace} theme_genespace
+\code{theme_genespace} specifies publication-style themes. Col here is the
+color of the panel.background.
+
+\code{download_exampleData} downloads chicken and human annotations from NCBI
 }
