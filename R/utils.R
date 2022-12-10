@@ -502,7 +502,7 @@ parse_hogs <- function(filepath, genomeIDs){
   tmp <- melt(
     tmp, id.vars = "HOG", measure.vars = genomeIDs,
     variable.name = "genome", value.name = "id")
-  tmp <- tmp[,list(id = strsplit(id, ",")[[1]]), by = c("HOG", "genome")]
+  tmp <- tmp[,list(id = trimws(unlist(strsplit(id, ",")))), by = c("HOG", "genome")]
   tmp[,`:=`(genome = trimws(genome), id = trimws(id), HOG = trimws(HOG))]
   setnames(tmp, 1, "hogID")
   return(tmp)
