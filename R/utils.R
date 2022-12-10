@@ -498,13 +498,17 @@ parse_ogs <- function(filepath, genomeIDs){
 #' @export
 parse_hogs <- function(filepath, genomeIDs){
   id <- genome <- HOG <- NULL
-  tmp <- fread(filepath, showProgress = F, verbose = F)
+  tmp <- fread(filepath, showProgress = F, verbose = F,
+               select = c("HOG", genomeIDs))
+  tmp[,HOG := sprintf("%s_%s", HOG, 1:.N), by = "HOG"]
   tmp <- melt(
-    tmp, id.vars = "HOG", measure.vars = genomeIDs,
+    tmp, id.vars = "HOG",
     variable.name = "genome", value.name = "id")
   tmp <- tmp[,list(id = trimws(unlist(strsplit(id, ",")))), by = c("HOG", "genome")]
   tmp[,`:=`(genome = trimws(genome), id = trimws(id), HOG = trimws(HOG))]
   setnames(tmp, 1, "hogID")
+  setkey(tmp, hogID, genome, id)
+  tmp <- subset(tmp, !duplicated(id))
   return(tmp)
 }
 
