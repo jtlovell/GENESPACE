@@ -208,11 +208,11 @@ synteny <- function(gsParam, verbose = TRUE){
       dps <- gsParam$params$dotplots
       if(dps == "check"){
         ggdotplot(hits = hits, outDir = gsParam$paths$dotplots,
-                  minGenes2plot = min(c(l1, l2), maxFacets = 10000))
+                  minGenes2plot = min(c(l1, l2)), maxFacets = 10000)
       }else{
         if(dps == "always"){
           ggdotplot(hits = hits, outDir = gsParam$paths$dotplots,
-                    minGenes2plot = min(c(l1, l2), maxFacets = Inf))
+                    minGenes2plot = min(c(l1, l2)), maxFacets = Inf)
         }
       }
 
@@ -580,11 +580,11 @@ ggdotplot <- function(hits,
 
   ordPerIn <- x / dotsPerIn
   totDots <- wd * dotsPerIn
-  xrnd2 <- floor(x / totDots)
+  xrnd2 <- floor(x / totDots)+1
 
   ordPerIn <- y / dotsPerIn
   totDots <- ht * dotsPerIn
-  yrnd2 <- floor(y / totDots)
+  yrnd2 <- floor(y / totDots)+1
 
 
   tp[,`:=`(rnd1 = round_toInteger(ord1, xrnd2),

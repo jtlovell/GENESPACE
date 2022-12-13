@@ -1031,7 +1031,8 @@ download_exampleData <- function(filepath){
   }
 
   hpath <- file.path(path, "human")
-  dir.create(hpath)
+  if(!dir.exists(hpath))
+    dir.create(hpath)
   cat(sprintf("Downloading human data to %s ... ", hpath))
   download.file(
     url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_translated_cds.faa.gz",
@@ -1042,7 +1043,8 @@ download_exampleData <- function(filepath){
 
 
   cpath <- file.path(path, "chicken")
-  dir.create(cpath)
+  if(!dir.exists(cpath))
+    dir.create(cpath)
   cat(sprintf("Done!\nDownloading chicken data to %s ...", cpath))
   download.file(
     url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/699/485/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_translated_cds.faa.gz",

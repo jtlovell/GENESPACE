@@ -249,7 +249,7 @@ ofInBlk_engine <- function(gsParam,
     read_hogog <- function(path, genomeIDs, allowInBlkOGs){
       HOG <- list.files(path, pattern = "N0.tsv", recursive = T, full.names = T)
       if(length(HOG) ==  1){
-        ogOut <- parse_hogs(filepath = HOG, genomeIDs = genomeIDs)
+        ogOut <- parse_hogs(filepath = HOG)
         setnames(ogOut, 1, "ogID")
         return(ogOut)
       }else{

@@ -53,7 +53,8 @@
 #' ###############################################
 #'
 #' dir.create(genomeRepo)
-#' wd <- download_exampleData(path = wd)
+#' dir.create(wd)
+#' wd <- download_exampleData(filepath = genomeRepo)
 #'
 #' parsedPaths <- parse_annotations(
 #'   rawGenomeRepo = genomeRepo,
@@ -222,7 +223,6 @@ run_genespace <- function(gsParam,
   # 4. Run synteny
   # -- goes through each pair of genomes and pulls syntenic anchors and the hits
   # nearby. This is the main engine of genespace
-
   cat("\n############################", strwrap(
     "4. Flagging synteny for each pair of genomes ...",
     indent = 0, exdent = 8), sep = "\n")
