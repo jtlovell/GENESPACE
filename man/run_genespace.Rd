@@ -70,7 +70,8 @@ path2mcscanx <- "~/path/to/MCScanX/"
 ###############################################
 
 dir.create(genomeRepo)
-wd <- download_exampleData(path = wd)
+dir.create(wd)
+rawFiles <- download_exampleData(filepath = genomeRepo)
 
 parsedPaths <- parse_annotations(
   rawGenomeRepo = genomeRepo,

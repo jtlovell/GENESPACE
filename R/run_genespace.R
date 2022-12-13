@@ -54,7 +54,7 @@
 #'
 #' dir.create(genomeRepo)
 #' dir.create(wd)
-#' wd <- download_exampleData(filepath = genomeRepo)
+#' rawFiles <- download_exampleData(filepath = genomeRepo)
 #'
 #' parsedPaths <- parse_annotations(
 #'   rawGenomeRepo = genomeRepo,

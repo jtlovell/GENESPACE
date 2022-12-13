@@ -1,6 +1,6 @@
 # This is **beta** version 1.0.4 of the GENESPACE R package. **USE WITH CAUTION** 
 
-This is (hopefully) the last beta release of v1 GENESPACE. We expect a full release to the main branch in early December 2022. If you use this beta version, thanks! Your testing will help improve this and future releases. Please report any problems you run into and we will address them ASAP. 
+This is (hopefully) the last beta release of v1 GENESPACE. We expect a full release to the main branch in early 2023. If you use this beta version, thanks! Your testing will help improve this and future releases. Please report any problems you run into and we will address them ASAP. 
 
 ## GENESPACE: an R package for synteny- and orthology-constrained comparative genomics. 
 
@@ -16,8 +16,8 @@ With these data in hand, you initialize a GENESPACE run, then run the pipeline f
 ```
 library(GENESPACE)
 gpar <- init_genespace(
-  wd = wd, 
-  path2mcscanx = "~/Desktop/programs/MCScanX/")
+  wd = "/path/to/your/workingDirectory", 
+  path2mcscanx = "/path/to/MCScanX/")
 gpar <- run_genespace(gsParam = gpar) 
 ```
 
@@ -38,43 +38,31 @@ You can then explore the results using `query_genespace` (see section 5: explori
 We recommend doing a test run from real data before applying GENESPACE to your own datasets. To help facilitate this, run these commands in R (assuming valid installation)
 
 ```
-# -- specify these parameters so that they are valid paths in your system 
-genomeRepo <- "~/Desktop/gs_v1_runs/rawGenomeRepo/"
-wd <- "~/Desktop/gs_v1_runs/test4readme2"
-path2mcscanx <- "~/Desktop/programs/MCScanX/"
+###############################################
+# -- change paths to those valid on your system
+genomeRepo <- "~/path/to/store/rawGenomes"
+wd <- "~/path/to/genespace/workingDirectory"
+path2mcscanx <- "~/path/to/MCScanX/"
+###############################################
 
-# -- download files to your system from NCBI 
-# (also can be accomplished with) download_exampleData()
-dir.create(file.path(genomeRepo, "human"))
-download.file(
-  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_translated_cds.faa.gz",
-  destfile = file.path(genomeRepo, "human", "GCF_000001405.40_GRCh38.p14_translated_cds.faa.gz"))
-download.file(
-  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.gff.gz",
-  destfile = file.path(genomeRepo, "human", "GCF_000001405.40_GRCh38.p14_genomic.gff.gz"))
+# -- download raw data from NCBI for human and chicken genomes
+dir.create(genomeRepo)
+rawFiles <- download_exampleData(path = genomeRepo)
 
-dir.create(file.path(genomeRepo, "chicken"))
-download.file(
-  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/699/485/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_translated_cds.faa.gz",
-  destfile = file.path(genomeRepo, "chicken", "GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_translated_cds.faa.gz"))
-download.file(
-  url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/699/485/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_genomic.gff.gz",
-  destfile = file.path(genomeRepo, "chicken", "GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_genomic.gff.gz"))
-
-# -- reformat the annotations
+# -- parse the annotations to fastas with headers that match a gene bed file
 parsedPaths <- parse_annotations(
-  rawGenomeRepo = genomeRepo, 
+  rawGenomeRepo = genomeRepo,
   genomeDirs = c("human", "chicken"),
   genomeIDs = c("human", "chicken"),
-  presets = "ncbi", 
+  presets = "ncbi",
   genespaceWd = wd)
 
-# -- intialize the genespace run
+# -- initalize the run and QC the inputs
 gpar <- init_genespace(
-  wd = wd, nCores = 1,
+  wd = wd, 
   path2mcscanx = path2mcscanx)
 
-# -- run the genespace pipeline
+# -- accomplish the run
 out <- run_genespace(gpar)
 ```
 

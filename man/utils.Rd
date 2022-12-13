@@ -101,7 +101,7 @@ check_MCScanXhInstall(filepath)
 
 parse_ogs(filepath, genomeIDs)
 
-parse_hogs(filepath, genomeIDs)
+parse_hogs(filepath)
 
 parse_orthologues(filepath)
 
@@ -125,7 +125,7 @@ scale_between(x, min, max, scale1toMean = TRUE)
 
 read_combBed(filepath)
 
-read_pangenome(filepath)
+read_pangenome(filepath, which = "wide")
 
 write_pangenome(x, filepath)
 
