@@ -496,19 +496,17 @@ parse_ogs <- function(filepath, genomeIDs){
 #' @rdname utils
 #' @import data.table
 #' @export
-parse_hogs <- function(filepath, genomeIDs){
+parse_hogs <- function(filepath){
   id <- genome <- HOG <- NULL
-  tmp <- fread(filepath, showProgress = F, verbose = F,
-               select = c("HOG", genomeIDs))
-  tmp[,HOG := sprintf("%s_%s", HOG, 1:.N), by = "HOG"]
-  tmp <- melt(
-    tmp, id.vars = "HOG",
-    variable.name = "genome", value.name = "id")
-  tmp <- tmp[,list(id = trimws(unlist(strsplit(id, ",")))), by = c("HOG", "genome")]
-  tmp[,`:=`(genome = trimws(genome), id = trimws(id), HOG = trimws(HOG))]
-  setnames(tmp, 1, "hogID")
-  setkey(tmp, hogID, genome, id)
-  tmp <- subset(tmp, !duplicated(id))
+  d <- fread(filePath)
+  sd <- colnames(d)[-(1:4)]
+  d[,hogID := paste(HOG, OG)]
+  m <- melt(
+    d, id.vars = "hogID", measure.vars = sd,
+    value.name = "id", variable.name = "genome")
+  m <- subset(m, id != "")
+  tmp <- m[,list(id = strsplit(id, ",")[[1]]), by = c("hogID", "genome")]
+  tmp[,id := trimws(id)]
   return(tmp)
 }
 
@@ -1033,6 +1031,7 @@ download_exampleData <- function(filepath){
   }
 
   hpath <- file.path(path, "human")
+  dir.create(hpath)
   cat(sprintf("Downloading human data to %s ... ", hpath))
   download.file(
     url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_translated_cds.faa.gz",
@@ -1043,6 +1042,7 @@ download_exampleData <- function(filepath){
 
 
   cpath <- file.path(path, "chicken")
+  dir.create(cpath)
   cat(sprintf("Done!\nDownloading chicken data to %s ...", cpath))
   download.file(
     url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/699/485/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b/GCF_016699485.2_bGalGal1.mat.broiler.GRCg7b_translated_cds.faa.gz",
