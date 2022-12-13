@@ -499,7 +499,7 @@ parse_ogs <- function(filepath, genomeIDs){
 parse_hogs <- function(filepath){
   id <- genome <- HOG <- NULL
   d <- fread(filepath, showProgress = FALSE)
-  sd <- colnames(d)[-(1:4)]
+  sd <- colnames(d)[-(1:3)]
   d[,hogID := paste(HOG, OG)]
   m <- melt(
     d, id.vars = "hogID", measure.vars = sd,
