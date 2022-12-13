@@ -63,7 +63,7 @@ annotate_bed <- function(gsParam){
   add_hog2bed <- function(bed, gsParam){
     genome <- id <- NULL
     ogPath <- file.path(gsParam$paths$results, "N0.tsv")
-    ogs <- parse_hogs(filepath = ogPath, genomeIDs = genomeIDs)
+    ogs <- parse_hogs(filepath = ogPath)
     di <- ogs$hogID; names(di) <- with(ogs, paste(genome, id))
     bed[,globHOG := di[paste(genome, id)]]
     wh <- which(is.na(bed$globHOG))
