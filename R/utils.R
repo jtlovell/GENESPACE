@@ -498,7 +498,7 @@ parse_ogs <- function(filepath, genomeIDs){
 #' @export
 parse_hogs <- function(filepath){
   id <- genome <- HOG <- NULL
-  d <- fread(filePath)
+  d <- fread(filepath, showProgress = FALSE)
   sd <- colnames(d)[-(1:4)]
   d[,hogID := paste(HOG, OG)]
   m <- melt(
