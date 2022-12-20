@@ -9,6 +9,7 @@ pangenome(
   genomeIDs = NULL,
   refGenome = NULL,
   propAssignThresh = 0.25,
+  maxNonSynPlaces = 4,
   verbose = T
 )
 }

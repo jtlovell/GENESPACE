@@ -23,7 +23,7 @@
 #' @rdname integrate_synteny
 #' @import data.table
 #' @export
-integrate_synteny <- function(gsParam){
+integrate_synteny <- function(gsParam, overwrite = FALSE){
 
   ##############################################################################
   # -- ad hoc function to add array reps
@@ -128,12 +128,12 @@ integrate_synteny <- function(gsParam){
 
   ##############################################################################
   # -- ad hoc function to aggregate syntenic positions
-  aggregate_synpos <- function(md, bed){
+  aggregate_synpos <- function(md, bed, nCores){
 
     query <- target <- genome <- isArrayRep <- chr  <- ord <- interpChr <- NULL
     md <- md
     gids <- with(md, unique(c(query, target)))
-    interpChrs <- rbindlist(lapply(gids, function(i){
+    interpChrs <- rbindlist(mclapply(gids, mc.cores = nCores, function(i){
 
       # -- 2.1 get the input data
       mds <- subset(md, query == i | target == i)
@@ -182,14 +182,14 @@ integrate_synteny <- function(gsParam){
   ##############################################################################
   # 2. for each pair of genomes, do linear interpolation, save output
   cat("\t##############\n\tLinear interpolation of syntenic positions ... \n")
-  gsParam <- interp_synPos(gsParam)
+  gsParam <- interp_synPos(gsParam, overwrite = overwrite)
   md <- data.table(gsParam$synteny$blast)
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
 
   ##############################################################################
   # 3. Aggregate interpolated positions across all hits to each genome
   cat("\t##############\n\tAggregating positions across genomes ... ")
-  interpChrs <- aggregate_synpos(bed = bed, md = md)
+  interpChrs <- aggregate_synpos(bed = bed, md = md, nCores = nCores)
 
   # 3. For each genome, calculate block coordinates
   cat("Done!\n\t##############\n\tSplitting syntenic block coordinates by ref. chr. ... ")
@@ -203,7 +203,7 @@ integrate_synteny <- function(gsParam){
     ofID2 = ofID, interpGenome = interpGenome, interpChr = interpChr))
 
   # -- 3.2 merge interpolated chrosomes with block IDs
-  blkComb <- lapply(1:nrow(md), function(j){
+  blkComb <- mclapply(1:nrow(md), mc.cores = nCores, function(j){
     # -- read in the blasts
     g1 <- md$query[j]
     g2 <- md$target[j]
@@ -257,7 +257,7 @@ integrate_synteny <- function(gsParam){
 #' @import data.table
 #' @importFrom parallel mclapply
 #' @export
-interp_synPos <- function(gsParam){
+interp_synPos <- function(gsParam, overwrite = FALSE){
 
   ##############################################################################
   # -- add hoc function to ensure that syntenic anchors are all collinear
@@ -458,31 +458,36 @@ interp_synPos <- function(gsParam){
         chnki, max(md$chunk), format(Sys.time(), "%X")))
 
     outChnk <- rbindlist(mclapply(1:nrow(chnk), mc.cores = nCores, function(i){
+      spFile <- file.path(gsParam$paths$tmp, sprintf(
+        "%s_vs_%s.interpSynPos.txt", g1, g2))
+      if(!file.exists(spFile) || overwrite){
+        g1 <- chnk$query[i]
+        g2 <- chnk$target[i]
+        hits <- read_synHits(chnk$synHits[i])
+        synPos <- interp_hitsPos(
+          hits = subset(hits, ofID1 %in% bedrep$ofID & ofID2 %in% bedrep$ofID),
+          bed = subset(bedrep, genome %in% c(g1, g2)))
 
-      g1 <- chnk$query[i]
-      g2 <- chnk$target[i]
-      hits <- read_synHits(chnk$synHits[i])
-      synPos <- interp_hitsPos(
-        hits = subset(hits, ofID1 %in% bedrep$ofID & ofID2 %in% bedrep$ofID),
-        bed = subset(bedrep, genome %in% c(g1, g2)))
-
-      if(!is.null(synPos)){
-        synPos[,nPlace := uniqueN(interpOrd, na.rm = T),
-               by = c("ofID", "genome")]
-        synPos$nPlace[synPos$nPlace >= 2] <- "2+"
-        spFile <- file.path(gsParam$paths$tmp, sprintf(
-          "%s_vs_%s.interpSynPos.txt", g1, g2))
-        chnk$interPosFile[i] <- spFile
-        write_intSynPos(x = synPos, filepath = spFile)
-        synPos[,nPlace := factor(nPlace, levels = c("0", "1", "2+"))]
-        tab <- with(synPos, table(genome, nPlace))
-        toprint <- data.table(
-          lab = chnk$lab[i], n11 = tab[g1, "1"], n21 = tab[g2, "1"],
-          n12 = tab[g1, "2+"], n22 = tab[g2, "2+"],
-          n10 = tab[g1, "0"],  n20 = tab[g2, "0"])
+        if(!is.null(synPos)){
+          synPos[,nPlace := uniqueN(interpOrd, na.rm = T),
+                 by = c("ofID", "genome")]
+          synPos$nPlace[synPos$nPlace >= 2] <- "2+"
+          chnk$interPosFile[i] <- spFile
+          write_intSynPos(x = synPos, filepath = spFile)
+          synPos[,nPlace := factor(nPlace, levels = c("0", "1", "2+"))]
+          tab <- with(synPos, table(genome, nPlace))
+          toprint <- data.table(
+            lab = chnk$lab[i], n11 = tab[g1, "1"], n21 = tab[g2, "1"],
+            n12 = tab[g1, "2+"], n22 = tab[g2, "2+"],
+            n10 = tab[g1, "0"],  n20 = tab[g2, "0"])
+        }else{
+          toprint <- data.table(
+            lab = chnk$lab[i], n11 = NA, n21 = NA,  n12 = NA,  n22 = NA,
+            n10 = NA, n20 = NA)
+        }
       }else{
         toprint <- data.table(
-          lab = chnk$lab[i], n11 = NA, n21 = NA,  n12 = NA,  n22 = NA,
+          lab = chnk$lab[i], n11 = "noOver", n21 = NA,  n12 = NA,  n22 = NA,
           n10 = NA, n20 = NA)
       }
       return(toprint)
@@ -493,6 +498,12 @@ interp_synPos <- function(gsParam){
       with(subset(outChnk, is.na(n11)), cat(sprintf(
           "\t...%sno non-self blocks found, skipping interpolation\n",
           lab)))
+    }
+    if(any(outChnk$n11 == "noOver")){
+      with(subset(outChnk, is.na(n11)), cat(sprintf(
+        "\t...%sfile exists and !overwrite, skipping interpolation\n",
+        lab)))
+      outChnk$n11[outChnk$n11 == "noOver"] <- NA
     }
     if(any(!is.na(outChnk$n11))){
       with(subset(outChnk, !is.na(n11)),  cat(sprintf(

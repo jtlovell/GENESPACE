@@ -5,9 +5,9 @@
 \alias{interp_synPos}
 \title{Integrate syntenic positions across genomes}
 \usage{
-integrate_synteny(gsParam)
+integrate_synteny(gsParam, overwrite = FALSE)
 
-interp_synPos(gsParam)
+interp_synPos(gsParam, overwrite = FALSE)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters created by init_genespace.
