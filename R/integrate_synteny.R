@@ -458,11 +458,11 @@ interp_synPos <- function(gsParam, overwrite = FALSE){
         chnki, max(md$chunk), format(Sys.time(), "%X")))
 
     outChnk <- rbindlist(mclapply(1:nrow(chnk), mc.cores = nCores, function(i){
+      g1 <- chnk$query[i]
+      g2 <- chnk$target[i]
       spFile <- file.path(gsParam$paths$tmp, sprintf(
         "%s_vs_%s.interpSynPos.txt", g1, g2))
       if(!file.exists(spFile) || overwrite){
-        g1 <- chnk$query[i]
-        g2 <- chnk$target[i]
         hits <- read_synHits(chnk$synHits[i])
         synPos <- interp_hitsPos(
           hits = subset(hits, ofID1 %in% bedrep$ofID & ofID2 %in% bedrep$ofID),
