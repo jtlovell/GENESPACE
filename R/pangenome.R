@@ -47,7 +47,7 @@ pangenome <- function(gsParam,
                       genomeIDs = NULL,
                       refGenome = NULL,
                       propAssignThresh = .25,
-                      maxNonSynPlaces = 4,
+                      maxNonSynPlaces = 10,
                       verbose = T){
 
   ##############################################################################
@@ -322,7 +322,7 @@ pangenome <- function(gsParam,
     nsOrthos[,dropThis := nPlaces > npl[genome]]
     if(verbose)
       cat(sprintf(
-        "dropped %s non-syntenic orthologs that hit > `%s * ploidy` places\n",
+        "\tdropped %s non-syntenic orthologs that hit > `%s * ploidy` places\n",
         sum(nsOrthos$dropThis), maxNonSynPlaces))
     nsOrthos <- subset(nsOrthos, !dropThis)
     nsOrthos[,`:=`(dropThis = NULL, nPlaces = NULL)]

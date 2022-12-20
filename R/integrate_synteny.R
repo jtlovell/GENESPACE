@@ -172,6 +172,7 @@ integrate_synteny <- function(gsParam, overwrite = FALSE){
     interpGenome <- interpChr <- NULL
 
   gsParam <- add_arrayInfo2bed(gsParam)
+  nCores <- gsParam$params$nCores
 
   md <- data.table(gsParam$annotBlastMd)
   md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
@@ -221,7 +222,7 @@ integrate_synteny <- function(gsParam, overwrite = FALSE){
     tmp <- merge(interp1, hits, by = "ofID1", allow.cartesian = T)
     tmp[,blkID := sprintf("%sXXXgrpbyXXX%sXXXgrpbyXXX%s",
                           gsub("_", "", tmpBlk), interpGenome, interpChr)]
-    tmpb1 <-  calc_blkCoords(tmp, mirror = T)
+    tmpb1 <- calc_blkCoords(tmp, mirror = T)
     tmpb1[,c("blkID", "refGenome", "refChr") := tstrsplit(blkID, "XXXgrpbyXXX")]
 
     # -- merge with interp via genome2
