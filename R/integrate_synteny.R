@@ -493,18 +493,20 @@ interp_synPos <- function(gsParam, overwrite = FALSE){
       return(toprint)
     }))
 
+    if(any(outChnk$n11 == "noOver" & !is.na(outChnk$n11))){
+      with(subset(outChnk, n11 == "noOver"), cat(sprintf(
+        "\t...%sfile exists and !overwrite, skipping interpolation\n",
+        lab)))
+    }
 
     if(any(is.na(outChnk$n11))){
       with(subset(outChnk, is.na(n11)), cat(sprintf(
           "\t...%sno non-self blocks found, skipping interpolation\n",
           lab)))
     }
-    if(any(outChnk$n11 == "noOver")){
-      with(subset(outChnk, is.na(n11)), cat(sprintf(
-        "\t...%sfile exists and !overwrite, skipping interpolation\n",
-        lab)))
-      outChnk$n11[outChnk$n11 == "noOver"] <- NA
-    }
+
+    outChnk$n11[outChnk$n11 == "noOver"] <- NA
+
     if(any(!is.na(outChnk$n11))){
       with(subset(outChnk, !is.na(n11)),  cat(sprintf(
         "\t...%s1x = %s/%s || 2+x = %s/%s || 0x = %s/%s\n",
