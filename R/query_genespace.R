@@ -169,3 +169,56 @@ query_genespace <- function(gsParam,
               hitRegions = hitList,
               pangenomeRegions = pgList))
 }
+
+
+query_geneInBed <- function(wd,
+                            genomeID,
+                            geneID,
+                            allSameOg = TRUE,
+                            syntenicOnly = TRUE,
+                            useHOG = TRUE){
+  bed <- read_combBed(file.path(wd, "results", "combBed.txt"))
+  out <- subset(bed, genome == genomeID & id == geneID)
+
+  if(nrow(out) < 1){
+    warning("this genomeID/geneID does not exist in the bed file. Returning the full bed file.")
+    return(bed)
+  }else{
+    if(allSameOg & syntenicOnly){
+      out <- subset(bed, og %in% unique(out$og))
+    }
+    if(allSameOg & !syntenicOnly & useHOG){
+      out <- subset(bed, og %in% unique(out$globHOG))
+    }
+    if(allSameOg & !syntenicOnly & !useHOG){
+      out <- subset(bed, og %in% unique(out$globHOG))
+    }
+    return(out)
+  }
+}
+
+query_regInBed <- function(wd,
+                           genomeID,
+                           chr,
+                           start,
+                           end,
+                           allSameOg = FALSE){
+  ch <- chr; st <- start; en <- end
+  chr <- start <- end <- NULL
+  bed <- read_combBed(file.path(wd, "results", "combBed.txt"))
+  out <- subset(bed, genome == genomeID & chr == ch)
+  if(nrow(out) < 1){
+    warning("this genomeID/chr do not exist in the bed file. Returning the full bed file.")
+    return(bed)
+  }else{
+    out <- subset(out, end >= st & start <= en)
+    if(nrow(out) < 1){
+      warning("there are no genes in this range. Returning the bed file for this chr")
+      return(out)
+    }else{
+      if(allSameOg)
+        out <- subset(bed, og %in% unique(out$og))
+      return(out)
+    }
+  }
+}

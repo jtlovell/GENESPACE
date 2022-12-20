@@ -155,9 +155,12 @@ integrate_synteny <- function(gsParam){
       intb <- rbind(beda, inta)
       setkey(intb, ord)
 
-      spFile <- file.path(gsParam$paths$pangenome, sprintf(
-        "%sintegratedSynPos.txt", i))
-      fwrite(intb, spFile, sep = "\t", quote = FALSE)
+      spl <- split(intb, by = "interpGenome")
+      for(j in names(spl)){
+        spFile <- file.path(gsParam$paths$pangenome, sprintf(
+          "%s_vs_%s.integratedSynPos.txt", i, j))
+        fwrite(spl[[j]], spFile, sep = "\t", quote = FALSE)
+      }
       return(intb[,c("ofID", "interpGenome", "interpChr", "interpOrd", "isAnchor")])
     }))
     return(interpChrs)

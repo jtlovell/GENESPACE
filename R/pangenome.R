@@ -47,6 +47,7 @@ pangenome <- function(gsParam,
                       genomeIDs = NULL,
                       refGenome = NULL,
                       propAssignThresh = .25,
+                      maxNonSynPlaces = 4,
                       verbose = T){
 
   ##############################################################################
@@ -96,6 +97,31 @@ pangenome <- function(gsParam,
   }
 
   ##############################################################################
+  # -- ad hoc function to pull non-syntenic orthologs
+  parse_orthoList <- function(pangenomeDir, bed, repOfIDs){
+    gids <- unique(bed$genome)
+    fs <- file.path(pangenomeDir, sprintf("%s_compiledOrthologs.txt", gids))
+    out <- rbindlist(lapply(fs, function(x){
+      d <- fread(x, fill = T, sep = "\t", showProgress = FALSE)
+      d <- subset(d, ofID %in% repOfIDs)
+      d <- subset(d, !duplicated(ofID))
+      d <- d[,list(orthos = strsplit(orthos, "|", fixed = T)[[1]]), by = "ofID"]
+
+      ogv <- bed$og; names(ogv) <- bed$ofID
+      d[,sameOg := ogv[ofID] == ogv[orthos]]
+      d <- subset(d, !sameOg)[,c("ofID", "orthos")]
+      d <- subset(d, !duplicated(d))
+      setnames(d, "orthos", "nsOrthos")
+      return(d)
+    }))
+    out <- subset(out, !duplicated(out))
+    tmp <- bed[,c("genome", "ofID", "id")]
+    setnames(tmp, "ofID", "nsOrthos")
+    out <- merge(out, tmp, by = "nsOrthos")
+    out[,`:=`(isNSOrtho = TRUE, isArrayRep = FALSE, isRep = FALSE)]
+    return(out)
+  }
+  ##############################################################################
   ##############################################################################
   # 1. Read in the required datasets
 
@@ -113,7 +139,7 @@ pangenome <- function(gsParam,
     genomeIDs <- c(refGenome, gsParam$genomeIDs[gsParam$genomeIDs != refGenome])
 
   synBuff <- gsParam$params$synBuff * sqrt(2)
-
+  nCores <- gsParam$params$nCores
   # find bed file here
   bedFile <- file.path(gsParam$paths$results, "combBed.txt")
 
@@ -122,17 +148,9 @@ pangenome <- function(gsParam,
     gsParam$paths$pangenome,
     sprintf("%s_refPangenomeAnnot.txt", refGenome))
 
-  # ortholog files
-  orthoFiles <- data.table(CJ(
-    genome1 = genomeIDs,
-    genome2 = genomeIDs))
-  orthoFiles[,file := file.path(gsParam$paths$results,
-                                sprintf("%s__v__%s.tsv", genome1, genome2))]
-  orthoFiles <- subset(orthoFiles, file.exists(file))
-
-  # -- interpolated position files
-  spFiles <- file.path(gsParam$paths$pangenome, sprintf(
-    "%sintegratedSynPos.txt", genomeIDs))
+  # # -- interpolated position files
+  # spFiles <- file.path(gsParam$paths$pangenome, sprintf(
+  #   "%sintegratedSynPos.txt", genomeIDs))
 
   ##############################################################################
   # -- 1.2 read in the bed file
@@ -145,16 +163,47 @@ pangenome <- function(gsParam,
   bed[,hasRefChr := any(hasRef), by = c("genome", "chr")]
   u <- with(subset(bed, hasRefChr & genome == refGenome), unique(chr))
 
-
   ##############################################################################
   # -- 1.3 read in the interpolated position data
-  interp <- rbindlist(lapply(spFiles, function(x)
-    subset(read_intSynPos(x),
-           interpGenome == refGenome & interpChr %in% u)))
+  interp <- rbindlist(mclapply(genomeIDs, mc.cores = nCores, function(i)
+    subset(read_intSynPos(file.path(gsParam$paths$pangenome, sprintf(
+      "%s_vs_%s.integratedSynPos.txt", i, refGenome))), interpChr %in% u)))
+
   if(verbose)
     cat(sprintf("\t%s of %s genes have interpolated positions against %s\n",
                 sum(bed$ofID %in% interp$ofID), nrow(bed), refGenome))
 
+  ##############################################################################
+  # -- 1.4 compile orthologs
+  ocFiles <- file.path(gsParam$paths$pangenome,
+                       sprintf("%s_compiledOrthologs.txt", genomeIDs))
+  names(ocFiles) <- genomeIDs
+  if(!all(file.exists(ocFiles))){
+    if(verbose)
+      cat("\tcompiling raw orthologs ... \n")
+    oFileList <- mclapply(genomeIDs, mc.cores = nCores,  function(i)
+      list.files(gsParam$paths$results, pattern = sprintf("%s__v", i), full.names = T))
+    names(oFileList) <- genomeIDs
+
+    idv <- bed$ofID; names(idv) <- with(bed, paste(genome, id))
+    labs <- align_charLeft(genomeIDs)
+    names(labs) <- genomeIDs
+    for(i in genomeIDs){
+      if(verbose)
+        cat(sprintf("\t%s: ", labs[i]))
+
+      x <- oFileList[[i]]
+      ogs <- rbindlist(mclapply(x, mc.cores = nCores, parse_orthologues))
+      ogs[,`:=`(ofID1 = idv[paste(gen1, id1)],
+                ofID2 = idv[paste(gen2, id2)])]
+      ogo <- ogs[,list(orthos = list(unique(ofID2))), by = "ofID1"]
+      setnames(ogo, "ofID1", "ofID")
+      fwrite(ogo, file = ocFiles[i], showProgress = F, sep = "\t")
+
+      if(verbose)
+        cat(sprintf("%s genes with %s orthologs\n", nrow(ogo), nrow(ogs)))
+    }
+  }
   ##############################################################################
   ##############################################################################
   # 2. build pangenome skeleton
@@ -242,117 +291,57 @@ pangenome <- function(gsParam,
 
   ##############################################################################
   ##############################################################################
-  # 3 deal with non-syntenic orthologs
+  # 3 flag and reformat to return
+  # non-syntenic orthologs are added if:
+  #     1. they are orthologous to a isRep gene
+  #     2. they are not in the same orthogroup as isRep gene
+  #     3. they are not themselves a rep with the isRep gene in that orthogroup
 
   ##############################################################################
-  # -- 3.1 pull all pangenome entries that should be considered
-
-  # drop entries with a single location
-  pglo[,flag := uniqueN(genome) == 1 & genome[isRep] != refGenome, by = "pgID"]
-  pg2x <- subset(pglo, !flag)
-  pg1x <- subset(pglo, flag)
-  pg2x[,flag := NULL]
-  pg1x[,flag := NULL]
-  pglo[,flag := NULL]
-
-  # pull all genes that should be considered as potential anchors
-  anchGenes <- with(subset(pglo, isRep), unique(paste(genome, id)))
+  # -- 3.1 read and parse ortholog tables to build non-syntenic orthologs
+  nsOrthos <- parse_orthoList(
+    pangenomeDir = gsParam$paths$pangenome,
+    bed = bed,
+    repOfIDs = pglo$ofID[pglo$isRep])
 
   ##############################################################################
-  # -- 3.2 make data to complete the merge and add data to the orthologs
-  pgi1 <- subset(pglo, isRep)
-  pgi2 <- with(pglo, data.table(
-    id2 = id, gen2 = genome, pgID2 = pgID))
-  pgi2 <- subset(pgi2, !duplicated(pgi2))
-  ov <- bed$ofID; names(ov) <- with(bed, paste(genome, id))
+  # -- 3.2 get the data in format to merge with pangenome
+  pgtmp <- subset(pglo, isRep & ofID %in% nsOrthos$ofID)
+  pgtmp <- pgtmp[,c("pgID", "pgGenome", "pgChr", "pgOrd", "og", "ofID")]
+  pgtmp <- subset(pgtmp, !duplicated(pgtmp))
+  nso <- merge(pgtmp, nsOrthos, by = "ofID")
+  nso[,ofID := NULL]
+  nso <- merge(bed[,c("genome", "id", "ofID")], nso, by = c("genome", "id"))
+  nsOrthos <- nso[,colnames(pglo), with = F]
 
   ##############################################################################
-  # -- 3.3 query each ortholog file
-  if(!all(is.na(orthoFiles$file))){
-    nsOrthos <- rbindlist(lapply(orthoFiles$file, function(i){
-      tmp <- parse_orthologues(i)
-      tmp <-  subset(tmp, paste(gen1, id1) %in% anchGenes)
-      setnames(tmp, c("gen1", "id1"), c("genome", "id"))
-
-      pgi1 <- subset(pgi1, !duplicated(pgi1))
-      pgi2 <- subset(pgi2, !duplicated(pgi2))
-      tmp <- subset(tmp, !duplicated(tmp))
-
-      tmp <- merge(
-        pgi1,
-        merge(pgi2, tmp, by = c("gen2", "id2"), allow.cartesian = TRUE),
-        by = c("genome", "id"), allow.cartesian = TRUE)
-      tmp <- subset(tmp, pgID != pgID2)
-      tmp <- subset(tmp, !duplicated(paste(id, id2)))
-      tmp[,`:=`(ofID = ov[paste(gen2, id2)], id = id2, genome = gen2,
-                isNSOrtho = TRUE)]
-      tmp <- tmp[,colnames(pglo), with = F]
-      return(tmp)
-    }))
-    nsOrthos[,isRep := FALSE]
-
-    ##############################################################################
-    # -- 3.4 put real interpolated positions back in
-    nsi <- interp[,c("ofID", "interpChr", "interpOrd")]
-    setnames(nsi, c("ofID", "pgChr", "pgOrd"))
-    nsOrthos[,`:=`(pgChr = NULL, pgOrd = NULL)]
-    nsOrthos <- subset(nsOrthos, !duplicated(nsOrthos))
-    nsi <- subset(nsi, !duplicated(nsi))
-    nsOrthos <- merge(nsOrthos, nsi, by = "ofID",
-                      all.x = T, allow.cartesian = TRUE)
-
-    ##############################################################################
-    # -- 3.5 drop 1x position orthogroups that have non-syntenic orthos to 2x+ ogs
-    ns2x <- subset(nsOrthos, pgID %in% pg2x$pgID)
-    pg2x <- rbind(pg2x, ns2x)
-    ns1x <- subset(nsOrthos, pgID %in% pg1x$pgID[!pg1x$ofID %in% pg2x$ofID])
-    pg1x[,flag := ofID %in% pg2x$ofID]
-    pg1x[,flag := all(flag), by = "pgID"]
-    pg1x <- subset(pg1x, !flag)
-    pg1x[,flag := NULL]
-    pg1x <- rbind(pg1x, ns1x)
+  # -- 3.3 drop and NS orthos that hit too many places
+  if(is.finite(maxNonSynPlaces)){
+    npl <- gsParam$ploidy * maxNonSynPlaces
+    nsOrthos[,nPlaces := uniqueN(pgID), by = "ofID"]
+    nsOrthos[,dropThis := nPlaces > npl[genome]]
+    if(verbose)
+      cat(sprintf(
+        "dropped %s non-syntenic orthologs that hit > `%s * ploidy` places\n",
+        sum(nsOrthos$dropThis), maxNonSynPlaces))
+    nsOrthos <- subset(nsOrthos, !dropThis)
+    nsOrthos[,`:=`(dropThis = NULL, nPlaces = NULL)]
   }
 
-  # combine
-  pgout <- rbind(pg1x, pg2x)
+  ##############################################################################
+  # -- 3.4 combine
+  pgout <- rbind(pglo, nsOrthos)
   setorder(pgout, pgOrd, na.last = T)
 
   ##############################################################################
-  # -- 3.6 check theres not a problem and some NSOrthos are actually syntenic
-  cv <- bed$chr; names(cv) <- bed$ofID
-  pgout[,chr := cv[ofID]]
-  pgout[, medord := pgOrd[isRep], by = "pgID"]
-  pgout[,`:=`(ordDiff = abs(medord - pgOrd),
-              diffChr = pgChr == chr,
-              notArrayRep = !isArrayRep)]
-  setorder(pgout, pgID, ofID, diffChr,
-           notArrayRep, ordDiff, isNSOrtho, na.last = T)
-  pgout <- subset(pgout, !duplicated(paste(pgID, ofID)))
-
-  # set those genes with interpolated positions close enough to not NS
-  if(!all(is.na(orthoFiles$file))){
-    pgout$isNSOrtho[with(pgout, isNSOrtho & ordDiff < synBuff & !diffChr)] <- FALSE
-  }else{
-    pgout[,isNSOrtho := FALSE]
-  }
-  pgout <- pgout[,colnames(pg1x), with = F]
-  pgout[,`:=`(pgChr = pgChr[isRep], pgOrd = pgOrd[isRep]), by = "pgID"]
-
-  # rename
-  setorder(pgout, pgOrd, pgID, -isRep, isNSOrtho, -isArrayRep, na.last = T)
-  pgout[,pgID := as.numeric(factor(pgID, levels = unique(pgID)))]
-  pgout[,pgID := sprintf("pg_%s", gsub(" ", "0", align_charRight(pgID)))]
-  pgout$isArrayRep[pgout$isRep] <- TRUE
-
-  ##############################################################################
-  ##############################################################################
-  # 4 flag and reformat to return
+  # -- 3.5 re-format and return
   pgw <- data.table(pgout)
   pgw[,flag := ifelse(isNSOrtho, "*", ifelse(!isArrayRep, "+", ""))]
   pgw[,id := sprintf("%s%s", id, flag)]
   pgw[,repGene := id[isRep][1], by = "pgID"]
   pgw <- dcast(pgw, pgID + pgGenome + pgChr + pgOrd + og + repGene ~ genome,
                value.var = "id", fun.aggregate = list)
+  setorder(pgw, pgOrd, pgChr, pgGenome, pgID, na.last = TRUE)
   write_pangenome(pgout, filepath = pgFile)
 
   if(verbose)
