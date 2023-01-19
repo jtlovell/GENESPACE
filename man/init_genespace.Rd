@@ -29,6 +29,7 @@ init_genespace(
   nGapsSecond = nGaps * 2,
   blkSizeSecond = blkSize,
   blkRadiusSecond = blkRadius,
+  onlyOgAnchorsSelf = TRUE,
   onlyOgAnchorsSecond = FALSE,
   maskBuffer = 500,
   dotplots = "check",

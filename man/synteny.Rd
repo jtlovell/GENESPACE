@@ -5,7 +5,6 @@
 \alias{find_selfSyn}
 \alias{split_ovlBlks}
 \alias{synteny_engine}
-\alias{ggdotplot}
 \title{synteny}
 \usage{
 synteny(gsParam, verbose = TRUE)
@@ -26,17 +25,6 @@ synteny_engine(
   synRad,
   MCScanX_hCall
 )
-
-ggdotplot(
-  hits,
-  outDir = NULL,
-  minGenes2plot = 100,
-  appendName = "synHits",
-  dotsPerIn = 256,
-  plotSize = 12,
-  maxFacets = 10000,
-  verbose = is.null(outDir)
-)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -46,48 +34,6 @@ by init_genespace.}
 
 \cr
 If called, \code{synteny} returns its own arguments.}
-
-\item{hits}{data.table containing the blast hits, also stored in /synHits}
-
-\item{synRad}{integer of length 1, taken as the euclidean distance from
-synBuff (* sqrt 2).}
-
-\item{dropSmallNonOGBlks}{logical of length 1,}
-
-\item{blkSize}{integer of length 1, minimum block size}
-
-\item{onlyOgAnchors}{logical of length 1, should anchors only be in the same
-OG?}
-
-\item{blkRadius}{integer of length 1, specifying the search area to cluster
-hits into blocks}
-
-\item{tmpDir}{file.path of length 1, pointing to the tmp directory, taken
-from gsParam}
-
-\item{topn1}{integer of length 1, specifying the top n scoring hits in
-genome 1. Typically taken from ploidy in gsParam}
-
-\item{topn2}{integer of length 1, specifying the top n scoring hits in
-genome 2. Typically taken from ploidy in gsParam}
-
-\item{nGaps}{integer of length 1, number of gaps (-m) to allow}
-
-\item{MCScanX_hCall}{file.path to MCScanX_h, taken from gsParam}
-
-\item{outDir}{file.path of length 1, pointing to the directory to write plots}
-
-\item{minGenes2plot}{integer, minimum unique orthogroups on a chromosome
-for it to be plotted}
-
-\item{appendName}{character string of length 1, to append to plot file name}
-
-\item{dotsPerIn}{integer, number of dots to plot per inch.}
-
-\item{plotSize}{numeric, length in inches of the shortest plot dimension}
-
-\item{maxFacets}{integer, the maximum number of facets allowed for a plot to
-be made if make plots (dotplots) == "check".}
 }
 \description{
 \code{synteny} synteny
@@ -103,8 +49,6 @@ regions into RLE and splits accordingly.
 \code{synteny_engine} The main engine for synteny discovery. Takes a "hits"
 data.table and classifies block IDs, whether a gene is an anchor in the block
 and whether it is within a syntenic buffer of the block anchor hits.
-
-\code{ggdotplot} ggplot2 integrated graphics to produce dotplots
 }
 \details{
 Details coming soon.

@@ -194,7 +194,7 @@ annotate_bed <- function(gsParam){
     dispOG <- nGenes <- nOgs <- NULL
     cat("\t##############\n\tFlagging over-dispered OGs\n")
     bed <- add_nOGplaces2bed(bed = bed, arrayJump = arrayJump)
-    bed[,dispOG := nOGPlaces > maxOgPlaces[genome]]
+    bed[,dispOG := nOGPlaces > max(maxOgPlaces)]
 
     tab <- bed[,list(nGenes = sum(dispOG),
                      nOgs = uniqueN(og[dispOG]),
@@ -205,12 +205,13 @@ annotate_bed <- function(gsParam){
               nOgs = align_charRight(nOgs))]
     with(tab, cat(sprintf(
       "\t...%s: %s genes in %s OGs hit > %s unique places %s\n",
-      lab, nGenes, nOgs, maxOgPlaces[genome], flg)))
+      lab, nGenes, nOgs, max(maxOgPlaces), flg)))
     anyBad <- any(tab$flg == "***")
     if(anyBad)
       cat(strwrap(
         "NOTE! Genomes flagged *** have > 5% of genes in over-dispersed
-      orthogroups. These are likely not great annotations and should be examined
+      orthogroups. These are likely not great annotations, or the synteny run
+      contains un-specified WGDs. Regardless, these should be examined
       carefully",
         indent = 8, exdent = 16), sep = "\n")
     bed[,nOGPlaces := NULL]

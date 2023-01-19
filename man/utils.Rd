@@ -28,7 +28,6 @@
 \alias{clus_igraph}
 \alias{interp_linear}
 \alias{flag_boundingNAs}
-\alias{calc_blkCoords}
 \alias{are_colors}
 \alias{scale_between}
 \alias{read_combBed}
@@ -117,8 +116,6 @@ interp_linear(x, y)
 
 flag_boundingNAs(x)
 
-calc_blkCoords(hits, mirror = FALSE)
-
 are_colors(col)
 
 scale_between(x, min, max, scale1toMean = TRUE)
@@ -184,15 +181,15 @@ If called, \code{utils} returns its own arguments.}
 
 \item{y}{numeric, y values}
 
-\item{hits}{data.table of syntenic hits}
-
-\item{mirror}{logical, should values be mirrored?}
-
 \item{col}{color}
 
 \item{scale1toMean}{logical, should values be scaled to 1?}
 
 \item{alpha}{numeric, transparency}
+
+\item{hits}{data.table of syntenic hits}
+
+\item{mirror}{logical, should values be mirrored?}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called
@@ -262,9 +259,6 @@ runs or the unique run ids.
 \code{interp_linear} linear interpolation of missing values in x
 
 \code{flag_boundingNAs} For a vector of data, flag the terminal runs of NAs
-
-\code{calc_blkCoords} from a hits object, determine block coordinates,
-orientation and membership
 
 \code{are_colors} check if a vector is coercible to R colors
 

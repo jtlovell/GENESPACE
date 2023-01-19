@@ -86,6 +86,7 @@ run_genespace <- function(gsParam,
   # -- 1.1 Check for existing parsed orthofinder results
   cat("\tChecking for existing orthofinder results ...\n")
   gsParam <- set_syntenyParams(gsParam)
+
   if("synteny" %in% names(gsParam)){
     noResults <- is.na(gsParam$synteny$SpeciesIDs)
   }else{
@@ -228,6 +229,11 @@ run_genespace <- function(gsParam,
     indent = 0, exdent = 8), sep = "\n")
   gsParam <- synteny(gsParam = gsParam)
 
+  cat("\n############################", strwrap(
+    "Generating dotplots ... ",
+    indent = 0, exdent = 8), sep = "\n")
+  nu <- plot_hits(gsParam = gsParam)
+
   ##############################################################################
   # 5. Build syntenic orthogroups
 
@@ -257,7 +263,6 @@ run_genespace <- function(gsParam,
     # -- re-run synteny with new sameOG column
     cat("\tDone!\n\tRe-running synteny ...\n")
     gsParam <- synteny(gsParam = gsParam)
-
   }
 
   ##############################################################################

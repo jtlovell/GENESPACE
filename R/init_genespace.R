@@ -151,6 +151,7 @@ init_genespace <- function(wd,
                            nGapsSecond = nGaps * 2,
                            blkSizeSecond = blkSize,
                            blkRadiusSecond = blkRadius,
+                           onlyOgAnchorsSelf = TRUE,
                            onlyOgAnchorsSecond = FALSE,
                            maskBuffer = 500,
 
@@ -412,32 +413,32 @@ init_genespace <- function(wd,
     x = nSecondaryHits, min = 0, max = Inf, default = 0)
 
   # -- if nSecondary hits > 0, parameterize those, otherwise set to NA
+  cat(sprintf("%s\n", nSecondaryHits))
+
+  nGapsSecond <- check_integer(
+    x = nGapsSecond, min = 1, max = Inf, default = 5)
+  blkSizeSecond <- check_integer(
+    x = blkSizeSecond, min = 1, max = Inf, default = 5)
+  blkRadiusSecond <- check_integer(
+    x = blkRadiusSecond, min = 1, max = Inf, default = 5)
+  onlyOgAnchorsSecond <- check_logical(onlyOgAnchorsSecond)
+
+
   if(nSecondaryHits > 0){
     cat(sprintf("%s\n\tn gaps in secondary blocks ... ", nSecondaryHits))
-
-    nGapsSecond <- check_integer(
-      x = nGapsSecond, min = 1, max = Inf, default = 5)
     cat(sprintf("%s\n\tsecondardy block size ... ", nGapsSecond))
-
-    blkSizeSecond <- check_integer(
-      x = blkSizeSecond, min = 1, max = Inf, default = 5)
     cat(sprintf("%s\n\tsecondardy block search buffer size ... ",
                 blkSizeSecond))
-
-    blkRadiusSecond <- check_integer(
-      x = blkRadiusSecond, min = 1, max = Inf, default = 5)
     cat(sprintf("%s\n\tonly orthogroup hits in secondary block ... ",
                 blkRadiusSecond))
-
-    onlyOgAnchorsSecond <- check_logical(onlyOgAnchorsSecond)
     cat(sprintf("%s\n ... ", onlyOgAnchorsSecond))
-  }else{
-    cat(sprintf("%s\n", nSecondaryHits))
-    nGapsSecond <- NA
-    blkSizeSecond <- NA
-    blkRadiusSecond <- NA
-    onlyOgAnchorsSecond <- NA
   }
+
+  onlyOgAnchorsSelf <- check_logical(onlyOgAnchorsSelf)
+  if(any(ploidy > 1))
+    cat(sprintf("\tonly orthogroup hits for homeolog block anchors ... %s\n",
+                onlyOgAnchorsSecond))
+
   maskBuffer <- check_numeric(
     maskBuffer, default = 500, onlySingleValue = T, na.rm = T)
 
@@ -473,6 +474,7 @@ init_genespace <- function(wd,
     onlyOgAnchors = onlyOgAnchors, nSecondaryHits = nSecondaryHits,
     blkSizeSecond = blkSizeSecond, blkRadiusSecond = blkRadiusSecond,
     nGapsSecond = nGapsSecond, onlyOgAnchorsSecond = onlyOgAnchorsSecond,
+    onlyOgAnchorsSelf = onlyOgAnchorsSelf,
     dotplots = dotplots, maskBuffer = maskBuffer)
 
   ##############################################################################

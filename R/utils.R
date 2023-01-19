@@ -38,7 +38,7 @@
 #' @export
 .onAttach <- function(...) {
   packageStartupMessage(paste(strwrap(
-    "GENESPACE v1.0.7 (pre-release): synteny and orthology constrained
+    "GENESPACE v1.0.8 (pre-release): synteny and orthology constrained
     comparative genomics\n",
     indent = 0, exdent = 8), collapse = "\n"))
 }
@@ -668,74 +668,6 @@ flag_boundingNAs <- function(x){
 
   return(z)
 }
-
-#' @title calculate syntenic block coordinates
-#' @description
-#' \code{calc_blkCoords} from a hits object, determine block coordinates,
-#' orientation and membership
-#' @rdname utils
-#' @import data.table
-#' @importFrom stats cor
-#' @export
-calc_blkCoords <- function(hits, mirror = FALSE){
-  setDTthreads(1)
-
-  # -- get the columns and complete observations for these
-  hcols <- c("blkID", "start1", "start2", "end1", "end2", "ord1", "ord2",
-             "chr1", "chr2", "genome1", "genome2", "ofID1", "ofID2")
-  bhits <- subset(hits, complete.cases(hits[,hcols, with = F]))
-
-  if(mirror){
-    tmp <- data.table(bhits)
-    setnames(tmp, gsub("2$", "3", colnames(tmp)))
-    setnames(tmp, gsub("1$", "2", colnames(tmp)))
-    setnames(tmp, gsub("3$", "1", colnames(tmp)))
-    bhits <- rbind(bhits, tmp[,colnames(bhits), with = F])
-    bhits <- subset(bhits, !duplicated(paste(ofID1, ofID2, blkID)))
-  }
-
-  # -- get the genome1 coordinates
-  ofID1 <- start1 <- end1 <- ofID1 <- ord1 <- blkID <- NULL
-  setkey(bhits, ord1)
-  blks1 <- bhits[,list(
-    startBp1 = min(start1), endBp1 = max(end1),
-    startOrd1 = min(ord1), endOrd1 = max(ord1),
-    firstGene1 = first(ofID1), lastGene1 = last(ofID1),
-    nHits1 = uniqueN(ofID1)),
-    by = c("blkID", "genome1","genome2", "chr1", "chr2")]
-
-  # -- get the genome2 coordinates
-  ofID2 <- start2 <- end2 <- ofID2 <- ord2 <- NULL
-  setkey(bhits, ord2)
-  blks2 <- bhits[,list(
-    minBp2 = min(start2), maxBp2 = max(end2),
-    minOrd2 = min(ord2), maxOrd2 = max(ord2),
-    minGene2 = first(ofID2), maxGene2 = last(ofID2),
-    nHits2 = uniqueN(ofID2),
-    orient = ifelse(length(ord1) <= 1, "+",
-                    ifelse(cor(jitter(ord1),
-                               jitter(ord2)) > 0,"+", "-"))),
-    by = c("blkID", "genome1","genome2", "chr1", "chr2")]
-
-  # -- merge the two coordinates
-  blks <- merge(blks1, blks2, by = c("genome1","genome2","chr1","chr2","blkID"))
-
-  # -- fix the coordinates for inverted blocks
-  orient <- NULL
-  bgfor <- subset(blks, orient == "+")
-  bgrev <- subset(blks, orient == "-")
-
-  maxBp2 <- minBp2 <- maxOrd2 <- minOrd2 <- maxGene2 <- minGene2 <- NULL
-  bgrev[,`:=`(startBp2 = maxBp2, endBp2 = minBp2,
-              startOrd2 = maxOrd2, endOrd2 = minOrd2,
-              firstGene2 = maxGene2, lastGene2 = minGene2)]
-  bgfor[,`:=`(startBp2 = minBp2, endBp2 = maxBp2,
-              startOrd2 = minOrd2, endOrd2 = maxOrd2,
-              firstGene2 = minGene2, lastGene2 = maxGene2)]
-  blks <- rbind(bgfor, bgrev)
-  return(blks)
-}
-
 
 #' @title check if a vector is coercible to R colors
 #' @description

@@ -149,7 +149,7 @@ set_syntenyParams <- function(gsParam){
     pnames <- c(
       "orthofinderInBlk", "blkSize", "blkRadius", "nGaps", "synBuff",
       "onlyOgAnchors", "nSecondaryHits", "blkSizeSecond", "blkRadiusSecond",
-      "nGapsSecond", "onlyOgAnchorsSecond")
+      "nGapsSecond", "onlyOgAnchorsSecond", "onlyOgAnchorsSelf")
     for(i in pnames)
       blMd[[i]] <- gsParam$params[[i]]
 
