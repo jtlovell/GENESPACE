@@ -53,7 +53,7 @@ and make dotplots
 syntenic block, returning phylogenetically hierarchical orthogroups (HOGs)
 \item `integrate_synteny` interpolates syntenic position of all genes across
 all genomes
-\item `pangenome` combines positional and orthogroup information into a
+\item `pangenes` combines positional and orthogroup information into a
 single matrix anchored to the gene order coordinates of a single reference
 \item `plot_riparian` is the primary genespace plotting routine, which stacks
 the genomes and connects syntenic regions to color-coded reference

@@ -75,6 +75,8 @@
 #' construction of secondary hits.
 #' @param onlyOgAnchors logical, should only hits in orthogroups be considered
 #' for anchors?
+#' @param onlyOgAnchorsSelf logical, should only hits in orthogroups be considered
+#' for anchors in self-hits (particularly polyploids)
 #' @param onlyOgAnchorsSecond logical should only hits in orthogroups be
 #' considered for anchors in secondary blocks?
 #' @param nCores integer of length 1 specifying the number of parallel processes
@@ -392,11 +394,11 @@ init_genespace <- function(wd,
   blkSize <- check_integer(x = blkSize, min = 1, max = Inf, default = 5)
 
   # -- block size
-  cat(sprintf("%s\n\tcollinear block search radius ... ", nCores))
+  cat(sprintf("%s\n\tcollinear block search radius ... ", blkSize))
   blkRadius <- check_integer(x = blkRadius, min = 1, max = Inf, default = 25)
 
   # -- n. gaps
-  cat(sprintf("%s\n\tn gaps in collinear block ... ", blkSize))
+  cat(sprintf("%s\n\tn gaps in collinear block ... ", blkRadius))
   nGaps <- check_integer(x = nGaps, min = 1, max = Inf, default = 5)
 
   # -- synteny buffer
@@ -595,13 +597,13 @@ init_genespace <- function(wd,
     orthofinder = file.path(wd, "orthofinder"),
     dotplots = file.path(wd, "dotplots"),
     riparian = file.path(wd, "riparian"),
-    pangenome = file.path(wd, "pangenome"),
+    pangenes = file.path(wd, "pangenes"),
     tmp = file.path(wd, "tmp"),
     rawOrthofinder = rawOrthofinderDir)
 
   ##############################################################################
   # -- 4.3 make directories if they do not exist
-  pthnms <- c("wd", "peptide", "bed", "results", "syntenicHits", "dotplots", "riparian", "pangenome", "tmp")
+  pthnms <- c("wd", "peptide", "bed", "results", "syntenicHits", "dotplots", "riparian", "pangenes", "tmp")
   for(i in pthnms){
     if(!dir.exists(paths[[i]]))
       dir.create(paths[[i]])

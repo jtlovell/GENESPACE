@@ -1,224 +1,180 @@
 #' @title Query GENESPACE results
-#'
+#' @name query_genespace
 #' @description
-#' \code{query_genespace} For a set of coordinates or gene IDs, extract
-#' orthogroup, syntenic hits and pangenome information.
+#' \code{query_genespace} Functions to pull data stored in the /pangenome
+#' and /syntenicHits directories
 #'
-#' @param gsParam GENESPACE parameter list.
-#' @param regions A data.frame (or data.table) containing the region
-#' information, where each row is one region to query.
-#' @details The regions data.frame must have 6 columns:
-#' chr, start, end, id, genome, dataType. An additional column "regID" is
-#' permitted that gives the identifier for that region. If a gene ID is given,
-#' chr, start and end are ignored. If a geneID is not given, at least a
-#' chromosome must be given. If chromosome is given and start and end are NA,
-#' then they are set to 0 and Inf. Otherwise the interval is queried between
-#' the start and end bp coordinates. The column dataType can be "hits",
-#' "bed", "pangenome", or "all". This specifies which data type is queried.
-#'
-#' @return A list of lists, where the first elements are the three dataTypes (
-#' bed, hits, pangenome). Nested within each of these is a list labeled by
-#' the region ID with the results for each row associated with that particular
-#' data type.
-#'
-#' @examples
-#' \dontrun{
-#' # coming soon
-#' }
-#'
-#
+#' @param gsParam A list of genespace parameters created by init_genespace.
+#' @param bed A data.table similar to the format of a bed file. At least two
+#' columns must be specified: genome, chr. These must match genome-chromosome
+#' combinations in the data. The user can also supply two additional columns:
+#' start, end. These are the base-pair start and end coordinates of each region.
+#' If start and end are not specified, they are set to 0 and Inf respectively
+#' so that the entire chromosome is returned.
+#' @param synOnly logical, given to query hits to return (or not) the synteny-
+#' constrained hits only
+#' @param transform logical, should the pangenome be transformed from the long
+#' to the wide format?
+#' @param showArrayMem logical, should all genes or only the array
+#' representative genes (if FALSE) be shown?
+#' @param showNSOrtho logical, should non-syntenic orthologs be included in the
+#' output?
+#' @param maxMem2Show integer specifying the maximum number of members to be
+#' included in each entry-by-flag-by-genome combination.
+
+#' @return a list of data.tables named $genome, $chr: $start-$end. One
+#' data.table for each line in the bed file.
+
+#' @title query_hits
+#' @description
+#' \code{query_hits} query_hits
+#' @rdname query_genespace
 #' @import data.table
 #' @export
-query_genespace <- function(gsParam,
-                            regions){
+query_hits <- function(gsParam,
+                       bed,
+                       synOnly = TRUE){
 
+  pass <- genome <- chr <- start <- end <- chr1 <- NULL
 
-  regID <- dataType <- genome <- id <- end <- start <- chr <- og <- target <-
-    query <- annotBlastFile <- id1 <- genome1 <- id2 <- genome2 <- pgID <-
-    pgOrd <- pgChr <- flag <- isNSOrtho <- isArrayRep <- repGene <-
-    isRep  <- NULL
+  cb <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
+  bed <- data.table(bed)
+  if(nrow(bed) == 0)
+    stop("bed must be a data.table or data.frame with >= 1 rows\n")
+  if(!all(c("chr", "genome") %in% names(bed)))
+    stop("bed must be a data.table or data.frame with columns named chr and genome\n")
+  u <- unique(paste(cb$genome, cb$chr))
+  bed[,pass := paste(genome, chr) %in% u]
+  if(!all(bed$pass))
+    stop("the following genome/chr combinations are not in the run:", subset(bed, !pass)[,1:2])
+  bed[,pass := NULL]
+  if(!"start" %in% names(bed))
+    bed[,start := 0]
+  if(!"end" %in% names(bed))
+    bed[,end := Inf]
 
-  ##############################################################################
-  # 1. Ensure that the input data looks ok
-  if(!all(colnames(regions) %in% c("chr", "start", "end", "id", "genome", "dataType")))
-    stop("regions input must be a six-column data.frame (or data.table) with the
-         columns: chr, start, end, id, genome, and dataType. The genome
-         and dataType columns MUST be specified, but the others are optional.
-         If start or end are given, chr must also be given. If id is given,
-         start, end and chr are ignored\n")
-
-  if(!"regID" %in% colnames(regions) && nrow(regions) > 1)
-    warning("regID is not a column in regions. Regions will be labeled by row number (reg1, reg2, ... regN)")
-  if(any(duplicated(regions$regID))){
-    warning("found duplicated region IDs. re-naming by row number (reg1, reg2, ... regN)")
-    regions[,regID := NULL]
-  }
-
-  if(!"regID" %in% colnames(regions))
-    regions[,regID := sprintf("region_%s", 1:.N)]
-
-  if(nrow(regions) < 1)
-    stop("regions input is empty\n")
-
-  if(any(is.na(regions$genome)))
-    stop("All elements of the regions genome column MUST be specified\n")
-
-  if(any(is.na(regions$dataType)))
-    stop("All elements of the regions dataType column MUST be specified\n")
-
-  bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
-
-  if(!all(regions$genome %in% unique(bed$genome)))
-    stop("Some genome entries in the regions input do not match the genome IDs\n")
-
-  if(!all(regions$dataType %in% c("hits", "pangenome", "bed", "all")))
-    stop("Some dataType entries in the regions input are not hits, pangenome, bed or all\n")
-
-  if(any(is.na(regions$chr) & !is.na(regions$start)) ||
-     any(is.na(regions$chr) & !is.na(regions$end)))
-    stop("If start or end coordinates are specified in regions, must also give the chromosome\n")
-
-  ##############################################################################
-  # 2. Query the bed file
-  regBed <- subset(regions, dataType %in% c("bed", "all"))
-  if(nrow(regBed) > 0){
-    bedList <- lapply(1:nrow(regBed), function(i){
-      x <- regBed[i,]
-      if(!is.na(x$id)){
-        tmp <- subset(bed, genome == x$genome & id %in% x$id)
-      }else{
-        if(is.na(x$chr)){
-          tmp <- subset(bed, genome == x$genome)
-        }else{
-          st <- ifelse(is.na(x$start), -Inf, x$start)
-          en <- ifelse(is.na(x$end), Inf, x$end)
-          tmp <- subset(
-            bed, genome == x$genome & end >= st & start <= en & chr == x$chr)
-        }
-      }
-      return(subset(bed, og %in% tmp$og))
-    })
-    names(bedList) <- regBed$regID
-  }else{
-    bedList <- NULL
-  }
-
-  ##############################################################################
-  # 3. Query the hits files
-  regHits <- subset(regions, dataType %in% c("hits", "all"))
-  if(nrow(regHits) > 0){
-    md <- data.table(gsParam$annotBlastMd)
-    hitList <- lapply(1:nrow(regHits), function(i){
-      x <- regHits[i,]
-      hs <- subset(md, target == x$genome | query == x$genome & !is.na(annotBlastFile))
-      if(nrow(hs) > 0){
-        if(is.na(x$id)){
-          st <- ifelse(is.na(x$start), -Inf, x$start)
-          en <- ifelse(is.na(x$end), Inf, x$end)
-          tmp <- subset(
-            bed, genome == x$genome & end >= st & start <= en & chr == x$chr)
-          ids <- tmp$id
-        }else{
-          ids <- x$id
-        }
-        hits <- rbindlist(lapply(hs$annotBlastFile, function(y)
-          subset(read_synHits(y),
-                 (id1 %in% ids & genome1 == x$genome) |
-                   (id2 %in% ids & genome2 == x$genome))))
-        return(hits)
-      }
-    })
-    names(hitList) <- regHits$regID
-  }else{
-    hitList <- NULL
-  }
-
-  ##############################################################################
-  # 4. Query the pangenome
-  regPg <- subset(regions, dataType %in% c("pangenome", "all"))
-  if(nrow(regHits) > 0){
-    pgList <- lapply(1:nrow(regPg), function(i){
-      x <- regPg[i,]
-      pg <- fread(file.path(gsParam$paths$pangenome, sprintf(
-        "%s_refPangenomeAnnot.txt", x$genome)))
-      if(!is.na(x$id)){
-        pgids <- unique(subset(pg, id %in% x$id)$pgID)
-        pgw <- subset(pg, pgID %in% pgids)
-      }else{
-        st <- ifelse(is.na(x$start), -Inf, x$start)
-        en <- ifelse(is.na(x$end), Inf, x$end)
-        tmp <- subset(
-          bed, genome == x$genome & end >= st & start <= en & chr == x$chr)
-        rng <- range(tmp$ord)
-        pgw <- subset(pg, pgOrd >= rng[1] & pgOrd <= rng[2] & pgChr == x$chr)
-      }
-
-      pgw[,flag := ifelse(isNSOrtho, "*", ifelse(!isArrayRep, "+", ""))]
-      pgw[,id := sprintf("%s%s", id, flag)]
-      pgw[,repGene := id[isRep][1], by = "pgID"]
-      pgw <- dcast(pgw, pgID + pgGenome + pgChr + pgOrd + og + repGene ~ genome,
-                   value.var = "id", fun.aggregate = list)
-      return(pgw)
-    })
-    names(pgList) <- regPg$regID
-  }else{
-    pgList <- NULL
-  }
-
-  return(list(bedRegions = bedList,
-              hitRegions = hitList,
-              pangenomeRegions = pgList))
-}
-
-
-query_geneInBed <- function(wd,
-                            genomeID,
-                            geneID,
-                            allSameOg = TRUE,
-                            syntenicOnly = TRUE,
-                            useHOG = TRUE){
-  bed <- read_combBed(file.path(wd, "results", "combBed.txt"))
-  out <- subset(bed, genome == genomeID & id == geneID)
-
-  if(nrow(out) < 1){
-    warning("this genomeID/geneID does not exist in the bed file. Returning the full bed file.")
-    return(bed)
-  }else{
-    if(allSameOg & syntenicOnly){
-      out <- subset(bed, og %in% unique(out$og))
-    }
-    if(allSameOg & !syntenicOnly & useHOG){
-      out <- subset(bed, og %in% unique(out$globHOG))
-    }
-    if(allSameOg & !syntenicOnly & !useHOG){
-      out <- subset(bed, og %in% unique(out$globHOG))
-    }
-    return(out)
-  }
-}
-
-query_regInBed <- function(wd,
-                           genomeID,
-                           chr,
-                           start,
-                           end,
-                           allSameOg = FALSE){
-  ch <- chr; st <- start; en <- end
-  chr <- start <- end <- NULL
-  bed <- read_combBed(file.path(wd, "results", "combBed.txt"))
-  out <- subset(bed, genome == genomeID & chr == ch)
-  if(nrow(out) < 1){
-    warning("this genomeID/chr do not exist in the bed file. Returning the full bed file.")
-    return(bed)
-  }else{
-    out <- subset(out, end >= st & start <= en)
-    if(nrow(out) < 1){
-      warning("there are no genes in this range. Returning the bed file for this chr")
-      return(out)
+  spl <- split(bed, by = "genome")
+  combout <- rbindlist(lapply(names(spl), function(i){
+    inbed <- with(data.table(spl[[i]]), data.table(
+      chr1 = chr, start1 = start, end1 = end,
+      id = sprintf("%s, %s: %s-%s", genome, chr, start, end),
+      key = c("chr1", "start1", "end1")))
+    if(synOnly){
+      rh <- read_refGenomeSynHits(gsParam = gsParam, refGenome = i)
     }else{
-      if(allSameOg)
-        out <- subset(bed, og %in% unique(out$og))
-      return(out)
+      rh <- read_refGenomeAllBlast(gsParam = gsParam, refGenome = i)
     }
+    rh <- subset(rh, chr1 %in% inbed$chr)
+    setkeyv(rh, c("chr1", "start1", "end1"))
+
+    out <- foverlaps(inbed, rh)
+    return(out)
+  }))
+  return(split(combout, by = "id"))
+}
+
+#' @title query_pangenome
+#' @description
+#' \code{query_pangenome} query_pangenome
+#' @rdname query_genespace
+#' @import data.table
+#' @export
+query_pangenes <- function(gsParam,
+                            bed = NULL,
+                            refGenome = NULL,
+                            transform = TRUE,
+                            showArrayMem = TRUE,
+                            showNSOrtho = TRUE,
+                            maxMem2Show = Inf){
+
+  x <- flag <- id <- repGene <- pgRepID <- ofID <- og <- pgID <- index <-
+    pass <- genome <- chr <- start <- end <- regID <- ord <- interpChr <-
+    interpOrd <- flag <- id <- repGene <- pgRepID <- ofID <- og <- pgID <-
+    index <- NULL
+
+
+  if(is.null(bed)){
+    if(is.null(refGenome))
+      stop("must specify either a bed or refGenome\n")
+    pgo <- fread(file.path(gsParam$paths$pangenes, sprintf(
+      "%s_pangenes.txt.gz", refGenome)))
+
+    if(!showArrayMem)
+      pgo <- subset(pgo, flag != "array")
+
+    if(!showNSOrtho)
+      pgo <- subset(pgo, flag != "NSOrtho")
+
+    if(transform){
+      pgo[,flag := ifelse(flag == "NSOrtho", "*",
+                          ifelse(flag == "array", "+", ""))]
+      pgo[,id := sprintf("%s%s", id, flag)]
+      pgo[,repGene := id[pgRepID == ofID][1], by = "pgID"]
+      pgo[,og := og[flag == ""][1], by = "pgID"]
+      if(is.finite(maxMem2Show)){
+        setkey(pgo, pgID, flag)
+        pgo[,index := 1:.N, by = c("pgID", "genome","flag")]
+        pgo <- subset(pgo, index <= maxMem2Show)
+      }
+      pgo <- dcast(pgo, pgID + interpChr + interpOrd + og + repGene ~ genome,
+                   value.var = "id", fun.aggregate = list)
+    }
+    return(pgo)
+  }else{
+    cb <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
+    bed <- data.table(bed)
+    if(nrow(bed) == 0)
+      stop("bed must be a data.table or data.frame with >= 1 rows\n")
+    if(!all(c("chr", "genome") %in% names(bed)))
+      stop("bed must be a data.table or data.frame with columns named chr and genome\n")
+    u <- unique(paste(cb$genome, cb$chr))
+    bed[,pass := paste(genome, chr) %in% u]
+    if(!all(bed$pass))
+      stop("the following genome/chr combinations are not in the run:", subset(bed, !pass)[,1:2])
+    bed[,pass := NULL]
+    if(!"start" %in% names(bed))
+      bed[,start := 0]
+    if(!"end" %in% names(bed))
+      bed[,end := Inf]
+    bed[,regID := sprintf("%s, %s: %s-%s", genome, chr, start, end)]
+
+    # -- convert bed to gene order positions
+    setkey(cb, genome, chr, start, end)
+    setkey(bed, genome, chr, start, end)
+    conv <- foverlaps(cb, bed)
+    bedo <- subset(conv, !is.na(regID))[,list(start = min(ord), end = max(ord)),
+                                        by = c("genome", "chr", "regID")]
+
+    out <- lapply(1:nrow(bedo), function(i){
+      x <- bedo[i,]
+      pg <- fread(file.path(gsParam$paths$pangenes, sprintf(
+        "%s_pangenes.txt.gz", x$genome)))
+      pgo <- subset(
+        pg, interpChr == x$chr & interpOrd >= x$start & interpOrd <= x$end)
+
+      if(!showArrayMem)
+        pgo <- subset(pgo, flag != "array")
+
+      if(!showNSOrtho)
+        pgo <- subset(pgo, flag != "NSOrtho")
+
+      if(transform){
+        pgo[,flag := ifelse(flag == "NSOrtho", "*",
+                            ifelse(flag == "array", "+", ""))]
+        pgo[,id := sprintf("%s%s", id, flag)]
+        pgo[,repGene := id[pgRepID == ofID][1], by = "pgID"]
+        pgo[,og := og[flag == ""][1], by = "pgID"]
+        if(is.finite(maxMem2Show)){
+          setkey(pgo, pgID, flag)
+          pgo[,index := 1:.N, by = c("pgID", "genome","flag")]
+          pgo <- subset(pgo, index <= maxMem2Show)
+        }
+        pgo <- dcast(pgo, pgID + interpChr + interpOrd + og + repGene ~ genome,
+                     value.var = "id", fun.aggregate = list)
+      }
+      return(pgo)
+    })
+    names(out) <- bedo$regID
+    return(out)
   }
 }

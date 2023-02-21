@@ -3,15 +3,12 @@
 \name{synteny}
 \alias{synteny}
 \alias{find_selfSyn}
-\alias{split_ovlBlks}
 \alias{synteny_engine}
 \title{synteny}
 \usage{
 synteny(gsParam, verbose = TRUE)
 
 find_selfSyn(hits, synRad)
-
-split_ovlBlks(hits, dropSmallNonOGBlks, blkSize)
 
 synteny_engine(
   hits,
@@ -23,14 +20,35 @@ synteny_engine(
   topn2,
   nGaps,
   synRad,
-  MCScanX_hCall
+  MCScanX_hCall,
+  verbose = FALSE
 )
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
 by init_genespace.}
 
-\item{verbose}{logical, should updates be printed to the console?
+\item{verbose}{logical, should updates be printed to the console?}
+
+\item{hits}{data.table of hits, see read_allBlast}
+
+\item{synRad}{see init_genespace}
+
+\item{onlyOgAnchors}{see init_genespace}
+
+\item{blkSize}{see init_genespace}
+
+\item{blkRadius}{see init_genespace}
+
+\item{tmpDir}{see init_genespace}
+
+\item{topn1}{integer, the number of best scoring hits per gene in genome 1}
+
+\item{topn2}{integer, the number of best scoring hits per gene in genome 1}
+
+\item{nGaps}{see init_genespace}
+
+\item{MCScanX_hCall}{see init_genespace
 
 \cr
 If called, \code{synteny} returns its own arguments.}
@@ -43,12 +61,24 @@ If called, \code{synteny} returns its own arguments.}
 \code{find_selfSyn} Self hits where genes are array reps are the anchors.
 Also pulls all inbuffer hits around the anchors
 
-\code{split_ovlBlks} Where syntenic blocks overlap, converts overlapping
-regions into RLE and splits accordingly.
-
 \code{synteny_engine} The main engine for synteny discovery. Takes a "hits"
 data.table and classifies block IDs, whether a gene is an anchor in the block
-and whether it is within a syntenic buffer of the block anchor hits.
+and whether it is within a syntenic buffer of the block anchor hits. The
+steps are as follows:
+1) Filter to initial hits - onlyOgAnchors (if TRUE) and topN hits depending
+on ploidy. Built global collinear hits by piping these hits into MCScanX.
+2) Cluster global collinear hits into large regions searching within synRad
+then pull all (or onlyOG hits) within synRad of global anchor hits.
+3) Re-run MCScanX within large regions, re-cluster and re-cull region hits
+within synRad. Split overlapping regions. These are the "regions" named in
+"regID" column
+4) For each region, pull all hits (regardless of score, OG etc) and re-run
+MCScanX. Cluster these 'potential' anchors into blocks with blkRadius search
+radius and blkSize minimum size. The resulting hits are the anchors, flagged
+'isAnchor = TRUE.
+5) Split anchors of interleaved blocks, then extract hits within the physical
+bounds of the blocks and within blkRadius distance of an anchor (within-block
+distance). These hits are flagged 'isSyntenic = TRUE'.
 }
 \details{
 Details coming soon.

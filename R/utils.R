@@ -20,11 +20,19 @@
 #' @param id2 character, second id
 #' @param y numeric, y values
 #' @param hits data.table of syntenic hits
-#' @param mirror logical, should values be mirrored?
 #' @param col color
 #' @param scale1toMean logical, should values be scaled to 1?
 #' @param filepath file.path
 #' @param alpha numeric, transparency
+#' @param gsParam genespace parameters, see init_genespace.
+#' @param refGenome character string specifying the reference genome
+#' @param bed data.table containing the combined bed object
+#' @param synBuff see init_genespace.
+#' @param maxIter integer, the maximum number of iterations to use
+#' @param reorder logical, should the gene rank position be re-ordered?
+#' @param isAnchor logical, is a hit an anchor?
+#' @param radius numeric, the 2d search radius.
+#' @param blkID vector of block IDs
 #' @param ... additional parameters passed on to other functions
 #' \cr
 #' If called, \code{utils} returns its own arguments.
@@ -38,7 +46,7 @@
 #' @export
 .onAttach <- function(...) {
   packageStartupMessage(paste(strwrap(
-    "GENESPACE v1.0.8 (pre-release): synteny and orthology constrained
+    "GENESPACE v1.1.3: synteny and orthology constrained
     comparative genomics\n",
     indent = 0, exdent = 8), collapse = "\n"))
 }
@@ -430,8 +438,8 @@ check_annotFiles <- function(filepath, genomeIDs){
     pf <- ifelse((ui/un) < .95, "FAIL", "PASS")
     cat(sprintf("\t%s: %s / %s geneIDs exactly match (%s)\n",
                 labs[i], ui, un, pf))
-    if(any(grepl(": ", names(aa), fixed = T)))
-      stop("some genes have ': ' in the names. This string cannot be in gene names as it is used as the dictionary separator by OrthoFinder")
+    if(any(grepl(":", names(aa), fixed = T)))
+      stop("some genes have ':' in the names. This string cannot be in gene names as it is used as the dictionary separator by OrthoFinder")
     return(data.table(
       genomeID = genomeIDs[i],
       bedFile = bedFiles[i],
@@ -497,7 +505,7 @@ parse_ogs <- function(filepath, genomeIDs){
 #' @import data.table
 #' @export
 parse_hogs <- function(filepath){
-  id <- genome <- HOG <- NULL
+  id <- genome <- HOG <- hogID <- OG <- NULL
   d <- fread(filepath, showProgress = FALSE)
   sd <- colnames(d)[-(1:3)]
   d[,hogID := paste(HOG, OG)]
@@ -595,80 +603,6 @@ clus_igraph <- function(id1, id2){
   }
 }
 
-#' @title linear interpolation of missing values
-#' @description
-#' \code{interp_linear} linear interpolation of missing values in x
-#' @rdname utils
-#' @import data.table
-#' @export
-interp_linear <- function(x, y){
-
-  rl <- toInterp <- ip <- NULL
-  # -- convert to numeric, to ensure that NAs are correctly specified
-  ord1 <- as.numeric(x)
-  ord2 <- as.numeric(y)
-  if(all(is.na(ord1)))
-    stop("refOrd (achors) is all NAs. Can't proceed\n")
-  if(any(is.na(ord2)))
-    stop("found NAs in toInterpOrd (hits to interpolate) - not permitted\n")
-
-  # -- if no NAs, just spit back ord2
-  if(all(!is.na(ord1))){
-    return(ord1)
-  }else{
-    # make into a data table with index and whether or not to interpolate
-    dt <- data.table(
-      x = ord1, y = ord2, index = 1:length(ord1), toInterp = is.na(ord1))
-    dto <- data.table(dt)
-    # order by anchor positions (ord1, x)
-    setkey(dt, y)
-
-    # -- find runs of NAs in y
-    dt[,rl := add_rle(toInterp, which = "id")]
-
-    # -- pull runs to infer (not first and last if they are NAs)
-    interpThis <- subset(dt, !(toInterp & rl %in% c(1, max(rl))))
-
-    # -- return original data if no bounding non-na runs and no internal NAs
-    if(uniqueN(interpThis$rl[interpThis$toInterp]) < 1){
-      return(ord1)
-    }else{
-      # -- get max right and min left values for each non-missing run
-      minr <- with(subset(interpThis, !toInterp), tapply(x, rl, min))
-      maxl <- with(subset(interpThis, !toInterp), tapply(x, rl, max))
-
-      # -- linear interpolation of runs of NAs from bounding values
-      out <- subset(interpThis, toInterp)
-      out[,ip := seq(from = maxl[as.character(rl-1)],
-                     to = minr[as.character(rl+1)],
-                     length.out = .N+2)[-c(1, .N+2)],
-          by = "rl"]
-
-      # -- fill NAs and return
-      dto$x <- as.numeric(dto$x)
-      dto$x[out$index] <- out$ip
-      return(dto$x)
-    }
-  }
-}
-
-#' @title flag first and last run of NAS
-#' @description
-#' \code{flag_boundingNAs} For a vector of data, flag the terminal runs of NAs
-#' @rdname utils
-#' @export
-flag_boundingNAs <- function(x){
-  z <- rep(FALSE, length(x))
-  y <- add_rle(is.na(x), which = "id")
-  if(is.na(x)[1])
-    z[y == 1] <- TRUE
-
-  if(is.na(x)[length(x)])
-    z[y == max(y)] <- TRUE
-
-  return(z)
-}
-
 #' @title check if a vector is coercible to R colors
 #' @description
 #' \code{are_colors} check if a vector is coercible to R colors
@@ -708,63 +642,16 @@ scale_between <- function(x, min, max, scale1toMean = TRUE){
 read_combBed <- function(filepath){
   bedNames <- c(
     "chr", "start", "end", "id", "ofID", "pepLen", "ord", "genome", "arrayID",
-    "isArrayRep", "globOG", "globHOG", "synOG", "inblkOG", "noAnchor", "og")
+    "isArrayRep", "globOG", "globHOG",  "noAnchor", "og")
   cl <- c("numeric", "character", "logical")
   chk <- strsplit(readLines(filepath, 1), "\t")[[1]]
   if(!identical(chk, bedNames))
     stop("combBed.txt file is malformed\n")
-  bedClass <- cl[c(2,1,1,2,2,1,1,2,2,3,2,2,2,2,3,2)]
+  bedClass <- cl[c(2,1,1,2,2,1,1,2,2,3,2,2,3,2)]
   bed <- fread(
     filepath, na.strings = c("", "NA"), select = bedNames,
     colClasses = bedClass, showProgress = F)
   return(bed)
-}
-
-#' @title read pangenome file
-#' @description
-#' \code{read_pangenome} ensures consistent pangenome IO
-#' @rdname utils
-#' @export
-read_pangenome <- function(filepath, which = "wide"){
-
-  flag <- isNSOrtho <- isArrayRep <- id <- repGene <- isRep <- NULL
-
-  if(!file.exists(filepath))
-    stop("could not find pangenome file:", filepath, "\n")
-
-  pgNames <- c(
-    "pgID", "pgGenome", "pgChr", "pgOrd", "genome", "og", "isRep", "ofID", "id",
-    "isNSOrtho", "isArrayRep")
-  chk <- strsplit(readLines(filepath, 1), "\t")[[1]]
-  if(!identical(chk, pgNames))
-    stop("refPangenomeAnnot.txt file is malformed\n")
-  pgout <- fread(filepath, showProgress = FALSE, na.strings = c("", "NA"))
-  pgw <- data.table(pgout)
-
-  if(which == "wide"){
-    pgw[,flag := ifelse(isNSOrtho, "*", ifelse(!isArrayRep, "+", ""))]
-    pgw[,id := sprintf("%s%s", id, flag)]
-    pgw[,repGene := id[isRep][1], by = "pgID"]
-    pgw <- dcast(pgw, pgID + pgGenome + pgChr + pgOrd + og + repGene ~ genome,
-                 value.var = "id", fun.aggregate = list)
-  }
-
-  return(pgw)
-}
-
-#' @title write pangenome file
-#' @description
-#' \code{write_pangenome} ensures consistent pangenome IO
-#' @rdname utils
-#' @export
-write_pangenome <- function(x, filepath){
-  pgNames <- c(
-    "pgID", "pgGenome", "pgChr", "pgOrd", "genome", "og", "isRep", "ofID", "id",
-    "isNSOrtho", "isArrayRep")
-  if(!all(pgNames %in% colnames(x)))
-    stop("pangenomedata.table is malformed\n")
-  x <- x[,pgNames, with = F]
-  fwrite(x, file = filepath, showProgress = F, quote = F, sep = "\t")
 }
 
 #' @title write combBed file
@@ -775,13 +662,54 @@ write_pangenome <- function(x, filepath){
 write_combBed <- function(x, filepath){
   bedNames <- c(
     "chr", "start", "end", "id", "ofID", "pepLen", "ord", "genome", "arrayID",
-    "isArrayRep", "globOG", "globHOG", "synOG", "inblkOG", "noAnchor", "og")
+    "isArrayRep", "globOG", "globHOG", "noAnchor", "og")
   if(!all(bedNames %in% colnames(x)))
     stop("bed data.table is malformed\n")
   x <- x[,bedNames, with = F]
   fwrite(x, file = filepath, showProgress = F, quote = F, sep = "\t")
 }
 
+
+#' @title read allBlast file
+#' @description
+#' \code{read_allBlast} ensures consistent allBlast IO
+#' @rdname utils
+#' @export
+read_allBlast <- function(filepath, ...){
+  hnames <- c(
+    "ofID1", "chr1", "start1", "end1", "id1", "ord1", "genome1", "isArrayRep1",
+    "ofID2", "chr2", "start2", "end2", "id2", "ord2", "genome2", "isArrayRep2",
+    "pid", "length", "mismatches", "gapopenings", "queryStart", "queryEnd",
+    "subjectStart", "subjectEnd", "Evalue", "bitScore", "sameOG", "noAnchor",
+    "isAnchor", "isSyntenic", "regID", "blkID")
+  cl <- c("numeric", "character", "logical")
+  chk <- strsplit(readLines(filepath, 1), "\t")[[1]]
+  if(!identical(chk, hnames))
+    stop("allBlast.txt file is malformed\n")
+  hc <- cl[c(2,2,1,1,2,1,2,3,2,2,1,1,2,1,2,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,2,2)]
+  hits <- fread(
+    filepath, na.strings = c("", "NA"), select = hnames,
+    colClasses = hc, showProgress = F, ...)
+  return(hits)
+}
+
+#' @title write allBlast file
+#' @description
+#' \code{write_allBlast} ensures consistent allBlast IO
+#' @rdname utils
+#' @export
+write_allBlast <- function(x, filepath){
+  hnames <- c(
+    "ofID1", "chr1", "start1", "end1", "id1", "ord1", "genome1", "isArrayRep1",
+    "ofID2", "chr2", "start2", "end2", "id2", "ord2", "genome2", "isArrayRep2",
+    "pid", "length", "mismatches", "gapopenings", "queryStart", "queryEnd",
+    "subjectStart", "subjectEnd", "Evalue", "bitScore", "sameOG", "noAnchor",
+    "isAnchor", "isSyntenic", "regID", "blkID")
+  if(!all(hnames %in% colnames(x)))
+    stop("allBlast data.table is malformed\n")
+  x <- x[,hnames, with = F]
+  fwrite(x, file = filepath, showProgress = F, quote = F, sep = "\t")
+}
 
 #' @title read synHits file
 #' @description
@@ -792,14 +720,12 @@ read_synHits <- function(filepath, ...){
   hnames <- c(
     "ofID1", "chr1", "start1", "end1", "id1", "ord1", "genome1", "isArrayRep1",
     "ofID2", "chr2", "start2", "end2", "id2", "ord2", "genome2", "isArrayRep2",
-    "pid", "length", "mismatches", "gapopenings", "queryStart", "queryEnd",
-    "subjectStart", "subjectEnd", "Evalue", "bitScore", "sameOg", "noAnchor",
-    "isAnchor", "inBuffer", "blkID", "sameInblkOg")
+    "bitScore", "sameOG", "noAnchor", "isAnchor", "regID", "blkID")
   cl <- c("numeric", "character", "logical")
   chk <- strsplit(readLines(filepath, 1), "\t")[[1]]
   if(!identical(chk, hnames))
     stop("synhits.txt file is malformed\n")
-  hc <- cl[c(2,2,1,1,2,1,2,3,2,2,1,1,2,1,2,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,2,3)]
+  hc <- cl[c(2,2,1,1,2,1,2,3,2,2,1,1,2,1,2,3,1,3,3,3,2,2)]
   hits <- fread(
     filepath, na.strings = c("", "NA"), select = hnames,
     colClasses = hc, showProgress = F, ...)
@@ -808,18 +734,16 @@ read_synHits <- function(filepath, ...){
 
 #' @title write synHits file
 #' @description
-#' \code{write_synBlast} ensures consistent synHit IO
+#' \code{write_synHits} ensures consistent synHit IO
 #' @rdname utils
 #' @export
-write_synBlast <- function(x, filepath){
+write_synHits <- function(x, filepath){
   hnames <- c(
     "ofID1", "chr1", "start1", "end1", "id1", "ord1", "genome1", "isArrayRep1",
     "ofID2", "chr2", "start2", "end2", "id2", "ord2", "genome2", "isArrayRep2",
-    "pid", "length", "mismatches", "gapopenings", "queryStart", "queryEnd",
-    "subjectStart", "subjectEnd", "Evalue", "bitScore", "sameOg", "noAnchor",
-    "isAnchor", "inBuffer", "blkID", "sameInblkOg")
+    "bitScore", "sameOG", "noAnchor", "isAnchor", "regID", "blkID")
   if(!all(hnames %in% colnames(x)))
-    stop("synhits data.table is malformed\n")
+    stop("synHits data.table is malformed\n")
   x <- x[,hnames, with = F]
   fwrite(x, file = filepath, showProgress = F, quote = F, sep = "\t")
 }
@@ -848,10 +772,10 @@ add_alpha <- function(col, alpha = 1){
 #' @rdname utils
 #' @export
 read_intSynPos <- function(filepath){
-  hnames <- c("genome", "ofID", "chr", "ord", "og", "interpGenome",
-              "interpChr", "interpOrd", "isAnchor")
-  hclass <- c("character", "character", "character", "numeric", "character",
-              "character", "character", "numeric", "logical")
+  hnames <- c("blkID", "genome1", "chr1", "genome2", "chr2", "ofID1", "ofID2",
+              "ord1", "ord2")
+  hclass <- c("character", "character", "character", "character", "character",
+              "character", "character", "numeric", "numeric")
   chk <- strsplit(readLines(filepath, 1), "\t")[[1]]
   if(!identical(chk, hnames))
     stop("integratedSynPos file is malformed\n")
@@ -867,8 +791,8 @@ read_intSynPos <- function(filepath){
 #' @rdname utils
 #' @export
 write_intSynPos <- function(x, filepath){
-  hnames <- c("genome", "ofID", "chr", "ord", "og", "interpGenome",
-              "interpChr", "interpOrd", "isAnchor")
+  hnames <- c("blkID", "genome1", "chr1", "genome2", "chr2", "ofID1", "ofID2",
+              "ord1", "ord2")
   x <- x[,hnames, with = F]
   fwrite(x, file = filepath, showProgress = F, quote = F, sep = "\t")
 }
@@ -987,3 +911,448 @@ download_exampleData <- function(filepath){
   cat("Done!")
   return(path)
 }
+
+#' @title interp_approx
+#' @description
+#' \code{interp_approx} interp_approx
+#' @rdname utils
+#' @importFrom utils download.file
+#' @importFrom stats approx
+#' @export
+interp_approx <- function(x, y){
+  y <- as.numeric(y)
+  if(all(is.na(y)))
+    stop("must have some non-NA values in y")
+  x <- as.numeric(x)
+  if(any(is.na(x)))
+    stop("x cannot contain NAs")
+  if(any(is.na(y))){
+    newy <- approx(
+      x = x,
+      y = y,
+      ties = mean,
+      xout = x[is.na(y)])$y
+    y[is.na(y)] <- newy
+  }
+  return(y)
+}
+
+#' @title read_refGenomeSynHits
+#' @description
+#' \code{read_refGenomeSynHits} read_refGenomeSynHits
+#' @rdname utils
+#' @importFrom utils download.file
+#' @export
+read_refGenomeSynHits <- function(gsParam,
+                                  refGenome){
+
+  query <- target <- ofID1 <- ofID2 <- NULL
+
+  if(!"synteny" %in% names(gsParam))
+    gsParam <- set_syntenyParams(gsParam)
+
+  blMd <- data.table(gsParam$synteny$blast)
+  nCores <- gsParam$params$nCores
+
+  tnames <- c(
+    "ofID2", "chr2", "start2", "end2", "id2", "ord2", "genome2", "isArrayRep2",
+    "ofID1", "chr1", "start1", "end1", "id1", "ord1", "genome1", "isArrayRep1",
+    "bitScore", "sameOG", "noAnchor", "isAnchor", "regID", "blkID")
+
+  isq <- subset(blMd, query == refGenome)
+  ist <- subset(blMd, target == refGenome & query != target)
+
+  synh <- rbindlist(mclapply(isq$synHits, mc.cores = nCores, read_synHits))
+
+  if(nrow(ist) > 0){
+    synt <- rbindlist(mclapply(ist$synHits, mc.cores = nCores, read_synHits))
+    synt <- synt[,tnames, with = F]
+    setnames(synt, colnames(synh))
+    synh <- rbind(synh, synt)
+  }
+  synh <- subset(synh, !duplicated(paste(ofID1, ofID2)))
+
+  return(synh)
+}
+
+#' @title read_refGenomeSynHits
+#' @description
+#' \code{read_refGenomeSynHits} read_refGenomeSynHits
+#' @rdname utils
+#' @importFrom utils download.file
+#' @export
+read_refGenomeAllBlast <- function(gsParam,
+                                  refGenome){
+
+  query <- target <- ofID1 <- ofID2 <- NULL
+
+  if(!"synteny" %in% names(gsParam))
+    gsParam <- set_syntenyParams(gsParam)
+
+  blMd <- data.table(gsParam$synteny$blast)
+  nCores <- gsParam$params$nCores
+
+  tnames <- c(
+    "ofID2", "chr2", "start2", "end2", "id2", "ord2", "genome2", "isArrayRep2",
+    "ofID1", "chr1", "start1", "end1", "id1", "ord1", "genome1", "isArrayRep1",
+    "pid", "length", "mismatches", "gapopenings", "queryStart", "queryEnd",
+    "subjectStart", "subjectEnd", "Evalue", "bitScore", "sameOG", "noAnchor",
+    "isAnchor", "isSyntenic", "regID", "blkID")
+
+  isq <- subset(blMd, query == refGenome)
+  ist <- subset(blMd, target == refGenome & query != target)
+
+  synh <- rbindlist(mclapply(isq$allBlast, mc.cores = nCores, read_allBlast))
+
+  if(nrow(ist) > 0){
+    synt <- rbindlist(mclapply(ist$allBlast, mc.cores = nCores, read_allBlast))
+    synt <- synt[,tnames, with = F]
+    setnames(synt, colnames(synh))
+    synh <- rbind(synh, synt)
+  }
+  synh <- subset(synh, !duplicated(paste(ofID1, ofID2)))
+
+  return(synh)
+}
+
+#' @title get_bedInBlk
+#' @description
+#' \code{get_bedInBlk} get_bedInBlk
+#' @rdname utils
+#' @importFrom utils download.file
+#' @export
+get_bedInBlk <- function(hits, bed){
+
+  isAnchor <- blkID <- ord1 <- ord2 <- isArrayRep <- genome1 <- chr1 <-
+    start1 <- end1 <- i.start1 <- i.end1 <- genome2 <- chr2 <- start2 <-
+    end2 <- i.start2 <- i.end2 <- ofID1 <- ofID2 <- NULL
+
+  anch <- subset(hits, isAnchor & !is.na(blkID))
+  anchu1 <- with(anch, paste(ofID1, blkID))
+  anchu2 <- with(anch, paste(ofID2, blkID))
+  bc <- anch[,list(
+    start1 = min(ord1), start2 = min(ord2),
+    end1 = max(ord1), end2 = max(ord2)),
+    by = c("genome1","chr1", "genome2", "chr2", "blkID")]
+
+  b1 <- with(subset(bed, isArrayRep), data.table(
+    genome1 = genome, chr1 = chr, start1 = ord,
+    end1 = ord, ofID1 = ofID, ord1 = ord, og = og))
+
+  b2 <- with(subset(bed, isArrayRep), data.table(
+    genome2 = genome, chr2 = chr, start2 = ord,
+    end2 = ord, ofID2 = ofID, ord2 = ord, og = og))
+
+  setkey(bc, genome1, chr1, start1, end1)
+  setkey(b1, genome1, chr1, start1, end1)
+  fo1 <- foverlaps(bc, b1)
+  fo1[,`:=`(start1 = i.start1, end1 = i.end1, i.start1 = NULL, i.end1 = NULL,
+            start2 = NULL, end2 = NULL, chr2 = NULL, genome2 = NULL)]
+
+  setkey(bc, genome2, chr2, start2, end2)
+  setkey(b2, genome2, chr2, start2, end2)
+  fo2 <- foverlaps(bc, b2)
+  fo2[,`:=`(start2 = i.start2, end2 = i.end2, i.start2 = NULL, i.end2 = NULL,
+            start1 = NULL, end1 = NULL, chr1 = NULL, genome1 = NULL)]
+  fo1 <- subset(fo1, !paste(ofID1, blkID) %in% anchu1)
+  fo2 <- subset(fo2, !paste(ofID2, blkID) %in% anchu2)
+  out <- rbind(fo1, fo2, fill = T)
+  out <- out[,c("ofID1", "ofID2", "ord1", "ord2", "blkID"), with = F]
+  anchout <- subset(hits, isAnchor & !is.na(blkID))
+  anchout <- anchout[,c("ofID1", "ofID2", "ord1", "ord2", "blkID"), with = F]
+
+  out <- rbind(out, anchout)
+  # out <- subset(out, !paste(ofID1, blkID) %in% hasAnch)
+  # out <- subset(out, !duplicated(paste(ofID2, blkID)))
+  setorder(out, blkID, ord1, ord2, na.last = T)
+
+  out <- merge(bc, out, by = "blkID")
+  out[,`:=`(start1 = NULL, start2 = NULL, end1 = NULL, end2 = NULL)]
+  return(out)
+}
+
+
+#' @title add_array2bed
+#' @description
+#' \code{add_array2bed} add array ID to the bed file
+#' @rdname utils
+#' @import data.table
+#' @export
+add_array2bed <- function(bed, synBuff, maxIter = 10, reorder = TRUE){
+
+  # -- we can make arrays for everything except that we want to exclude the
+  # arrays that are huge and problematic
+  genome <- chr <- id <- arrayID <- nOGPlaces <- tord <- ofID <- NULL
+  tmp <- data.table(bed)
+  tmp[,tord := as.numeric(ord)]
+
+  # -- set up the iteration
+  cnt <- 1
+  diffn <- 1
+  tmp[,arrayID := sprintf(
+    "tmp%s", as.integer(as.factor(paste(genome, chr, id))))]
+  while(cnt <= maxIter && diffn > 0){
+
+    # -- for each iteration, calculate clusters by the size of jump between
+    # genes larger than the synBuffer
+    cnt <- cnt + 1
+    initn <- uniqueN(tmp$arrayID)
+    genome <- chr <- og <- ord <- jumpLeft <- clus <- n <- NULL
+    setkey(tmp, genome, chr, og, tord)
+    if(reorder)
+      tmp[,tord := frank(tord, ties.method = "dense"), by = "genome"]
+    tmp[,jumpLeft := c(synBuff + 1, diff(tord)),
+        by = c("genome", "chr", "og")]
+    tmp[,clus := as.integer(jumpLeft > synBuff), by = c("genome", "chr")]
+    tmp[,clus := cumsum(clus), by = c("genome", "chr", "og")]
+    tmp[,`:=`(
+      arrayID = sprintf("tmp%s",
+                        as.integer(as.factor(paste(genome, chr, og, clus)))),
+      jumpLeft = NULL, clus = NULL)]
+
+    # -- get the new order of genes based on array ID
+    tmp[,n := .N, by = "arrayID"]
+    tmp1 <- subset(tmp, n == 1)
+    tmp2 <- subset(tmp, n > 1)
+    tmp2[,tord := as.numeric(tord)]
+    tmp2[,tord := mean(as.numeric(tord)), by = "arrayID"]
+    tmp <- rbind(tmp1, tmp2)
+    tmp[,tord := frank(tord, ties.method = "dense"), by = "genome"]
+    newn <- uniqueN(tmp$arrayID)
+    diffn <- initn - newn
+  }
+
+  # -- relabel
+  ogID <- NULL
+  lab <- gsub(" ", "0",
+              align_charRight(
+                as.numeric(factor(tmp$arrayID,
+                                  levels = unique(tmp$arrayID)))))
+  arrv <- sprintf("Arr%s", lab); names(arrv) <- tmp$ofID
+  bed[,arrayID := arrv[ofID]]
+
+  tmp <- subset(bed, is.na(arrayID))
+  wh <- with(tmp,
+             as.numeric(as.factor(paste(genome, chr, og))))
+  lab <- gsub(" ", "0", align_charRight(wh))
+  wh <- which(is.na(bed$arrayID))
+  bed$arrayID[wh] <- sprintf("NoArr%s", lab)
+  return(bed)
+}
+
+#' @title get_bedInBlk
+#' @description
+#' \code{add_arrayReps2bed} calculate the array representatives
+#' @rdname utils
+#' @import data.table
+#' @export
+add_arrayReps2bed <- function(bed){
+  n <- ord <- medOrd <- medDiff <- pepLen <- arrayID <- isRep <-
+    isArrayRep <- ofID <- NULL
+  bed[,n := .N, by = "arrayID"]
+  tmp <- subset(bed, n > 1)
+  tmp[,medOrd := as.numeric(median(ord)), by = "arrayID"]
+  tmp[,medDiff := as.numeric(abs(medOrd - ord))]
+  setorder(tmp, arrayID, medDiff, -pepLen)
+  tmp$noAnchor[duplicated(tmp$arrayID)] <- TRUE
+  tmp[,isRep := !duplicated(arrayID)]
+  bed[,isArrayRep := ofID %in% tmp$ofID[tmp$isRep] | n == 1]
+  tmp <- subset(bed, isArrayRep)
+  tmp[,ord := frank(ord, ties.method = "dense"), by = "genome"]
+  di <- tmp$ord; names(di) <- tmp$ofID
+  return(bed)
+}
+
+#' @title write_pangenes
+#' @description
+#' \code{write_pangenes} write_pangenes
+#' @rdname utils
+#' @export
+write_pangenes <- function(x, filepath){
+  hnames <- c(
+    "ofID", "pgID", "interpChr", "interpOrd", "pgRepID", "genome", "og",
+    "flag", "id", "chr", "start", "end", "ord")
+  if(!all(hnames %in% colnames(x)))
+    stop("pangenes data.table is malformed\n")
+  x <- x[,hnames, with = F]
+  fwrite(x, file = filepath, showProgress = F, quote = F, sep = "\t")
+}
+
+#' @title read_pangenes
+#' @description
+#' \code{read_pangenes} read_pangenes
+#' @rdname utils
+#' @export
+read_pangenes <- function(x, filepath, ...){
+  hnames <- c(
+    "ofID", "pgID", "interpChr", "interpOrd", "pgRepID", "genome", "og",
+    "flag", "id", "chr", "start", "end", "ord")
+  cl <- c("numeric", "character", "logical")
+  chk <- strsplit(readLines(filepath, 1), "\t")[[1]]
+  if(!identical(chk, hnames))
+    stop("synhits.txt file is malformed\n")
+  hc <- cl[c(2,1,2,1,2,2,1,2,2,2,1,1,1)]
+  pangenes <- fread(
+    filepath, na.strings = c("", "NA"), select = hnames,
+    colClasses = hc, showProgress = F, ...)
+  return(pangenes)
+}
+
+#' @title find_nnHit
+#' @description
+#' \code{find_nnHit} find_nnHit
+#' @rdname utils
+#' @import data.table
+#' @export
+find_nnHit <- function(x, y, isAnchor, radius){
+  ##############################################################################
+  # -- parameter checking
+  if(length(x) != length(y))
+    stop("x and y must be vectors of the same length\n")
+  if(length(x) < 2)
+    stop("x and y must have lengths > 1\n")
+  x <- as.numeric(x)
+  if(any(is.na(x)))
+    stop("x values must all be numeric or integer\n")
+  y <- as.numeric(y)
+  if(any(is.na(y)))
+    stop("y values must all be numeric or integer\n")
+  if(sum(isAnchor) < 1)
+    stop("at least one TRUE value must be given for isAnchor (logical vector of observations are anchors)\n")
+  isAnchor <- as.logical(isAnchor)
+  if(any(is.na(isAnchor)))
+    stop("values given to isAnchor (logical vector of isAnchor observations are anchors) must all be coercible to logical\n")
+  radius <- as.numeric(radius[1])
+  if(is.na(radius) || is.null(radius))
+    stop("radius must be a single numeric value > 0\n")
+  radius <- as.numeric(radius[1])
+  if(radius <= 0)
+    stop("radius must be a single numeric value > 0\n")
+  ##############################################################################
+  # -- function to do it
+  # -- get fixed radius nearest neighbors
+  xy <- data.frame(x, y, isAnchor)
+  fn <- frNN(
+    x = subset(xy, isAnchor)[c("x", "y")],
+    query = subset(xy, !isAnchor)[c("x", "y")],
+    eps = radius)
+  # -- get index of nearest neighbor hits
+  wh <- sapply(fn$id, function(x) x[1])
+  return(wh)
+}
+
+#' @title flag_hitsInRadius
+#' @description
+#' \code{flag_hitsInRadius} flag_hitsInRadius
+#' @rdname utils
+#' @import data.table
+#' @importFrom dbscan dbscan frNN
+#' @export
+flag_hitsInRadius <- function(x, y, isAnchor, radius){
+  ##############################################################################
+  # -- parameter checking
+  if(length(x) != length(y))
+    stop("x and y must be vectors of the same length\n")
+  if(sum(isAnchor) == 0)
+    return(rep(FALSE, length(x)))
+  if(sum(!isAnchor) == 0)
+    return(rep(TRUE, length(x)))
+  if(length(x) < 2)
+    stop("x and y must have lengths > 1\n")
+  x <- as.numeric(x)
+  if(any(is.na(x)))
+    stop("x values must all be numeric or integer\n")
+  y <- as.numeric(y)
+  if(any(is.na(y)))
+    stop("y values must all be numeric or integer\n")
+
+  isAnchor <- as.logical(isAnchor)
+  if(any(is.na(isAnchor)))
+    stop("values given to isAnchor (logical vector of isAnchor observations are anchors) must all be coercible to logical\n")
+
+  radius <- as.numeric(radius[1])
+  if(is.na(radius) || is.null(radius))
+    stop("radius must be a single numeric value > 0\n")
+  radius <- as.numeric(radius[1])
+  if(radius <= 0)
+    stop("radius must be a single numeric value > 0\n")
+
+  ##############################################################################
+  # -- function to do it
+  # -- get fixed radius nearest neighbors
+  if(all(isAnchor) || all(!isAnchor)){
+    return(isAnchor)
+  }else{
+    xy <- data.frame(x = x, y = y, isAnchor = isAnchor, inBuffer = isAnchor)
+    fn <- frNN(
+      x = subset(xy, isAnchor)[c("x", "y")],
+      query = subset(xy, !isAnchor)[c("x", "y")],
+      eps = radius)
+
+    # -- subset to positions with any nearest neighbors in radius
+    hasAnch <- fn$id[sapply(fn$id, length) > 0]
+    wh <- as.integer(names(hasAnch))
+    # -- set these observations to true and return
+    if(length(wh) > 0)
+      xy$inBuffer[wh] <- TRUE
+    return(xy$inBuffer)
+  }
+}
+
+#' @title flag_hitsInBlk
+#' @description
+#' \code{flag_hitsInBlk} flag_hitsInBlk
+#' @rdname utils
+#' @import data.table
+#' @export
+flag_hitsInBlk <- function(x, y, blkID){
+
+  isAnchor <- start1 <- start2 <- end1 <- end2 <-
+    i.blkID <- blkID1 <- blkID2 <- id <- NULL
+
+  ##############################################################################
+  # -- parameter checking
+  if(length(x) != length(y))
+    stop("x and y must be vectors of the same length\n")
+  if(length(x) < 2)
+    stop("x and y must have lengths > 1\n")
+  x <- as.numeric(x)
+  if(any(is.na(x)))
+    stop("x values must all be numeric or integer\n")
+  y <- as.numeric(y)
+  if(any(is.na(y)))
+    stop("y values must all be numeric or integer\n")
+
+  if(length(blkID) != length(x))
+    stop("x, y and blkID must have the same length\n")
+
+  xy <- data.table(
+    start1 = x, end1 = x, start2 = y, end2 = y,
+    isAnchor = !is.na(blkID), id = 1:length(x), blkID = blkID)
+
+  if(all(is.na(blkID)) || all(!is.na(blkID))){
+    return(xy$isAnchor)
+  }else{
+    blks <- subset(xy, isAnchor)[,list(
+      start1 = min(start1), end1 = max(start1),
+      start2 = min(start2), end2 = max(start2)),
+      by = "blkID"]
+
+    b1 <- blks[,c("start1" ,"end1", "blkID")]
+    b2 <- blks[,c("start2" ,"end2", "blkID")]
+    setkey(b1, start1, end1)
+    setkey(b2, start2, end2)
+    setkey(xy, start1, end1)
+    t1 <- foverlaps(b1, xy)
+    t1[,`:=`(i.start1 = NULL, i.end1 = NULL, blkID1 = i.blkID, i.blkID = NULL)]
+    setkey(t1, start2, end2)
+    t2 <- foverlaps(b2, t1)
+    t2[,`:=`(i.start2 = NULL, i.end2 = NULL, blkID2 = i.blkID, i.blkID = NULL)]
+    out <- subset(t2, blkID1 == blkID2)
+    bv <- out$blkID1; names(bv) <- with(out, paste(start1, start2))
+    xy[,blkID := bv[paste(start1, start2)]]
+    setkey(xy, id)
+    return(xy$blkID)
+  }
+}
+

@@ -2,39 +2,56 @@
 % Please edit documentation in R/query_genespace.R
 \name{query_genespace}
 \alias{query_genespace}
+\alias{query_hits}
+\alias{query_pangenes}
 \title{Query GENESPACE results}
 \usage{
-query_genespace(gsParam, regions)
+query_hits(gsParam, bed, synOnly = TRUE)
+
+query_pangenes(
+  gsParam,
+  bed = NULL,
+  refGenome = NULL,
+  transform = TRUE,
+  showArrayMem = TRUE,
+  showNSOrtho = TRUE,
+  maxMem2Show = Inf
+)
 }
 \arguments{
-\item{gsParam}{GENESPACE parameter list.}
+\item{gsParam}{A list of genespace parameters created by init_genespace.}
 
-\item{regions}{A data.frame (or data.table) containing the region
-information, where each row is one region to query.}
+\item{bed}{A data.table similar to the format of a bed file. At least two
+columns must be specified: genome, chr. These must match genome-chromosome
+combinations in the data. The user can also supply two additional columns:
+start, end. These are the base-pair start and end coordinates of each region.
+If start and end are not specified, they are set to 0 and Inf respectively
+so that the entire chromosome is returned.}
+
+\item{synOnly}{logical, given to query hits to return (or not) the synteny-
+constrained hits only}
+
+\item{transform}{logical, should the pangenome be transformed from the long
+to the wide format?}
+
+\item{showArrayMem}{logical, should all genes or only the array
+representative genes (if FALSE) be shown?}
+
+\item{showNSOrtho}{logical, should non-syntenic orthologs be included in the
+output?}
+
+\item{maxMem2Show}{integer specifying the maximum number of members to be
+included in each entry-by-flag-by-genome combination.}
 }
 \value{
-A list of lists, where the first elements are the three dataTypes (
-bed, hits, pangenome). Nested within each of these is a list labeled by
-the region ID with the results for each row associated with that particular
-data type.
+a list of data.tables named $genome, $chr: $start-$end. One
+data.table for each line in the bed file.
 }
 \description{
-\code{query_genespace} For a set of coordinates or gene IDs, extract
-orthogroup, syntenic hits and pangenome information.
-}
-\details{
-The regions data.frame must have 6 columns:
-chr, start, end, id, genome, dataType. An additional column "regID" is
-permitted that gives the identifier for that region. If a gene ID is given,
-chr, start and end are ignored. If a geneID is not given, at least a
-chromosome must be given. If chromosome is given and start and end are NA,
-then they are set to 0 and Inf. Otherwise the interval is queried between
-the start and end bp coordinates. The column dataType can be "hits",
-"bed", "pangenome", or "all". This specifies which data type is queried.
-}
-\examples{
-\dontrun{
-# coming soon
-}
+\code{query_genespace} Functions to pull data stored in the /pangenome
+and /syntenicHits directories
 
+\code{query_hits} query_hits
+
+\code{query_pangenome} query_pangenome
 }

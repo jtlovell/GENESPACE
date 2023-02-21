@@ -25,7 +25,7 @@
 set_syntenyParams <- function(gsParam){
 
   query <- target <- tmp1 <- genNum1 <- genNum2 <- tmp2 <- query1 <-
-    fs1 <- fs2 <- queryBlast <- synHits <- synBuff <- NULL
+    fs1 <- fs2 <- queryBlast <- synHits <- synBuff <- allBlast <- NULL
 
   resultsDir <- gsParam$paths$results
   synHitsDir <- gsParam$paths$syntenicHits
@@ -67,9 +67,10 @@ set_syntenyParams <- function(gsParam){
 
   ##############################################################################
   # 4. check that all the genomes exist in blast files
+  # -- make all combinations of genomes
+  blMd <- data.table(CJ(query = genomeIDs, target = genomeIDs))
+
   if(runPass){
-    # -- make all combinations of genomes
-    blMd <- data.table(CJ(query = genomeIDs, target = genomeIDs))
     blMd[,`:=`(queryPloidy = ploidy[query],
                targetPloidy = ploidy[target],
                genNum1 = sids[query],
@@ -140,8 +141,10 @@ set_syntenyParams <- function(gsParam){
   ##############################################################################
   # 7. Add the synHits file paths
   if(runPass)
-    blMd[,synHits := file.path(
-      synHitsDir, sprintf("%s_vs_%s.synBlast.txt.gz", query, target))]
+    blMd[,allBlast := file.path(
+      synHitsDir, sprintf("%s_vs_%s.allBlast.txt.gz", query, target))]
+  blMd[,synHits := file.path(
+    synHitsDir, sprintf("%s_vs_%s.synHits.txt.gz", query, target))]
 
   ##############################################################################
   # 8. Add the parameters to the blMd

@@ -149,6 +149,9 @@ nSecondaryHits > 0.}
 \item{blkRadiusSecond}{see blkRadius, but passed to the secondary scan if
 nSecondaryHits > 0.}
 
+\item{onlyOgAnchorsSelf}{logical, should only hits in orthogroups be considered
+for anchors in self-hits (particularly polyploids)}
+
 \item{onlyOgAnchorsSecond}{logical should only hits in orthogroups be
 considered for anchors in secondary blocks?}
 

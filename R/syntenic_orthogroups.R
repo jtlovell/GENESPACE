@@ -1,31 +1,108 @@
-#' @title run_orthofinderInBlk
+#' @title construct syntenic orthogroups from pairwise blast
+#' @name syntenic_orthogroups
 #' @description
-#' \code{run_orthofinderInBlk} run_orthofinderInBlk
-#' @name run_orthofinderInBlk
+#' \code{build_synOGs} integrates many pairwise results from synteny into
+#' vectors of syntenic orthogroups. Also can re-run orthofinder within blocks
+#' and re-calculate orthogroups from those results.
 #'
 #' @param gsParam A list of genespace parameters created by init_genespace.
-#' @param genome1 character string specifying the first genome to analyze
-#' @param genome2 character string specifying the second genome to analyze
-#' @param onlyInBuffer logical, should only inbuffer hits be retained?
+#' @param updateArrays logical, should arrays be updated?
 #' @param overwrite logical, should results be overwritten?
-#' \cr
-#' If called, \code{run_orthofinderInBlk} returns its own arguments.
-#'
+#' @param genome1 character vector with the query genome for orthofinderInBlk
+#' @param genome2 character vector with the target genome for orthofinderInBlk
+
 #' @details info here
+
+#' @title syntenic_orthogroups
+#' @description
+#' \code{syntenic_orthogroups} syntenic_orthogroups
+#' @rdname syntenic_orthogroups
+#' @import data.table
+#' @export
+syntenic_orthogroups <- function(gsParam, updateArrays){
+
+  pull_synOgs <- function(gsParam){
+    blkID <- sameOG <- sameInblkOG <- inBuffer <- blkID <- NULL
+    md <- data.table(gsParam$synteny$blast)
+    nCores <- gsParam$params$nCores
+    hitsInOgs <- rbindlist(mclapply(1:nrow(md), mc.cores = nCores, function(i)
+      subset(read_synHits(
+        md$synHits[i]), sameOG & !noAnchor)[,c("ofID1", "ofID2")]))
+    return(hitsInOgs)
+  }
+
+  get_ogsFromHits <- function(ofID1, ofID2, bed, colName){
+
+    # -- convert to
+    soh <- data.table(ofID1 = ofID1, ofID2 = ofID2)
+    ofID1 <- ofID2 <- NULL
+
+    # -- get a vector of graph clusters
+    ic <- with(soh, clus_igraph(id1 = ofID1, id2 = ofID2))
+
+    bed[[colName]] <- ic[bed$ofID]
+
+    whna <- which(is.na(bed[[colName]]))
+    mx <- max(as.numeric(bed[[colName]]), na.rm = T)
+    bed[[colName]][whna] <- paste((mx + 1):(mx + length(whna)))
+
+    return(bed)
+  }
+
+  noAnchor <- isArrayRep <- ofID <- newArrayID <- arrayID <- og <- NULL
+
+  # -- read in the combined bed file
+  bedf <- file.path(gsParam$paths$results, "combBed.txt")
+  bed <- read_combBed(bedf)
+  sogs <- pull_synOgs(gsParam)
+
+  bedr <- subset(bed, isArrayRep)
+  bedr <- get_ogsFromHits(
+    ofID1 = sogs$ofID1, ofID2 = sogs$ofID2, colName = "og", bed = bedr)
+
+  ar <- bedr[,c("arrayID", "og")]
+  ar <- subset(ar, !duplicated(arrayID))
+
+  # -- update the array reps
+
+  beda <- data.table(bed)
+  beda[,og := NULL]
+  bed <- merge(beda, ar, by = "arrayID", all = T)
+
+  if(updateArrays){
+    reps <- add_array2bed(
+      bed = subset(bed, !noAnchor & isArrayRep),
+      synBuff = gsParam$params$synBuff,
+      maxIter = 1,
+      reorder = T)
+
+    reps <- add_arrayReps2bed(reps)
+    arrayMap <- subset(bed, !noAnchor & isArrayRep)[,c("ofID", "arrayID")]
+    newMap <- subset(reps)[,c("ofID", "arrayID")]
+    setnames(newMap, "arrayID", "newArrayID")
+    arrayMap <- merge(arrayMap, newMap, by = "ofID", all = T)[,c("arrayID", "newArrayID")]
+    arrayMap <- subset(arrayMap, !duplicated(arrayMap))
+    bed <- merge(bed, arrayMap, by = "arrayID", all.x = T)
+    bed[,isArrayRep := ofID %in% reps$ofID[reps$isArrayRep]]
+    bed[,`:=`(arrayID = newArrayID, newArrayID = NULL)]
+  }
+
+  write_combBed(x = bed, filepath = bedf)
+  return(gsParam)
+}
 
 #' @title Run orthofinder in block
 #' @description
-#' \code{pull_inblkOgs} Loop through the pairwise combination of genomes and
+#' \code{run_orthofinderInBlk} Loop through the pairwise combination of genomes and
 #' run orthofinderInBlk
-#' @rdname run_orthofinderInBlk
+#' @rdname syntenic_orthogroups
 #' @import data.table
 #' @export
 run_orthofinderInBlk <- function(gsParam,
-                                 overwrite = FALSE,
-                                 onlyInBuffer = TRUE){
+                                 overwrite = FALSE){
 
-  lab <- query <- target <- blkID <- sameOg <- sameInblkOg <- inBuffer <-
-    inblkOG <- ofID <- og <- NULL
+  lab <- query <- target <- blkID <- sameOG <- sameInblkOG <-
+    inblkOG <- ofID <- og <- ofID1 <- ofID2 <- NULL
   ##############################################################################
   # -- 1. Get metadata together
   bed <- read_combBed(gsParam$synteny$combBed)
@@ -38,36 +115,42 @@ run_orthofinderInBlk <- function(gsParam,
   hitsInOgs <- rbindlist(lapply(1:nrow(md), function(i){
     cat(sprintf("\t...%s ", md$lab[i]))
     inblkOgs <- with(md[i,], ofInBlk_engine(
-      gsParam = gsParam, genome1 = query, genome2 = target,
+      gsParam = gsParam,
+      genome1 = query,
+      genome2 = target,
       overwrite = overwrite))
-    out <- subset(inblkOgs, !is.na(blkID) & (sameOg | sameInblkOg))
-    if(onlyInBuffer)
-      out <- subset(out, inBuffer)
-    out <- out[,c("ofID1", "ofID2")]
-    return(out)
+    if(is.data.frame(inblkOgs)){
+      if("sameInblkOG" %in% colnames(inblkOgs)){
+        out <- subset(inblkOgs, (sameInblkOG))
+        out <- out[,c("ofID1", "ofID2")]
+        u <- with(out, paste(c(ofID1, ofID2), c(ofID2, ofID1)))
+        hits <- read_synHits(md$synHits[i])
+        cat(sprintf("n syn / syn OG / inblk OG hits = %s / %s",
+                    nrow(hits), sum(hits$sameOG)))
+        hits[,sameOG := sameOG | paste(ofID1, ofID2) %in% u]
+        write_synHits(hits, md$synHits[i])
+        cat(sprintf(" / %s\n",
+                    sum(hits$sameOG)))
+        return(out)
+      }else{
+        cat("no non-self blocks\n")
+      }
+    }else{
+      cat("no non-self blocks\n")
+    }
   }))
-
-  ##############################################################################
-  # -- 3. add vector to the bed file
-  ic <- with(hitsInOgs, clus_igraph(id1 = ofID1, id2 = ofID2))
-  bed[,inblkOG := ic[ofID]]
-
-  # -- convert NAs to unique orthogroups
-  whna <- which(is.na(bed$inblkOG))
-  mx <- max(bed$inblkOG, na.rm = T)
-  bed$inblkOG[whna] <- paste((mx + 1): (mx + length(whna)))
-
-  # -- replace og with inblkOG and write
-  bed[,og := inblkOG]
-  write_combBed(x = bed, filepath = gsParam$synteny$combBed)
+  fwrite(
+    hitsInOgs,
+    file = file.path(gsParam$paths$results, "allInBlkOgHits.txt.gz"),
+    sep = "\t")
 
   return(gsParam)
 }
 
 #' @title Run orthofinder within blocks
 #' @description
-#' \code{run_orthofinderInBlk} Main engine to run orthofinder in blocks
-#' @rdname run_orthofinderInBlk
+#' \code{ofInBlk_engine} Main engine to run orthofinder in blocks
+#' @rdname syntenic_orthogroups
 #' @import data.table
 #' @import parallel
 #' @export
@@ -77,7 +160,8 @@ ofInBlk_engine <- function(gsParam,
                            overwrite){
 
   query <- target <- ofID1 <- ofID2 <- blkID <- rid <- uid1 <- uid2 <- regID <-
-    ofID1 <- ofID2 <- sameHog <- hog1 <- hog2 <- sameInblkOg <- hasSelf <- NULL
+    ofID1 <- ofID2 <- sameHog <- hog1 <- hog2 <- sameInblkOG <- hasSelf <-
+    isSyntenic <- noAnchor <- isArrayRep1 <- isArrayRep2 <- NULL
 
 
   blNames <- c(
@@ -106,25 +190,23 @@ ofInBlk_engine <- function(gsParam,
                  genome1, genome2))
   ########
   # 1.2 read in and parse the annotated blast file
-  allBlast <- read_synHits(x$synHits)
+  allBlast <- subset(
+    read_allBlast(x$allBlast),
+    isSyntenic & !noAnchor & isArrayRep1 & isArrayRep2)
+
 
   # -- add unique identifier to geneIDs (in case of intragenomic)
 
   # -- subset to only hits in regions
-  sb01 <- subset(allBlast, !is.na(blkID))
+  sb01 <- data.table(allBlast)
 
-  cat(sprintf("%s synhits || %s in global OGs ", nrow(sb01), sum(sb01$sameOg)))
-  dontRerun <- "sameInblkOg" %in% colnames(allBlast)
+  dontRerun <- any(!is.na(allBlast$sameInblkOG))
   if(dontRerun)
-    dontRerun <- all(!is.na(allBlast$sameInblkOg)) & !overwrite
-  if(dontRerun)
-    cat(sprintf("|| %s in inBlk OGs (pre-existing file)\n",
-                sum(allBlast$sameInblkOg)))
+    dontRerun <- all(!is.na(allBlast$sameInblkOG)) & !overwrite
 
   sb01[,hasSelf := any(ofID1 %in% ofID2), by = "blkID"]
   onlySelf <- sum(!sb01$hasSelf) < gsParam$params$blkSize
-  if(onlySelf)
-    cat("|| no non-self blocks\n")
+
   sb01 <- subset(sb01, !hasSelf)
 
   sb01[,`:=`(ofID1 = sprintf("%s_g1", ofID1),
@@ -175,12 +257,12 @@ ofInBlk_engine <- function(gsParam,
       p0md <- subset(md, query == target & query == queryGenome)
       p1md <- subset(md, query == target & query == targetGenome)
       bl00 <- fread(
-        p0md$synHits, showProgress = F, na.strings = c("NA", ""),
+        p0md$allBlast, showProgress = F, na.strings = c("NA", ""),
         select = blNames[1:12])
       bl00[,`:=`(ofID1 = sprintf("%s_g1", ofID1),
                  ofID2 = sprintf("%s_g1", ofID2))]
       bl11 <- fread(
-        p1md$synHits, showProgress = F, na.strings = c("NA", ""),
+        p1md$allBlast, showProgress = F, na.strings = c("NA", ""),
         select = blNames[1:12])
       bl11[,`:=`(ofID1 = sprintf("%s_g2", ofID1),
                  ofID2 = sprintf("%s_g2", ofID2))]
@@ -236,7 +318,6 @@ ofInBlk_engine <- function(gsParam,
       out <- data.table(regID = j, path = dirname(fp))
       return(out)
     }))
-    # names(ofDirs) <- names(spl01)
 
     ########
     # -- 2.5 read in sequenceIDs, re-name blasts, write blasts, make command
@@ -268,7 +349,6 @@ ofInBlk_engine <- function(gsParam,
     }
 
     inblkHOGs <- rbindlist(mclapply(1:nrow(ofDirs), mc.cores = nCores, function(k){
-      print(k)
       j <- ofDirs$regID[k]
       regj <- ofDirs$path[k]
       sidf <- file.path(regj, "SequenceIDs.txt")
@@ -323,13 +403,10 @@ ofInBlk_engine <- function(gsParam,
     ########
     # -- 3.4 get unique pairs of genes in the same inblk HOG
     u <- with(hogout, paste(gsub("_g1$", "", ofID1), gsub("_g2$", "", ofID2)))
-    allBlast[,sameInblkOg := paste(ofID1, ofID2) %in% u]
+    allBlast[,sameInblkOG := paste(ofID1, ofID2) %in% u]
 
-    cat(sprintf("|| %s in inBlk OGs\n", sum(allBlast$sameInblkOg)))
+    out <- subset(allBlast, sameInblkOG)
+    return(out)
   }
-
-  ########
-  # -- 3.5 write the blast file, with the new column `sameInblkOg`
-  write_synBlast(allBlast, filepath = x$synHits)
-  return(allBlast)
 }
+

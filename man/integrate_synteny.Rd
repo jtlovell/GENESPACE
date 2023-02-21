@@ -3,33 +3,67 @@
 \name{integrate_synteny}
 \alias{integrate_synteny}
 \alias{interp_synPos}
-\title{Integrate syntenic positions across genomes}
+\alias{phase_blks}
+\alias{nophase_blks}
+\alias{calc_blkCoords}
+\title{Integrate syntenic positions across multiple genomes}
 \usage{
-integrate_synteny(gsParam, overwrite = FALSE)
+interp_synPos(gsParam, verbose = TRUE)
 
-interp_synPos(gsParam, overwrite = FALSE)
+phase_blks(
+  gsParam,
+  refGenome,
+  useRegions,
+  blkSize = 5,
+  synBuff = 100,
+  refChr = NULL,
+  refStartBp = NULL,
+  refEndBp = NULL
+)
+
+nophase_blks(gsParam, useRegions, blkSize = 5)
+
+calc_blkCoords(hits, mirror = FALSE)
 }
 \arguments{
-\item{gsParam}{A list of genespace parameters created by init_genespace.
+\item{gsParam}{A list of genespace parameters created by init_genespace.}
 
-\cr
-If called, \code{integrate_synteny} returns its own arguments.}
+\item{verbose}{logical, should updates be printed to the console?}
+
+\item{refGenome}{Character string specifying the reference genome to use}
+
+\item{useRegions}{Logical, should regions be used instead of blocks?}
+
+\item{blkSize}{see init_genesapce}
+
+\item{synBuff}{see init_genesapce}
+
+\item{refChr}{string matching chromosome IDs in refGenome}
+
+\item{refStartBp}{physical (bp) region start coordinate on refChr}
+
+\item{refEndBp}{physical (bp) region end coordinate on refChr}
+
+\item{hits}{data.table with hits (see read_synHits)}
+
+\item{mirror}{logical, should the block coordinates be mirrored between
+query and target genomes}
 }
 \description{
-\code{integrate_synteny} Linear interpolation and block coordinate phasing
-across multiple genomes
+\code{integrate_synteny} Internal functions to connect syntenic positions for
+riparian plotting and interpolated gene order calculation for placement of
+syntenic pan-genes.
 
-\code{integrate_synteny} integrate_synteny
+\code{interp_synPos} interp_synPos
 
-\code{interp_synPos} Find the likely position of a gene based on the syntenic
-position of its neighbors
+\code{phase_blks} phase_blks
+
+\code{nophase_blks} nophase_blks
+
+\code{calc_blkCoords} from a hits object, determine block coordinates,
+orientation and membership
 }
 \details{
-Linear interpolation is conducted by using perfectly collinear
-syntenic anchors and known fixed positions between any two genomes. The
-expected syntenic positions of genes between these anchors (without perfect
-positions) are interpolated from the anchor positions. Syntenic block
-breakpoints are then calculated for each pair of genomes and also phased
-against each reference based on the interpolated syntenic location of
-genes in each block.
+Functions here should not be called directly by the user except
+if customizing riparian plots.
 }

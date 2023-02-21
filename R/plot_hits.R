@@ -6,6 +6,17 @@
 #' @param gsParam A list of genespace parameters. This should be created
 #' by init_genespace.
 #' @param verbose logical, should updates be printed to the console?
+#' @param hits data.table containg hits. See read_allBlast.
+#' @param outDir file.path where pdf should be written
+#' @param minGenes2plot integer specifying the minimum number of genes that can
+#' be plotted
+#' @param appendName character with text to append to the file name
+#' @param dotsPerIn integer specifying how fine-scaled the heatmap is
+#' @param quantileThresh integer specifying the top quantile to be thresholded
+#' @param plotSize numeric smalled dimension of the plot
+#' @param minScore numeric the minimum score to be permitted in the first plot
+#' @param maxFacets integer the maximum number of facets to plot (doesn't plot
+#' for genomes with lots of small chrs/scaffolds)
 #'
 #' \cr
 #' If called, \code{plot_hits} returns its own arguments.
@@ -67,10 +78,10 @@ plot_hits <- function(gsParam, verbose = TRUE){
       # -- 2.1 read in the metadata and hits
       outMd <- data.table(chnk[i,])
       x <- data.table(outMd)
-      rawHits <- read_synHits(x$synHits)
+      rawHits <- read_allBlast(x$allBlast)
 
-      l1 <- mean(table(rawHits$chr1[rawHits$sameOg]))/10
-      l2 <- mean(table(rawHits$chr2[rawHits$sameOg]))/10
+      l1 <- mean(table(rawHits$chr1[rawHits$sameOG]))/10
+      l2 <- mean(table(rawHits$chr2[rawHits$sameOG]))/10
 
       dps <- gsParam$params$dotplots
       if(dps == "check"){
@@ -115,8 +126,8 @@ ggdotplot <- function(hits,
                       maxFacets = 10000,
                       verbose = is.null(outDir)){
   ofID1 <- ofID2 <- sameOg <- ngene1 <- ngene2 <- ord1 <- ord2 <- blkID <-
-    inBuffer <- rnd2 <- rnd1 <- n <- isArrayRep2 <- isArrayRep1 <-
-    noAnchor <- NULL
+    inBuffer <- rnd2 <- rnd1 <- n <- isArrayRep2 <- isArrayRep1 <- chr1 <-
+    noAnchor <- bitScore <- quantile <- chr2 <- sameOG <- isAnchor <- NULL
 
   ##############################################################################
   # 1. Get the plot size figured out
@@ -165,11 +176,13 @@ ggdotplot <- function(hits,
     hits$genome2[1], ng2)
 
   # -- 2.3 subset to chrs with enough genes on them
-  hc[,ngene1 := uniqueN(ofID1[!noAnchor & isArrayRep1]), by = "chr1"]
-  hc[,ngene2 := uniqueN(ofID2[!noAnchor & isArrayRep2]), by = "chr2"]
+  hc[,ngene1 := uniqueN(ofID1[!noAnchor & isArrayRep1], na.rm = T), by = "chr1"]
+  hc[,ngene2 := uniqueN(ofID2[!noAnchor & isArrayRep2], na.rm = T), by = "chr2"]
   hc <- subset(hc, ngene1 > minGenes2plot & ngene2 > minGenes2plot)
 
   # -- 2.4 count n hits in each aggregated position
+  hc <- hc[,c("chr1", "chr2", "rnd1", "rnd2")]
+  hc <- subset(hc, complete.cases(hc))
   hc <- hc[,list(n = .N), by = c("chr1", "chr2", "rnd1", "rnd2")]
   setorder(hc, -n)
   hc <- subset(hc, !is.na(n))
@@ -215,7 +228,7 @@ ggdotplot <- function(hits,
   # 3. Make the plot with just OG hits
 
   # -- 2.1 subset the hits to those with high enough score
-  hc <- subset(tp, sameOg)
+  hc <- subset(tp, sameOG)
   ng1 <- as.integer(uniqueN(hc$ofID1))
   ng2 <- as.integer(uniqueN(hc$ofID2))
 
@@ -275,7 +288,7 @@ ggdotplot <- function(hits,
 
   ##############################################################################
   # 4. Make the plot with just anchors
-  hcBlk <- subset(tp, sameOg & isAnchor)
+  hcBlk <- subset(tp, isAnchor)
   hcBlk[,ngene1 := uniqueN(ofID1[!noAnchor & isArrayRep1]), by = "chr1"]
   hcBlk[,ngene2 := uniqueN(ofID2[!noAnchor & isArrayRep2]), by = "chr2"]
   hcBlk <- subset(hcBlk, ngene1 > minGenes2plot & ngene2 > minGenes2plot)
@@ -321,7 +334,12 @@ ggdotplot <- function(hits,
   if(is.null(outDir)){
     if(verbose)
       cat("writing to the present graphics device")
-
+    if(!is.null(p0))
+      print(p0)
+    if(!is.null(p1))
+      print(p1)
+    if(!is.null(p2))
+      print(p2)
   }else{
     dpFile <- file.path(outDir,
                         sprintf("%s_vs_%s.rawHits.pdf",

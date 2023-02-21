@@ -12,7 +12,7 @@
 annotate_blast <- function(gsParam){
 
   bitScore <- ofID1 <- ofID2 <- og1 <- og2 <- og <- noAnchor1 <- ns1 <- ns2 <-
-    noAnchor2 <- noAnchor <- rnd1 <- rnd2 <- ngene1 <- ngene2 <- sameOg <-
+    noAnchor2 <- noAnchor <- rnd1 <- rnd2 <- ngene1 <- ngene2 <- sameOG <-
     ord1 <- ord2 <- ancOrd1 <- ancOrd2 <- n <- queryBlast <- targetBlast <-
     wt <- size1 <- size2 <- chunk <- lab <- query <- target <- NULL
 
@@ -108,14 +108,15 @@ annotate_blast <- function(gsParam){
       bl <- merge(bed1, merge(bed2, bl, by = "ofID2"), by = "ofID1")
 
       # -- 2.4 get anchor and og information
-      bl[,sameOg := og1 == og2 & !is.na(og1) & !is.na(og2)]
+      bl[,sameOG := og1 == og2 & !is.na(og1) & !is.na(og2)]
       bl[,noAnchor := noAnchor1 | noAnchor2]
       bl[,`:=`(og1 = NULL, og2 = NULL, noAnchor1 = NULL, noAnchor2 = NULL)]
 
-      bl[,`:=`(isAnchor = NA, inBuffer = NA, blkID = NA, sameInblkOg = NA)]
+      bl[,`:=`(isAnchor = NA, inBuffer = NA, isSyntenic = NA,
+               blkID = NA, regID = NA)]
 
-      write_synBlast(bl, filepath = x$synHits)
-      x[,`:=`(nTotalHits = nrow(bl), nGlobOgHits = sum(bl$sameOg))]
+      write_allBlast(bl, filepath = x$allBlast)
+      x[,`:=`(nTotalHits = nrow(bl), nGlobOgHits = sum(bl$sameOG))]
       return(x)
     }))
 

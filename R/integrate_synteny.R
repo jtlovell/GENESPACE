@@ -1,525 +1,327 @@
-#' @title Integrate syntenic positions across genomes
-#' @description
-#' \code{integrate_synteny} Linear interpolation and block coordinate phasing
-#' across multiple genomes
+#' @title Integrate syntenic positions across multiple genomes
 #' @name integrate_synteny
+#' @description
+#' \code{integrate_synteny} Internal functions to connect syntenic positions for
+#' riparian plotting and interpolated gene order calculation for placement of
+#' syntenic pan-genes.
 #'
 #' @param gsParam A list of genespace parameters created by init_genespace.
-#'
-#' \cr
-#' If called, \code{integrate_synteny} returns its own arguments.
-#'
-#' @details Linear interpolation is conducted by using perfectly collinear
-#' syntenic anchors and known fixed positions between any two genomes. The
-#' expected syntenic positions of genes between these anchors (without perfect
-#' positions) are interpolated from the anchor positions. Syntenic block
-#' breakpoints are then calculated for each pair of genomes and also phased
-#' against each reference based on the interpolated syntenic location of
-#' genes in each block.
+#' @param refGenome Character string specifying the reference genome to use
+#' @param useRegions Logical, should regions be used instead of blocks?
+#' @param blkSize see init_genesapce
+#' @param synBuff see init_genesapce
+#' @param refChr string matching chromosome IDs in refGenome
+#' @param refStartBp physical (bp) region start coordinate on refChr
+#' @param refEndBp physical (bp) region end coordinate on refChr
+#' @param mirror logical, should the block coordinates be mirrored between
+#' query and target genomes
+#' @param hits data.table with hits (see read_synHits)
+#' @param verbose logical, should updates be printed to the console?
 
-#' @title integrate_synteny
+#' @details Functions here should not be called directly by the user except
+#' if customizing riparian plots.
+
+#' @title interp_synPos
 #' @description
-#' \code{integrate_synteny} integrate_synteny
+#' \code{interp_synPos} interp_synPos
 #' @rdname integrate_synteny
 #' @import data.table
 #' @export
-integrate_synteny <- function(gsParam, overwrite = FALSE){
-
+interp_synPos <- function(gsParam, verbose = TRUE){
   ##############################################################################
-  # -- ad hoc function to add array reps
-  add_arrayReps2bed <- function(bed){
-    n <- ord <- medOrd <- medDiff <- pepLen <- arrayID <- isRep <-
-      isArrayRep <- ofID <- NULL
-    bed[,n := .N, by = "arrayID"]
-    tmp <- subset(bed, n > 1)
-    tmp[,medOrd := as.numeric(median(ord)), by = "arrayID"]
-    tmp[,medDiff := as.numeric(abs(medOrd - ord))]
-    setorder(tmp, arrayID, medDiff, -pepLen)
-    tmp$noAnchor[duplicated(tmp$arrayID)] <- TRUE
-    tmp[,isRep := !duplicated(arrayID)]
-    bed[,isArrayRep := ofID %in% tmp$ofID[tmp$isRep] | n == 1]
-    tmp <- subset(bed, isArrayRep)
-    tmp[,ord := frank(ord, ties.method = "dense"), by = "genome"]
-    di <- tmp$ord; names(di) <- tmp$ofID
-    return(bed)
-  }
-
   ##############################################################################
-  # -- ad hoc function to add arrays to bed
-  add_array2bed <- function(bed, maxPlaces, synBuff, maxIter = 10){
+  # -- add hoc function to get all genes in a block
 
-    # -- we can make arrays for everything except that we want to exclude the
-    # arrays that are huge and problematic
-    genome <- chr <- id <- arrayID <- nOGPlaces <- tord <- ofID <- NULL
-    tmp <- subset(bed, nOGPlaces <= maxPlaces)
-    tmp[,tord := as.numeric(ord)]
-
-    # -- set up the iteration
-    cnt <- 1
-    diffn <- 1
-    tmp[,arrayID := sprintf(
-      "tmp%s", as.integer(as.factor(paste(genome, chr, id))))]
-    while(cnt <= maxIter && diffn > 0){
-      # -- for each iteration, calculate clusters by the size of jump between
-      # genes larger than the synBuffer
-      cnt <- cnt + 1
-      initn <- uniqueN(tmp$arrayID)
-      genome <- chr <- og <- ord <- jumpLeft <- clus <- n <- NULL
-      setkey(tmp, genome, chr, og, tord)
-      tmp[,tord := frank(tord, ties.method = "dense"), by = "genome"]
-      tmp[,jumpLeft := c(synBuff + 1, diff(tord)), by = c("genome", "chr", "og")]
-      tmp[,clus := as.integer(jumpLeft > synBuff), by = c("genome", "chr")]
-      tmp[,clus := cumsum(clus), by = c("genome", "chr", "og")]
-      tmp[,`:=`(
-        arrayID = sprintf("tmp%s",
-                          as.integer(as.factor(paste(genome, chr, og, clus)))),
-        jumpLeft = NULL, clus = NULL)]
-
-      # -- get the new order of genes based on array ID
-      tmp[,n := .N, by = "arrayID"]
-      tmp1 <- subset(tmp, n == 1)
-      tmp2 <- subset(tmp, n > 1)
-      tmp2[,tord := as.numeric(tord)]
-      tmp2[,tord := mean(as.numeric(tord)), by = "arrayID"]
-      tmp <- rbind(tmp1, tmp2)
-      tmp[,tord := frank(tord, ties.method = "dense"), by = "genome"]
-      newn <- uniqueN(tmp$arrayID)
-      diffn <- initn - newn
-    }
-
-    # -- relabel
-    ogID <- NULL
-    lab <- gsub(" ", "0",
-                align_charRight(
-                  as.numeric(factor(tmp$arrayID,
-                                    levels = unique(tmp$arrayID)))))
-    arrv <- sprintf("Arr%s", lab); names(arrv) <- tmp$ofID
-    bed[,arrayID := arrv[ofID]]
-
-    tmp <- subset(bed, is.na(arrayID))
-    wh <- with(tmp,
-               as.numeric(as.factor(paste(genome, chr, og))))
-    lab <- gsub(" ", "0", align_charRight(wh))
-    wh <- which(is.na(bed$arrayID))
-    bed$arrayID[wh] <- sprintf("NoArr%s", lab)
-    return(bed)
-  }
-
+  ofID2 <- ofID <- n <- blkID <- nGenes <- noAnchor <- isArrayRep <-
+    isAnchor <- ord1 <- ord2 <- ofID1 <- ofID2 <- blkID <- refGenome <- NULL
   ##############################################################################
-  # -- ad hoc function to add array info to bed
-  add_arrayInfo2bed <- function(gsParam){
-
-    md <- data.table(gsParam$annotBlastMd)
-    bedFile <- gsParam$synteny$combBed
-    bed <- read_combBed(bedFile)
-
-    # -- 1.2 find the arrays
-    bed <- add_array2bed(
-      bed = bed,
-      maxPlaces = 4,
-      synBuff = gsParam$params$synBuff,
-      maxIter = 10)
-
-    # -- 1.3 choose the array representative genes
-    bed <- add_arrayReps2bed(bed)
-    write_combBed(x = bed, filepath = bedFile)
-    return(gsParam)
-  }
-
   ##############################################################################
-  # -- ad hoc function to aggregate syntenic positions
-  aggregate_synpos <- function(md, bed, nCores){
+  # -- add hoc function to summarize syntenic mapping positions
+  summarize_synPos <- function(synPos, verbose){
+    cnts <- subset(synPos, !is.na(ofID2))
+    n0 <- subset(bed, !ofID %in% synPos$ofID2)
+    cnts[,n := uniqueN(blkID), by = "ofID2"]
+    tab <- cnts[,list(nGenes = uniqueN(ofID2)), by = c("genome2", "n")]
+    n0 <- n0[,list(nGenes = .N), by = c("genome")]
+    n0[,n := 0]
+    setnames(tab, "genome2", "genome")
+    tab <- rbind(tab, n0)
+    tab[,n := factor(ifelse(n <= 2, n, 3), levels = 0:3)]
 
-    query <- target <- genome <- isArrayRep <- chr  <- ord <- interpChr <- NULL
-    md <- md
-    gids <- with(md, unique(c(query, target)))
-    interpChrs <- rbindlist(mclapply(gids, mc.cores = nCores, function(i){
+    tab <- dcast(
+      tab, n ~ genome, value.var = "nGenes", fill = 0, drop = FALSE,
+      fun.aggregate = sum)
+    tab <- melt(
+      tab, id.vars = "n", variable.name = "genome", value.name = "nGenes")
+    labs <- align_charLeft(genomeIDs)
+    names(labs) <- genomeIDs
 
-      # -- 2.1 get the input data
-      mds <- subset(md, query == i | target == i)
-      beds <- subset(bed, genome == i)
+    tab <- tab[,list(nGenes = sum(nGenes)), by = c("genome", "n")]
+    out <- data.table(tab)
 
-      # -- 2.2 read in the interpolated positions (stored in the tmp dir)
-      interps <- rbindlist(lapply(which(!is.na(mds$interPosFile)), function(j)
-        if(file.exists(mds$interPosFile[j]))
-          read_intSynPos(mds$interPosFile[j])))
-
-      # -- 2.3 match the interpolated and bed columns
-      beda <- subset(beds, isArrayRep)[,c("genome", "ofID", "chr", "ord", "og")]
-      beda[,`:=`(interpGenome = genome, interpChr = chr,
-                 interpOrd = ord, isAnchor = TRUE)]
-      inta <- subset(interps, !is.na(interpChr) & genome == i)
-      inta <- inta[,colnames(beda), with = F]
-
-      # -- 2.4 combine and write to file in the /pangenome directory
-      intb <- rbind(beda, inta)
-      setkey(intb, ord)
-
-      spl <- split(intb, by = "interpGenome")
+    if(verbose){
+      tab[,nGenes := align_charRight(nGenes)]
+      spl <- split(tab, by = "genome")
       for(j in names(spl)){
-        spFile <- file.path(gsParam$paths$pangenome, sprintf(
-          "%s_vs_%s.integratedSynPos.txt", i, j))
-        fwrite(spl[[j]], spFile, sep = "\t", quote = FALSE)
+        with(spl[[j]], cat(sprintf(
+          "\t\t%s: %s / %s / %s / %s\n",
+          labs[j], nGenes[n == 0], nGenes[n == 1],
+          nGenes[n == 2], nGenes[n == 3])))
       }
-      return(intb[,c("ofID", "interpGenome", "interpChr", "interpOrd", "isAnchor")])
-    }))
-    return(interpChrs)
-  }
-
-  ##############################################################################
-  # 1. add in array information into bed file, using the new OGs
-  lab <- query <- target <- interPosFile <- isAnchor <- tmpBlk <- blkID <-
-    interpGenome <- interpChr <- NULL
-
-  gsParam <- add_arrayInfo2bed(gsParam)
-  nCores <- gsParam$params$nCores
-
-  md <- data.table(gsParam$annotBlastMd)
-  md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
-  md[,interPosFile := NA]
-
-  bed <- read_combBed(gsParam$synteny$combBed)
-
-  ##############################################################################
-  # 2. for each pair of genomes, do linear interpolation, save output
-  cat("\t##############\n\tLinear interpolation of syntenic positions ... \n")
-  gsParam <- interp_synPos(gsParam, overwrite = overwrite)
-  md <- data.table(gsParam$synteny$blast)
-  md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
-
-  ##############################################################################
-  # 3. Aggregate interpolated positions across all hits to each genome
-  cat("\t##############\n\tAggregating positions across genomes ... ")
-  interpChrs <- aggregate_synpos(bed = bed, md = md, nCores = nCores)
-
-  # 3. For each genome, calculate block coordinates
-  cat("Done!\n\t##############\n\tSplitting syntenic block coordinates by ref. chr. ... ")
-
-  # -- 3.1 organize the interpolated positions for a merge
-  # spFile <- file.path(gsParam$paths$pangenome, sprintf(
-  #   "%sintegratedSynPos.txt", i))
-  interp1 <- with(interpChrs, data.table(
-    ofID1 = ofID, interpGenome = interpGenome, interpChr = interpChr))
-  interp2 <- with(interpChrs, data.table(
-    ofID2 = ofID, interpGenome = interpGenome, interpChr = interpChr))
-
-  # -- 3.2 merge interpolated chrosomes with block IDs
-  blkComb <- mclapply(1:nrow(md), mc.cores = nCores, function(j){
-    # -- read in the blasts
-    g1 <- md$query[j]
-    g2 <- md$target[j]
-    hits <- subset(fread(
-      md$synHits[j],
-      na.strings = c("", "NA"),
-      select = c("ofID1", "chr1", "start1", "end1", "ord1", "genome1",
-                 "ofID2", "chr2", "start2", "end2", "ord2", "genome2",
-                 "isAnchor", "blkID"),
-      showProgress = FALSE),
-      isAnchor & !is.na(blkID))
-    hits[,tmpBlk := blkID]
-
-    # -- merge with interp via genome1
-    tmp <- merge(interp1, hits, by = "ofID1", allow.cartesian = T)
-    tmp[,blkID := sprintf("%sXXXgrpbyXXX%sXXXgrpbyXXX%s",
-                          gsub("_", "", tmpBlk), interpGenome, interpChr)]
-    tmpb1 <- calc_blkCoords(tmp, mirror = T)
-    tmpb1[,c("blkID", "refGenome", "refChr") := tstrsplit(blkID, "XXXgrpbyXXX")]
-
-    # -- merge with interp via genome2
-    tmp <- merge(interp2, hits, by = "ofID2", allow.cartesian = T)
-    tmp[,blkID := sprintf("%sXXXgrpbyXXX%sXXXgrpbyXXX%s",
-                          gsub("_", "", tmpBlk), interpGenome, interpChr)]
-    tmpb2 <-  calc_blkCoords(tmp, mirror = T)
-    tmpb2[,c("blkID", "refGenome", "refChr") := tstrsplit(blkID, "XXXgrpbyXXX")]
-    hits[,blkID := tmpBlk]
-    out <- list(rawBlks = calc_blkCoords(hits),
-                phasedBlks = rbind(tmpb1, tmpb2))
+    }
+    setnames(out, "n", "nSynPos")
     return(out)
-  })
-  rawBlks <- rbindlist(lapply(blkComb, function(x) x$rawBlks))
-  rawBlks <- subset(rawBlks, !duplicated(rawBlks))
-  blkComb <- rbindlist(lapply(blkComb, function(x) x$phasedBlks))
-  blkComb <- subset(blkComb, !duplicated(blkComb))
-  fwrite(
-    rawBlks, file = file.path(gsParam$paths$results, "blkCoords.txt"),
-    sep = "\t", quote = FALSE, showProgress = FALSE)
-  fwrite(
-    blkComb, file = file.path(gsParam$paths$riparian, "refPhasedBlkCoords.txt"),
-    sep = "\t", quote = FALSE, showProgress = FALSE)
-  cat("Done!\n")
-  return(gsParam)
-}
-
-#' @title Linear interpolation of syntenic positions
-#' @description
-#' \code{interp_synPos} Find the likely position of a gene based on the syntenic
-#' position of its neighbors
-#' @rdname integrate_synteny
-#' @import data.table
-#' @importFrom parallel mclapply
-#' @export
-interp_synPos <- function(gsParam, overwrite = FALSE){
-
-  ##############################################################################
-  # -- add hoc function to ensure that syntenic anchors are all collinear
-  check_synAnchorPos <- function(ord1, ord2, blkSize){
-
-    xc <- x <- yc <- y <- clus <- index <- chunk <- n11 <- NULL
-
-    # -- convert to vectors
-    ord1 <- as.integer(ord1)
-    ord2 <- as.integer(ord2)
-    excl <- is.na(ord1) | is.na(ord2)
-
-    # -- check that orders are specified correctly
-    if(all(is.na(ord1)) || all(is.na(ord2)))
-      stop("only NA values found ... cannot conduct linear interpolation\n")
-    if(length(ord1) != length(ord2))
-      stop("order vectors must be of the same length\n")
-
-    # -- make a data table with these data and remove rows with NAs
-    ix <- data.table(index = 1:length(ord1))
-    dt <- data.table(index = 1:length(ord1), x = ord1, y = ord2)
-    dt <- subset(dt, complete.cases(dt))
-
-    # -- set the minimum retained block size and check that its ok
-    minJitBlk <- ceiling(blkSize/2)
-    if(is.na(minJitBlk) || minJitBlk < 1)
-      stop("blkSize must be posive and numeric\n")
-
-    # -- iteratively remove offending hits that are not in exact synteny
-    for(j in 1:minJitBlk){
-
-      # -- rank xy
-      dt[,xc := frank(x, ties.method = "dense")]
-      dt[,yc := frank(y, ties.method = "dense")]
-
-      # -- cluster
-      if(nrow(dt) >= j){
-        dt[,clus := dbscan(
-          frNN(cbind(xc, yc), eps = j), minPts = j)$cluster]
-      }else{
-        dt[,clus := 0]
-      }
-
-      # -- remove unclustered
-      dt <- subset(dt, clus != 0)
-    }
-
-    # -- re-rank if any clustered
-    if(nrow(dt) >= minJitBlk){
-      dt[,xc := frank(x, ties.method = "dense")]
-      dt[,yc := frank(y, ties.method = "dense")]
-
-      # -- recluster
-      dt[,clus := dbscan(
-        frNN(cbind(xc, yc), eps = minJitBlk), minPts = minJitBlk)$cluster]
-      dt <- subset(dt, clus != 0)
-    }else{
-      dt[,clus := NA]
-    }
-
-    # -- one last pruning and classify so that clus can be used
-    dt <- merge(ix, dt[,c("index", "clus")], by = "index", all.x = T)
-    setkey(dt, index)
-    if(nrow(dt) != length(ord1))
-      stop("problem matching input and output order string\n")
-    return(!is.na(dt$clus) & !excl)
   }
 
   ##############################################################################
-  # -- add hoc function to interpolate syntenic hits position
-  interp_hitsPos <- function(hits, bed, blkSize = 5){
-    # hits <<- hits; bed <<- bed;  blkSize <<- blkSize
-    genome <- isArrayRep <- chr <- start <- end <- sameOg <- isAnchor <- end2 <-
-      blkID <- useAsAnch <- ord1 <- ord2 <- anySelf <- ofID1 <- ofID2 <- chr1 <-
-      start1 <- end1 <- chr2 <- start2 <- interpRefOrd <- hasSelf <- NULL
-    # 1. Get the data set up
-    # -- 1.1 subset the bed to each genome, key for merge
-    bed1 <- subset(bed, genome == hits$genome1[1] & isArrayRep)
-    bed2 <- subset(bed, genome == hits$genome2[1] & isArrayRep)
-    setkey(bed1, chr, start, end)
-    setkey(bed2, chr, start, end)
 
-    # -- 1.2 subset to potential anchor hits
-    blkSize2 <- ceiling(blkSize/2)
-    anch <- subset(hits, sameOg & isAnchor & !is.na(blkID))
-    anch[,hasSelf := any(ofID1 %in% ofID2), by = "blkID"]
-    anch <- subset(anch, !hasSelf)
+  ##############################################################################
+  ##############################################################################
 
-    if(nrow(anch) < blkSize){
-      return(NULL)
-    }else{
-      # -- 1.3 determine fully collinear hits
-      anch[,useAsAnch := check_synAnchorPos(
-        ord1 = ord1, ord2 = ord2, blkSize = blkSize), by = "blkID"]
-      anch <- subset(anch, useAsAnch)
-      anch[,anySelf := any(ofID1 == ofID2), by = "blkID"]
-      anch <- subset(anch, !anySelf)
-      if(nrow(anch) < blkSize){
-        return(NULL)
-      }else{
-        splAnch <- split(anch[,c("ofID1", "ofID2", "blkID")], by = "blkID")
+  # ... read in bedfile
+  genomeIDs <- gsParam$genomeIDs
+  bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
+  bed <- subset(bed, !noAnchor & isArrayRep)
+  ##############################################################################
+  # ... for each genome ID
+  cnts <- rbindlist(lapply(genomeIDs, function(i){
+    if(verbose)
+      cat(sprintf("\t%s:  (0 / 1 / 2 / >2 syntenic positions)\n", i))
+    ############################################################################
+    # linear interpolation of positions
+    # -- 1.1 read in syntenic hits
+    hits <- read_refGenomeSynHits(
+      gsParam = gsParam, refGenome = i)
 
-        # -- 1.4 get anchor block coordinates
-        anchCoord1 <- anch[,list(chr = chr1[1], start = min(start1), end = max(end1)),
-                           by = "blkID"]
-        setkey(anchCoord1, chr, start, end)
-        anchCoord2 <- anch[,list(chr = chr2[2], start = min(start2), end = max(end2)),
-                           by = "blkID"]
-        setkey(anchCoord2, chr, start, end)
+    # -- 1.2 subset to syntenic anchor hits
+    anchors <- subset(hits, isAnchor)
 
-        # -- 1.5 f overlap join
-        bedCoord1 <- split(foverlaps(anchCoord1, bed1), by = "blkID")
-        bedCoord2 <- split(foverlaps(anchCoord2, bed2), by = "blkID")
-        blkIDs <- intersect(names(bedCoord1), names(bedCoord2))
+    # -- 1.3 get hits within block coordinates
+    bedInBlk <- get_bedInBlk(hits = anchors, bed = bed)
 
-        # 2. Interpolate by block
-        interpd <- rbindlist(lapply(blkIDs, function(i){
+    # -- 1.4 Do interpolation for each block
+    x1 <- subset(bedInBlk, !is.na(ord1))
+    setorder(x1, ord1, na.last = T)
+    x1[,`:=`(ord2 = interp_approx(x = ord1, y = ord2)), by = "blkID"]
 
-          g12 <- subset(anch, blkID == i)[,c("ofID1", "ofID2", "blkID")]
-          c1 <- range(which(bed$ofID %in% g12$ofID1))
-          c2 <- range(which(bed$ofID %in% g12$ofID2))
-          b1 <- with(bed[c1[1]:c1[2], ], data.table(
-            chr1 = chr, ord1 = ord, ofID1 = ofID))
-          b2 <- with(bed[c2[1]:c2[2], ], data.table(
-            chr2 = chr, ord2 = ord, ofID2 = ofID))
-          g12 <- merge(b1, merge(b2, g12, by = "ofID2", all = T), by = "ofID1", all = T)
-          # print(i)
-          # # -- 2.1 merge anchors with all genes in the block
-          gen1 <- bed$genome[c1[1]]
-          gen2 <- bed$genome[c2[1]]
-          chromo1 <- b1$chr[1]
-          chromo2 <- b2$chr[1]
-          # g1 <- with(bedCoord1[[i]], data.table(ofID1 = ofID, chr1 = chr, ord1 = ord))
-          # g2 <- with(bedCoord2[[i]], data.table(ofID2 = ofID, chr2 = chr, ord2 = ord))
-          # g12 <- merge(g1, merge(
-          #   g2, splAnch[[i]], by = "ofID2", all = T), by = "ofID1", all = T)
+    x2 <- subset(bedInBlk, !is.na(ord2))
+    setorder(x2, ord1, na.last = T)
+    x2[,`:=`(ord1 = interp_approx(x = ord2, y = ord1)), by = "blkID"]
 
-          # -- 2.2 Do genome 1 (merge, strip leading / trailing nas, interp ofID2)
-          tmp1 <- subset(g12, !is.na(ofID1) & !is.na(ord1))
-          setkey(tmp1, ord1)
-          tmp1 <- subset(tmp1, !flag_boundingNAs(ofID2))
-          if(nrow(tmp1) > 1){
-            tmp1[,interpRefOrd := interp_linear(x = ord2, y = ord1)]
-          }else{
-            tmp2[,interpRefOrd := ord2]
-          }
+    # -- 1.5 combine
+    interpInBlk <- rbind(x1, x2)
+    interpInBlk <- subset(interpInBlk, !duplicated(paste(ofID1, ofID2, blkID)))
 
-          # -- 2.3 Do genome 2 (merge, strip leading / trailing nas, interp ofID1)
-          tmp2 <- subset(g12, !is.na(ofID2) & !is.na(ord2))
-          setkey(tmp2, ord2)
-          tmp2 <- subset(tmp2, !flag_boundingNAs(ofID1))
-          if(nrow(tmp2) > 1){
-            tmp2[,interpRefOrd := interp_linear(x = ord1, y = ord2)]
-          }else{
-            tmp2[,interpRefOrd := ord1]
-          }
+    # -- 1.6 write to file
+    outf <- file.path(gsParam$paths$pangenes,
+                      sprintf("%s_integratedSynPos.txt", i))
+    write_intSynPos(interpInBlk, filepath = outf)
 
-
-          o1 <- with(tmp1, data.table(
-            ofID = ofID1, interpChr = chromo2,
-            interpGenome = gen2, interpOrd = interpRefOrd, isAnchor = !is.na(ofID2)))
-          o2 <- with(tmp2, data.table(
-            ofID = ofID2, interpChr = chromo1,
-            interpGenome = gen1, interpOrd = interpRefOrd, isAnchor = !is.na(ofID1)))
-          out <- rbind(o1, o2)
-          return(out)
-        }))
-
-        interpout <- merge(bed, interpd, by = "ofID", all = T, allow.cartesian = T)
-        interpout <- subset(interpout, !duplicated(interpout))
-        return(interpout)
-      }
-    }
-  }
-
-  isArrayRep <- lab <- query <- target <- interPosFile <- ofID1 <- ofID2 <-
-    genome <- nPlace <- interpOrd <- chunk <- n11 <- NULL
-
-  bed <- read_combBed(gsParam$synteny$combBed)
-  bedrep <- subset(bed, isArrayRep)
-
-  md <- data.table(gsParam$synteny$blast)
-  md[,lab := align_charLeft(sprintf("%s v. %s: ", query, target))]
-  md[,interPosFile := NA]
-
-  nCores <- gsParam$params$nCores
-  md[,chunk := rep(1:.N, each = nCores)[1:.N]]
-
-  synMdSpl <- split(md, by = "chunk")
-
-  # -- loop through the metadata
-  blMdOut <- rbindlist(lapply(1:length(synMdSpl), function(chnki){
-    chnk <- data.table(synMdSpl[[chnki]])
-
-    if(nCores > 1)
-      cat(sprintf(
-        "\t# Chunk %s / %s (%s) ... \n",
-        chnki, max(md$chunk), format(Sys.time(), "%X")))
-
-    outChnk <- rbindlist(mclapply(1:nrow(chnk), mc.cores = nCores, function(i){
-      g1 <- chnk$query[i]
-      g2 <- chnk$target[i]
-      spFile <- file.path(gsParam$paths$tmp, sprintf(
-        "%s_vs_%s.interpSynPos.txt", g1, g2))
-      if(!file.exists(spFile) || overwrite){
-        hits <- read_synHits(chnk$synHits[i])
-        synPos <- interp_hitsPos(
-          hits = subset(hits, ofID1 %in% bedrep$ofID & ofID2 %in% bedrep$ofID),
-          bed = subset(bedrep, genome %in% c(g1, g2)))
-
-        if(!is.null(synPos)){
-          synPos[,nPlace := uniqueN(interpOrd, na.rm = T),
-                 by = c("ofID", "genome")]
-          synPos$nPlace[synPos$nPlace >= 2] <- "2+"
-          chnk$interPosFile[i] <- spFile
-          write_intSynPos(x = synPos, filepath = spFile)
-          synPos[,nPlace := factor(nPlace, levels = c("0", "1", "2+"))]
-          tab <- with(synPos, table(genome, nPlace))
-          toprint <- data.table(
-            lab = chnk$lab[i], n11 = tab[g1, "1"], n21 = tab[g2, "1"],
-            n12 = tab[g1, "2+"], n22 = tab[g2, "2+"],
-            n10 = tab[g1, "0"],  n20 = tab[g2, "0"])
-        }else{
-          toprint <- data.table(
-            lab = chnk$lab[i], n11 = NA, n21 = NA,  n12 = NA,  n22 = NA,
-            n10 = NA, n20 = NA)
-        }
-      }else{
-        toprint <- data.table(
-          lab = chnk$lab[i], n11 = "noOver", n21 = NA,  n12 = NA,  n22 = NA,
-          n10 = NA, n20 = NA)
-      }
-      return(toprint)
-    }))
-
-    if(any(outChnk$n11 == "noOver" & !is.na(outChnk$n11))){
-      with(subset(outChnk, n11 == "noOver"), cat(sprintf(
-        "\t...%sfile exists and !overwrite, skipping interpolation\n",
-        lab)))
-    }
-
-    if(any(is.na(outChnk$n11))){
-      with(subset(outChnk, is.na(n11)), cat(sprintf(
-          "\t...%sno non-self blocks found, skipping interpolation\n",
-          lab)))
-    }
-
-    outChnk$n11[outChnk$n11 == "noOver"] <- NA
-
-    if(any(!is.na(outChnk$n11))){
-      with(subset(outChnk, !is.na(n11)),  cat(sprintf(
-        "\t...%s1x = %s/%s || 2+x = %s/%s || 0x = %s/%s\n",
-        lab, n11, n21, n12, n22, n10, n20)))
-    }
-
+    # -- 1.7 summarize interpolated positions
+    md <- summarize_synPos(interpInBlk, verbose = verbose)
+    md[,refGenome := i]
     return(md)
   }))
-  md[,interPosFile := file.path(gsParam$paths$tmp, sprintf(
-    "%s_vs_%s.interpSynPos.txt", query, target))]
-  md$interPosFile[!file.exists(md$interPosFile)] <- NA
-  mdv <- md$interPosFile; names(mdv) <- with(md, paste(query, target))
-  gsParam$synteny$blast[,interPosFile := mdv[paste(query, target)]]
-  return(gsParam)
+
+  return(cnts)
+}
+
+#' @title phase_blks
+#' @description
+#' \code{phase_blks} phase_blks
+#' @rdname integrate_synteny
+#' @import data.table
+#' @importFrom dbscan dbscan frNN
+#' @export
+phase_blks <- function(gsParam,
+                       refGenome,
+                       useRegions,
+                       blkSize = 5,
+                       synBuff = 100,
+                       refChr = NULL,
+                       refStartBp = NULL,
+                       refEndBp = NULL){
+
+  hogID <- OG <- blkID <- regID <- chr1 <- end1 <- start1 <- isAnchor <-
+    blkID <- regID <- refChr1 <- refChr2 <- n <- ord1 <- ord2 <- clus <-
+    tord1 <- tord2 <- NULL
+  # ... read in bedfile
+  genomeIDs <- gsParam$genomeIDs
+  bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
+
+  if(length(refChr) > 1 || length(refEndBp) > 1 || length(refStartBp) > 1)
+    stop("if specified, refChr, refStartBp & refEndBp must all have length 1\n")
+  if(sum(is.null(refChr), is.null(refStartBp), is.null(refEndBp)) == 3){
+    inReg <- FALSE
+  }else{
+    if(sum(is.null(refChr), is.null(refStartBp), is.null(refEndBp)) == 0){
+      inReg <- TRUE
+    }else{
+      stop("if specified, refChr, refStartBp & refEndBp must all have length 1\n")
+    }
+  }
+
+  refHits <- read_refGenomeSynHits(
+    gsParam = gsParam, refGenome = refGenome)
+
+  if(!all(is.na(refHits$regID)) && useRegions)
+    refHits[,blkID := regID]
+
+  if(inReg){
+    refHits <- subset(
+      refHits, chr1 == refChr & end1 >= refStartBp & start1 <= refEndBp)
+  }
+
+  rh <- with(subset(refHits, !is.na(blkID)), data.table(
+    ofID = c(ofID1, ofID2), refChr = c(chr1, chr1)))
+  rh <- subset(rh, complete.cases(rh))
+  rh <- subset(rh, !duplicated(rh))
+
+  rh1 <- data.table(rh); rh2 <- data.table(rh)
+  setnames(rh1, c("ofID1", "refChr1"))
+  setnames(rh2, c("ofID2", "refChr2"))
+
+  synhitFiles <- gsParam$synteny$blast$synHits
+  hcols <- c("ofID1", "ofID2", "genome1", "genome2", "chr1", "chr2", "ord1", "ord2", "start1", "end1", "start2", "end2","blkID")
+  refBlks <- rbindlist(lapply(synhitFiles, function(j){
+
+    # -- read in the hits
+    h <- subset(read_synHits(j), isAnchor)
+    if(!all(is.na(h$regID)) && useRegions){
+      h[,blkID := regID]
+    }
+
+    h <- h[,hcols, with = F]
+    h <- subset(h, complete.cases(h))
+
+    # -- merge with reference hit chromosome info
+    h <- merge(rh2, h, by = "ofID2", allow.cartesian = T, all.y = T)
+    h <- merge(rh1, h, by = "ofID1", allow.cartesian = T, all.y = T)
+
+    # -- re-calculate syntenic blocks
+    anchs <- subset(h, refChr1 == refChr2)
+    anchs <- subset(anchs, complete.cases(anchs))
+    anchs[,n := .N, by = c("chr1", "chr2", "blkID", "refChr1")]
+    anchs[,`:=`(tord1 = frank(ord1, ties.method = "dense"),
+                tord2 = frank(ord2, ties.method = "dense")),
+          by = "blkID"]
+    # anchs <<- anchs
+    # print(j)
+    # print(i)
+    anchs <- subset(anchs, n >= blkSize)
+    anchs[,clus := dbscan(frNN(
+      x = cbind(tord1, tord2),
+      eps = synBuff),
+      minPts = blkSize)$cluster,
+      by = c("chr1", "chr2", "blkID", "refChr1")]
+    anchs[,blkID := sprintf("%s=refChr_XXX_%s_%s",refChr1, blkID, clus)]
+
+    bc <- calc_blkCoords(anchs, mirror = T)
+    bc[,c("refChr", "blkID") := tstrsplit(blkID, "=refChr_XXX_")]
+    return(bc)
+  }))
+  refBlks[,refGenome := refGenome]
+  refBlks$refGenome[is.na(refBlks$refChr)] <- NA
+
+  return(refBlks)
+}
+
+#' @title nophase_blks
+#' @description
+#' \code{nophase_blks} nophase_blks
+#' @rdname integrate_synteny
+#' @import data.table
+#' @export
+nophase_blks <- function(gsParam,
+                         useRegions,
+                         blkSize = 5){
+
+  isAnchor <- regID <- blkID <- n <- NULL
+  synhitFiles <- gsParam$synteny$blast$synHits
+  hcols <- c("ofID1", "ofID2", "genome1", "genome2", "chr1", "chr2", "ord1", "ord2", "start1", "end1", "start2", "end2","blkID")
+  allBlks <- rbindlist(lapply(synhitFiles, function(j){
+
+    # -- read in the hits
+    h <- subset(read_synHits(j), isAnchor)
+    if(!all(is.na(h$regID)) && useRegions){
+      h[,blkID := regID]
+    }
+
+    h <- h[,hcols, with = F]
+    anchs <- subset(h, complete.cases(h))
+    anchs[,n := .N, by = c("chr1", "chr2", "blkID")]
+    anchs <- subset(anchs, n >= blkSize)
+
+    bc <- calc_blkCoords(anchs, mirror = T)
+    return(bc)
+  }))
+
+  return(allBlks)
+}
+
+#' @title calculate syntenic block coordinates
+#' @description
+#' \code{calc_blkCoords} from a hits object, determine block coordinates,
+#' orientation and membership
+#' @rdname integrate_synteny
+#' @import data.table
+#' @importFrom stats cor
+#' @export
+calc_blkCoords <- function(hits, mirror = FALSE){
+  setDTthreads(1)
+
+  # -- get the columns and complete observations for these
+  hcols <- c("blkID", "start1", "start2", "end1", "end2", "ord1", "ord2",
+             "chr1", "chr2", "genome1", "genome2", "ofID1", "ofID2")
+  bhits <- subset(hits, complete.cases(hits[,hcols, with = F]))
+
+  if(mirror){
+    tmp <- data.table(bhits)
+    setnames(tmp, gsub("2$", "3", colnames(tmp)))
+    setnames(tmp, gsub("1$", "2", colnames(tmp)))
+    setnames(tmp, gsub("3$", "1", colnames(tmp)))
+    bhits <- rbind(bhits, tmp[,colnames(bhits), with = F])
+    bhits <- subset(bhits, !duplicated(paste(ofID1, ofID2, blkID)))
+  }
+
+  # -- get the genome1 coordinates
+  ofID1 <- start1 <- end1 <- ofID1 <- ord1 <- blkID <- NULL
+  setkey(bhits, ord1)
+  blks1 <- bhits[,list(
+    startBp1 = min(start1), endBp1 = max(end1),
+    startOrd1 = min(ord1), endOrd1 = max(ord1),
+    firstGene1 = first(ofID1), lastGene1 = last(ofID1),
+    nHits1 = uniqueN(ofID1)),
+    by = c("blkID", "genome1","genome2", "chr1", "chr2")]
+
+  # -- get the genome2 coordinates
+  ofID2 <- start2 <- end2 <- ofID2 <- ord2 <- NULL
+  setkey(bhits, ord2)
+  blks2 <- bhits[,list(
+    minBp2 = min(start2), maxBp2 = max(end2),
+    minOrd2 = min(ord2), maxOrd2 = max(ord2),
+    minGene2 = first(ofID2), maxGene2 = last(ofID2),
+    nHits2 = uniqueN(ofID2),
+    orient = ifelse(length(ord1) <= 1, "+",
+                    ifelse(cor(jitter(ord1),
+                               jitter(ord2)) > 0,"+", "-"))),
+    by = c("blkID", "genome1","genome2", "chr1", "chr2")]
+
+  # -- merge the two coordinates
+  blks <- merge(blks1, blks2, by = c("genome1","genome2","chr1","chr2","blkID"))
+
+  # -- fix the coordinates for inverted blocks
+  orient <- NULL
+  bgfor <- subset(blks, orient == "+")
+  bgrev <- subset(blks, orient == "-")
+
+  maxBp2 <- minBp2 <- maxOrd2 <- minOrd2 <- maxGene2 <- minGene2 <- NULL
+  bgrev[,`:=`(startBp2 = maxBp2, endBp2 = minBp2,
+              startOrd2 = maxOrd2, endOrd2 = minOrd2,
+              firstGene2 = maxGene2, lastGene2 = minGene2)]
+  bgfor[,`:=`(startBp2 = minBp2, endBp2 = maxBp2,
+              startOrd2 = minOrd2, endOrd2 = maxOrd2,
+              firstGene2 = minGene2, lastGene2 = maxGene2)]
+  blks <- rbind(bgfor, bgrev)
+  return(blks)
 }

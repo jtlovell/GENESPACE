@@ -26,16 +26,14 @@
 \alias{add_rle}
 \alias{gs_colors}
 \alias{clus_igraph}
-\alias{interp_linear}
-\alias{flag_boundingNAs}
 \alias{are_colors}
 \alias{scale_between}
 \alias{read_combBed}
-\alias{read_pangenome}
-\alias{write_pangenome}
 \alias{write_combBed}
+\alias{read_allBlast}
+\alias{write_allBlast}
 \alias{read_synHits}
-\alias{write_synBlast}
+\alias{write_synHits}
 \alias{add_alpha}
 \alias{read_intSynPos}
 \alias{write_intSynPos}
@@ -43,6 +41,17 @@
 \alias{get_diamondVersion}
 \alias{theme_genespace}
 \alias{download_exampleData}
+\alias{interp_approx}
+\alias{read_refGenomeSynHits}
+\alias{read_refGenomeAllBlast}
+\alias{get_bedInBlk}
+\alias{add_array2bed}
+\alias{add_arrayReps2bed}
+\alias{write_pangenes}
+\alias{read_pangenes}
+\alias{find_nnHit}
+\alias{flag_hitsInRadius}
+\alias{flag_hitsInBlk}
 \title{Generic internal functions used by genespace}
 \usage{
 .onAttach(...)
@@ -112,25 +121,21 @@ gs_colors(n = 10)
 
 clus_igraph(id1, id2)
 
-interp_linear(x, y)
-
-flag_boundingNAs(x)
-
 are_colors(col)
 
 scale_between(x, min, max, scale1toMean = TRUE)
 
 read_combBed(filepath)
 
-read_pangenome(filepath, which = "wide")
-
-write_pangenome(x, filepath)
-
 write_combBed(x, filepath)
+
+read_allBlast(filepath, ...)
+
+write_allBlast(x, filepath)
 
 read_synHits(filepath, ...)
 
-write_synBlast(x, filepath)
+write_synHits(x, filepath)
 
 add_alpha(col, alpha = 1)
 
@@ -145,6 +150,28 @@ get_diamondVersion(filepath)
 theme_genespace(col = "black")
 
 download_exampleData(filepath)
+
+interp_approx(x, y)
+
+read_refGenomeSynHits(gsParam, refGenome)
+
+read_refGenomeAllBlast(gsParam, refGenome)
+
+get_bedInBlk(hits, bed)
+
+add_array2bed(bed, synBuff, maxIter = 10, reorder = TRUE)
+
+add_arrayReps2bed(bed)
+
+write_pangenes(x, filepath)
+
+read_pangenes(x, filepath, ...)
+
+find_nnHit(x, y, isAnchor, radius)
+
+flag_hitsInRadius(x, y, isAnchor, radius)
+
+flag_hitsInBlk(x, y, blkID)
 }
 \arguments{
 \item{...}{additional parameters passed on to other functions
@@ -179,17 +206,33 @@ If called, \code{utils} returns its own arguments.}
 
 \item{id2}{character, second id}
 
-\item{y}{numeric, y values}
-
 \item{col}{color}
 
 \item{scale1toMean}{logical, should values be scaled to 1?}
 
 \item{alpha}{numeric, transparency}
 
+\item{y}{numeric, y values}
+
+\item{gsParam}{genespace parameters, see init_genespace.}
+
+\item{refGenome}{character string specifying the reference genome}
+
 \item{hits}{data.table of syntenic hits}
 
-\item{mirror}{logical, should values be mirrored?}
+\item{bed}{data.table containing the combined bed object}
+
+\item{synBuff}{see init_genespace.}
+
+\item{maxIter}{integer, the maximum number of iterations to use}
+
+\item{reorder}{logical, should the gene rank position be re-ordered?}
+
+\item{isAnchor}{logical, is a hit an anchor?}
+
+\item{radius}{numeric, the 2d search radius.}
+
+\item{blkID}{vector of block IDs}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called
@@ -256,25 +299,21 @@ runs or the unique run ids.
 
 \code{clus_igraph} cluster connected subgraphs from pairwise observations
 
-\code{interp_linear} linear interpolation of missing values in x
-
-\code{flag_boundingNAs} For a vector of data, flag the terminal runs of NAs
-
 \code{are_colors} check if a vector is coercible to R colors
 
 \code{scale_between} scale a vector between a range
 
 \code{read_combBed} ensures consistent combBed IO
 
-\code{read_pangenome} ensures consistent pangenome IO
-
-\code{write_pangenome} ensures consistent pangenome IO
-
 \code{write_combBed} ensures consistent combBed IO
+
+\code{read_allBlast} ensures consistent allBlast IO
+
+\code{write_allBlast} ensures consistent allBlast IO
 
 \code{read_synHits} ensures consistent synHit IO
 
-\code{write_synBlast} ensures consistent synHit IO
+\code{write_synHits} ensures consistent synHit IO
 
 \code{add_alpha} add transparency to a color
 
@@ -292,4 +331,26 @@ returns the installed version.
 color of the panel.background.
 
 \code{download_exampleData} downloads chicken and human annotations from NCBI
+
+\code{interp_approx} interp_approx
+
+\code{read_refGenomeSynHits} read_refGenomeSynHits
+
+\code{read_refGenomeSynHits} read_refGenomeSynHits
+
+\code{get_bedInBlk} get_bedInBlk
+
+\code{add_array2bed} add array ID to the bed file
+
+\code{add_arrayReps2bed} calculate the array representatives
+
+\code{write_pangenes} write_pangenes
+
+\code{read_pangenes} read_pangenes
+
+\code{find_nnHit} find_nnHit
+
+\code{flag_hitsInRadius} flag_hitsInRadius
+
+\code{flag_hitsInBlk} flag_hitsInBlk
 }

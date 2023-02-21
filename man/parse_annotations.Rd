@@ -21,6 +21,7 @@ parse_annotations(
   headerSep = " ",
   gffStripText = "",
   headerStripText = "locus=",
+  convertSpecialCharacters = "_",
   chrIdDictionary = NULL,
   troubleShoot = FALSE,
   overwrite = FALSE
@@ -38,6 +39,7 @@ match_fasta2gff(
   gffStripText,
   headerStripText,
   chrIdDictionary,
+  convertSpecialCharacters,
   troubleShoot
 )
 
@@ -101,6 +103,10 @@ header which contains the gene ID information to match with the gff.}
 to remove text from the gff ID.}
 
 \item{headerStripText}{like gffStripText, but for the fasta header}
+
+\item{convertSpecialCharacters}{Character string with a non-special character
+of length 1. Replaces special characters (punctionation other
+than ".", "-", and "_") if they are present in the gene IDs.}
 
 \item{chrIdDictionary}{a named vector where the names are the values in the
 first ("seqnames") gff3 column and the element names in the vector are

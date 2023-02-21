@@ -41,6 +41,9 @@
 #' @param path2fasta deprecated, kept to maintain backwards compatibility
 #' @param path2gff deprecated, kept to maintain backwards compatibility
 #' @param genomeID single genomeID to consider
+#' @param convertSpecialCharacters Character string with a non-special character
+#' of length 1. Replaces special characters (punctionation other
+#' than ".", "-", and "_") if they are present in the gene IDs.
 #' @param ... additional arguments passed on
 #'
 #' @details parse_annotations assumes that you have a 'rawGenomeRepo' directory
@@ -104,6 +107,7 @@ parse_annotations <- function(rawGenomeRepo,
                               headerSep = " ",
                               gffStripText = "",
                               headerStripText = "locus=",
+                              convertSpecialCharacters = "_",
                               chrIdDictionary = NULL,
                               troubleShoot = FALSE,
                               overwrite = FALSE){
@@ -184,7 +188,8 @@ parse_annotations <- function(rawGenomeRepo,
       headerEntryIndex = headerEntryIndex, presets = presets,
       gffIdColumn = gffIdColumn, headerSep = headerSep,
       gffStripText = gffStripText, headerStripText = headerStripText,
-      chrIdDictionary = chrIdDictionary)
+      chrIdDictionary = chrIdDictionary,
+      convertSpecialCharacters = convertSpecialCharacters)
 
     return(data.table(
       gffFileIn = gf, faFileIn = fa,
@@ -214,6 +219,7 @@ match_fasta2gff <- function(path2fasta,
                             gffStripText,
                             headerStripText,
                             chrIdDictionary,
+                            convertSpecialCharacters,
                             troubleShoot){
   if(!requireNamespace("rtracklayer", quietly = TRUE))
     stop("to parse gff files, install rtracklayer from bioconductor\n")
@@ -298,10 +304,15 @@ match_fasta2gff <- function(path2fasta,
   tmp <- gsub(gsub("[^A-Za-z]", "", dnaa), "", tmp)
   if(nchar(tmp) == 0)
     stop("Only DNA characters found ... is this a peptide sequence?\n")
+
   # -- parse the peptide headers
   names(fa) <- gsub(
     headerStripText, "", sapply(names(fa), function(y)
       strsplit(y, headerSep)[[1]][headerEntryIndex]))
+
+  # -- remove all special characters
+  names(fa) <- gsub("[^a-zA-Z0-9_.-]", convertSpecialCharacters, names(fa))
+
   if(troubleShoot){
     cat("\n### first 6 fasta headers after parsing ... \n")
     cat(head(names(fa)), sep = "\n")
@@ -330,8 +341,13 @@ match_fasta2gff <- function(path2fasta,
     cat("\n### first 6 gff lines after parsing ... \n")
     print(head(gff))
   }
+
+  # -- remove special characters
+  gff[,id := gsub("[^a-zA-Z0-9_.-]", convertSpecialCharacters, id)]
+
   gff <- subset(gff, id %in% names(fa))
   gff[,seqid := as.character(seqid)]
+
   # -- check if any duplicates
   if(any(duplicated(gff$id))){
     gff[,width := end - start]
@@ -340,6 +356,7 @@ match_fasta2gff <- function(path2fasta,
   }
   # -- match positions
   fa <- fa[gff$id]
+
   # -- rename chromosomes
   if(!is.null(chrIdDictionary)){
     if(any(duplicated(names(chrIdDictionary))))
@@ -353,6 +370,7 @@ match_fasta2gff <- function(path2fasta,
   # -- convert to 0-index 1-open bed
   gff <- gff[,c("chr", "start", "end", "id")]
   gff[,start := start - 1]
+
   if(troubleShoot){
     cat("\n### first 6 bed lines after full parsing (and potential chr re-name)\n")
     print(head(gff))

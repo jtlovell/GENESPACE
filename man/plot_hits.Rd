@@ -24,7 +24,27 @@ ggdotplot(
 \item{gsParam}{A list of genespace parameters. This should be created
 by init_genespace.}
 
-\item{verbose}{logical, should updates be printed to the console?
+\item{verbose}{logical, should updates be printed to the console?}
+
+\item{hits}{data.table containg hits. See read_allBlast.}
+
+\item{outDir}{file.path where pdf should be written}
+
+\item{minGenes2plot}{integer specifying the minimum number of genes that can
+be plotted}
+
+\item{appendName}{character with text to append to the file name}
+
+\item{dotsPerIn}{integer specifying how fine-scaled the heatmap is}
+
+\item{quantileThresh}{integer specifying the top quantile to be thresholded}
+
+\item{plotSize}{numeric smalled dimension of the plot}
+
+\item{minScore}{numeric the minimum score to be permitted in the first plot}
+
+\item{maxFacets}{integer the maximum number of facets to plot (doesn't plot
+for genomes with lots of small chrs/scaffolds)
 
 \cr
 If called, \code{plot_hits} returns its own arguments.}

@@ -83,87 +83,6 @@ annotate_bed <- function(gsParam){
     return(bed)
   }
 
-  # -- 0.6 add array ID to the bed file
-  add_array2bed <- function(bed, synBuff, maxIter = 10, reorder = TRUE){
-
-    # -- we can make arrays for everything except that we want to exclude the
-    # arrays that are huge and problematic
-    genome <- chr <- id <- arrayID <- nOGPlaces <- tord <- NULL
-    tmp <- data.table(bed)
-    tmp[,tord := as.numeric(ord)]
-
-    # -- set up the iteration
-    cnt <- 1
-    diffn <- 1
-    tmp[,arrayID := sprintf(
-      "tmp%s", as.integer(as.factor(paste(genome, chr, id))))]
-    while(cnt <= maxIter && diffn > 0){
-
-      # -- for each iteration, calculate clusters by the size of jump between
-      # genes larger than the synBuffer
-      cnt <- cnt + 1
-      initn <- uniqueN(tmp$arrayID)
-      genome <- chr <- og <- ord <- jumpLeft <- clus <- n <- NULL
-      setkey(tmp, genome, chr, og, tord)
-      if(reorder)
-        tmp[,tord := frank(tord, ties.method = "dense"), by = "genome"]
-      tmp[,jumpLeft := c(synBuff + 1, diff(tord)),
-          by = c("genome", "chr", "og")]
-      tmp[,clus := as.integer(jumpLeft > synBuff), by = c("genome", "chr")]
-      tmp[,clus := cumsum(clus), by = c("genome", "chr", "og")]
-      tmp[,`:=`(
-        arrayID = sprintf("tmp%s",
-                          as.integer(as.factor(paste(genome, chr, og, clus)))),
-        jumpLeft = NULL, clus = NULL)]
-
-      # -- get the new order of genes based on array ID
-      tmp[,n := .N, by = "arrayID"]
-      tmp1 <- subset(tmp, n == 1)
-      tmp2 <- subset(tmp, n > 1)
-      tmp2[,tord := as.numeric(tord)]
-      tmp2[,tord := mean(as.numeric(tord)), by = "arrayID"]
-      tmp <- rbind(tmp1, tmp2)
-      tmp[,tord := frank(tord, ties.method = "dense"), by = "genome"]
-      newn <- uniqueN(tmp$arrayID)
-      diffn <- initn - newn
-    }
-
-    # -- relabel
-    ogID <- NULL
-    lab <- gsub(" ", "0",
-                align_charRight(
-                  as.numeric(factor(tmp$arrayID,
-                                    levels = unique(tmp$arrayID)))))
-    arrv <- sprintf("Arr%s", lab); names(arrv) <- tmp$ofID
-    bed[,arrayID := arrv[ofID]]
-
-    tmp <- subset(bed, is.na(arrayID))
-    wh <- with(tmp,
-               as.numeric(as.factor(paste(genome, chr, og))))
-    lab <- gsub(" ", "0", align_charRight(wh))
-    wh <- which(is.na(bed$arrayID))
-    bed$arrayID[wh] <- sprintf("NoArr%s", lab)
-    return(bed)
-  }
-
-  # -- 0.7 calculate the array representatives
-  add_arrayReps2bed <- function(bed){
-    n <- ord <- medOrd <- medDiff <- pepLen <- arrayID <- isRep <-
-      isArrayRep <- ofID <- NULL
-    bed[,n := .N, by = "arrayID"]
-    tmp <- subset(bed, n > 1)
-    tmp[,medOrd := as.numeric(median(ord)), by = "arrayID"]
-    tmp[,medDiff := as.numeric(abs(medOrd - ord))]
-    setorder(tmp, arrayID, medDiff, -pepLen)
-    tmp$noAnchor[duplicated(tmp$arrayID)] <- TRUE
-    tmp[,isRep := !duplicated(arrayID)]
-    bed[,isArrayRep := ofID %in% tmp$ofID[tmp$isRep] | n == 1]
-    tmp <- subset(bed, isArrayRep)
-    tmp[,ord := frank(ord, ties.method = "dense"), by = "genome"]
-    di <- tmp$ord; names(di) <- tmp$ofID
-    return(bed)
-  }
-
   # -- 0.9 add small chromosome flag to bed file
   add_smallChr2bed <- function(bed, blkSize){
     smallChr <- nGenes <- nChrs <- NULL
@@ -243,7 +162,7 @@ annotate_bed <- function(gsParam){
 
   # -- null out env variables
   chrn <- chr <- ord <- start <- bed <- noAnchor <- arrayID <- ofID <- pepLen <-
-    isArrayRep <- globOG <- globHOG <- synOG <- inblkOG <- og <- globHOG <-
+    isArrayRep <- globOG <- globHOG <-  og <- globHOG <-
     genome <- nOGPlaces <- tmp <- n <- maxPlaces <- bedDir <- smallChr <-
     dispOG <- nGenesInArray <- nArr <- nGenes <- nOGs <- NULL
 
@@ -268,8 +187,8 @@ annotate_bed <- function(gsParam){
   # -- 2.4 add in all other columns
   bed[,`:=`(
     chrn = NULL, n = NULL, ofID = NA, pepLen = NA, arrayID = NA,
-    isArrayRep = FALSE,  globOG = NA, globHOG = NA, synOG = NA,
-    inblkOG = NA, noAnchor = FALSE, smallChr = FALSE, dispOG = FALSE)]
+    isArrayRep = FALSE, globOG = NA, globHOG = NA,
+     noAnchor = FALSE, smallChr = FALSE, dispOG = FALSE)]
 
   ##############################################################################
   # 3. Add in necesary data columns if they do not exist

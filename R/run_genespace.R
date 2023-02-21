@@ -34,7 +34,7 @@
 #' syntenic block, returning phylogenetically hierarchical orthogroups (HOGs)
 #' \item `integrate_synteny` interpolates syntenic position of all genes across
 #' all genomes
-#' \item `pangenome` combines positional and orthogroup information into a
+#' \item `pangenes` combines positional and orthogroup information into a
 #' single matrix anchored to the gene order coordinates of a single reference
 #' \item `plot_riparian` is the primary genespace plotting routine, which stacks
 #' the genomes and connects syntenic regions to color-coded reference
@@ -229,96 +229,111 @@ run_genespace <- function(gsParam,
     indent = 0, exdent = 8), sep = "\n")
   gsParam <- synteny(gsParam = gsParam)
 
-  cat("\n############################", strwrap(
-    "Generating dotplots ... ",
-    indent = 0, exdent = 8), sep = "\n")
-  nu <- plot_hits(gsParam = gsParam)
+  gsParam <<- gsParam
 
   ##############################################################################
   # 5. Build syntenic orthogroups
-
   cat("\n############################", strwrap(
     "5. Building synteny-constrained orthogroups ... ",
     indent = 0, exdent = 8), sep = "\n")
-
-  # -- in the case of a bunch of haploid genomes, this just aggregates
-  # orthogroups and splits them by membership in syntenic regions
-  cat("\tAggregating syntenic orthogroups ... ")
-  gsParam <- build_synOGs(gsParam)
-  cat("Done\n")
-
   # -- in the case of polyploid genomes, this also runs orthofinder in blocks,
   # then re-runs synteny and re-aggregates blocks,.
   if(gsParam$params$orthofinderInBlk){
 
     # -- returns the gsparam obj and overwrites the bed file with a new og col
     cat("\t##############\n\tRunning Orthofinder within syntenic regions\n")
-    gsParam <- run_orthofinderInBlk(
-      gsParam = gsParam, overwrite = overwriteSynHits, onlyInBuffer = TRUE)
+    tmp <- run_orthofinderInBlk(
+      gsParam = gsParam, overwrite = overwriteSynHits)
 
-    # -- takes the new og column and refreshes the sameOG column in blast files
-    cat("\tDone!\n\tRe-annotating blast files ...\n")
-    gsParam <- annotate_blast(gsParam = gsParam)
+    # -- adds a new column to the bed file
+    cat("\t##############\n\tPulling syntenic orthogroups\n")
+  }
 
-    # -- re-run synteny with new sameOG column
-    cat("\tDone!\n\tRe-running synteny ...\n")
-    gsParam <- synteny(gsParam = gsParam)
+  gsParam <- syntenic_orthogroups(
+    gsParam, updateArrays = gsParam$params$orthofinderInBlk)
+  cat("\tDone!\n")
+
+  ##############################################################################
+  # 6. Make dotplots
+  cat("\n############################", strwrap(
+    "6. Integrating syntenic positions across genome ... ",
+    indent = 0, exdent = 8), sep = "\n")
+  cat("\t##############\n\tGenerating dotplots ... ")
+  nu <- plot_hits(gsParam = gsParam)
+  cat("Done!\n")
+
+  ##############################################################################
+  # 7. Interpolate syntenic positions
+  cat("\t##############\n\tInterpolating syntenic positions of genes ... \n")
+  nsynPos <- interp_synPos(gsParam)
+  cat("\tDone!\n")
+
+  ##############################################################################
+  # 8. Phase syntenic blocks against reference chromosomes
+  cat("\n############################", strwrap(
+    "7. Final block coordinate calculation and riparian plotting ... ",
+    indent = 0, exdent = 8), sep = "\n")
+  cat("\t##############\n\tCalculating syntenic blocks by reference chromosomes ... \n")
+  reg <- nophase_blks(gsParam = gsParam, useRegions = T)
+  cat(sprintf("\t\tn regions (aggregated by %s gene radius): %s\n",
+              gsParam$params$blkRadius, nrow(reg)))
+  fwrite(reg, file = file.path(gsParam$paths$results, "syntenicRegion_coordinates.csv"))
+  blk <- nophase_blks(gsParam = gsParam, useRegions = F)
+  cat(sprintf("\t\tn blocks (collinear sets of > %s genes): %s\n",
+              gsParam$params$blkSize, nrow(blk)))
+  fwrite(blk, file = file.path(gsParam$paths$results, "syntenicBlock_coordinates.csv"))
+  hapGenomes <- names(gsParam$ploidy)[gsParam$ploidy == 1]
+
+  if(length(hapGenomes) == 0){
+    cat(strwrap("NOTE!!! No genomes provided with ploidy < 2. Phasing of polyploid references is not currently supported internally. You will need to make custom riparian plots",
+                indent = 8, exdent = 8), sep = "\n")
+  }else{
+    cat("\t##############\n\tBuilding ref.-phased blks and riparian plots for haploid genomes:\n")
+    labs <- align_charLeft(hapGenomes)
+    names(labs) <- hapGenomes
+    for(i in hapGenomes){
+      plotf <- file.path(gsParam$paths$riparian,
+                      sprintf("%s_geneOrder.rip.pdf", i))
+      srcf <- file.path(gsParam$paths$riparian,
+                        sprintf("%s_geneOrder_rSourceData.rda", i))
+      blkf <- file.path(gsParam$paths$riparian,
+                        sprintf("%s_phasedBlks.csv", i))
+
+      rip <- plot_riparian(
+        gsParam = gsParam, useRegions = TRUE, refGenome = i, pdfFile = plotf)
+      cat(sprintf("\t\t%s: %s phased blocks\n", labs[i], nrow(rip$blks)))
+
+      srcd <- rip$plotData
+      save(srcd, file = srcf)
+      fwrite(rip$blks, file = blkf)
+
+      plotf <- file.path(gsParam$paths$riparian,
+                      sprintf("%s_bp.rip.pdf", i))
+      srcf <- file.path(gsParam$paths$riparian,
+                        sprintf("%s_bp_rSourceData.rda", i))
+      rip <- plot_riparian(
+        gsParam = gsParam, useOrder = FALSE, useRegions = TRUE,
+        refGenome = i, pdfFile = plotf)
+      srcd <- rip$plotData
+      save(srcd, file = srcf)
+    }
+    cat("\tDone!\n")
   }
 
   ##############################################################################
-  # 6. Integrate syntenic positions across genomes
-  # -- the main purpose here is to find the interpolated syntenic positions
-  # across all genomes
-  # -- this also calculates syntenic block coordinates and phased reference-
-  # specific coordinates to feed directly into plot_riparian
+  # 9. Build pan-genes (aka pan-genome annotations)
   cat("\n############################", strwrap(
-    "6. Integrating syntenic positions across genomes ...",
+    "8. Constructing syntenic pan-gene sets ... ",
     indent = 0, exdent = 8), sep = "\n")
-  gsParam <- integrate_synteny(gsParam)
-
-  ##############################################################################
-  # 7. Build the pan-genome annotations and riparian plots
-  # -- loops through each genome and uses that as the reference
-  glab <- align_charLeft(sprintf("%s: ",c("genome", gsParam$genomeIDs)))
-  names(glab) <- c("head", gsParam$genomeIDs)
-  cat("\n############################", strwrap(
-    "7. Building pan-genome annotations and riparian plots",
-    indent = 0, exdent = 8),
-    sprintf("\t...%sn pos. || n array || n NS ortho", glab["head"]), sep = "\n")
-
-  # -- for each reference genome
-  for(refi in gsParam$genomeIDs){
-
-    # -- gene-order riparian
-    tmp <- plot_riparian(
-      gsParam = gsParam, verbose = FALSE, refGenome = refi)
-    ripSourceData <- tmp$sourceData
-    save(ripSourceData, file = file.path(gsParam$paths$riparian, sprintf(
-      "%s_geneOrder_riparianSourceData.rda", refi)))
-    ripPlotObj <- tmp$ggplotObj
-    save(ripPlotObj, file = file.path(gsParam$paths$riparian, sprintf(
-      "%s_geneOrder_riparianGgplotObj.rda", refi)))
-
-    # -- bp position riparian
-    tmp <- plot_riparian(
-      gsParam = gsParam, verbose = FALSE, refGenome = refi, useOrder = FALSE)
-    ripSourceData <- tmp$sourceData
-    save(ripSourceData, file = file.path(gsParam$paths$riparian, sprintf(
-      "%s_bp_riparianSourceData.rda", refi)))
-    ripPlotObj <- tmp$ggplotObj
-    save(ripPlotObj, file = file.path(gsParam$paths$riparian, sprintf(
-      "%s_bp_riparianGgplotObj.rda", refi)))
-
-    # -- pangenome
-    pg <- pangenome(
-      gsParam = gsParam, refGenome = refi, verbose = F)
-    pgout <- read_pangenome(
-      file.path(gsParam$paths$pangenome,
-                sprintf("%s_refPangenomeAnnot.txt", refi)),
-      which = "long")
-    with(pgout, cat(sprintf(
-      "\t...%s%s || %s || %s\n",
-      glab[refi], uniqueN(pgID), sum(!isArrayRep & !isNSOrtho), sum(isNSOrtho))))
+  gids <- gsParam$genomeIDs
+  labs <- align_charLeft(gids)
+  names(labs) <- gids
+  for(i in gids){
+    cat(sprintf("\t%s: ", labs[i]))
+    pgref <- syntenic_pangenes(gsParam = gsParam, refGenome = i)
+    with(pgref, cat(sprintf(
+      "n pos. = %s, synOgs = %s, array mem. = %s, NS orthos %s\n",
+      uniqueN(pgID), sum(flag == "PASS"), sum(flag == "array"), sum(flag == "NSOrtho"))))
   }
 
   ##############################################################################
@@ -327,13 +342,12 @@ run_genespace <- function(gsParam,
   cat("\n############################", strwrap(sprintf(
     "GENESPACE run complete!\n All results are stored in %s in the following subdirectories:",
     gsParam$paths$wd), indent = 0, exdent = 0),
-    "\traw dotplots           : /dotplots (...rawHits.pdf)",
     "\tsyntenic block dotplots: /dotplots (...synHits.pdf)",
     "\tannotated blast files  : /syntenicHits",
     "\tannotated/combined bed : /results/combBed.txt",
     "\tsyntenic block coords. : /results/blkCoords.txt",
     "\tsyn. blk. by ref genome: /riparian/refPhasedBlkCoords.txt",
-    "\tpan-genome annotations : /pangenome (...PangenomeAnnot.txt)",
+    "\tpan-genome annotations : /pangenes (...pangenes.txt.gz)",
     "\triparian plots         : /riparian",
     "\tgenespace param. list  : /results/gsParams.rda",
     "############################",
