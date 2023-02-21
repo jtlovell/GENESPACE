@@ -2,8 +2,16 @@ The manuscript describing GENESPACE is now pubished in eLife. [Find the article 
 
 ###################
 
-## Version 1.0.0 (beta) of GENESPACE is now at the @dev branch. 
-This includes the following changes:
+## Version 1.1.3 of GENESPACE is now at the /dev branch. We are waiting until 1-March to release this and switch the master branch to v1. In the meantime, we highly recommend switching over to v1 (which has substantial changes to user interface). The installation can be updated in R as follows:
+
+```
+detach("package:GENESPACE", unload = TRUE) # will return an error if GENESPACE isn't loaded
+devtools::install_github("jtlovell/GENESPACE@dev", upgrade = F)
+library(GENESPACE)
+```
+
+
+V1 includes the following changes from v0.9:
 
 - Use of bed files instead of gff3 (will still have accessory functions for conversion)
 - ggplot2 graphics
