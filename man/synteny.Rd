@@ -21,6 +21,7 @@ synteny_engine(
   nGaps,
   synRad,
   MCScanX_hCall,
+  onlySameChrs,
   verbose = FALSE
 )
 }

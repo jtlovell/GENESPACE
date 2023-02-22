@@ -73,7 +73,7 @@ out <- run_genespace(gpar)
 
 #### 1.4 GENESPACE Output
 
-GENESPACE produces quite a few intermediate files (including the output of a complete orthofinder run). See "appendix A: data output" for details. The most directly useful data are:
+GENESPACE produces quite a few intermediate files (including the output of a complete orthofinder run). See section 5: "data output" for details. The most directly useful data are:
 
   - parsed blast hits (in /syntenicHits)
   - dotplots (/dotplots)

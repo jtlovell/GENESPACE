@@ -113,6 +113,7 @@ synteny <- function(gsParam, verbose = TRUE){
           synRad = x$synRad,
           topn1 = x$targetPloidy - 1,
           topn2 = x$queryPloidy - 1,
+          onlySameChrs = gsParam$params$onlySameChrs,
           MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
           tmpDir = gsParam$paths$tmp,
           onlyOgAnchors = x$onlyOgAnchorsSelf,
@@ -140,6 +141,7 @@ synteny <- function(gsParam, verbose = TRUE){
           topn1 = x$targetPloidy,
           topn2 = x$queryPloidy,
           synRad = x$synRad,
+          onlySameChrs = gsParam$params$onlySameChrs,
           MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
           tmpDir = gsParam$paths$tmp,
           onlyOgAnchors = x$onlyOgAnchors,
@@ -162,6 +164,7 @@ synteny <- function(gsParam, verbose = TRUE){
           topn1 = x$targetPloidy,
           topn2 = x$queryPloidy,
           synRad = x$synRad,
+          onlySameChrs = gsParam$params$onlySameChrs,
           MCScanX_hCall = gsParam$shellCalls$mcscanx_h,
           tmpDir = gsParam$paths$tmp,
           onlyOgAnchors = x$onlyOgAnchorsSecond)
@@ -174,6 +177,8 @@ synteny <- function(gsParam, verbose = TRUE){
 
       ##########################################################################
       # 2.4 check and compile notes
+      outHits$isAnchor[is.na(outHits$isAnchor)] <- FALSE
+      outHits$isSyntenic[is.na(outHits$isSyntenic)] <- FALSE
       out <- with(outHits, data.table(
         lab = chnk$lab[i],
         nTotalHits = length(chr1),
@@ -295,6 +300,7 @@ synteny_engine <- function(hits,
                            nGaps,
                            synRad,
                            MCScanX_hCall,
+                           onlySameChrs,
                            verbose = FALSE){
 
 
@@ -309,6 +315,8 @@ synteny_engine <- function(hits,
   # hits[,regID := NULL]
   raw <- data.table(hits)
   cull <- subset(hits, !noAnchor & isArrayRep1 & isArrayRep2)
+  if(onlySameChrs)
+    cull <- subset(cull, chr1 == chr2)
 
   if(verbose)
     cat(sprintf("%s vs %s:\n\tn. total hits = %s\n\tn. rep. hits = %s\n",

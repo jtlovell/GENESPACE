@@ -97,7 +97,8 @@
 #' @param maskBuffer numeric (default = 500), the minimum distance that a
 #' secondary (or homeolog w/in polyploid genome) block can be created relative
 #' to an existing block.
-#'
+#' @param onlySameChrs logical - should synteny be only considered between
+#' chromosomes with the same name?
 #' @param outgroup deprecated in V1. See ignoreTheseGenomes.
 #' @param orthofinderMethod deprecated in V1. See onewayBlast.
 #' @param speciesIDs deprecated in V1. See `parse_annotations`.
@@ -156,7 +157,7 @@ init_genespace <- function(wd,
                            onlyOgAnchorsSelf = TRUE,
                            onlyOgAnchorsSecond = FALSE,
                            maskBuffer = 500,
-
+                           onlySameChrs = FALSE,
                            dotplots = "check",
 
                            # -- deprecated arguments here for backwards compat.
@@ -389,6 +390,8 @@ init_genespace <- function(wd,
   nCores <- check_integer(
     x = nCores, min = 1, max = Inf, default = min(c(detectCores()/2, 16)))
 
+  onlySameChrs <- check_logical(onlySameChrs)
+
   # -- block size
   cat(sprintf("%s\n\tcollinear block size ... ", nCores))
   blkSize <- check_integer(x = blkSize, min = 1, max = Inf, default = 5)
@@ -476,7 +479,7 @@ init_genespace <- function(wd,
     onlyOgAnchors = onlyOgAnchors, nSecondaryHits = nSecondaryHits,
     blkSizeSecond = blkSizeSecond, blkRadiusSecond = blkRadiusSecond,
     nGapsSecond = nGapsSecond, onlyOgAnchorsSecond = onlyOgAnchorsSecond,
-    onlyOgAnchorsSelf = onlyOgAnchorsSelf,
+    onlyOgAnchorsSelf = onlyOgAnchorsSelf, onlySameChrs = onlySameChrs,
     dotplots = dotplots, maskBuffer = maskBuffer)
 
   ##############################################################################

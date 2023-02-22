@@ -32,6 +32,7 @@ init_genespace(
   onlyOgAnchorsSelf = TRUE,
   onlyOgAnchorsSecond = FALSE,
   maskBuffer = 500,
+  onlySameChrs = FALSE,
   dotplots = "check",
   outgroup = ignoreTheseGenomes,
   nSecondHits = nSecondaryHits,
@@ -158,6 +159,9 @@ considered for anchors in secondary blocks?}
 \item{maskBuffer}{numeric (default = 500), the minimum distance that a
 secondary (or homeolog w/in polyploid genome) block can be created relative
 to an existing block.}
+
+\item{onlySameChrs}{logical - should synteny be only considered between
+chromosomes with the same name?}
 
 \item{dotplots}{character string either "always", "never", or "check".
 Default (check) only writes a dotplot if there are < 10k unique chromosome
