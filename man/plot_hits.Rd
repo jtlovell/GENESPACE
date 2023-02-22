@@ -5,10 +5,19 @@
 \alias{ggdotplot}
 \title{plot hits as a xy dotplot}
 \usage{
-plot_hits(gsParam, verbose = TRUE)
+plot_hits(
+  gsParam,
+  verbose = TRUE,
+  type,
+  dotsPerIn = 256,
+  quantileThresh = 0.5,
+  plotSize = 12,
+  minScore = 50
+)
 
 ggdotplot(
   hits,
+  type,
   outDir = NULL,
   minGenes2plot = 100,
   appendName = "synHits",
@@ -26,14 +35,8 @@ by init_genespace.}
 
 \item{verbose}{logical, should updates be printed to the console?}
 
-\item{hits}{data.table containg hits. See read_allBlast.}
-
-\item{outDir}{file.path where pdf should be written}
-
-\item{minGenes2plot}{integer specifying the minimum number of genes that can
-be plotted}
-
-\item{appendName}{character with text to append to the file name}
+\item{type}{character string of "all", "raw", or "syntenic" specifying which
+type of dotplot to generate.}
 
 \item{dotsPerIn}{integer specifying how fine-scaled the heatmap is}
 
@@ -42,6 +45,15 @@ be plotted}
 \item{plotSize}{numeric smalled dimension of the plot}
 
 \item{minScore}{numeric the minimum score to be permitted in the first plot}
+
+\item{hits}{data.table containg hits. See read_allBlast.}
+
+\item{outDir}{file.path where pdf should be written}
+
+\item{minGenes2plot}{integer specifying the minimum number of genes that can
+be plotted}
+
+\item{appendName}{character with text to append to the file name}
 
 \item{maxFacets}{integer the maximum number of facets to plot (doesn't plot
 for genomes with lots of small chrs/scaffolds)

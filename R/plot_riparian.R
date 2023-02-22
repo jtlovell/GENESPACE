@@ -316,7 +316,7 @@ riparian_engine <- function(blk,
                     y2 = match(genome2, genomeIDs))]
     u <- with(genomeOrd, paste(genome1, genome2))
     if(!all(u %in% paste(blk$genome1, blk$genome2)))
-      stop("problem with the block coordinates, some chained combinations of genomeIDs are not in the blocks\n")
+      warning("problem with the block coordinates, some chained combinations of genomeIDs are not in the blocks\n")
     blk <- merge(genomeOrd, blk, by = c("genome1", "genome2"))
     return(blk)
   }

@@ -220,6 +220,10 @@ run_genespace <- function(gsParam,
       sep = "\n")
   }
 
+  cat("\t##############\n\tGenerating dotplots for all hits ... ")
+  nu <- plot_hits(gsParam = gsParam, type = "raw")
+  cat("Done!\n")
+
   ##############################################################################
   # 4. Run synteny
   # -- goes through each pair of genomes and pulls syntenic anchors and the hits
@@ -228,8 +232,6 @@ run_genespace <- function(gsParam,
     "4. Flagging synteny for each pair of genomes ...",
     indent = 0, exdent = 8), sep = "\n")
   gsParam <- synteny(gsParam = gsParam)
-
-  gsParam <<- gsParam
 
   ##############################################################################
   # 5. Build syntenic orthogroups
@@ -256,10 +258,10 @@ run_genespace <- function(gsParam,
   ##############################################################################
   # 6. Make dotplots
   cat("\n############################", strwrap(
-    "6. Integrating syntenic positions across genome ... ",
+    "6. Integrating syntenic positions across genomes ... ",
     indent = 0, exdent = 8), sep = "\n")
-  cat("\t##############\n\tGenerating dotplots ... ")
-  nu <- plot_hits(gsParam = gsParam)
+  cat("\t##############\n\tGenerating syntenic dotplots ... ")
+  nu <- plot_hits(gsParam = gsParam, type = "syntenic")
   cat("Done!\n")
 
   ##############################################################################
@@ -270,6 +272,7 @@ run_genespace <- function(gsParam,
 
   ##############################################################################
   # 8. Phase syntenic blocks against reference chromosomes
+  gsParam <<- gsParam
   cat("\n############################", strwrap(
     "7. Final block coordinate calculation and riparian plotting ... ",
     indent = 0, exdent = 8), sep = "\n")

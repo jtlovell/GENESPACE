@@ -205,19 +205,20 @@ phase_blks <- function(gsParam,
     anchs[,`:=`(tord1 = frank(ord1, ties.method = "dense"),
                 tord2 = frank(ord2, ties.method = "dense")),
           by = "blkID"]
-    # anchs <<- anchs
-    # print(j)
-    # print(i)
-    anchs <- subset(anchs, n >= blkSize)
-    anchs[,clus := dbscan(frNN(
-      x = cbind(tord1, tord2),
-      eps = synBuff),
-      minPts = blkSize)$cluster,
-      by = c("chr1", "chr2", "blkID", "refChr1")]
-    anchs[,blkID := sprintf("%s=refChr_XXX_%s_%s",refChr1, blkID, clus)]
+    if(nrow(anchs) < blkSize){
+      bc <- NULL
+    }else{
+      anchs <- subset(anchs, n >= blkSize)
+      anchs[,clus := dbscan(frNN(
+        x = cbind(tord1, tord2),
+        eps = synBuff),
+        minPts = blkSize)$cluster,
+        by = c("chr1", "chr2", "blkID", "refChr1")]
+      anchs[,blkID := sprintf("%s=refChr_XXX_%s_%s",refChr1, blkID, clus)]
 
-    bc <- calc_blkCoords(anchs, mirror = T)
-    bc[,c("refChr", "blkID") := tstrsplit(blkID, "=refChr_XXX_")]
+      bc <- calc_blkCoords(anchs, mirror = T)
+      bc[,c("refChr", "blkID") := tstrsplit(blkID, "=refChr_XXX_")]
+    }
     return(bc)
   }))
   refBlks[,refGenome := refGenome]
