@@ -59,25 +59,32 @@ syntenic_pangenes <- function(gsParam,
 
     # -- 5 drop syntenic placements > maxPlacePerChr/chr
     n3 <- subset(n2, diff > gsParam$params$synBuff * 2)
-    n3[,clus := dbscan(frNN(
-      cbind(ord, ord),
-      eps = gsParam$params$synBuff*2), minPts = 0)$cluster,
-      by = c("chr", "og")]
-    n3[,ntot := uniqueN(ofID), by = c("og")]
-    n3[,ninclus := uniqueN(ofID), by = c("chr", "og", "clus")]
-    n3[,prop := ninclus / ntot]
-    n3 <- subset(n3, prop >= minPropInterp2keep)
-    n3[,n := uniqueN(clus), by = c("chr", "og")]
-    n3[,rnk := frank(prop), by = c("chr", "og")]
-    n3[,bad := n > maxPlacePerChr & rnk == 1]
-    n3 <- subset(n3, !bad)
-
-    # -- 6 drop placements < minPropInterp2keep
-    n3[,`:=`(ntot = NULL, ninclus = NULL, prop = NULL,
-             bad = NULL, rnk = NULL, n = NULL, nInChr = NULL, diff = NULL)]
     n2[,`:=`(clus = 1, nInChr = NULL, diff = NULL)]
     n1[,`:=`(clus = 1, nInChr = NULL)]
-    n3 <- rbind(n2, n3, n1)
+
+    if(nrow(n3) > 0){
+      n3[,clus := dbscan(frNN(
+        cbind(ord, ord),
+        eps = gsParam$params$synBuff*2), minPts = 0)$cluster,
+        by = c("chr", "og")]
+
+      n3[,ntot := uniqueN(ofID), by = c("og")]
+      n3[,ninclus := uniqueN(ofID), by = c("chr", "og", "clus")]
+      n3[,prop := ninclus / ntot]
+      n3 <- subset(n3, prop >= minPropInterp2keep)
+      n3[,n := uniqueN(clus), by = c("chr", "og")]
+      n3[,rnk := frank(prop), by = c("chr", "og")]
+      n3[,bad := n > maxPlacePerChr & rnk == 1]
+      n3 <- subset(n3, !bad)
+
+      n3[,`:=`(ntot = NULL, ninclus = NULL, prop = NULL,
+               bad = NULL, rnk = NULL, n = NULL, nInChr = NULL, diff = NULL)]
+      n3 <- rbind(n2, n3, n1)
+    }else{
+      n3 <- rbind(n2, n1)
+    }
+
+    # -- 6 drop placements < minPropInterp2keep
     n3[,ntot := uniqueN(ofID), by = c("og")]
     n3[,ninclus := uniqueN(ofID), by = c("chr", "og", "clus")]
     n3[,prop := ninclus / ntot]
