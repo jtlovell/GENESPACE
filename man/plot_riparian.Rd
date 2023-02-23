@@ -31,6 +31,7 @@ plot_riparian(
   customRefChrOrder = NULL,
   palette = gs_colors,
   chrLabCex = 1,
+  ylabBuff = 0.02,
   braidBorderLwd = 0,
   invertTheseChrs = NULL,
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf|chromosome|scaffold|^lg|_", "",
@@ -64,6 +65,7 @@ riparian_engine(
   reorderBySynteny = TRUE,
   howSquare = 0,
   chrLabCex = 1,
+  ylabBuff = 0.1,
   customRefChrOrder = NULL,
   palette = gs_colors,
   invertTheseChrs = NULL,
@@ -176,6 +178,9 @@ the reference genome}
 
 \item{chrLabCex}{character expansion for the chromosome labels. Not currently
 in use.}
+
+\item{ylabBuff}{numeric giving the absolute size buffer surrounding the
+chromosome labels.}
 
 \item{braidBorderLwd}{numeric specifying the weight of borders on the braids.
 Not currently in use.}
