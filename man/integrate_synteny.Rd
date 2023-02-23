@@ -54,11 +54,14 @@ query and target genomes}
 riparian plotting and interpolated gene order calculation for placement of
 syntenic pan-genes.
 
-\code{interp_synPos} interp_synPos
+\code{interp_synPos} pipes data to interp_approx and combines across genomes
 
-\code{phase_blks} phase_blks
+\code{phase_blks} splits blocks so that each is anchored to a single
+reference genome chromosome, which allows the construction of default
+riparian plots
 
-\code{nophase_blks} nophase_blks
+\code{nophase_blks} simple wrapper for calc_blkCoords so that block
+coordinates are calculated across all combination of genomes.
 
 \code{calc_blkCoords} from a hits object, determine block coordinates,
 orientation and membership

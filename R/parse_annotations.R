@@ -419,7 +419,6 @@ parse_ncbi <- function(rawGenomeRepo,
   return(outPaths)
 }
 
-
 #' @title Parse phytozome-formatted annotations
 #' @description
 #' \code{parse_phytozome} a shortcut for parse_annotations(preset = "phytozome")

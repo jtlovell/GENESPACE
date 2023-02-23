@@ -96,7 +96,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' # see vignette dedicated to plot_riparian
+#' # see vignette dedicated to plot_riparian, coming soon.
 #' }
 #'
 #' @title Make riparian plots
@@ -104,7 +104,6 @@
 #' \code{plot_riparian} The main GENESPACE plotting routine, which generate
 #' braided river or 'riparian' plots.
 #' @rdname plot_riparian
-#' @export
 #' @import data.table
 #' @import ggplot2
 #' @export
@@ -145,7 +144,7 @@ plot_riparian <- function(gsParam,
                           refChrOrdFun = function(x)
                             frank(list(as.numeric(gsub('\\D+','', x)), x), ties.method = "random")){
 
-  color <- blkID <- NULL
+  color <- blkID <- pass <- genome <- chr <- start <- end <- NULL
   # -- there are two methods of plotting.
 
   # 1. Default phase the blocks by a reference genome chromosomes

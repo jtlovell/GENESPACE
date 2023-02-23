@@ -258,7 +258,7 @@ the reference genome chromosomes.
 }
 \examples{
 \dontrun{
-# see vignette dedicated to plot_riparian
+# see vignette dedicated to plot_riparian, coming soon.
 }
 
 }

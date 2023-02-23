@@ -1,6 +1,7 @@
-#' @title syntenic_pangenes
+#' @title generate syntenic pan-gene sets
 #' @description
-#' \code{syntenic_pangenes} syntenic_pangenes
+#' \code{syntenic_pangenes} Integrates interpolated gene order position with
+#' orthogroups to generate pan-gene sets across multiple genomes.
 #' @param gsParam A list of genespace parameters. This should be created
 #' by init_genespace.
 #' @param refGenome character specifying the reference genome
@@ -9,6 +10,10 @@
 #' messy synteny maps.
 #' @param minPropInterp2keep numeric specifying the minimum proportion of genes
 #' in an orthogroup with positions clustered into a specific location.
+#'
+#' @details formerly called 'pangenome' this function decomposes orthogroups
+#' and syntenic interpolated positions into a long-formatted pan-gene set. See
+#' query_pangenes to access this output.
 #'
 #' @import data.table
 #' @importFrom parallel mclapply

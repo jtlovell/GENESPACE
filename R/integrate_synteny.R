@@ -21,9 +21,9 @@
 #' @details Functions here should not be called directly by the user except
 #' if customizing riparian plots.
 
-#' @title interp_synPos
+#' @title linear interpolation of the entire genespace run
 #' @description
-#' \code{interp_synPos} interp_synPos
+#' \code{interp_synPos} pipes data to interp_approx and combines across genomes
 #' @rdname integrate_synteny
 #' @import data.table
 #' @export
@@ -126,9 +126,11 @@ interp_synPos <- function(gsParam, verbose = TRUE){
   return(cnts)
 }
 
-#' @title phase_blks
+#' @title phase syntenic blocks by a reference
 #' @description
-#' \code{phase_blks} phase_blks
+#' \code{phase_blks} splits blocks so that each is anchored to a single
+#' reference genome chromosome, which allows the construction of default
+#' riparian plots
 #' @rdname integrate_synteny
 #' @import data.table
 #' @importFrom dbscan dbscan frNN
@@ -227,9 +229,10 @@ phase_blks <- function(gsParam,
   return(refBlks)
 }
 
-#' @title nophase_blks
+#' @title calculate block coordinates
 #' @description
-#' \code{nophase_blks} nophase_blks
+#' \code{nophase_blks} simple wrapper for calc_blkCoords so that block
+#' coordinates are calculated across all combination of genomes.
 #' @rdname integrate_synteny
 #' @import data.table
 #' @export

@@ -616,7 +616,6 @@ are_colors <- function(col) {
   })
 }
 
-
 #' @title scale a vector between a range
 #' @description
 #' \code{scale_between} scale a vector between a range
@@ -766,9 +765,9 @@ add_alpha <- function(col, alpha = 1){
     rgb(x[1], x[2], x[3], alpha = alpha)))
 }
 
-#' @title read integratedSynPos
+#' @title read interpolated syntenic position
 #' @description
-#' \code{read_intSynPos} read interpolated syntenic position files
+#' \code{read_intSynPos} utility to read interpolated syntenic position files
 #' @rdname utils
 #' @export
 read_intSynPos <- function(filepath){
@@ -785,9 +784,9 @@ read_intSynPos <- function(filepath){
   return(synpos)
 }
 
-#' @title read integratedSynPos
+#' @title write interpolated syntenic position
 #' @description
-#' \code{read_intSynPos} read interpolated syntenic position files
+#' \code{write_intSynPos} utility to write interpolated syntenic position files
 #' @rdname utils
 #' @export
 write_intSynPos <- function(x, filepath){
@@ -912,9 +911,10 @@ download_exampleData <- function(filepath){
   return(path)
 }
 
-#' @title interp_approx
+#' @title linear interploation of missing positions
 #' @description
-#' \code{interp_approx} interp_approx
+#' \code{interp_approx} use approx to interpolate missing positions based on
+#' the positions of the bounder x/y coordinates.
 #' @rdname utils
 #' @importFrom utils download.file
 #' @importFrom stats approx
@@ -937,9 +937,11 @@ interp_approx <- function(x, y){
   return(y)
 }
 
-#' @title read_refGenomeSynHits
+#' @title read syntenic hits for a genome
 #' @description
-#' \code{read_refGenomeSynHits} read_refGenomeSynHits
+#' \code{read_refGenomeSynHits} read in all syntenic hits files involving a
+#' single reference genome and, where necessary, invert the hits so that the
+#' reference genome is always the query (genome1).
 #' @rdname utils
 #' @importFrom utils download.file
 #' @export
@@ -975,9 +977,11 @@ read_refGenomeSynHits <- function(gsParam,
   return(synh)
 }
 
-#' @title read_refGenomeSynHits
+#' @title read all hits for a genome
 #' @description
-#' \code{read_refGenomeSynHits} read_refGenomeSynHits
+#' \code{read_refGenomeAllBlast} read in all hits files involving a
+#' single reference genome and, where necessary, invert the hits so that the
+#' reference genome is always the query (genome1).
 #' @rdname utils
 #' @importFrom utils download.file
 #' @export
@@ -1015,9 +1019,10 @@ read_refGenomeAllBlast <- function(gsParam,
   return(synh)
 }
 
-#' @title get_bedInBlk
+#' @title subset the bed object within blocks
 #' @description
-#' \code{get_bedInBlk} get_bedInBlk
+#' \code{get_bedInBlk} splits the bed file so that two entries (query and target
+#' ) match the physical bounds of blocks in the hits object.
 #' @rdname utils
 #' @importFrom utils download.file
 #' @export
@@ -1072,7 +1077,7 @@ get_bedInBlk <- function(hits, bed){
 }
 
 
-#' @title add_array2bed
+#' @title calculate collinear arrays
 #' @description
 #' \code{add_array2bed} add array ID to the bed file
 #' @rdname utils
@@ -1140,9 +1145,10 @@ add_array2bed <- function(bed, synBuff, maxIter = 10, reorder = TRUE){
   return(bed)
 }
 
-#' @title get_bedInBlk
+#' @title calculate the array representatives
 #' @description
-#' \code{add_arrayReps2bed} calculate the array representatives
+#' \code{add_arrayReps2bed} add array representative genes to the combined bed
+#' object
 #' @rdname utils
 #' @import data.table
 #' @export
@@ -1163,9 +1169,10 @@ add_arrayReps2bed <- function(bed){
   return(bed)
 }
 
-#' @title write_pangenes
+#' @title write pan-gene file
 #' @description
-#' \code{write_pangenes} write_pangenes
+#' \code{write_pangenes} utility to correctly write in long-formatted pan=gene
+#' text files.
 #' @rdname utils
 #' @export
 write_pangenes <- function(x, filepath){
@@ -1178,9 +1185,10 @@ write_pangenes <- function(x, filepath){
   fwrite(x, file = filepath, showProgress = F, quote = F, sep = "\t")
 }
 
-#' @title read_pangenes
+#' @title read pan-gene text file
 #' @description
-#' \code{read_pangenes} read_pangenes
+#' \code{read_pangenes} utility to correctly read in long-formatted pangene text
+#' files.
 #' @rdname utils
 #' @export
 read_pangenes <- function(x, filepath, ...){
@@ -1190,7 +1198,7 @@ read_pangenes <- function(x, filepath, ...){
   cl <- c("numeric", "character", "logical")
   chk <- strsplit(readLines(filepath, 1), "\t")[[1]]
   if(!identical(chk, hnames))
-    stop("synhits.txt file is malformed\n")
+    stop("pangenes.txt file is malformed\n")
   hc <- cl[c(2,1,2,1,2,2,1,2,2,2,1,1,1)]
   pangenes <- fread(
     filepath, na.strings = c("", "NA"), select = hnames,
@@ -1198,9 +1206,9 @@ read_pangenes <- function(x, filepath, ...){
   return(pangenes)
 }
 
-#' @title find_nnHit
+#' @title find nearest neighbor hits
 #' @description
-#' \code{find_nnHit} find_nnHit
+#' \code{find_nnHit} find anchor hits that are nearest to non-anchor xy position
 #' @rdname utils
 #' @import data.table
 #' @export
@@ -1241,9 +1249,10 @@ find_nnHit <- function(x, y, isAnchor, radius){
   return(wh)
 }
 
-#' @title flag_hitsInRadius
+#' @title flag proximate hits
 #' @description
-#' \code{flag_hitsInRadius} flag_hitsInRadius
+#' \code{flag_hitsInRadius} given a vector of anchors, pulls xy positions within
+#' radius of anchors using dbscan
 #' @rdname utils
 #' @import data.table
 #' @importFrom dbscan dbscan frNN
@@ -1299,9 +1308,9 @@ flag_hitsInRadius <- function(x, y, isAnchor, radius){
   }
 }
 
-#' @title flag_hitsInBlk
+#' @title flag hits within blocks
 #' @description
-#' \code{flag_hitsInBlk} flag_hitsInBlk
+#' \code{flag_hitsInBlk} finds hits within the bounding coordinates of blocks
 #' @rdname utils
 #' @import data.table
 #' @export

@@ -62,12 +62,14 @@ for genomes with lots of small chrs/scaffolds)
 If called, \code{plot_hits} returns its own arguments.}
 }
 \description{
-\code{plot_hits} routines to make vizually appealing dotplots
+\code{plot_hits} routines to make visually appealing dotplots
 
 \code{plot_hits} The pipeline to plot syntenic hits in parallel
 
 \code{ggdotplot} ggplot2 integrated graphics to produce dotplots
 }
 \details{
-Details coming soon.
+Dotplots here aggregate across proximate positions to reduce file
+size, especially for very large genomes. XY positions are always in gene-rank
+order positions. Graphics are built with ggplot2.
 }

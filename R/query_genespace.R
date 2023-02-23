@@ -21,13 +21,16 @@
 #' output?
 #' @param maxMem2Show integer specifying the maximum number of members to be
 #' included in each entry-by-flag-by-genome combination.
+#' @param refGenome character matching one of the genomeIDs if a bed object is
+#' not provided
 
 #' @return a list of data.tables named $genome, $chr: $start-$end. One
 #' data.table for each line in the bed file.
 
-#' @title query_hits
+#' @title query function for hits files
 #' @description
-#' \code{query_hits} query_hits
+#' \code{query_hits} extract syntenic (or all) hits that fall within a interval
+#' in a genome.
 #' @rdname query_genespace
 #' @import data.table
 #' @export
@@ -73,9 +76,11 @@ query_hits <- function(gsParam,
   return(split(combout, by = "id"))
 }
 
-#' @title query_pangenome
+#' @title reformat and subset pan-gene sets
 #' @description
-#' \code{query_pangenome} query_pangenome
+#' \code{query_pangenes} the primary engine to explore genespace output, this
+#' lets you reformat the pan-genes to wide (entry - by - genome) matrix and
+#' only look at specified positional bounds.
 #' @rdname query_genespace
 #' @import data.table
 #' @export

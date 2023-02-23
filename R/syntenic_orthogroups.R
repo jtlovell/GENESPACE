@@ -1,7 +1,7 @@
 #' @title construct syntenic orthogroups from pairwise blast
 #' @name syntenic_orthogroups
 #' @description
-#' \code{build_synOGs} integrates many pairwise results from synteny into
+#' \code{syntenic_orthogroups} integrates many pairwise results from synteny into
 #' vectors of syntenic orthogroups. Also can re-run orthofinder within blocks
 #' and re-calculate orthogroups from those results.
 #'
@@ -13,9 +13,10 @@
 
 #' @details info here
 
-#' @title syntenic_orthogroups
+#' @title extract syntenic orthogroups
 #' @description
-#' \code{syntenic_orthogroups} syntenic_orthogroups
+#' \code{syntenic_orthogroups} combine blast hits to cluster hits into
+#' syntenic orthogroups.
 #' @rdname syntenic_orthogroups
 #' @import data.table
 #' @export
@@ -93,8 +94,8 @@ syntenic_orthogroups <- function(gsParam, updateArrays){
 
 #' @title Run orthofinder in block
 #' @description
-#' \code{run_orthofinderInBlk} Loop through the pairwise combination of genomes and
-#' run orthofinderInBlk
+#' \code{run_orthofinderInBlk} Loop through the pairwise combination of genomes
+#' and run orthofinderInBlk
 #' @rdname syntenic_orthogroups
 #' @import data.table
 #' @export

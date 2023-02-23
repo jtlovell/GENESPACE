@@ -24,14 +24,15 @@ ofInBlk_engine(gsParam, genome1, genome2, overwrite)
 \item{genome2}{character vector with the target genome for orthofinderInBlk}
 }
 \description{
-\code{build_synOGs} integrates many pairwise results from synteny into
+\code{syntenic_orthogroups} integrates many pairwise results from synteny into
 vectors of syntenic orthogroups. Also can re-run orthofinder within blocks
 and re-calculate orthogroups from those results.
 
-\code{syntenic_orthogroups} syntenic_orthogroups
+\code{syntenic_orthogroups} combine blast hits to cluster hits into
+syntenic orthogroups.
 
-\code{run_orthofinderInBlk} Loop through the pairwise combination of genomes and
-run orthofinderInBlk
+\code{run_orthofinderInBlk} Loop through the pairwise combination of genomes
+and run orthofinderInBlk
 
 \code{ofInBlk_engine} Main engine to run orthofinder in blocks
 }

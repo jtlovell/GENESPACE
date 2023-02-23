@@ -1,6 +1,7 @@
-#' @title synteny
+#' @title flag and split syntenic hits
 #' @description
-#' \code{synteny} synteny
+#' \code{synteny} from an annotated blast file, assign syntenic (or not) blocks
+#' to each hit.
 #' @name synteny
 #'
 #' @param gsParam A list of genespace parameters. This should be created
@@ -15,12 +16,13 @@
 #' @param topn1 integer, the number of best scoring hits per gene in genome 1
 #' @param topn2 integer, the number of best scoring hits per gene in genome 1
 #' @param nGaps see init_genespace
+#' @param onlySameChrs logical, should only hits on chromosomes with the same
+#' name be permitted?
 #' @param MCScanX_hCall see init_genespace
 #'
 #' \cr
 #' If called, \code{synteny} returns its own arguments.
 #'
-#' @details Details coming soon.
 
 #' @title Flag syntenic hits
 #' @description

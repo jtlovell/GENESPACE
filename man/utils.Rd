@@ -317,9 +317,9 @@ runs or the unique run ids.
 
 \code{add_alpha} add transparency to a color
 
-\code{read_intSynPos} read interpolated syntenic position files
+\code{read_intSynPos} utility to read interpolated syntenic position files
 
-\code{read_intSynPos} read interpolated syntenic position files
+\code{write_intSynPos} utility to write interpolated syntenic position files
 
 \code{get_orthofinderVersion} Checks that orthofinder is installed and if so,
 returns the installed version.
@@ -332,25 +332,35 @@ color of the panel.background.
 
 \code{download_exampleData} downloads chicken and human annotations from NCBI
 
-\code{interp_approx} interp_approx
+\code{interp_approx} use approx to interpolate missing positions based on
+the positions of the bounder x/y coordinates.
 
-\code{read_refGenomeSynHits} read_refGenomeSynHits
+\code{read_refGenomeSynHits} read in all syntenic hits files involving a
+single reference genome and, where necessary, invert the hits so that the
+reference genome is always the query (genome1).
 
-\code{read_refGenomeSynHits} read_refGenomeSynHits
+\code{read_refGenomeAllBlast} read in all hits files involving a
+single reference genome and, where necessary, invert the hits so that the
+reference genome is always the query (genome1).
 
-\code{get_bedInBlk} get_bedInBlk
+\code{get_bedInBlk} splits the bed file so that two entries (query and target
+) match the physical bounds of blocks in the hits object.
 
 \code{add_array2bed} add array ID to the bed file
 
-\code{add_arrayReps2bed} calculate the array representatives
+\code{add_arrayReps2bed} add array representative genes to the combined bed
+object
 
-\code{write_pangenes} write_pangenes
+\code{write_pangenes} utility to correctly write in long-formatted pan=gene
+text files.
 
-\code{read_pangenes} read_pangenes
+\code{read_pangenes} utility to correctly read in long-formatted pangene text
+files.
 
-\code{find_nnHit} find_nnHit
+\code{find_nnHit} find anchor hits that are nearest to non-anchor xy position
 
-\code{flag_hitsInRadius} flag_hitsInRadius
+\code{flag_hitsInRadius} given a vector of anchors, pulls xy positions within
+radius of anchors using dbscan
 
-\code{flag_hitsInBlk} flag_hitsInBlk
+\code{flag_hitsInBlk} finds hits within the bounding coordinates of blocks
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/syntenic_pangenes.R
 \name{syntenic_pangenes}
 \alias{syntenic_pangenes}
-\title{syntenic_pangenes}
+\title{generate syntenic pan-gene sets}
 \usage{
 syntenic_pangenes(
   gsParam,
@@ -25,5 +25,11 @@ messy synteny maps.}
 in an orthogroup with positions clustered into a specific location.}
 }
 \description{
-\code{syntenic_pangenes} syntenic_pangenes
+\code{syntenic_pangenes} Integrates interpolated gene order position with
+orthogroups to generate pan-gene sets across multiple genomes.
+}
+\details{
+formerly called 'pangenome' this function decomposes orthogroups
+and syntenic interpolated positions into a long-formatted pan-gene set. See
+query_pangenes to access this output.
 }

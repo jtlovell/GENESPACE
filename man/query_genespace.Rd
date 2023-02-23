@@ -31,6 +31,9 @@ so that the entire chromosome is returned.}
 \item{synOnly}{logical, given to query hits to return (or not) the synteny-
 constrained hits only}
 
+\item{refGenome}{character matching one of the genomeIDs if a bed object is
+not provided}
+
 \item{transform}{logical, should the pangenome be transformed from the long
 to the wide format?}
 
@@ -51,7 +54,10 @@ data.table for each line in the bed file.
 \code{query_genespace} Functions to pull data stored in the /pangenome
 and /syntenicHits directories
 
-\code{query_hits} query_hits
+\code{query_hits} extract syntenic (or all) hits that fall within a interval
+in a genome.
 
-\code{query_pangenome} query_pangenome
+\code{query_pangenes} the primary engine to explore genespace output, this
+lets you reformat the pan-genes to wide (entry - by - genome) matrix and
+only look at specified positional bounds.
 }

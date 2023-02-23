@@ -1,6 +1,6 @@
 #' @title plot hits as a xy dotplot
 #' @description
-#' \code{plot_hits} routines to make vizually appealing dotplots
+#' \code{plot_hits} routines to make visually appealing dotplots
 #' @name plot_hits
 #'
 #' @param gsParam A list of genespace parameters. This should be created
@@ -23,8 +23,9 @@
 #' \cr
 #' If called, \code{plot_hits} returns its own arguments.
 #'
-#' @details Details coming soon.
-
+#' @details Dotplots here aggregate across proximate positions to reduce file
+#' size, especially for very large genomes. XY positions are always in gene-rank
+#' order positions. Graphics are built with ggplot2.
 
 #' @title Plot syntenic hits
 #' @description

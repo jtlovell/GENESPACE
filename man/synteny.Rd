@@ -4,7 +4,7 @@
 \alias{synteny}
 \alias{find_selfSyn}
 \alias{synteny_engine}
-\title{synteny}
+\title{flag and split syntenic hits}
 \usage{
 synteny(gsParam, verbose = TRUE)
 
@@ -53,9 +53,13 @@ by init_genespace.}
 
 \cr
 If called, \code{synteny} returns its own arguments.}
+
+\item{onlySameChrs}{logical, should only hits on chromosomes with the same
+name be permitted?}
 }
 \description{
-\code{synteny} synteny
+\code{synteny} from an annotated blast file, assign syntenic (or not) blocks
+to each hit.
 
 \code{synteny} The main engine to call syntenic blocks and regions
 
@@ -80,7 +84,4 @@ radius and blkSize minimum size. The resulting hits are the anchors, flagged
 5) Split anchors of interleaved blocks, then extract hits within the physical
 bounds of the blocks and within blkRadius distance of an anchor (within-block
 distance). These hits are flagged 'isSyntenic = TRUE'.
-}
-\details{
-Details coming soon.
 }
