@@ -132,7 +132,7 @@ plot_riparian <- function(gsParam,
                           customRefChrOrder = NULL,
                           palette = gs_colors,
                           chrLabCex = 1,
-                          ylabBuff = (0.02 * (length(genomeIDs) / 8)) + 0.02,
+                          ylabBuff = ((0.01 * (length(genomeIDs) / 8)) + 0.02) / scalePlotHeight,
                           braidBorderLwd = 0,
                           invertTheseChrs = NULL,
                           chrLabFun = function(x)

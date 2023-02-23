@@ -135,7 +135,8 @@ syntenic_pangenes <- function(gsParam,
 
     # -- 10 add pangenes rep genes
     setnames(bedo, "chr", "interpChr")
-    bedo <- merge(bedo, bedAll[,c("ofID", "chr")], by = "ofID", all.x = T)
+    bedo <- merge(bedo, bedAll[,c("ofID", "chr")],
+                  by = "ofID", all.x = T, allow.cartesian = T)
     gids <- c(refGenome, gsParam$genomeIDs[gsParam$genomeIDs != refGenome])
     bedo[,genome := factor(as.character(genome), levels = gids)]
     bedo[,sameChr := chr == interpChr]
@@ -187,10 +188,11 @@ syntenic_pangenes <- function(gsParam,
     return(x)
   }))
   setnames(ogs, c("pgRepID", "ofID"))
-  ogs <- merge(bed[,c("genome", "og", "ofID")], ogs, by = "ofID")
+  ogs <- merge(bed[,c("genome", "og", "ofID")], ogs,
+               by = "ofID", allow.cartesian = T)
   nsogs <- merge(
     pgOut[,c("pgID", "interpChr", "interpOrd", "pgRepID")],
-    ogs, by = "pgRepID")
+    ogs, by = "pgRepID", allow.cartesian = T)
   nsogs[,flag := "NSOrtho"]
 
   pgOut <- rbind(pgOut, nsogs)
@@ -199,7 +201,7 @@ syntenic_pangenes <- function(gsParam,
 
   # 5. add in positions of genes and drop duplicates
   pgOut <- merge(pgOut, bed[,c("ofID", "id", "chr", "start", "end", "ord")],
-                 by = "ofID", all.x = T)
+                 by = "ofID", all.x = T, allow.cartesian = T)
 
   pgOut[,flag := factor(flag, levels = c("PASS", "array", "badOG", "NSOrtho"))]
   setkey(pgOut, pgID, flag, genome, ofID)
