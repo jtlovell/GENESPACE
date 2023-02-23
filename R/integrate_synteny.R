@@ -134,6 +134,7 @@ interp_synPos <- function(gsParam, verbose = TRUE){
 #' @rdname integrate_synteny
 #' @import data.table
 #' @importFrom dbscan dbscan frNN
+#' @importFrom parallel mclapply
 #' @export
 phase_blks <- function(gsParam,
                        refGenome,
@@ -150,6 +151,7 @@ phase_blks <- function(gsParam,
   # ... read in bedfile
   genomeIDs <- gsParam$genomeIDs
   bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
+  nCores <- gsParam$params$nCores
 
   if(length(refChr) > 1 || length(refEndBp) > 1 || length(refStartBp) > 1)
     stop("if specified, refChr, refStartBp & refEndBp must all have length 1\n")
@@ -185,7 +187,7 @@ phase_blks <- function(gsParam,
 
   synhitFiles <- gsParam$synteny$blast$synHits
   hcols <- c("ofID1", "ofID2", "genome1", "genome2", "chr1", "chr2", "ord1", "ord2", "start1", "end1", "start2", "end2","blkID")
-  refBlks <- rbindlist(lapply(synhitFiles, function(j){
+  refBlks <- rbindlist(mclapply(synhitFiles, mc.cores = nCores, function(j){
 
     # -- read in the hits
     h <- subset(read_synHits(j), isAnchor)
@@ -235,6 +237,7 @@ phase_blks <- function(gsParam,
 #' coordinates are calculated across all combination of genomes.
 #' @rdname integrate_synteny
 #' @import data.table
+#' @importFrom parallel mclapply
 #' @export
 nophase_blks <- function(gsParam,
                          useRegions,
@@ -242,8 +245,9 @@ nophase_blks <- function(gsParam,
 
   isAnchor <- regID <- blkID <- n <- NULL
   synhitFiles <- gsParam$synteny$blast$synHits
+  nCores <- gsParam$params$nCores
   hcols <- c("ofID1", "ofID2", "genome1", "genome2", "chr1", "chr2", "ord1", "ord2", "start1", "end1", "start2", "end2","blkID")
-  allBlks <- rbindlist(lapply(synhitFiles, function(j){
+  allBlks <- rbindlist(mclapply(synhitFiles, mc.cores = nCores, function(j){
 
     # -- read in the hits
     h <- subset(read_synHits(j), isAnchor)

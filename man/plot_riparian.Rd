@@ -31,7 +31,7 @@ plot_riparian(
   customRefChrOrder = NULL,
   palette = gs_colors,
   chrLabCex = 1,
-  ylabBuff = 0.02,
+  ylabBuff = (0.02 * (length(genomeIDs)/8)) + 0.02,
   braidBorderLwd = 0,
   invertTheseChrs = NULL,
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf|chromosome|scaffold|^lg|_", "",
