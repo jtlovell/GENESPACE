@@ -9,30 +9,28 @@
 \usage{
 plot_riparian(
   gsParam,
+  genomeIDs = gsParam$genomeIDs,
+  refGenome = NULL,
   highlightBed = NULL,
   blk = NULL,
   backgroundColor = add_alpha("grey20", 0.5),
   pdfFile = NULL,
-  refGenome = gsParam$genomeIDs[1],
   useRegions = TRUE,
-  genomeIDs = gsParam$genomeIDs,
   labelTheseGenomes = gsParam$genomeIDs,
   useOrder = TRUE,
   gapProp = 0.005,
   chrFill = "white",
-  chrLabBorderLwd = 0.5,
   scalePlotHeight = 1,
   scalePlotWidth = 1,
-  minChrLen2plot = 100,
+  minChrLen2plot = ifelse(useOrder, 100, 1e+05),
   braidAlpha = 0.5,
   scaleBraidGap = 0,
   reorderBySynteny = TRUE,
   howSquare = 0,
   customRefChrOrder = NULL,
   palette = gs_colors,
-  chrLabCex = 1,
-  ylabBuff = ((0.01 * (length(genomeIDs)/8)) + 0.02)/scalePlotHeight,
-  braidBorderLwd = 0,
+  chrLabFontSize = 5,
+  chrExpand = 0.5,
   invertTheseChrs = NULL,
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf|chromosome|scaffold|^lg|_", "",
     tolower(x))),
@@ -48,7 +46,6 @@ plot_riparian(
 riparian_engine(
   blk,
   bed,
-  pdfFile = NULL,
   refGenome = NULL,
   genomeIDs = NULL,
   theseBlocksFirst = NULL,
@@ -56,20 +53,16 @@ riparian_engine(
   useOrder = TRUE,
   gapProp = 0.005,
   chrFill = "white",
-  chrLabBorderLwd = 0.5,
-  scalePlotHeight = 1,
-  scalePlotWidth = 1,
-  minChrLen2plot = 100,
+  chrLabFontSize = 5,
+  minChrLen2plot = ifelse(useOrder, 100, 1e+05),
   braidAlpha = 0.5,
   scaleBraidGap = 0,
   reorderBySynteny = TRUE,
   howSquare = 0,
-  chrLabCex = 1,
-  ylabBuff = 0.1,
+  chrExpand = 0.5,
   customRefChrOrder = NULL,
   palette = gs_colors,
   invertTheseChrs = NULL,
-  braidBorderLwd = 0,
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf|chromosome|scaffold|^lg|_", "",
     tolower(x))),
   xlabel = sprintf("Chromosomes scaled by \%s", ifelse(useOrder, "gene rank order",
@@ -89,7 +82,6 @@ calc_curvePolygon(
   y1,
   y2,
   npts = 250,
-  addvert = 0,
   keepat = round(npts/20)
 )
 
@@ -112,6 +104,11 @@ elements: blast (file.path to the original orthofinder run), synteny (
 file.path to the directory where syntenic results are stored), genomeIDs (
 character vector of genomeIDs).}
 
+\item{genomeIDs}{character vector at least partially matching the genomeIDs
+in gsParam}
+
+\item{refGenome}{single character string specifying which genome is the ref}
+
 \item{highlightBed}{data.frame (or coercible to a data.frame, e.g.
 data.table) with four required columns: genome, chr, start, end ... these
 are the bp coordinates of the regions of interest. Can also include a column
@@ -128,12 +125,7 @@ highlightBed.}
 
 \item{pdfFile}{file.path to the pdf device to store the file}
 
-\item{refGenome}{single character string specifying which genome is the ref}
-
 \item{useRegions}{logical, should regions or smaller blocks be plotted?}
-
-\item{genomeIDs}{character vector at least partially matching the genomeIDs
-in gsParam}
 
 \item{labelTheseGenomes}{character string of genomes that have labeled chrs}
 
@@ -145,9 +137,6 @@ relative to the length of the largest genome}
 
 \item{chrFill}{character or integer coercible to an R color for the interior
 fill of the chromosome regions}
-
-\item{chrLabBorderLwd}{character or integer coercible to an R color for the border
-of the chromosome regions.}
 
 \item{scalePlotHeight}{numeric, scaling factor for plot height Larger values
 make taller plots}
@@ -176,14 +165,10 @@ the reference genome}
 
 \item{palette}{function coercible to an R color palette}
 
-\item{chrLabCex}{character expansion for the chromosome labels. Not currently
-in use.}
+\item{chrLabFontSize}{size in points for the chromosome labels}
 
-\item{ylabBuff}{numeric giving the absolute size buffer surrounding the
-chromosome labels.}
-
-\item{braidBorderLwd}{numeric specifying the weight of borders on the braids.
-Not currently in use.}
+\item{chrExpand}{numeric giving the expansion of the chromosome polygons
+surrounding the chromosome labels.}
 
 \item{invertTheseChrs}{data.table with two columns, genome and chr containing
 the lists of genomes and chromosomes that should be inverted in the plot.
@@ -221,8 +206,6 @@ plotted first}
 \item{y2}{numeric, top postion of the block}
 
 \item{npts}{integer, the number of points to use in the curve.}
-
-\item{addvert}{funny stuff here}
 
 \item{keepat}{integer, the grid size of points to keep}
 

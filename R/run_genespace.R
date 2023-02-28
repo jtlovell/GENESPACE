@@ -272,7 +272,6 @@ run_genespace <- function(gsParam,
 
   ##############################################################################
   # 8. Phase syntenic blocks against reference chromosomes
-  gsParam <<- gsParam
   cat("\n############################", strwrap(
     "7. Final block coordinate calculation and riparian plotting ... ",
     indent = 0, exdent = 8), sep = "\n")
