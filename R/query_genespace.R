@@ -187,12 +187,13 @@ query_pangenes <- function(gsParam,
         out,
         genome == x$genome & chr == x$chr & end <= x$end & start >= x$start)
       outroi <- subset(out, pgID >= min(tmp$pgID) & pgID <= max(tmp$pgID))
+
+      if(!showUnPlacedPgs)
+        outroi <- subset(outroi, !is.na(interpOrd))
+
       return(outroi)
     })
     names(out) <- bed$regID
-
-    if(!showUnPlacedPgs)
-      out <- subset(out, !is.na(interpOrd))
 
     return(out)
   }
