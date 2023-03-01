@@ -408,7 +408,8 @@ gghits <- function(hits,
                    minGenes2plot = 0){
   ofID1 <- ofID2 <- sameOg <- ngene1 <- ngene2 <- ord1 <- ord2 <- blkID <-
     inBuffer <- rnd2 <- rnd1 <- n <- isArrayRep2 <- isArrayRep1 <- chr1 <-
-    noAnchor <- bitScore <- quantile <- chr2 <- sameOG <- isAnchor <- NULL
+    noAnchor <- bitScore <- quantile <- chr2 <- sameOG <- isAnchor <-
+    start1 <- start2 <- x <- y <- NULL
 
   tp <- data.table(hits)
 

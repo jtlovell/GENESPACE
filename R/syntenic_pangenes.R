@@ -34,11 +34,12 @@ syntenic_pangenes <- function(gsParam,
     noAnchor <- isArrayRep <- ofID2 <- genome <- ofID <- ord <- nInChr <-
       clus <- ntot <- ninclus <- prop <- n <- rnk <- bad <- propOfMax <-
       og <- chr <- interpOrd <- pgID <- flag <- globHOG <- sameChr <-
-      interpChr <- wt <- pgRepID <- NULL
+      interpChr <- wt <- pgRepID <- nInArray <- glevs <- NULL
 
     bedAll <- data.table(bed)
     bed <- subset(bed, !noAnchor & isArrayRep)
     ogv <- bed$og; names(ogv) <- bed$ofID
+    narrv <- bed$nInArray; names(narrv) <- bed$ofID
 
     # -- 1 convert to a scaffold
     scaff <- data.table(bed)
@@ -55,7 +56,7 @@ syntenic_pangenes <- function(gsParam,
       genome = genome2, ofID = ofID2, chr = chr1, ord = ord1, og = ogv[ofID2]))
     refa <- rbind(subset(scaff, genome == refGenome), synPos)
     refa <- subset(refa, !duplicated(paste(ofID, ord)))
-
+    refa[,nInArray := narrv[ofID]]
     # -- 4 add ogs to interpolated positions
     refa[,nInChr := sum(!is.na(ord)), by =  c("chr", "og")]
     n1 <- subset(refa, nInChr <= 1)
@@ -88,6 +89,7 @@ syntenic_pangenes <- function(gsParam,
     }else{
       n3 <- rbind(n2, n1)
     }
+    n3 <- subset(n3, !duplicated(n3))
 
     # -- 6 drop placements < minPropInterp2keep
     n3[,ntot := uniqueN(ofID), by = c("og")]
@@ -95,10 +97,13 @@ syntenic_pangenes <- function(gsParam,
     n3[,prop := ninclus / ntot]
     n3[,propOfMax := prop/max(prop), by = "og"]
     n3 <- subset(n3, prop >= minPropInterp2keep | propOfMax == 1)
-    n3[,`:=`(ntot = NULL, ninclus = NULL, prop = NULL, propOfMax = NULL)]
-    n3[,`:=`(interpOrd = median(ord)), by = c("og", "clus", "chr")]
+    n3[,`:=`(ntot = NULL, ninclus = NULL, prop = NULL, propOfMax = NULL,
+             genome = factor(genome, levels = glevs))]
+    setorder(n3, genome, -nInArray)
+    n3[,interpOrd := ord[1], by = c("og", "clus", "chr")]
 
     # -- 7 reformat
+
     n4 <- subset(n3, !duplicated(paste(og, clus, chr, interpOrd)))
 
     bedo <- subset(bed, og %in% unique(n3$og))
@@ -148,11 +153,12 @@ syntenic_pangenes <- function(gsParam,
   }
 
   isArrayRep <- flag <- gen1 <- id1 <- gen2 <- id2 <- ofID1 <- ofID2 <-
-    pgID <- genome <- ofID <- NULL
+    pgID <- genome <- ofID <- nInArray <- NULL
 
   # 1. read in the combined bed file
   bed <- read_combBed(
     filepath = file.path(gsParam$paths$results, "combBed.txt"))
+  bed[,nInArray := .N, by = "arrayID"]
 
   # 2. Cluster the anchors into pangenes entries
   pgScaff <- cluster_anchors(

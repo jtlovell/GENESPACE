@@ -85,22 +85,20 @@ query_hits <- function(gsParam,
 #' @import data.table
 #' @export
 query_pangenes <- function(gsParam,
-                            bed = NULL,
-                            refGenome = NULL,
-                            transform = TRUE,
-                            showArrayMem = TRUE,
-                            showNSOrtho = TRUE,
-                            maxMem2Show = Inf){
+                           bed = NULL,
+                           refGenome = NULL,
+                           transform = TRUE,
+                           showArrayMem = TRUE,
+                           showNSOrtho = TRUE,
+                           maxMem2Show = Inf){
 
-  x <- flag <- id <- repGene <- pgRepID <- ofID <- og <- pgID <- index <-
-    pass <- genome <- chr <- start <- end <- regID <- ord <- interpChr <-
-    interpOrd <- flag <- id <- repGene <- pgRepID <- ofID <- og <- pgID <-
-    index <- NULL
-
-
-  if(is.null(bed)){
-    if(is.null(refGenome))
-      stop("must specify either a bed or refGenome\n")
+  ##############################################################################
+  parse_pangenes <- function(gsParam,
+                             refGenome,
+                             transform,
+                             showArrayMem,
+                             showNSOrtho,
+                             maxMem2Show){
     pgo <- fread(file.path(gsParam$paths$pangenes, sprintf(
       "%s_pangenes.txt.gz", refGenome)))
 
@@ -121,12 +119,42 @@ query_pangenes <- function(gsParam,
         pgo[,index := 1:.N, by = c("pgID", "genome","flag")]
         pgo <- subset(pgo, index <= maxMem2Show)
       }
-      pgo <- dcast(pgo, pgID + interpChr + interpOrd + og + repGene ~ genome,
+      pgo[,genome := factor(genome, levels = gsParam$genomeIDs)]
+      pgo <- dcast(pgo, pgID + interpChr + interpOrd + og + repGene + pgRepID ~ genome,
                    value.var = "id", fun.aggregate = list)
+      pgo <- merge(pgo, cbm, by = "pgRepID")
+      pgo[,pgRepID := NULL]
+      setcolorder(
+        pgo,
+        c("pgID", "interpChr", "interpOrd", "og", "repGene", "genome","chr",
+          "start", "end", gsParam$genomeIDs))
     }
+
+    setkey(pgo, pgID)
     return(pgo)
+  }
+  ##############################################################################
+
+  x <- flag <- id <- repGene <- pgRepID <- ofID <- og <- pgID <- index <-
+    pass <- genome <- chr <- start <- end <- regID <- ord <- interpChr <-
+    interpOrd <- flag <- id <- repGene <- pgRepID <- ofID <- og <- pgID <-
+    index <- NULL
+
+  cb <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
+  cbm <- cb[,c("ofID", "genome", "chr", "start", "end")]
+  setnames(cbm, "ofID", "pgRepID")
+  if(is.null(bed)){
+    if(is.null(refGenome))
+      stop("must specify either a bed or refGenome\n")
+    out <- parse_pangenes(
+      gsParam = gsParam,
+      refGenome = refGenome,
+      transform = transform,
+      showArrayMem = showArrayMem,
+      showNSOrtho = showNSOrtho,
+      maxMem2Show = maxMem2Show)
+    return(out)
   }else{
-    cb <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
     bed <- data.table(bed)
     if(nrow(bed) == 0)
       stop("bed must be a data.table or data.frame with >= 1 rows\n")
@@ -143,43 +171,22 @@ query_pangenes <- function(gsParam,
       bed[,end := Inf]
     bed[,regID := sprintf("%s, %s: %s-%s", genome, chr, start, end)]
 
-    # -- convert bed to gene order positions
-    setkey(cb, genome, chr, start, end)
-    setkey(bed, genome, chr, start, end)
-    conv <- foverlaps(cb, bed)
-    bedo <- subset(conv, !is.na(regID))[,list(start = min(ord), end = max(ord)),
-                                        by = c("genome", "chr", "regID")]
-
-    out <- lapply(1:nrow(bedo), function(i){
-      x <- bedo[i,]
-      pg <- fread(file.path(gsParam$paths$pangenes, sprintf(
-        "%s_pangenes.txt.gz", x$genome)))
-      pgo <- subset(
-        pg, interpChr == x$chr & interpOrd >= x$start & interpOrd <= x$end)
-
-      if(!showArrayMem)
-        pgo <- subset(pgo, flag != "array")
-
-      if(!showNSOrtho)
-        pgo <- subset(pgo, flag != "NSOrtho")
-
-      if(transform){
-        pgo[,flag := ifelse(flag == "NSOrtho", "*",
-                            ifelse(flag == "array", "+", ""))]
-        pgo[,id := sprintf("%s%s", id, flag)]
-        pgo[,repGene := id[pgRepID == ofID][1], by = "pgID"]
-        pgo[,og := og[flag == ""][1], by = "pgID"]
-        if(is.finite(maxMem2Show)){
-          setkey(pgo, pgID, flag)
-          pgo[,index := 1:.N, by = c("pgID", "genome","flag")]
-          pgo <- subset(pgo, index <= maxMem2Show)
-        }
-        pgo <- dcast(pgo, pgID + interpChr + interpOrd + og + repGene ~ genome,
-                     value.var = "id", fun.aggregate = list)
-      }
-      return(pgo)
+    out <- lapply(1:nrow(bed), function(i){
+      x <- bed[i,]
+      out <- parse_pangenes(
+        gsParam = gsParam,
+        refGenome = x$genome,
+        transform = transform,
+        showArrayMem = showArrayMem,
+        showNSOrtho = showNSOrtho,
+        maxMem2Show = maxMem2Show)
+      tmp <- subset(
+        out,
+        genome == x$genome & chr == x$chr & end <= x$end & start >= x$start)
+      outroi <- subset(out, pgID >= min(tmp$pgID) & pgID <= max(tmp$pgID))
+      return(outroi)
     })
-    names(out) <- bedo$regID
+    names(out) <- bed$regID
     return(out)
   }
 }
