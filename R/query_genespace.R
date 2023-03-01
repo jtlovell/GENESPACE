@@ -90,7 +90,8 @@ query_pangenes <- function(gsParam,
                            transform = TRUE,
                            showArrayMem = TRUE,
                            showNSOrtho = TRUE,
-                           maxMem2Show = Inf){
+                           maxMem2Show = Inf,
+                           showUnPlacedPgs = FALSE){
 
   ##############################################################################
   parse_pangenes <- function(gsParam,
@@ -153,6 +154,8 @@ query_pangenes <- function(gsParam,
       showArrayMem = showArrayMem,
       showNSOrtho = showNSOrtho,
       maxMem2Show = maxMem2Show)
+    if(!showUnPlacedPgs)
+      out <- subset(out, !is.na(interpOrd))
     return(out)
   }else{
     bed <- data.table(bed)
@@ -187,6 +190,10 @@ query_pangenes <- function(gsParam,
       return(outroi)
     })
     names(out) <- bed$regID
+
+    if(!showUnPlacedPgs)
+      out <- subset(out, !is.na(interpOrd))
+
     return(out)
   }
 }
