@@ -2,7 +2,7 @@
 
 This is version 1 of GENESPACE. GENESPACE is an analytical pipeline to syntenic regions across multiple genomes. The manuscript describing GENESPACE is now pubished in eLife. [Find the article here](https://elifesciences.org/articles/78526). Please cite this if you use GENESPACE. 
 
-There are currently two tutorials that (1) illustrate (what GENESPACE does)[] and (2) demostrate how to (customize your riparian plots)[https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/riparianGuide.html]. 
+There are currently two tutorials that (1) illustrate (what GENESPACE does and how to use it)[https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/genespaceGuide.html] and (2) demostrate how to (customize your riparian plots)[https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/riparianGuide.html]. This README is primarily to show how to get GENESPACE up and running.
 
 **NOTE** v0.9.x is no longer supported. Please upgrade to v1.1+. There are some significant changes to the structure of GENESPACE in V1 (but few changes to the underlying algorithms). These changes are detailed below in '4.1: Changes to GENESPACE in v1'. 
 
@@ -76,25 +76,6 @@ gpar <- init_genespace(
 # -- accomplish the run
 out <- run_genespace(gpar)
 ```
-
-#### 1.4 GENESPACE Output
-
-GENESPACE produces quite a few intermediate files (including the output of a complete orthofinder run). See section 5: "data output" for details. The most directly useful data are:
-
-  - parsed blast hits (in /syntenicHits)
-  - dotplots (/dotplots)
-  - pan-gene sets (/pangenome)
-  - merged bed-like file with orthogroups (/results/combBed.txt)
-
-#### 1.5 Exploring the data
-
-You can then explore the results by giving the query (`query_pangenes`, `query_hits`) functions intervals of interest. 
-
-#### 1.6 Riparian plots
-
-The primary visual output of GENESPACE is the riparian plot, which stacks the genomes vertically, orders chromosomes by synteny to a reference genome, then plots syntenic regions as 'braids'. By default, two plots are made and stored in /riparian for each haploid genome, one using gene rank order positions and one with physical (base-pair) positions. The function `plot_riparian` can be re-called by the user to generate custom plots.
-
-For more information and examples of customization, see the (plot_riparian tutorial)[https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/riparianGuide.html].
 
 ##################
 
