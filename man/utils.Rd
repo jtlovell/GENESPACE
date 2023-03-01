@@ -3,140 +3,236 @@
 \name{utils}
 \alias{utils}
 \alias{.onAttach}
-\alias{order_filesByMtime}
-\alias{check_logicalArg}
-\alias{add_rle}
-\alias{clus_igraph}
+\alias{check_integer}
+\alias{check_numeric}
+\alias{check_character}
+\alias{check_logical}
+\alias{check_filePathParam}
+\alias{check_onlyDNA}
+\alias{read_aaFasta}
 \alias{get_nAA}
-\alias{find_modalValue}
-\alias{scale_between}
-\alias{flatten_list}
-\alias{pull_strWidth}
-\alias{round_toInteger}
+\alias{read_bed}
+\alias{align_charLeft}
+\alias{align_charRight}
 \alias{read_orthofinderSpeciesIDs}
 \alias{read_orthofinderSequenceIDs}
-\alias{choose_mostRecentOF}
+\alias{get_nSeqs}
+\alias{check_annotFiles}
+\alias{check_MCScanXhInstall}
 \alias{parse_ogs}
+\alias{parse_hogs}
 \alias{parse_orthologues}
-\alias{read_blast}
-\alias{find_orthofinderResults}
-\alias{calc_blkCoords}
+\alias{round_toInteger}
+\alias{add_rle}
+\alias{gs_colors}
+\alias{clus_igraph}
 \alias{are_colors}
+\alias{scale_between}
+\alias{read_combBed}
+\alias{write_combBed}
+\alias{read_allBlast}
+\alias{write_allBlast}
+\alias{read_synHits}
+\alias{write_synHits}
 \alias{add_alpha}
-\alias{drop_unusedPeptides}
-\alias{interp_linear}
+\alias{read_intSynPos}
+\alias{write_intSynPos}
+\alias{get_orthofinderVersion}
+\alias{get_diamondVersion}
+\alias{theme_genespace}
+\alias{download_exampleData}
+\alias{interp_approx}
+\alias{read_refGenomeSynHits}
+\alias{read_refGenomeAllBlast}
+\alias{get_bedInBlk}
+\alias{add_array2bed}
+\alias{add_arrayReps2bed}
+\alias{write_pangenes}
+\alias{read_pangenes}
+\alias{find_nnHit}
+\alias{flag_hitsInRadius}
+\alias{flag_hitsInBlk}
 \title{Generic internal functions used by genespace}
 \usage{
 .onAttach(...)
 
-order_filesByMtime(path = getwd(), pattern = "*", recursive = F)
+check_integer(
+  x,
+  min = -Inf,
+  max = Inf,
+  default = NA,
+  na.rm = FALSE,
+  onlySingleValue = length(x) <= 1
+)
 
-check_logicalArg(x)
+check_numeric(
+  x,
+  min = -Inf,
+  max = Inf,
+  default = NA,
+  na.rm = FALSE,
+  onlySingleValue = length(x) <= 1
+)
 
-add_rle(x, which = "n")
+check_character(
+  x,
+  default = NULL,
+  na.rm = FALSE,
+  onlySingleValue = length(x) <= 1
+)
 
-clus_igraph(id1, id2)
+check_logical(x, default = NA, na.rm = FALSE, onlySingleValue = length(x) <= 1)
 
-get_nAA(path, raw = FALSE)
+check_filePathParam(filepath)
 
-find_modalValue(x)
+check_onlyDNA(path)
 
-scale_between(x, min, max, scale1toMean = TRUE)
+read_aaFasta(path)
 
-flatten_list(x)
+get_nAA(path)
 
-scale_between(x, min, max, scale1toMean = TRUE)
+read_bed(filepath)
 
-pull_strWidth(x, width)
+align_charLeft(x)
+
+align_charRight(x)
+
+read_orthofinderSpeciesIDs(filepath)
+
+read_orthofinderSequenceIDs(filepath)
+
+get_nSeqs(filepath)
+
+check_annotFiles(filepath, genomeIDs)
+
+check_MCScanXhInstall(filepath)
+
+parse_ogs(filepath, genomeIDs)
+
+parse_hogs(filepath)
+
+parse_orthologues(filepath)
 
 round_toInteger(x, to)
 
-read_orthofinderSpeciesIDs(path)
+add_rle(x, which = "n")
 
-read_orthofinderSequenceIDs(path)
+gs_colors(n = 10)
 
-choose_mostRecentOF(path)
-
-parse_ogs(gsParam)
-
-parse_orthologues(gsParam, refGenome)
-
-read_blast(
-  blFile = NULL,
-  ofID1 = NULL,
-  ofID2 = NULL,
-  path = NULL,
-  onlyIDScore = TRUE
-)
-
-find_orthofinderResults(gsParam, onlyCheckRun = F)
-
-calc_blkCoords(hits, mirror = FALSE)
+clus_igraph(id1, id2)
 
 are_colors(col)
 
+scale_between(x, min, max, scale1toMean = TRUE)
+
+read_combBed(filepath)
+
+write_combBed(x, filepath)
+
+read_allBlast(filepath, ...)
+
+write_allBlast(x, filepath)
+
+read_synHits(filepath, ...)
+
+write_synHits(x, filepath)
+
 add_alpha(col, alpha = 1)
 
-drop_unusedPeptides(gsParam)
+read_intSynPos(filepath)
 
-interp_linear(refOrd, toInterpOrd)
+write_intSynPos(x, filepath)
+
+get_orthofinderVersion(filepath)
+
+get_diamondVersion(filepath)
+
+theme_genespace(col = "black")
+
+download_exampleData(filepath)
+
+interp_approx(x, y)
+
+read_refGenomeSynHits(gsParam, refGenome)
+
+read_refGenomeAllBlast(gsParam, refGenome)
+
+get_bedInBlk(hits, bed)
+
+add_array2bed(bed, synBuff, maxIter = 10, reorder = TRUE)
+
+add_arrayReps2bed(bed)
+
+write_pangenes(x, filepath)
+
+read_pangenes(x, filepath, ...)
+
+find_nnHit(x, y, isAnchor, radius)
+
+flag_hitsInRadius(x, y, isAnchor, radius)
+
+flag_hitsInBlk(x, y, blkID)
 }
 \arguments{
-\item{...}{additional arguments passed to other functions
+\item{...}{additional parameters passed on to other functions
 \cr
 If called, \code{utils} returns its own arguments.}
 
+\item{x}{single-value parameter, string, integer, numeric, list, vector}
+
+\item{min}{if x is an integer or numeric, the minimum value allowed}
+
+\item{max}{if x is an integer or numeric, the minimum value allowed}
+
+\item{default}{if there is a problem with x, replace with this value}
+
+\item{na.rm}{logical, should NA's be dropped}
+
+\item{onlySingleValue}{logical, should long a single valuebe returned?}
+
+\item{filepath}{file.path}
+
 \item{path}{file path character string}
 
-\item{pattern}{regular expression to search for}
+\item{genomeIDs}{character vector of genomeIDs}
 
-\item{recursive}{logical, should the search be recursive}
+\item{to}{integer, top end value}
 
-\item{x}{vector of observations}
+\item{which}{character specifying what to use}
 
-\item{which}{character specifying which method to use}
+\item{n}{integer, number of observations}
 
-\item{id1}{character vector of ids with length matching id2}
+\item{id1}{character, first id}
 
-\item{id2}{character vector of ids with length matching id1}
+\item{id2}{character, second id}
 
-\item{raw}{logical, should a raw vector of peptide widths be returned?}
+\item{col}{color}
 
-\item{min}{numeric, length 1 specifying the minumum value in the scaled data}
+\item{scale1toMean}{logical, should values be scaled to 1?}
 
-\item{max}{numeric, length 1 specifying the maximum value in the scaled data}
+\item{alpha}{numeric, transparency}
 
-\item{scale1toMean}{logical, if single value, should it be the mean?}
+\item{y}{numeric, y values}
 
-\item{width}{integer, the number of characters to return in string.}
+\item{gsParam}{genespace parameters, see init_genespace.}
 
-\item{to}{what should the value be rounded to?}
+\item{refGenome}{character string specifying the reference genome}
 
-\item{gsParam}{list of genespace parameters}
+\item{hits}{data.table of syntenic hits}
 
-\item{refGenome}{character string specifying which genome is the reference}
+\item{bed}{data.table containing the combined bed object}
 
-\item{blFile}{file path to the blast-like text file}
+\item{synBuff}{see init_genespace.}
 
-\item{ofID1}{orthofinder ID of the first gene}
+\item{maxIter}{integer, the maximum number of iterations to use}
 
-\item{ofID2}{orthofinder ID of the second gene}
+\item{reorder}{logical, should the gene rank position be re-ordered?}
 
-\item{onlyIDScore}{logical, should only the geneIDs and score be returned?}
+\item{isAnchor}{logical, is a hit an anchor?}
 
-\item{onlyCheckRun}{logical, should the run just be checked?}
+\item{radius}{numeric, the 2d search radius.}
 
-\item{hits}{data.table containing annotated blast-format pairwise hits}
-
-\item{mirror}{logical, should hits be mirrored prior to block calculation?}
-
-\item{col}{character or integer specifying a color}
-
-\item{alpha}{numeric (0-1) specifying the transparency}
-
-\item{refOrd}{numeric, the order of anchor hits to interpolate}
-
-\item{toInterpOrd}{numeric, the order of alt genes to interpolate}
+\item{blkID}{vector of block IDs}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called
@@ -145,28 +241,34 @@ risk.
 
 \code{.onAttach} startup messages
 
-\code{order_filesByMtime} Order files by date of last modification
+\code{check_integer} Checks and parses integer arguments to GENESPACE
+functions. Replaces values of x not in range (min, max) with the minimum or
+maximum values. If a single value and a value that is not coercible to an
+integer is specified, returns the default value. If na.rm = TRUE and
+onlySingleValue = FALSE, drops NAs.
+from the vector
 
-\code{check_logicalArg} Ensure a logical (length 1) argument is coerced
-correctly. If cannot be coerced, return error.
+\code{check_numeric} See check_integer. Same but for numeric values.
 
-\code{add_rle} Convert vector into run length equivalents
+\code{check_character} See check_integer. Same but for character values.
 
-\code{clus_igraph} Clus_igraph
+\code{check_logical} See check_integer. Same but for logical values.
+
+\code{check_filePathParam} QC of user-specified parameter
+
+\code{check_onlyDNA} QC to ensure the peptides are actually peptides
+
+\code{read_aaFasta} read fasta-formatted peptide sequences
 
 \code{get_nAA} count the number of amino acids by gene
 
-\code{find_modalValue} find the most commmon value in a series
+\code{read_bed} read and check a raw bed file with four columns.
 
-\code{scale_between} scale a vector between a range
+\code{align_charLeft} for a vector of character strings, add " " to the right
+side so they all align to the left when printed
 
-\code{flatten_list} convert a list into a vector while keeping names
-
-\code{scale_between} ...
-
-\code{pull_strWidth} pull_strWidth
-
-\code{round_toInteger} round_toInteger
+\code{align_charRight} for a vector of character strings, add " " to the left
+side so they all align to the right when printed
 
 \code{read_orthofinderSpeciesIDs} Parses the SpeciesIDs.txt file into a
 data.table and returns to R.
@@ -174,24 +276,91 @@ data.table and returns to R.
 \code{read_orthofinderSequenceIDs} Reads the sequence
 IDs:gene name dictionary into memory.
 
-\code{choose_mostRecentOF} choose_mostRecentOF
+\code{get_nSeqs} Counts the number of lines with ">" in a file. If the output
+is not convertible to an integer, returns NA.
 
-\code{parse_ogs} wide to long format conversion for orthogroups.tsv
+\code{check_annotFiles} ensure the annotations match correctly
 
-\code{parse_orthologues} parse_orthologues
+\code{check_MCScanXhInstall} check that MCScanX_h can be called
 
-\code{read_blast} Reads in a single pairwise orthofinder-formaatted blast
-file
+\code{parse_ogs} read and parse orthofinder orthogroups.tsv files
 
-\code{find_orthofinderResults} find_orthofinderResults
+\code{parse_hogs} read and parse orthofinder phylogenetically hierarchical
+orthogroup (N0.tsv) files
 
-\code{calc_blkCoords} calc_blkCoords
+\code{parse_orthologues} read and parse orthofinder orthologs
+
+\code{round_toInteger} flexible rounding to any integer.
+
+\code{add_rle} run-length equivalent conversion, either as the length of the
+runs or the unique run ids.
+
+\code{gs_colors} get a set of colors from the genespace palette
+
+\code{clus_igraph} cluster connected subgraphs from pairwise observations
 
 \code{are_colors} check if a vector is coercible to R colors
 
+\code{scale_between} scale a vector between a range
+
+\code{read_combBed} ensures consistent combBed IO
+
+\code{write_combBed} ensures consistent combBed IO
+
+\code{read_allBlast} ensures consistent allBlast IO
+
+\code{write_allBlast} ensures consistent allBlast IO
+
+\code{read_synHits} ensures consistent synHit IO
+
+\code{write_synHits} ensures consistent synHit IO
+
 \code{add_alpha} add transparency to a color
 
-\code{drop_unusedPeptides} drop_unusedPeptides
+\code{read_intSynPos} utility to read interpolated syntenic position files
 
-\code{interp_linear} linear interpolation of missing values in x
+\code{write_intSynPos} utility to write interpolated syntenic position files
+
+\code{get_orthofinderVersion} Checks that orthofinder is installed and if so,
+returns the installed version.
+
+\code{get_diamondVersion} Checks that DIAMOND is installed and if so,
+returns the installed version.
+
+\code{theme_genespace} specifies publication-style themes. Col here is the
+color of the panel.background.
+
+\code{download_exampleData} downloads chicken and human annotations from NCBI
+
+\code{interp_approx} use approx to interpolate missing positions based on
+the positions of the bounder x/y coordinates.
+
+\code{read_refGenomeSynHits} read in all syntenic hits files involving a
+single reference genome and, where necessary, invert the hits so that the
+reference genome is always the query (genome1).
+
+\code{read_refGenomeAllBlast} read in all hits files involving a
+single reference genome and, where necessary, invert the hits so that the
+reference genome is always the query (genome1).
+
+\code{get_bedInBlk} splits the bed file so that two entries (query and target
+) match the physical bounds of blocks in the hits object.
+
+\code{add_array2bed} add array ID to the bed file
+
+\code{add_arrayReps2bed} add array representative genes to the combined bed
+object
+
+\code{write_pangenes} utility to correctly write in long-formatted pan=gene
+text files.
+
+\code{read_pangenes} utility to correctly read in long-formatted pangene text
+files.
+
+\code{find_nnHit} find anchor hits that are nearest to non-anchor xy position
+
+\code{flag_hitsInRadius} given a vector of anchors, pulls xy positions within
+radius of anchors using dbscan
+
+\code{flag_hitsInBlk} finds hits within the bounding coordinates of blocks
 }

@@ -2,126 +2,29 @@
 % Please edit documentation in R/run_orthofinder.R
 \name{run_orthofinder}
 \alias{run_orthofinder}
-\alias{blkwise_orthofinder}
-\alias{run_ofFromObj}
-\alias{read_hits4of}
-\title{Build orthofinder database for GENESPACE}
+\title{Accessory function to run OrthoFinder}
 \usage{
-run_orthofinder(gsParam, overwrite = FALSE)
-
-blkwise_orthofinder(
-  gsParam,
-  gff,
-  overwrite = FALSE,
-  genomeIDs = NULL,
-  minGenes4of = 40
-)
-
-run_ofFromObj(
-  blast00,
-  blast01,
-  blast10,
-  blast11,
-  pep0,
-  pep1,
-  writeDir,
-  path2orthofinder
-)
-
-read_hits4of(gsParam, genome1, genome2)
+run_orthofinder(gsParam, verbose = TRUE)
 }
 \arguments{
-\item{gsParam}{A list of genespace parameters. This should be created
-by setup_genespace, but can be built manually. Must have the following
-elements: blast (file.path to the original orthofinder run), synteny (
-file.path to the directory where syntenic results are stored), genomeIDs (
-character vector of genomeIDs).}
+\item{gsParam}{a genespace param list, made by init_genespace.}
 
-\item{overwrite}{logical, should results be overwritten?}
-
-\item{gff}{annotated gff with orthogroups included, see read_gff}
-
-\item{genomeIDs}{character vector with the genomes to include in the run}
-
-\item{minGenes4of}{integer specifying the minimum number of genes needed to
-run orthofinder.}
-
-\item{blast00}{data.table containing the blast hits of genome1 to genome1}
-
-\item{blast01}{data.table containing the blast hits of genome1 to genome2}
-
-\item{blast10}{data.table containing the blast hits of genome2 to genome1}
-
-\item{blast11}{data.table containing the blast hits of genome2 to genome2}
-
-\item{pep0}{aastringset containing peptides for genome1}
-
-\item{pep1}{aastringset containing peptides for genome2}
-
-\item{writeDir}{file path pointing to a directory within which to run f}
-
-\item{path2orthofinder}{file.path pointing to a valid orthofinder install}
-
-\item{genome1}{character string specifying genome1}
-
-\item{genome2}{character string specifying genome2}
+\item{verbose}{Logical, should updates be printed to the console?}
 }
 \value{
-...
+A list containing paths to the raw files. If a file is not found,
+path is returned as null and a warning is printed.
 }
 \description{
-\code{run_orthofinder} GENESPACE routines for running orthofinder within R,
-generating code to run outside of R, or re-running orthofinder on pre-
-computed blast results within syntenic regions.
-
-\code{blkwise_orthofinder} blkwise_orthofinder
-
-\code{run_ofFromObj} run_ofFromObj
-
-\code{read_hits4of} read_hits4of
+\code{run_orthofinder} Call OrthoFinder from R
 }
 \details{
-...
+Simple directory parser to find and check the paths to all
+annotation and assembly files.
 }
 \examples{
 \dontrun{
-
-runwd <- file.path(getwd(), "testGenespace")
-make_exampleDataDir(writeDir = runwd)
-
-gpar <- init_genespace(
-  genomeIDs = c("human","chimp","rhesus"),
-  speciesIDs = c("human","chimp","rhesus"),
-  versionIDs = c("human","chimp","rhesus"),
-  ploidy = rep(1,3),
-  diamondMode = "fast",
-  orthofinderMethod = "fast",
-  wd = runwd,
-  nCores = 4,
-  minPepLen = 50,
-  gffString = "gff",
-  pepString = "pep",
-  path2orthofinder = "orthofinder",
-  path2mcscanx = "~/MCScanX",
-  rawGenomeDir = file.path(runwd, "rawGenomes"))
-
-parse_annotations(
-  gsParam = gpar,
-  gffEntryType = "gene",
-  gffIdColumn = "locus",
-  gffStripText = "locus=",
-  headerEntryIndex = 1,
-  headerSep = " ",
-  headerStripText = "locus=")
-
-# -- run_orthofinder is separated from the rest of the pipeline to allow
-# the user to run it externally if desired. Depending on your system config,
-# you may be able to run it in fast mode through R (if orthofinder is in the
-# path), or you may need to run on a separate environment. If the latter case,
-# run_orthofinder will output a warning and the necessary commands.
-
-gpar <- run_orthofinder(gsParam = gpar, overwrite = F)
-
+# coming soon
 }
 
 }

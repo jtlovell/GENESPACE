@@ -2,83 +2,92 @@
 % Please edit documentation in R/plot_hits.R
 \name{plot_hits}
 \alias{plot_hits}
-\title{Genespace plotting routines}
+\alias{ggdotplot}
+\alias{gghits}
+\title{plot hits as a xy dotplot}
 \usage{
 plot_hits(
+  gsParam,
+  verbose = TRUE,
+  type,
+  dotsPerIn = 256,
+  quantileThresh = 0.5,
+  plotSize = 12,
+  minScore = 50
+)
+
+ggdotplot(
   hits,
-  onlyOG = TRUE,
-  onlyAnchors = TRUE,
-  useBlks = TRUE,
-  onlyArrayReps = TRUE,
-  onlyBuffer = FALSE,
-  reorderChrs = TRUE,
-  minGenes2plot = 10,
-  gapProp = 0.01,
-  cols = NULL,
-  alpha = 1,
-  axisTitleCex = 0.6,
-  darkChrFill = "grey60",
-  lightChrFill = "grey85",
-  emptyChrFill = "grey97",
-  missingHitCol = "grey40",
-  chrLabCex = 0.4,
-  returnSourceData = F,
-  chrLabFun = function(x) gsub("^0", "", gsub("^chr|^scaffold|^lg|_", "", tolower(x)))
+  type,
+  outDir = NULL,
+  minGenes2plot = 100,
+  appendName = "synHits",
+  dotsPerIn = 256,
+  quantileThresh = 0.5,
+  plotSize = 12,
+  minScore = 50,
+  maxFacets = 10000,
+  verbose = is.null(outDir)
+)
+
+gghits(
+  hits,
+  colorByBlks = TRUE,
+  alpha = ifelse(colorByBlks, 1, 0.25),
+  useOrder = TRUE,
+  minScore = 0,
+  minGenes2plot = 0
 )
 }
 \arguments{
-\item{hits}{data.table of hits}
+\item{gsParam}{A list of genespace parameters. This should be created
+by init_genespace.}
 
-\item{onlyOG}{logical, should the plot only show orthogroup-constrained hits?}
+\item{verbose}{logical, should updates be printed to the console?}
 
-\item{onlyAnchors}{logical, should the plot only show syntenic anchors?}
+\item{type}{character string of "all", "raw", or "syntenic" specifying which
+type of dotplot to generate.}
 
-\item{useBlks}{logical, should the plot only show hits in blocks?}
+\item{dotsPerIn}{integer specifying how fine-scaled the heatmap is}
 
-\item{onlyArrayReps}{logical, should the plot only show only array reps?}
+\item{quantileThresh}{integer specifying the top quantile to be thresholded}
 
-\item{onlyBuffer}{logical, should the plot only show hits in buffers?}
+\item{plotSize}{numeric smalled dimension of the plot}
 
-\item{reorderChrs}{logical, should the chromosomes be re-ordered based on
-synteny?}
+\item{minScore}{numeric, the minimum scoring hit to plot}
 
-\item{minGenes2plot}{integer specifying the minimum number of genes on a
-chr to plot}
+\item{hits}{data.table containg hits. See read_allBlast.}
 
-\item{gapProp}{numeric (0-1) specifying the proportional size of gaps
-relative to the length of the largest genome}
+\item{outDir}{file.path where pdf should be written}
 
-\item{cols}{vector of colors to use for points}
+\item{minGenes2plot}{integer, the minimum number of hits to plot a chromosome
+combination.
 
-\item{alpha}{numeric (0-1) specifying transparency of the points}
+\cr
+If called, \code{plot_hits} returns its own arguments.}
 
-\item{axisTitleCex}{character expansion for the axes and genome labels}
+\item{appendName}{character with text to append to the file name}
 
-\item{darkChrFill}{color of the most dense chr backgrounds}
+\item{maxFacets}{integer the maximum number of facets to plot (doesn't plot
+for genomes with lots of small chrs/scaffolds)}
 
-\item{lightChrFill}{color of the least populated chr backgrounds}
+\item{colorByBlks}{logical, should blocks be colored?}
 
-\item{emptyChrFill}{color of the empty chr backgrounds}
+\item{alpha}{numeric [0-1], specifying the transparency of the points}
 
-\item{missingHitCol}{character string or number coercible to an R color. The
-point color of hits that are not in blocks}
-
-\item{chrLabCex}{character expansion for the chromosome labels}
-
-\item{returnSourceData}{logical, should the source data to build the plot
-be returned?}
-
-\item{chrLabFun}{function to parse chr IDs to make them more readible}
+\item{useOrder}{logical, should gene order or bp position be used?}
 }
 \description{
-\code{plot_hits} Genespace plotting routines
+\code{plot_hits} routines to make visually appealing dotplots
+
+\code{plot_hits} The pipeline to plot syntenic hits in parallel
+
+\code{ggdotplot} ggplot2 integrated graphics to produce dotplots
+
+\code{gghits} ggplot2 integrated graphics to produce dotplots
 }
 \details{
-...
-}
-\examples{
-\dontrun{
-# coming soon
-}
-
+Dotplots here aggregate across proximate positions to reduce file
+size, especially for very large genomes. XY positions are always in gene-rank
+order positions. Graphics are built with ggplot2.
 }

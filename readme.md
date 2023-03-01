@@ -1,198 +1,318 @@
-The manuscript describing GENESPACE is now pubished in eLife. [Find the article here](https://elifesciences.org/articles/78526). 
+## GENESPACE: an R package for synteny- and orthology-constrained comparative genomics. 
 
-###################
+This is version 1 of GENESPACE. GENESPACE is an analytical pipeline to syntenic regions across multiple genomes. The manuscript describing GENESPACE is now pubished in eLife. [Find the article here](https://elifesciences.org/articles/78526). Please cite this if you use GENESPACE. 
 
-## Version 1.1.3 of GENESPACE is now at the /dev branch. We are waiting until 1-March to release this and switch the master branch to v1. In the meantime, we highly recommend switching over to v1 (which has substantial changes to user interface). The installation can be updated in R as follows:
+There are currently two tutorials that (1) illustrate (what GENESPACE does)[] and (2) demostrate how to (customize your riparian plots)[https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/riparianGuide.html]. 
+
+**NOTE** v0.9.x is no longer supported. Please upgrade to v1.1+. There are some significant changes to the structure of GENESPACE in V1 (but few changes to the underlying algorithms). These changes are detailed below in '4.1: Changes to GENESPACE in v1'. 
+
+**NOTE** This is the first major release of GENESPACE version 1. It is possible that updates and/or bug fixes will be required. Check back to ensure you are working with the most up-to-date version. 
+
+**NOTE** The next planned release will be v1.2.x during the spring or summer 2023, which will include Rscript integration so that GENESPACE can be called directly from the command line without an interactive R session. 
+
+##################
+## 1. Quick start
+
+#### 1.1 Input files and dependencies
+
+To run GENESPACE, you need:
+
+1. A valid installation of OrthoFinder, MCScanX and R (see part 2: software installation)
+2. A peptide (protein) fasta and a bed-formatted gene model annotation file for 2 or more genomes (see part 3: formatting your annotations)
+
+#### 1.2 Running GENESPACE
+
+With these data in hand, you initialize a GENESPACE run, then run the pipeline from R:
 
 ```
-detach("package:GENESPACE", unload = TRUE) # will return an error if GENESPACE isn't loaded
-devtools::install_github("jtlovell/GENESPACE@dev", upgrade = F)
 library(GENESPACE)
+gpar <- init_genespace(
+  wd = "/path/to/your/workingDirectory", 
+  path2mcscanx = "/path/to/MCScanX/")
+gpar <- run_genespace(gsParam = gpar) 
 ```
 
+`run_genespace` completes the full pipeline, which includes:
 
-V1 includes the following changes from v0.9:
+1. Tandem array discovery
+2. Syntenic block coordinate calculation
+3. Synteny-constrained orthogroups
+4. Pairwise dotplots
+5. Syntenic position interpolation of all genes
+6. Pan-genome annotation construction
+7. Multi-genome riparian plotting
 
-- Use of bed files instead of gff3 (will still have accessory functions for conversion)
-- ggplot2 graphics
-- better error catching and checking for genome quality
-- optional use of phylogenetically hierarchical orthogroups 
-- The synteny and pan-genome engines will remain largely un-changed and the results should be nearly identical. There will be one small change that improves how tandem-arrays are identified and collapsed. This improves pan-genome integration and gives better estimates of synteny in genomes with tandem arrays with many gaps larger than 100 genes. These tend to be rare or absent in most genomes, but present in some. 
+See section 4.2 for more details
 
-Once we work through any lingering issues with v1.0.0, we will release it here as v1.0.1 and will recommend all future work to use V1. 
+#### 1.3 Running with example data
 
-Thanks to the users who offered suggestions (and found bugs)!
+We recommend doing a test run with real data before applying GENESPACE to your own datasets. To help facilitate this, run these commands in R (assuming valid installation):
 
-###################
+```
+###############################################
+# -- change paths to those valid on your system
+genomeRepo <- "~/path/to/store/rawGenomes"
+wd <- "~/path/to/genespace/workingDirectory"
+path2mcscanx <- "~/path/to/MCScanX/"
+###############################################
 
-This is v0.9.4 of the GENESPACE R package. This is new software, which we are actively working to make more user friendly. Please open an issue above or email John directly (jlovell[at]hudsonalpha[dot]org) if you run into problems or the help files are not sufficient. Thanks for using GENESPACE! 
+# -- download raw data from NCBI for human and chicken genomes
+dir.create(genomeRepo)
+rawFiles <- download_exampleData(filepath = genomeRepo)
 
-[**Click here for a more detailed vignette**](https://htmlpreview.github.io/?https://github.com/jtlovell/GENESPACE/blob/master/doc/genespaceOverview.html) including pipeline details, output descriptions, etc. Below is a quick overview of installation and running the package.
+# -- parse the annotations to fastas with headers that match a gene bed file
+parsedPaths <- parse_annotations(
+  rawGenomeRepo = genomeRepo,
+  genomeDirs = c("human", "chicken"),
+  genomeIDs = c("human", "chicken"),
+  presets = "ncbi",
+  genespaceWd = wd)
 
-**NOTE!** The hardest part of GENESPACE is getting the dependencies installed and your annotations formatted correctly. Don't be dissuaded if you have having trouble with these steps! Open an issue and we can help!
+# -- initalize the run and QC the inputs
+gpar <- init_genespace(
+  wd = wd, 
+  path2mcscanx = path2mcscanx)
 
-## 1. Overview
+# -- accomplish the run
+out <- run_genespace(gpar)
+```
 
-GENESPACE conducts synteny- and orthology-constrained comparative genomics, which can be used to (1) make multi-genome graphical comparisons, (2) define syntenic block breakpoints and (3) build a pan-genome annotation. GENESPACE outputs a synteny-constrained and -anchored orthogroup pan-genome annotation among multiple genomes. This simple text file allows for extraction and exploration of regional gene-level variation, a necessary step to integrate comparative and quantitative genomic goals.
+#### 1.4 GENESPACE Output
 
-## 2. Installation
+GENESPACE produces quite a few intermediate files (including the output of a complete orthofinder run). See section 5: "data output" for details. The most directly useful data are:
+
+  - parsed blast hits (in /syntenicHits)
+  - dotplots (/dotplots)
+  - pan-gene sets (/pangenome)
+  - merged bed-like file with orthogroups (/results/combBed.txt)
+
+#### 1.5 Exploring the data
+
+You can then explore the results by giving the query (`query_pangenes`, `query_hits`) functions intervals of interest. 
+
+#### 1.6 Riparian plots
+
+The primary visual output of GENESPACE is the riparian plot, which stacks the genomes vertically, orders chromosomes by synteny to a reference genome, then plots syntenic regions as 'braids'. By default, two plots are made and stored in /riparian for each haploid genome, one using gene rank order positions and one with physical (base-pair) positions. The function `plot_riparian` can be re-called by the user to generate custom plots.
+
+For more information and examples of customization, see the (plot_riparian tutorial)[https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/riparianGuide.html].
+
+##################
+
+## 2. Software installation
+
+Installation for v1 is identical to v0.9.4. Use the same conda (or other) installation environment as before. To install from scratch, you need R, a few 3rd party programs and a few R packages. Here is how to install these:
 
 #### 2.1 Install R
 
 GENESPACE is meant to be run interactively in the R environment for statistical computing. So, you need to have R installed. See [CRAN](https://www.r-project.org/) for the most recent release. 
 
-#### 2.2 Install third party programs
+#### 2.2 Install orthofinder
 
-GENESPACE also requires third-party software that can be installed as follows.
+`OrthoFinder` (which includes `DIAMOND2`) is most simply installed via conda (in the shell, not R). 
 
-`orthofinder` (which includes `diamond`) is most simply installed via conda (in the shell, not R). 
-
-```{bash, eval = FALSE}
+```
 conda create -n orthofinder
 conda activate orthofinder
 conda install -c bioconda orthofinder 
 ```
 
-If conda is not available on your machine, you can install orthofinder from a number of other sources.  See [orthofinder documentation](https://github.com/davidemms/OrthoFinder) for details.  
+If conda is not available on your machine, you can install orthofinder from a number of other sources. See [orthofinder documentation](https://github.com/davidemms/OrthoFinder) for details.  
+Regardless of how `OrthoFinder` is installed, ensure that you have `OrthoFinder` version >= 2.5.4 and `DIAMOND` version >= 2.0.14.152.
+
+#### 2.3 Install MCScanX
 
 `MCScanX` should be installed from [github](https://github.com/wyp1125/MCScanX). 
 
-#### 2.3 Open an interactive R session
+#### 2.4 Install GENESPACE
 
-You can open R using the the GUI, Rstudio, or as an interactive session in the terminal. If you are using a conda environment or specifying the path to orthofinder in the `$PATH`, you need to enter an R interactive session from that shell environment, which can be done by either calling `R` (for command line interface) `open -na rstudio` if using Rstudio. 
+Once the above 3rd party dependencies are installed, get into R. If you made a conda environment, its useful to open R directly from that environment so that OrthoFinder stays in the path. 
 
-#### 2.4 Install GENESPACE R package
+```
+conda activate orthofinder
+open -na rstudio # if using rstudio, otherwise, simply `R`
+```
 
-Once in R, GENESPACE can be installed directly from github via:
+Once in R, the easiest way to install GENESPACE uses the package `devtools` (which may need to be installed separately):
 
-```{r, eval = FALSE}
+```
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
-devtools::install_github("jtlovell/GENESPACE", upgrade = F)
+devtools::install_github("jtlovell/GENESPACE@dev")
 ```
 
 #### 2.5 Install R dependencies
 
-The above command will install the CRAN-sourced dependencies (`data.table`, `dbscan` and `R.utils`). The bioconductor dependencies (`rtracklayer` and `Biostrings`) need to be installed separately via:
+If they are not yet installed, `install_github` will install a few dependencies directly (ggplot2, igraph, dbscan, R.utils, parallel). However, you will need to install the bioconductor packages separately:
 
-```{r, eval = FALSE}
+```
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install(c("Biostrings", "rtracklayer"))
-```
 
-## 3. Run GENESPACE on the tutorial data
-
-#### 3.1 Get started
-
-First, in R, require the GENESPACE package and make a file path to a directory where you want to put your run. The directory should either be empty or non-existent (GENESPACE will make it for you, assuming that the parent directory exists).  
-
-```{r}
 library(GENESPACE)
-runwd <- file.path("~/Desktop/testGenespace")
 ```
 
-#### 3.2 Get some example data
+##################
 
-To illustrate all steps of the pipeline, lightly subset NCBI-formatted annotations of human/chimpanzee chromosomes 3-4 and rhesus chromosomes 2 & 5 are provided in the extData of the GENESPACE R package. These data can be added to the above directory with the correct subdirectory structure for GENESPACE via:
+## 3. Formatting your annotations
 
-```{r}
-make_exampleDataDir(writeDir = runwd)
+This can be the trickiest part of running GENESPACE. If you are having trouble, open an issue. 
+
+#### 3.1 GENESPACE-readable annotation format
+
+For each genome, GENESPACE needs:
+
+1. bed formatted coordinates of each gene (chr, start, end, name), other fields are allowed, but will be ignored by GENESPACE
+2. peptide sequences in fasta format, where the header exactly matches the "name" (4th) bed column
+
+Example bed file:
+
+```
+cat /bed/genome1.bed | head -2
+chr1  1500  2000  gene1
+chr1  2500  2200  gene2
 ```
 
-This creates a subdirectory called `/rawGenomes`. For downstream flexibility (e.g. multiple genome versions for one species, metadata or assembly data, etc), the raw genome directory structure follows: `/rawGenomes/[speciesID]/[versionID]/annotion`. When working with your own data, place the raw annotation files in this same directory structure with separate directories for each species, separate subdirectories for each genome version, and the annotation files in a subdirectory called "annotation".
+Example peptide fasta file: 
 
-#### 3.3 Initialize the GENESPACE run
-
-All elements of GENESPACE require a list of parameters, specified to functions as `gsParam`. This contains paths to files, working directories, program executables the basic parameterization of the run. See the [**vignette**](https://htmlpreview.github.io/?https://github.com/jtlovell/GENESPACE/blob/master/doc/genespaceOverview.html) for argument descriptions. 
-
-```{r}
-gids <- c("human","chimp","rhesus")
-gpar <- init_genespace(
-  genomeIDs = gids, 
-  speciesIDs = gids, 
-  versionIDs = gids, 
-  ploidy = rep(1,3),
-  wd = runwd, 
-  gffString = "gff", 
-  pepString = "pep",
-  path2orthofinder = "orthofinder", 
-  path2mcscanx = "~/MCScanX",
-  rawGenomeDir = file.path(runwd, "rawGenomes"))
+```
+cat /peptide/genome1.fa | head -4
+>gene1
+MGASGRGAGEQQSPSSTG
+>gene2
+MLVMSECKGRDRSPSSSM
 ```
 
-#### 3.4 Format the raw annotations for GENESPACE
+#### 3.2 Manual parsing of raw annotation files
 
-To ensure accurate merges between peptide fasta headers and gff3 annotations, GENESPACE uses a simplified gff3-like text file with a column `id` that exactly matches the peptide fasta header. GENESPACE has built in functions to parse NCBI (`parse_ncbi`) and phytozome (`parse_phytozome`); however, if using non-standard formatted annotations, this can be a tricky step. While the example data was originally downloaded from NCBI, we stripped much of the NCBI formatting to make the files smaller. They now can be parsed with the generic `parse_annotations`:
+It's possible to format all files using custom scripts. If you opt for this route, re-name and place the genespace-formatted annotations in your working directory. For example for two genomes ("genome1", "genome2"):
 
-```{r parse annotations}
-parse_annotations(
-  gsParam = gpar, 
-  gffEntryType = "gene", 
-  gffIdColumn = "locus",
-  gffStripText = "locus=", 
-  headerEntryIndex = 1,
-  headerSep = " ", 
-  headerStripText = "locus=")
+```
+/workingDirectory
+└─ peptide
+    └─ genome1.fa
+    └─ genome2.fa
+└─ bed
+    └─ genome1.bed
+    └─ genome2.bed
 ```
 
-#### 3.5 Run orthofinder
+#### 3.3 Naming and storing raw annotation files
 
-GENESPACE requires orthofinder to be run. Here, since orthofinder is in the path, we can run it straight from R, using the 'fast' search method
+Its usually preferable to have a static repository containing the raw versions of all of your genome annotations, lets call this directory `/genomeRepo`. Each unique genome annotation should be stored in its own subdirectory with an informative name. Here, each genome is given a species id, genotype id and genome version. The annotation files of interest are the gff3-formated protein coding gene features and the primary transcript translated cds (peptides). These are the two most common types of annotation files available. Download them from your favorite repositories and place them in a directory structure like below. The file names within each genome directory can be anything as long as they have file names that can be found through regular expression matching (see `parse_annotations(gffString, faString)`).
 
-```{r orthofinder}
-gpar <- run_orthofinder(gsParam = gpar)
+```
+/genomeRepo
+└─ species1_genoX_v1.0_NCBI
+    └─ peptidesGenoX.fa
+    └─ genesGenoX.gff3
+└─ species2_genoY_v1.0_NCBI
+    └─ peptidesSpecies2.fa
+    └─ genes.gff3
+└─ species3_genoW_v1.0_phytozome
+    └─ peptides.fa
+    └─ genesSpecies2v1.gff3
+└─ species4_genoZ_v1.0_otherRepo
+    └─ peptides.fa
+    └─ genes.gff3
+  ...
 ```
 
-#### 3.6 Run the GENESPACE synteny search
+#### 3.4 Partially-automated annotation parsing
 
-The main engine of GENESPACE is `synteny`. This is a complex function that parses pairwise blast hits into syntenic regions and blocks. See the [**vignette**](https://htmlpreview.github.io/?https://github.com/jtlovell/GENESPACE/blob/master/doc/genespaceOverview.html) for details. Here, we will just use the defaults:
+Assuming the directory structure from 2.4, we want to parse the raw annotations into the directory structure outlined in 2.3. The convenience function `parse_annotations` does this. Lets take the simple case where we have translatedCDS and gene.gff3 files from NCBI. In this case, we can specify the "ncbi" present which will automatically parse these files correctly:
 
-```{r synteny}
-gpar <- synteny(gsParam = gpar)
+```
+parsedPaths <- parse_annotations(
+  rawGenomeRepo = "/genomeRepo", 
+  genomeDirs = c("species1_genoX_v1.0_NCBI", "species2_genoY_v1.0_NCBI"),
+  genomeIDs = c("species1", "species2"),
+  gffString = "gff3",
+  faString = "fa",
+  presets = "ncbi", 
+  genespaceWd = "/path/to/GENESPACE/workingDir")
 ```
 
-This function populates the results directory directory with dotplots and annotated blast hits. 
+This will parse the two NCBI-formatted annotations into matched bed and fasta files and place those in the /bed and /peptide subdirectories of the GENESPACE working directory. Importantly, it will re-name the annotations with the genomeIDs. This allows for informative naming conventions in the raw file repo, but simpler names for plotting and analysis. 
 
-#### 3.7 Make multi-species synteny plots
+#### 3.5 Non-standard annotation formats
 
-GENESPACE visualizes multi-species synteny with a 'riparian' plot. The default specification orders chromosomes by maximum synteny to a reference genome and colors the synteny by their reference chromosome of origins. There are lots of ways to customize this plot. 
+Most repositories have their own annotation formats. You may want to combine annotations from NCBI with those from phytozome (plant genome repo) or non-standard repositories. To do this, you simply re-run parse_annotations with different genomes. For example add a phytozome-formatted annotation:
 
-```{r riparian, fig.width=5}
-ripdat <- plot_riparianHits(gpar)
+```
+parsedPaths <- parse_annotations(
+  rawGenomeRepo = "/genomeRepo", 
+  genomeDirs = "species3_genoW_v1.0_phytozome",
+  genomeIDs = "species3",
+  gffString = "gff3",
+  faString = "fa",
+  presets = "phytozome",
+  genespaceWd = "/path/to/GENESPACE/workingDir")
 ```
 
-#### 3.8 Build a pangenome annotation
+Then add a non-standard annotation where there is only a simple geneID header on the peptide and the gene names are in the "GeneID" ';'-delimited 9th gff column. 
 
-The main output of GENESPACE is a synteny-anchored pan-genome annotation, where every unique synteny-constrained orthogroup is placed in a position on the reference genome gene order. This is constructed by `pangenome`. See the [**vignette**](https://htmlpreview.github.io/?https://github.com/jtlovell/GENESPACE/blob/master/doc/genespaceOverview.html) for more details. 
-
-```{r build pangenome}
-pg <- pangenome(gpar)
+```
+parsedPaths <- parse_annotations(
+  rawGenomeRepo = "/genomeRepo", 
+  genomeDirs = "species4_genoZ_v1.0_otherRepo",
+  genomeIDs = "species4",
+  gffString = "gff3",
+  faString = "fa",
+  headerEntryIndex = 1, 
+  gffIdColumn = "GeneID",
+  genespaceWd = "/path/to/GENESPACE/workingDir")
 ```
 
+#### 3.6 Additional parameterization
 
-## Legal
+There are lots of parameters that can be combined to parse every annotation format. See the help file for details. The main parameters to get your annotation parsed correctly are: 
 
-GENESPACE R Package (GENESPACE) Copyright (c) 2021, HudsonAlpha Institute for Biotechnology. All rights reserved.
+  - `gffIdColumn`: the name (or index) of the ';' separated field in the attributes column contains the geneID.
+  - `headerEntryIndex`: the name (or index) of the `headerSep`-separated field that contains the geneID in the fasta header
+  - `gffStripText`: character string to strip off the geneID in the gff3 attribute column
+  - `headerStripText`: character string to strip off the geneID in the fasta header
 
-If you have questions about your rights to use or distribute this software, please contact Berkeley Lab's Intellectual Property Office at IPO@lbl.gov.
-
-NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S. Government consequently retains certain rights. As such, the U.S. Government has been granted for itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in the Software to reproduce, distribute copies to the public, prepare derivative  works, and perform publicly and display publicly, and to permit others to do so.
-
-
-*** License Agreement ***
-
-GENESPACE R Package (GENESPACE) Copyright (c) 2021, HudsonAlpha Institute for Biotechnology. All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-(1) Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-
-(2) Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-
-(3) Neither the name of the HudsonAlpha Institute for Biotechnology nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+Parsing can take some troubleshooting, which can be aided by setting `troubleshoot = TRUE`. This prints the first 10 lines of the raw and parsed gff and fasta headers. For some annotation types, you may need to give a fairly complex regular expression to gffStripText or headerStripText. For example, if the fasta name has some additional unwanted info after the last "." in the name: `headerStripText = '[.][^.]+$'`. 
 
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#### 3.7 Convert a previous run and re-run GENESPACE
 
-You are under no obligation whatsoever to provide any bug fixes, patches, or upgrades to the features, functionality or performance of the source code ("Enhancements") to anyone; however, if you choose to make your Enhancements available either publicly, or directly to Lawrence Berkeley National Laboratory, without imposing a separate written license agreement for such Enhancements, then you hereby grant the following license: a non-exclusive, royalty-free perpetual license to install, use, modify, prepare derivative works, incorporate into other computer software, distribute, and sublicense such enhancements or derivative works thereof, in binary and source code form.
+Earlier versions of GENESPACE used 'simplified gff3' annotation files. To make GENESPACE compatible with existing bioinformatic software, we have opted to use the bed format for v1 onward. If you have a previous GENESPACE run, you can easily convert the input to v1 as follows (this also copies over orthofinder results so those can be re-used too): 
+
+```
+wd <- "/place/to/store/new/run"
+convert_input2v1(
+  v1Dir = wd, 
+  existingDir = "/path/to/existing/run")
+```
+
+################################################################################
+
+## 4. The GENESPACE pipeline
+
+#### 4.1 Changes to GENESPACE v0.9.4 --> v1.0.2+
+
+**MAJOR CHANGES** GENESPACE is now structured differently. This breaks backwards compatibility to < v1, but was required to reduce the issues with raw data input. 
+
+  1. The user must now specify pre-formatted bed files instead of raw gff3 formatted annotations. This allows GENESPACE to catch issues with data formatting before running orthofinder etc. We are truly sorry to alter the specification and input so much, but it is unavoidable -- we want GENESPACE to integrate with existing bioinformatic pipelines, and too much internal customization was required, which produced hard-to-resolve errors.
+  2. Plots are now ALWAYS printed to file and never to the R graphics panel: xy dotplots and riparian plots are now saved as vector pdfs in the new /dotplot and /riparian directories respectively. 
+  3. Better organization of results output. Previously all output went into /results. /results now only contains the parsed orthofinder results and annotated bed files. All other results are placed in /syntenicHits, /dotplots, /riparian, and /pangenome. 
+  4. All GENESPACE functions are now integrated into `run_genespace()`, which completes all steps internally. While the user can still run each step independently, we no longer provide step-by-step documentation and suggest that all runs use this pipeline.
+  5. Synteny is modeled differently (see 3.4: synteny methods below). The new method gives far more precision in estimates of syntenic block breakpoints, removes non-orthogroup hits that previously caused apparent duplications in paralogous region, and adds a new column `isSyntenic` to the syntenic hits files. This is a stricter definition of synteny than `inBuffer`, as it uses a new parameter `blkRadius` as the distance from a syntenic anchor. `blkRadius` defaults to `blkSize*2`. 
+  6. There are two changes to the actual algorithm. First, 'inBuffer' hits can no longer be outside of the syntenic block coordinates. This minor change proved important and allowed us to simplify the pangenome construction step since we were better able to estimate the syntenic positions of all genes. Second, we now handle proximate orthogroups (tandem arrays) a bit differently: large dispersed arrays are flagged and ignored (dramatically improving syntenic accuracy in poorly annotated regions like the pericentromere). 
+  
+**MINOR CHANGES**
+
+  7. code cleanup and better documentation, both in line and in help files
+  8. much better data QC and handing of errors in parameter specification
+  9. ggplot2-integrated graphics and R object output for potential downstream interactive viz.
+  10. internal position calculation for riparian plots and inferred syntenic positions transferred to a new function `integrate_synteny()`. This speeds up riparian plotting by 10x or more. 
+  11. `plot_riparian()` function generalization that allows the user to specify a block coordinate matrix and nothing else (allowing plotting of data from other packages). 
+  12. replace `orthofinderMethod = "fast"` with `onewayOF = TRUE` to match the new `orthofinder -1` specification. 
+  13. a new function `query_genespace()`, allows positional or orthology based queries of pan-genome, pairwise hits, or raw orthogroups/orthologues. 
+  14. Use of phylogenetically hierarchical orthogroups (HOGs) instead of default orthogroups (in most cases) to be inline with orthofinder best practices
+
+
+################################################################################
+

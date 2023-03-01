@@ -2,102 +2,66 @@
 % Please edit documentation in R/query_genespace.R
 \name{query_genespace}
 \alias{query_genespace}
-\alias{query_pangenome}
-\alias{write_phytozome}
-\alias{pull_pgIntervals}
-\alias{pull_pgGenes}
-\title{Query genespace datasets}
+\alias{query_hits}
+\alias{query_pangenes}
+\title{Query GENESPACE results}
 \usage{
-query_pangenome(
-  pg,
-  refChrom = NULL,
-  genomeIDs = NULL,
-  startOrder = NULL,
-  endOrder = NULL,
-  writeTo = NULL,
-  useGlobalPgOrder = FALSE,
-  cnv2keep = NULL,
-  pav2keep = NULL,
-  pavSynOnly = FALSE
+query_hits(gsParam, bed, synOnly = TRUE)
+
+query_pangenes(
+  gsParam,
+  bed = NULL,
+  refGenome = NULL,
+  transform = TRUE,
+  showArrayMem = TRUE,
+  showNSOrtho = TRUE,
+  maxMem2Show = Inf,
+  showUnPlacedPgs = FALSE
 )
-
-write_phytozome(gsParam, genomeIDs = NULL)
-
-pull_pgIntervals(gsParam, refGenome = NULL, genomeIDs = NULL, intervals)
-
-pull_pgGenes(gsParam, refGenome = NULL, genomeGenes)
 }
 \arguments{
-\item{pg}{the pangenome data.table}
+\item{gsParam}{A list of genespace parameters created by init_genespace.}
 
-\item{refChrom}{character string of length 1, the reference chromosome to
-grab from the pangenome}
+\item{bed}{A data.table similar to the format of a bed file. At least two
+columns must be specified: genome, chr. These must match genome-chromosome
+combinations in the data. The user can also supply two additional columns:
+start, end. These are the base-pair start and end coordinates of each region.
+If start and end are not specified, they are set to 0 and Inf respectively
+so that the entire chromosome is returned.}
 
-\item{genomeIDs}{character vector, specifying which genomes to use. Defaults
-to all genomeIDs specification in gsParam.}
+\item{synOnly}{logical, given to query hits to return (or not) the synteny-
+constrained hits only}
 
-\item{startOrder}{numeric or integer specifying the start position for the
-pangenome query, in linear order.}
+\item{refGenome}{character matching one of the genomeIDs if a bed object is
+not provided}
 
-\item{endOrder}{numeric or integer specifying the end position of the query}
+\item{transform}{logical, should the pangenome be transformed from the long
+to the wide format?}
 
-\item{writeTo}{file/path or character string giving file name to write to}
+\item{showArrayMem}{logical, should all genes or only the array
+representative genes (if FALSE) be shown?}
 
-\item{useGlobalPgOrder}{logical, should the start/endOrder be calculated
-within the specified refChrom or should the global pangenome order be used?}
+\item{showNSOrtho}{logical, should non-syntenic orthologs be included in the
+output?}
 
-\item{cnv2keep}{integer vector of length matching genomeIDs, specifying the
-copy number for pangenome entries to be printed. For example, with three
-genomes, c(1,1,1) would return a single copy orthogroup. The behavior of
-this argument depends on whether pavSynOnly. If TRUE, then the copy number
-is only calculated on syntenic orthogroup CNVs. Otherwise, non-syntenic
-orthologs flagged with * are also used in the copy number calculation.}
+\item{maxMem2Show}{integer specifying the maximum number of members to be
+included in each entry-by-flag-by-genome combination.}
 
-\item{pav2keep}{logical vector of lenght matching genomeIDs. Behaves the
-same as cnv2keep, but with a logical vector specifying whether any gene is
-present in that group. For example, c(TRUE, TRUE, TRUE) would return all
-pangenome entries complete across the three genomes.}
-
-\item{pavSynOnly}{logical, should PAV be calculated only for syntenic
-entries?}
-
-\item{gsParam}{A list of genespace parameters. This should be created
-by setup_genespace, but can be built manually. Must have the following
-elements: blast (file.path to the original orthofinder run), synteny (
-file.path to the directory where syntenic results are stored), genomeIDs (
-character vector of genomeIDs).}
-
-\item{refGenome}{character string specifying which genome is the reference}
-
-\item{intervals}{data.table containing the intervals to extract}
-
-\item{genomeGenes}{data.table with the genome and genes}
+\item{showUnPlacedPgs}{logical, when queried should un-located orthogroups be
+shown?}
 }
 \value{
-...
+a list of data.tables named $genome, $chr: $start-$end. One
+data.table for each line in the bed file.
 }
 \description{
-\code{query_genespace} Parse and output underlying data.
+\code{query_genespace} Functions to pull data stored in the /pangenome
+and /syntenicHits directories
 
-\code{query_pangenome} query_pangenome
+\code{query_hits} extract syntenic (or all) hits that fall within a interval
+in a genome.
 
-\code{write_phytozome} write_phytozome
-
-\code{pull_pgIntervals} pull_pgIntervals
-
-\code{pull_pgGenes} pull_pgGenes
-}
-\details{
-...
-}
-\note{
-\code{query_genespace} is a generic name for the functions documented.
-\cr
-If called, \code{query_genespace} returns its own arguments.
-}
-\examples{
-\dontrun{
-# coming soon
-}
-
+\code{query_pangenes} the primary engine to explore genespace output, this
+lets you reformat the pan-genes to wide (entry - by - genome) matrix and
+only look at specified positional bounds.
 }

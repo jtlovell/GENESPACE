@@ -1,200 +1,477 @@
-#' @title Genespace plotting routines
+#' @title plot hits as a xy dotplot
 #' @description
-#' \code{plot_hits} Genespace plotting routines
+#' \code{plot_hits} routines to make visually appealing dotplots
+#' @name plot_hits
 #'
-#' @param hits data.table of hits
-#' @param onlyOG logical, should the plot only show orthogroup-constrained hits?
-#' @param onlyAnchors logical, should the plot only show syntenic anchors?
-#' @param useBlks logical, should the plot only show hits in blocks?
-#' @param onlyArrayReps logical, should the plot only show only array reps?
-#' @param onlyBuffer logical, should the plot only show hits in buffers?
-#' @param missingHitCol character string or number coercible to an R color. The
-#' point color of hits that are not in blocks
-#' @param reorderChrs logical, should the chromosomes be re-ordered based on
-#' synteny?
-#' @param alpha numeric (0-1) specifying transparency of the points
-#' @param chrLabFun function to parse chr IDs to make them more readible
-#' @param gapProp numeric (0-1) specifying the proportional size of gaps
-#' relative to the length of the largest genome
-#' @param axisTitleCex character expansion for the axes and genome labels
-#' @param chrLabCex character expansion for the chromosome labels
-#' @param darkChrFill color of the most dense chr backgrounds
-#' @param lightChrFill color of the least populated chr backgrounds
-#' @param emptyChrFill color of the empty chr backgrounds
-#' @param minGenes2plot integer specifying the minimum number of genes on a
-#' chr to plot
-#' @param cols vector of colors to use for points
-#' @param returnSourceData logical, should the source data to build the plot
-#' be returned?
+#' @param gsParam A list of genespace parameters. This should be created
+#' by init_genespace.
+#' @param type character string of "all", "raw", or "syntenic" specifying which
+#' type of dotplot to generate.
+#' @param verbose logical, should updates be printed to the console?
+#' @param hits data.table containg hits. See read_allBlast.
+#' @param outDir file.path where pdf should be written
+#' @param minGenes2plot integer specifying the minimum number of genes that can
+#' be plotted
+#' @param appendName character with text to append to the file name
+#' @param dotsPerIn integer specifying how fine-scaled the heatmap is
+#' @param quantileThresh integer specifying the top quantile to be thresholded
+#' @param plotSize numeric smalled dimension of the plot
+#' @param minScore numeric the minimum score to be permitted in the first plot
+#' @param maxFacets integer the maximum number of facets to plot (doesn't plot
+#' for genomes with lots of small chrs/scaffolds)
+#' @param colorByBlks logical, should blocks be colored?
+#' @param alpha numeric [0-1], specifying the transparency of the points
+#' @param useOrder logical, should gene order or bp position be used?
+#' @param minScore numeric, the minimum scoring hit to plot
+#' @param minGenes2plot integer, the minimum number of hits to plot a chromosome
+#' combination.
 #'
-#' @details ...
+#' \cr
+#' If called, \code{plot_hits} returns its own arguments.
 #'
-#' @examples
-#' \dontrun{
-#' # coming soon
-#' }
-#'
+#' @details Dotplots here aggregate across proximate positions to reduce file
+#' size, especially for very large genomes. XY positions are always in gene-rank
+#' order positions. Graphics are built with ggplot2.
+
+#' @title Plot syntenic hits
+#' @description
+#' \code{plot_hits} The pipeline to plot syntenic hits in parallel
+#' @rdname plot_hits
 #' @import data.table
-#' @importFrom graphics title
-#' @importFrom grDevices colorRampPalette
+#' @import R.utils
+#' @importFrom dbscan dbscan frNN
+#' @importFrom parallel mclapply
 #' @export
-plot_hits <- function(hits,
-                      onlyOG = TRUE,
-                      onlyAnchors = TRUE,
-                      useBlks = TRUE,
-                      onlyArrayReps = TRUE,
-                      onlyBuffer = FALSE,
-                      reorderChrs = TRUE,
-                      minGenes2plot = 10,
-                      gapProp = .01,
-                      cols = NULL,
-                      alpha = 1,
-                      axisTitleCex = .6,
-                      darkChrFill = "grey60",
-                      lightChrFill = "grey85",
-                      emptyChrFill = "grey97",
-                      missingHitCol = "grey40",
-                      chrLabCex = .4,
-                      returnSourceData = F,
-                      chrLabFun = function(x)
-                        gsub("^0","",gsub("^chr|^scaffold|^lg|_","",tolower(x)))){
+plot_hits <- function(gsParam,
+                      verbose = TRUE,
+                      type,
+                      dotsPerIn = 256,
+                      quantileThresh = .5,
+                      plotSize = 12,
+                      minScore = 50){
+  ##############################################################################
+  # 1. setup
+  # -- 1.1 get env vars set up
+  query <- target <- lab <- nRegionHits <- nRegions <- nAnchorHits <- nBlks <-
+    nSVs <- selfOnly <- queryPloidy <- targetPloidy <- nGlobOgHits <- synHits <-
+    nTotalHits <- chunk <- inBuffer <- NULL
+
+  if(!"synteny" %in% names(gsParam))
+    gsParam <- set_syntenyParams(gsParam)
+
+  nCores <- gsParam$params$nCores
+
+  # -- 1.2 check that files are all ok
+  if(!"synteny" %in% names(gsParam))
+    stop("must run set_syntenyParams prior to synteny")
+
+  if(!all(file.exists(gsParam$synteny$blast$allBlast)) && type %in% c("all", "raw"))
+    stop("some annotated blast files dont exist, run annotate_blast() first\n")
+  if(!all(file.exists(gsParam$synteny$blast$synHits)) && type %in% c("all", "syntenic"))
+    stop("some syntenic blast files dont exist, run synteny() first\n")
+  # -- 1.1 split the metadata into chunks
+  blMd <- data.table(gsParam$synteny$blast)
+  blMd[,lab := align_charLeft(sprintf("%s v. %s:", query, target))]
+  blMd[,selfOnly := query == target & queryPloidy == 1 & targetPloidy == 1]
+
+  if(!"nGlobOgHits" %in% colnames(blMd))
+    blMd[,nGlobOgHits := file.size(synHits)]
+
+  if(!"nTotalHits" %in% colnames(blMd))
+    blMd[,nTotalHits := file.size(synHits)]
+
+  setorder(blMd, selfOnly, -nGlobOgHits, -nTotalHits)
+  blMd[,chunk := rep(1:.N, each = nCores)[1:.N]]
+  synMdSpl <- split(blMd, by = "chunk")
 
   ##############################################################################
-  # -- ad hoc function to find and code chromosome bounds by hit number
-  color_chrBounds <- function(hits, lightChrFill, darkChrFill, emptyChrFill){
-    setDTthreads(1)
-    x <- y <- n <- chr1 <- chr2 <- max1 <- percMax1 <- NULL
-    setkey(hits, x)
-    hits[,`:=`(chr1 = factor(chr1, levels = unique(chr1)),
-               chr2 = factor(chr2, levels = unique(chr2)))]
-    eg <- hits[,list(CJ(levels(chr1), levels(chr2)))]
-    setnames(eg, c("chr1", "chr2"))
-    chrBx <- hits[, list(x0 = min(x), x1 = max(x), x12 = mean(range(x))),
-                  by = c("chr1")]
-    chrBy <- hits[, list(y0 = min(y), y1 = max(y), y12 = mean(range(y))),
-                  by = c("chr2")]
-    chrBnd <- merge(chrBx, merge(chrBy, eg, by = "chr2"), by = "chr1")
-    chrN <- hits[,list(n = .N),
-                 by = c("chr1", "chr2")]
-    chrBnd <- merge(chrBnd, chrN, by = c("chr1", "chr2"), all.x = T)
-    chrBnd$n[is.na(chrBnd$n)] <- 0
-    chrBnd[,n := n - min(n), by = "chr1"]
-    chrBnd[,max1 := max(n), by = "chr1"]
-    cb0 <- subset(chrBnd, n == 0)
-    cb0[,col := emptyChrFill]
-    cb1 <- subset(chrBnd, n > 0)
-    cb1[,percMax1 := ceiling((n / max1)*100)]
-    cscl <- colorRampPalette(c(lightChrFill, darkChrFill))(100)
-    cb1[,col := cscl[percMax1]]
-    cb <- rbind(cb0, cb1, fill = T)[,c(colnames(chrBnd), "col"), with = F]
-    return(cb)
-  }
+  # -- 2. loop through each chunk
+  blMdOut <- lapply(1:length(synMdSpl), function(chnki){
+
+    chnk <- data.table(synMdSpl[[chnki]])
+
+    ############################################################################
+    # -- loop through each row in each chunk
+    outChnk <- mclapply(1:nrow(chnk), mc.cores = nCores, function(i){
+
+      # -- 2.1 read in the metadata and hits
+      outMd <- data.table(chnk[i,])
+      x <- data.table(outMd)
+      rawHits <- read_allBlast(x$allBlast)
+
+      l1 <- mean(table(rawHits$chr1[rawHits$sameOG]))/10
+      l2 <- mean(table(rawHits$chr2[rawHits$sameOG]))/10
+
+      dps <- gsParam$params$dotplots
+      if(dps == "check"){
+        ggdotplot(
+          hits = data.table(rawHits),
+          outDir = gsParam$paths$dotplots,
+          minGenes2plot = min(c(l1, l2)),
+          maxFacets = 10000,
+          type = type,
+          dotsPerIn = dotsPerIn,
+          quantileThresh = quantileThresh,
+          plotSize = plotSize,
+          minScore = minScore)
+      }else{
+        if(dps == "always"){
+          ggdotplot(
+            hits = data.table(rawHits),
+            outDir = gsParam$paths$dotplots,
+            minGenes2plot = min(c(l1, l2)),
+            maxFacets = Inf,
+            type = type,
+            dotsPerIn = dotsPerIn,
+            quantileThresh = quantileThresh,
+            plotSize = plotSize,
+            minScore = minScore)
+        }
+      }
+    })
+  })
+  return(gsParam)
+}
 
 
-  isOg <- isAnchor <- blkID <- regID <- inBuffer <- isRep1 <- isRep2 <- ord1 <-
-    ord2 <- nu1 <- ofID1 <- nu2 <- ofID2 <- NULL
 
-  setDTthreads(1)
+#' @title make dotplots of syntenic hits
+#' @description
+#' \code{ggdotplot} ggplot2 integrated graphics to produce dotplots
+#' @rdname plot_hits
+#' @import data.table
+#' @import ggplot2
+#' @importFrom grDevices pdf dev.off rgb
+#' @importFrom dbscan dbscan frNN
+#' @export
+ggdotplot <- function(hits,
+                      type,
+                      outDir = NULL,
+                      minGenes2plot = 100,
+                      appendName = "synHits",
+                      dotsPerIn = 256,
+                      quantileThresh = .5,
+                      plotSize = 12,
+                      minScore = 50,
+                      maxFacets = 10000,
+                      verbose = is.null(outDir)){
+  ofID1 <- ofID2 <- sameOg <- ngene1 <- ngene2 <- ord1 <- ord2 <- blkID <-
+    inBuffer <- rnd2 <- rnd1 <- n <- isArrayRep2 <- isArrayRep1 <- chr1 <-
+    noAnchor <- bitScore <- quantile <- chr2 <- sameOG <- isAnchor <- NULL
 
-  # -- subset hits to right stuff
+  ##############################################################################
+  # 1. Get the plot size figured out
   tp <- data.table(hits)
-  if(onlyOG)
-    tp <- subset(tp, isOg)
-  if(onlyAnchors)
-    tp <- subset(tp, isAnchor)
-  if(!useBlks)
-    tp[,blkID := regID]
-  if(onlyBuffer)
-    tp <- subset(tp, inBuffer)
-  if(onlyArrayReps){
-    tp <- subset(tp, isRep1 & isRep2)
-  }
-  tp[,ord1 := frank(ord1, ties.method = "dense")]
-  tp[,ord2 := frank(ord2, ties.method = "dense")]
 
-  tp[,nu1 := uniqueN(ofID1), by = "chr1"]
-  tp[,nu2 := uniqueN(ofID2), by = "chr2"]
-  tp <- subset(tp, nu1 >= minGenes2plot & nu2 >= minGenes2plot)
-
-  cols <- c("#1B9E77", "#D95F02", "#7570B3", "#E7298A","#66A61E", "#E6AB02",
-            "#A6761D", "#666666", "darkred","darkblue")
-  uniqBlks <- unique(tp$blkID)
-  colScale <- colorRampPalette(cols)
-  cols <- sample(colScale(uniqueN(uniqBlks)))
-  names(cols) <- as.character(uniqBlks)
-  tp[,col := cols[as.character(blkID)]]
-  tp$col[is.na(tp$col)] <- missingHitCol
-
-  plotTitle <- sprintf(
-    "%s: %s",
-    ifelse(onlyOG & onlyArrayReps, "only array rep OGs",
-           ifelse(onlyOG, "only OGs",
-                  ifelse(onlyArrayReps, "only array reps","all hits"))),
-    ifelse(onlyAnchors, "constrained to anchors",
-           ifelse(onlyBuffer, "in synteny buffer", "not synteny constrained")))
-
-  # -- order chromosomes and add linear x/y positions
-  gps <- max(unique(tp[,c("ord1", "ord2")]))
-  setkey(tp, ord1)
-  tp[,n := (as.numeric(factor(chr1, levels = unique(chr1)))-1)]
-  tp[,x := ord1 + (gps * gapProp * n)]
-  setkey(tp, ord2)
-  tp[,n := (as.numeric(factor(chr2, levels = unique(chr2)))-1)]
-  tp[,y := ord2 + (gps * gapProp * n)]
-
-
-  tp <- subset(tp, complete.cases(tp[,c("chr1", "chr2", "x", "y")]))
-
-    # calculate chr bounds / membership
-  cb <- color_chrBounds(
-    hits = tp, lightChrFill = lightChrFill,
-    darkChrFill = darkChrFill, emptyChrFill = emptyChrFill)
-
-  # make plot window
-  # par(mar = c(2,2,1,1))
-  xoffset <- min(tp$x) - (diff(range(tp$x))/20)
-  yoffset <- min(tp$y) - (diff(range(tp$y))/20)
-
-  plot(
-    NA, NA,
-    xlim = c(xoffset, max(tp$x)),
-    ylim = c(yoffset, max(tp$y)),
-    type = "n", axes = F,
-    xlab = "", ylab = "",
-    asp = 1)
-
-  title(
-    xlab = paste(hits$gen1[1], "chromosomes (gene rank order)"),
-    ylab = paste(hits$gen2[1], "chromosomes (gene rank order)"),
-    line = 0, cex.lab = axisTitleCex,
-    main = plotTitle)
-
-  # plot chrs and label
-  x1 <- x0 <- y0 <- y1 <- col <- x12 <- chr1<- chr2 <- y12 <- NULL
-  with(cb, rect(
-    xleft = x0, xright = x1,
-    ybottom = y0, ytop = y1,
-    col = col, border = NA))
-
-  with(subset(cb, !duplicated(chr1)),
-       text(
-         x = x12, y = yoffset*.925, labels = chrLabFun(as.character(chr1)),
-         cex = chrLabCex, adj = c(1.05,.5), srt = 90))
-  with(subset(cb, !duplicated(chr2)),
-       text(
-         x = xoffset*.925, cex = chrLabCex, labels = chrLabFun(as.character(chr2)),
-         y = y12,  adj = c(1.05,.5)))
-
-  # -- plot points
-  col <- n <- x <- y <- NULL
-  setkey(tp, col, n)
-  if(nrow(tp) > 20e3){
-    with(tp, points(x, y, col = "white", pch = 16, cex = .2))
-    with(tp, points(x, y, col = add_alpha(col, alpha = alpha), pch = "."))
+  un1 <- uniqueN(tp$ofID1)
+  un2 <- uniqueN(tp$ofID2)
+  if(un1 > un2){
+    ht <- plotSize
+    wd <- ht * (un1/un2)
   }else{
-    with(tp, points(x, y, col = "white", pch = 16, cex = .4))
-    with(tp, points(x, y, col = add_alpha(col, alpha = alpha), pch = 16, cex = .25))
+    wd <- plotSize
+    ht <- wd * (un2/un1)
   }
-  if(returnSourceData)
-    return(tp)
+
+  x <- max(tp$ord1, na.rm = T)
+  y <- max(tp$ord2, na.rm = T)
+
+  ordPerIn <- x / dotsPerIn
+  totDots <- wd * dotsPerIn
+  xrnd2 <- floor(x / totDots)+1
+
+  ordPerIn <- y / dotsPerIn
+  totDots <- ht * dotsPerIn
+  yrnd2 <- floor(y / totDots)+1
+
+
+  tp[,`:=`(rnd1 = round_toInteger(ord1, xrnd2),
+           rnd2 = round_toInteger(ord2, yrnd2))]
+  tp <- subset(tp, complete.cases(tp[,c("rnd1", "rnd2", "chr1", "chr2")]))
+
+  ##############################################################################
+  # 2. Make the plot with all hits, regardless of og
+
+  # -- 2.1 subset the hits to those with high enough score
+  if(type %in% c("all", "raw")){
+    hc <- subset(tp, bitScore > minScore)
+    ng1 <- as.integer(uniqueN(hc$ofID1))
+    ng2 <- as.integer(uniqueN(hc$ofID2))
+
+    # -- 2.2 get axis labels
+    xlab <- sprintf(
+      "%s: gene rank order position (%s genes w/ blast hits), grids every 1000 genes",
+      hits$genome1[1], ng1)
+    ylab <- sprintf(
+      "%s: gene rank order position (%s genes w/ blast hits), grids every 1000 genes",
+      hits$genome2[1], ng2)
+
+    # -- 2.3 subset to chrs with enough genes on them
+    hc[,ngene1 := uniqueN(ofID1[!noAnchor & isArrayRep1], na.rm = T), by = "chr1"]
+    hc[,ngene2 := uniqueN(ofID2[!noAnchor & isArrayRep2], na.rm = T), by = "chr2"]
+    hc <- subset(hc, ngene1 > minGenes2plot & ngene2 > minGenes2plot)
+
+    # -- 2.4 count n hits in each aggregated position
+    hc <- hc[,c("chr1", "chr2", "rnd1", "rnd2")]
+    hc <- subset(hc, complete.cases(hc))
+    hc <- hc[,list(n = .N), by = c("chr1", "chr2", "rnd1", "rnd2")]
+    setorder(hc, -n)
+    hc <- subset(hc, !is.na(n))
+
+    # -- 2.5 threshold n to not highlight super strong regions
+    qthresh <- quantile(hc$n, quantileThresh)
+    if(qthresh > 20)
+      qthresh <- 20
+    if(qthresh < 5)
+      qthresh <- 5
+    hc$n[hc$n > qthresh] <- qthresh
+
+    # -- 2.6 get plot title
+    titlab <- sprintf(
+      "All blast hits with score > %s, %s/%s-gene x/y windows (heatmap range: 2-%s+ hits/window)",
+      minScore, xrnd2, yrnd2, round(qthresh))
+
+    # -- 2.7 make the plot
+    setorder(hc, n)
+    hc <- subset(hc, n > 1)
+    nfacets <- nrow(with(hc, expand.grid(unique(chr1), unique(chr2))))
+    if(nfacets < maxFacets){
+      chrOrd1 <- unique(tp$chr1[order(tp$rnd1)])
+      chrOrd2 <- unique(tp$chr2[order(tp$rnd2)])
+      hc[,`:=`(chr1 = factor(chr1, levels = chrOrd1),
+               chr2 = factor(chr2, levels = chrOrd2))]
+      p0 <- ggplot(hc, aes(rnd1, rnd2, col = n)) +
+        geom_point(pch = ".") +
+        scale_color_viridis_c(begin = .1, trans = "log10", guide = "none") +
+        scale_x_continuous(expand = c(0,0),
+                           breaks = seq(from = 1e3, to = max(hc$rnd1), by = 1e3))+
+        scale_y_continuous(expand = c(0,0),
+                           breaks = seq(from = 1e3, to = max(hc$rnd2), by = 1e3))+
+        theme_genespace()+
+        facet_grid(chr2 ~ chr1, scales = "free",
+                   space = "free", as.table = F, switch = "both")+
+        labs(x = xlab, y = ylab, title = titlab)
+    }else{
+      p0 <- NULL
+    }
+
+    ##############################################################################
+    # 3. Make the plot with just OG hits
+
+    # -- 2.1 subset the hits to those with high enough score
+    hc <- subset(tp, sameOG)
+    ng1 <- as.integer(uniqueN(hc$ofID1))
+    ng2 <- as.integer(uniqueN(hc$ofID2))
+
+    # -- 2.2 get axis labels
+    xlab <- sprintf(
+      "%s: gene rank order position (%s genes w/ blast hits), grids every 1000 genes",
+      hits$genome1[1], ng1)
+    ylab <- sprintf(
+      "%s: gene rank order position (%s genes w/ blast hits), grids every 1000 genes",
+      hits$genome2[1], ng2)
+
+    # -- 2.3 subset to chrs with enough genes on them
+    hc[,ngene1 := uniqueN(ofID1[!noAnchor & isArrayRep1]), by = "chr1"]
+    hc[,ngene2 := uniqueN(ofID2[!noAnchor & isArrayRep2]), by = "chr2"]
+    hc <- subset(hc, ngene1 > minGenes2plot & ngene2 > minGenes2plot)
+
+    # -- 2.4 count n hits in each aggregated position
+    hc <- hc[,list(n = .N), by = c("chr1", "chr2", "rnd1", "rnd2")]
+    setorder(hc, -n)
+    hc <- subset(hc, !is.na(n))
+
+    # -- 2.5 threshold n to not highlight super strong regions
+    qthresh <- quantile(hc$n, quantileThresh)
+    if(qthresh > 20)
+      qthresh <- 20
+    if(qthresh < 5)
+      qthresh <- 5
+    hc$n[hc$n > qthresh] <- qthresh
+
+    # -- 2.6 get plot title
+    titlab <- sprintf(
+      "Blast hits where query and target are in the same orthogroup, %s/%s-gene x/y windows (heatmap range: 1-%s+ hits/window)",
+      xrnd2, yrnd2, round(qthresh))
+
+    # -- 2.7 make the plot
+    setorder(hc, n)
+    nfacets <- nrow(with(hc, expand.grid(unique(chr1), unique(chr2))))
+    if(nfacets < maxFacets){
+      chrOrd1 <- unique(tp$chr1[order(tp$rnd1)])
+      chrOrd2 <- unique(tp$chr2[order(tp$rnd2)])
+      hc[,`:=`(chr1 = factor(chr1, levels = chrOrd1),
+               chr2 = factor(chr2, levels = chrOrd2))]
+      p1 <- ggplot(hc, aes(rnd1, rnd2, col = n)) +
+        geom_point(pch = ".") +
+        scale_color_viridis_c(begin = .1, trans = "log10", guide = "none") +
+        scale_x_continuous(expand = c(0,0),
+                           breaks = seq(from = 1e3, to = max(hc$rnd1), by = 1e3))+
+        scale_y_continuous(expand = c(0,0),
+                           breaks = seq(from = 1e3, to = max(hc$rnd2), by = 1e3))+
+        theme_genespace()+
+        facet_grid(chr2 ~ chr1, scales = "free",
+                   space = "free", as.table = F, switch = "both")+
+        labs(x = xlab, y = ylab, title = titlab)
+    }else{
+      p1 <- NULL
+    }
+  }else{
+    p1 <- p0 <- NULL
+  }
+
+  if(type %in% c("all", "syntenic")){
+    ##############################################################################
+    # 4. Make the plot with just anchors
+    hcBlk <- subset(tp, isAnchor)
+    hcBlk[,ngene1 := uniqueN(ofID1[!noAnchor & isArrayRep1]), by = "chr1"]
+    hcBlk[,ngene2 := uniqueN(ofID2[!noAnchor & isArrayRep2]), by = "chr2"]
+    hcBlk <- subset(hcBlk, ngene1 > minGenes2plot & ngene2 > minGenes2plot)
+    hcBlk <- hcBlk[,list(n = .N), by = c("chr1", "chr2", "rnd1", "rnd2", "blkID")]
+    blkCols <- sample(gs_colors(uniqueN(hcBlk$blkID)))
+
+    ng1 <- as.integer(uniqueN(hcBlk$ofID1))
+    ng2 <- as.integer(uniqueN(hcBlk$ofID2))
+
+    nfacets <- nrow(with(hcBlk, expand.grid(unique(chr1), unique(chr2))))
+    if(nfacets < maxFacets){
+      chrOrd1 <- unique(hcBlk$chr1[order(hcBlk$rnd1)])
+      chrOrd2 <- unique(hcBlk$chr2[order(hcBlk$rnd2)])
+      hcBlk[,`:=`(chr1 = factor(chr1, levels = chrOrd1),
+                  chr2 = factor(chr2, levels = chrOrd2))]
+      hcBlk <- subset(hcBlk, !is.na(rnd1) & !is.na(rnd2))
+      if(nrow(hcBlk) < 1){
+        warning(sprintf("no syntenic hits found for %s vs. %s",
+                        hits$genome1[1], hits$genome2[1]))
+        p2 <- NULL
+      }else{
+        p2 <- ggplot(hcBlk, aes(x = rnd1, y = rnd2, col = blkID)) +
+          geom_point(pch = ".") +
+          scale_color_manual(values = blkCols, guide = "none") +
+          scale_x_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hcBlk$rnd1), by = 1e3))+
+          scale_y_continuous(expand = c(0,0), breaks = seq(from = 1e3, to = max(hcBlk$rnd2), by = 1e3))+
+          theme_genespace() +
+          facet_grid(chr2 ~ chr1, scales = "free", space = "free", as.table = F, switch = "both")+
+          labs(x = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
+                           hits$genome1[1], uniqueN(hits$ofID1[hits$isAnchor])),
+               y = sprintf("%s: gene rank order position (%s genes with blast hits), gridlines every 1000 genes",
+                           hits$genome2[1], uniqueN(hits$ofID2[hits$isAnchor])),
+               title = sprintf("Syntenic anchor blast hits, colored by block ID"))
+      }
+    }else{
+      p2 <- NULL
+    }
+  }else{
+    p2 <- NULL
+  }
+
+
+  if(is.null(outDir)){
+    if(verbose)
+      cat("writing to the present graphics device")
+    if(!is.null(p0))
+      print(p0)
+    if(!is.null(p1))
+      print(p1)
+    if(!is.null(p2))
+      print(p2)
+  }else{
+    dpFile <- file.path(outDir,
+                        sprintf("%s_vs_%s.%sHits.pdf",
+                                tp$genome1[1], tp$genome2[1], type))
+    if(verbose)
+      cat(sprintf("writing to file: %s", dpFile))
+    if(!is.null(p0))
+      print(p0)
+    if(!is.null(p1))
+      print(p1)
+    if(!is.null(p2))
+      print(p2)
+  }
+}
+
+
+#' @title simple dotplots from a hits data.table
+#' @description
+#' \code{gghits} ggplot2 integrated graphics to produce dotplots
+#' @rdname plot_hits
+#' @import data.table
+#' @import ggplot2
+#' @export
+gghits <- function(hits,
+                   colorByBlks = TRUE,
+                   alpha = ifelse(colorByBlks, 1, .25),
+                   useOrder = TRUE,
+                   minScore = 0,
+                   minGenes2plot = 0){
+  ofID1 <- ofID2 <- sameOg <- ngene1 <- ngene2 <- ord1 <- ord2 <- blkID <-
+    inBuffer <- rnd2 <- rnd1 <- n <- isArrayRep2 <- isArrayRep1 <- chr1 <-
+    noAnchor <- bitScore <- quantile <- chr2 <- sameOG <- isAnchor <-
+    start1 <- start2 <- x <- y <- NULL
+
+  tp <- data.table(hits)
+
+  if(colorByBlks){
+    hc <- subset(tp, !is.na(blkID) & isAnchor)
+  }else{
+    hc <- subset(tp, bitScore > minScore)
+  }
+
+  ng1 <- as.integer(uniqueN(hc$ofID1))
+  ng2 <- as.integer(uniqueN(hc$ofID2))
+
+  hc[,ngene1 := uniqueN(ofID1[!noAnchor & isArrayRep1], na.rm = T), by = "chr1"]
+  hc[,ngene2 := uniqueN(ofID2[!noAnchor & isArrayRep2], na.rm = T), by = "chr2"]
+  hc <- subset(hc, ngene1 > minGenes2plot & ngene2 > minGenes2plot)
+
+  if(useOrder){
+    hc[,`:=`(x = ord1, y = ord2)]
+    xlab <- "query gene rank order position"
+    ylab <- "target gene rank order position"
+  }else{
+    hc[,`:=`(x = start1/1e6, y = start2/1e6)]
+    xlab <- "query physical (Mb) gene position"
+    ylab <- "target physical (Mb) gene position"
+  }
+
+  if(!colorByBlks){
+    p <- ggplot(hc, aes(x = x, y = y)) +
+      geom_point(pch = ".", alpha = alpha) +
+      scale_x_continuous(expand = c(0,0), breaks = pretty(hc$x, n = 10))+
+      scale_y_continuous(expand = c(0,0), breaks = pretty(hc$y, n = 10))+
+      facet_grid(genome2 + chr2 ~ genome1 + chr1, scales = "free",
+                 space = "free", as.table = F)+
+      labs(x = xlab, y = ylab)+
+      theme(panel.background = element_rect(fill = "black"),
+            panel.grid.minor = element_blank(),
+            panel.grid.major = element_line(
+              color = rgb(1, 1, 1, .2), size = .2, linetype = 2),
+            panel.spacing = unit(.1, "mm"),
+            axis.ticks = element_blank(),
+            strip.background = element_blank(),
+            axis.text = element_text(family = "Helvetica", size = 5),
+            axis.title = element_text(family = "Helvetica", size = 6),
+            plot.title = element_text(family = "Helvetica", size = 7))
+  }else{
+    blkCols <- sample(gs_colors(uniqueN(hc$blkID)))
+    p <- ggplot(hc, aes(x = x, y = y, col = blkID)) +
+      geom_point(pch = ".", alpha = alpha) +
+      scale_color_manual(values = blkCols, guide = "none") +
+      scale_x_continuous(expand = c(0,0), breaks = pretty(hc$x, n = 10))+
+      scale_y_continuous(expand = c(0,0), breaks = pretty(hc$y, n = 10))+
+      facet_grid(genome2 + chr2 ~ genome1 + chr1, scales = "free", space = "free",
+                 as.table = F)+
+      labs(x = xlab, y = ylab)+
+      theme(panel.background = element_rect(fill = "black"),
+            panel.grid.minor = element_blank(),
+            panel.grid.major = element_line(
+              color = rgb(1, 1, 1, .2), size = .2, linetype = 2),
+            panel.spacing = unit(.1, "mm"),
+            axis.ticks = element_blank(),
+            strip.background = element_blank(),
+            axis.text = element_text(family = "Helvetica", size = 5),
+            axis.title = element_text(family = "Helvetica", size = 6),
+            plot.title = element_text(family = "Helvetica", size = 7))
+  }
+  print(p)
 }

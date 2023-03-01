@@ -2,150 +2,191 @@
 % Please edit documentation in R/parse_annotations.R
 \name{parse_annotations}
 \alias{parse_annotations}
-\alias{parse_phytozome}
+\alias{match_fasta2gff}
 \alias{parse_ncbi}
-\alias{parse_gff}
+\alias{parse_phytozome}
 \alias{parse_faHeader}
-\title{Functions to convert from raw to genespace annotation formats}
+\title{Accessory function to help build GENESPACE input files}
 \usage{
-parse_phytozome(gsParam, overwrite = F, genomeIDs = NULL)
-
-parse_ncbi(gsParam, overwrite = F, genomeIDs = NULL)
-
 parse_annotations(
-  genomeIDs = NULL,
-  gsParam,
-  gffEntryType = "gene",
+  rawGenomeRepo,
+  genomeDirs,
+  genomeIDs = genomeDirs,
+  gffString = "gff$|gff3$|gff3\\\\.gz$|gff\\\\.gz",
+  faString = "fa$|fasta$|faa$|fa\\\\.gz$|fasta\\\\.gz|faa\\\\.gz",
+  genespaceWd,
+  presets = "none",
   gffIdColumn = "Name",
-  gffStripText = "",
   headerEntryIndex = 4,
   headerSep = " ",
+  gffStripText = "",
   headerStripText = "locus=",
-  overwrite = FALSE,
-  troubleshoot = FALSE
+  convertSpecialCharacters = "_",
+  chrIdDictionary = NULL,
+  troubleShoot = FALSE,
+  overwrite = FALSE
 )
 
-parse_gff(
-  path2rawGff3,
-  gffEntryType,
+match_fasta2gff(
+  path2fasta,
+  path2gff,
+  genespaceWd,
+  genomeID,
+  presets,
   gffIdColumn,
-  gffStripText,
-  verbose = TRUE,
-  troubleshoot = FALSE
-)
-
-parse_faHeader(
-  path2rawFasta,
   headerEntryIndex,
   headerSep,
+  gffStripText,
   headerStripText,
-  verbose = TRUE,
-  troubleshoot = FALSE
+  chrIdDictionary,
+  convertSpecialCharacters,
+  troubleShoot
 )
+
+parse_ncbi(
+  rawGenomeRepo,
+  genomeDirs,
+  genomeIDs = genomeDirs,
+  gffString = "gff$|gff3$|gff3\\\\.gz$|gff\\\\.gz",
+  faString = "fa$|fasta$|faa$|fa\\\\.gz$|fasta\\\\.gz|faa\\\\.gz",
+  genespaceWd,
+  troubleShoot = FALSE
+)
+
+parse_phytozome(
+  rawGenomeRepo,
+  genomeDirs,
+  genomeIDs = genomeDirs,
+  gffString = "gff$|gff3$|gff3\\\\.gz$|gff\\\\.gz",
+  faString = "fa$|fasta$|faa$|fa\\\\.gz$|fasta\\\\.gz|faa\\\\.gz",
+  genespaceWd,
+  troubleShoot = FALSE
+)
+
+parse_faHeader(...)
 }
 \arguments{
-\item{gsParam}{a list containing all parameters for a GENESPACE run. See
-init_genespace}
+\item{rawGenomeRepo}{file path to the location of gff3 and fasta annotations}
 
-\item{overwrite}{logical, should existing files be overwritten? If FALSE,
-and all files are present, just returns a named vector of gff/pep file
-locations}
+\item{genomeDirs}{character vector giving exact matches to subdirectories
+in rawGenome repo.}
 
-\item{genomeIDs}{character vector of the same length as paths. Names for
-each genome.}
+\item{genomeIDs}{character vector of length equal to genomeDirs. By default,
+takes values from genomeDirs, but, if specified, re-names the files
+accordingly. Useful if you want to shorten the names of genomes in your
+GENESPACE run.}
 
-\item{gffEntryType}{character, specifying which attribute type should be
-retained. This is the 3rd column of a gff3-formatted annotation. Can be a
-vector of length 1, if all files should be parsed identically, or a vector
-with the same length as file paths and genomeIDs, specifying different
-parsing parameters for each genome.}
+\item{gffString}{regular expression of length 1 specifying the string to
+search for in rawGenomeRepo/genomeDirs that will exactly match the gff3-
+formatted annotation. Default is any text or .gz file ending in gff3, gff.}
+
+\item{faString}{same as gffString but for the fasta-formatted peptide
+annotation. Default is any text or .gz file ending in fa, fasta or faa.}
+
+\item{genespaceWd}{file.path of length 1 specifying the GENESPACE working
+directory. Will make two subdirectories: /bed and /peptide for the parsed
+annotations}
+
+\item{presets}{character string: "none", "phytozome" or "ncbi" which sets
+the below parameters to parse phytozome or ncbi-formatted annotations
+correctly. See details.}
 
 \item{gffIdColumn}{character, specifying the field name in the gff3
-attributes column.Can be a vector of length 1, if all files should be parsed
-identically, or a vector with the same length as file paths and genomeIDs,
-specifying different parsing parameters for each genome.}
-
-\item{gffStripText}{like headerStripText but for the gff geneID entry}
+attributes column.}
 
 \item{headerEntryIndex}{integer specifying the field index in the fasta
-header which contains the gene ID information to match with the gff. Can be a
-vector of length 1, if all files should be parsed identically, or a vector
-with the same length as file paths and genomeIDs, specifying different
-parsing parameters for each genome.}
+header which contains the gene ID information to match with the gff.}
 
-\item{headerSep}{character used as a field delimiter in the fasta header.
-Can be a
-vector of length 1, if all files should be parsed identically, or a vector
-with the same length as file paths and genomeIDs, specifying different
-parsing parameters for each genome.}
+\item{headerSep}{character used as a field delimiter in the fasta header.}
 
-\item{headerStripText}{character or regex to remove from the fasta header.
-Can be a vector of length 1, if all files should be parsed identically,
-or a vector with the same length as file paths and genomeIDs, specifying
-different parsing parameters for each genome.}
+\item{gffStripText}{regular expression of length 1 specifying a gsub command
+to remove text from the gff ID.}
 
-\item{troubleshoot}{logical, should the raw and parsed files be printed?}
+\item{headerStripText}{like gffStripText, but for the fasta header}
 
-\item{path2rawGff3}{character vector coercible to file.paths. This points to
-the raw gff3-formatted annotation (.gz or gff3)}
+\item{convertSpecialCharacters}{Character string with a non-special character
+of length 1. Replaces special characters (punctionation other
+than ".", "-", and "_") if they are present in the gene IDs.}
 
-\item{verbose}{logical, should updates be printed to the console?}
+\item{chrIdDictionary}{a named vector where the names are the values in the
+first ("seqnames") gff3 column and the element names in the vector are
+the values to replace.}
 
-\item{path2rawFasta}{character string coercible to a file path, pointing to
-the location of the unparsed fasta file.}
+\item{troubleShoot}{logical, should the raw and parsed files be printed?}
+
+\item{overwrite}{logical, should existing files be overwritten?}
+
+\item{path2fasta}{deprecated, kept to maintain backwards compatibility}
+
+\item{path2gff}{deprecated, kept to maintain backwards compatibility}
+
+\item{genomeID}{single genomeID to consider}
+
+\item{...}{additional arguments passed on}
+}
+\value{
+a data.table containing the file paths to the raw and parsed
+annotations.
 }
 \description{
-\code{parse_annotations} Format gff and fasta for genespace. The two parse
-functions (parse_gff & parse_faHeader) take a single file and return a
-formatted R object. format_annotations is a wrapper for these two that reads
-and writes the full genespace-formatted files.
+\code{parse_annotations} Peptide and gff3 gene annotation matching and
+conversion to .bed format. Speeds up downstream compute and catches problems
+with annotation files. This is NOT required for GENESPACE, but does help
+get the input files in order. There are many other methods to convert
+gff3 --> bed and match the names with fasta headers.
 
-\code{parse_phytozome} parse phytozome-formatted annotations
+\code{parse_annotations} parse gff into a bed format with one entry per
+primary transcript, and ensure that the peptide fasta headers match the
+name column
 
-\code{parse_ncbi} parse NCBI-formatted annotations
+\code{match_fasta2gff} engine for reading, parsing and writing annotation
+files
 
-\code{parse_gff} parse the gff3-formatted annotation into genespace-readable
-data.table/csv file. This has a unique ID for each gene that matches the
-fasta annotation entries exactly.
+\code{parse_ncbi} a shortcut for parse_annotations(preset = "ncbi") to
+maintain backwards compatibility with < v1.0.0.
 
-\code{parse_faHeader} parse fasta headers to gene gff entries
+\code{parse_phytozome} a shortcut for parse_annotations(preset = "phytozome")
+to maintain backwards compatibility with < v1.0.0.
+
+\code{parse_faHeader} function to maintain backwards compatibility
 }
-\note{
-\code{parse_annotations} is a generic name for the functions documented.
-\cr
-If called, \code{parse_annotations} returns its own arguments.
+\details{
+parse_annotations assumes that you have a 'rawGenomeRepo' directory
+that contains a subdirectory for each genome to parse. These subdirectory
+names are given in "genomeDirs". So, if rawGenomeRepo = "~/Destop/genomeRepo"
+and genomeDirs = c("human", "mouse"), then parse_annotations assumes there
+are two directories: ~/Desktop/genomeRepo/human and ../mouse. Each of these
+dicectories must contain a gff3-formatted gene annotation and a fasta-
+formatted peptide annotation. These annotation files can be further nested
+in the subdirectories, but each must be named with a uniquely findable
+"gffString" and "faString". If multiple (or no) files match these strings,
+an error will be returned.
+
+Given differences in how gff3 and fasta headers are constructed, there are a
+number of parameters to choose how the files should be matched. Unless the
+files come from phytozome or NCBI, these need to be chosen manually. If you
+have differently named or formatted files, you can run parse_annotations
+several times with different parameters and paths to the files.
+
+For each genomeDir, the pair of files are read in, parsed, matched, then
+written to $genespaceWd/$genomeID/peptide and $genespaceWd/$genomeID/bed
+respectively. By default, the genomeID is the same as the genomeDir, but
+this can be customized.
+
+Presets: In the case of "ncbi", this assumes that you have downloaded the
+'translated_cds' peptide file and gene.gff3 annotation. Given this file,
+it uses the following parameters: gffIdColumn <- "gene"; headerEntryIndex <- 2;
+headerSep <- " "; gffStripText <- ""; headerStripText <- "gene=|\\[|\\]"
+Present 'ncbi"  also builds a chrIdDictionary to re-name sequenceIDs based on
+entries labeled "chromosome" in the third gff3 column.
+
+Phytozome presets: gffIdColumn <- "Name"; headerEntryIndex <- 4;
+headerSep <- " "; gffStripText <- ""; headerStripText <- "locus="
 }
 \examples{
 \dontrun{
-runwd <- file.path(getwd(), "testGenespace")
-make_exampleDataDir(writeDir = runwd)
-
-gpar <- init_genespace(
-  genomeIDs = c("human","chimp","rhesus"),
-  speciesIDs = c("human","chimp","rhesus"),
-  versionIDs = c("human","chimp","rhesus"),
-  ploidy = rep(1,3),
-  diamondMode = "fast",
-  orthofinderMethod = "fast",
-  wd = runwd,
-  nCores = 4,
-  minPepLen = 50,
-  gffString = "gff",
-  pepString = "pep",
-  path2orthofinder = "orthofinder",
-  path2mcscanx = "~/MCScanX",
-  rawGenomeDir = file.path(runwd, "rawGenomes"))
-
-# -- in the example dataset, the raw NCBI annotations have been parsed and
-# subset to a more compact file format. Therefore, we cant use parse_ncbi
-# and must use parse_annotations with some custom specs:
-parse_annotations(
-  gsParam = gpar,
-  gffEntryType = "gene",
-  gffIdColumn = "locus",
-  gffStripText = "locus=",
-  headerEntryIndex = 1,
-  headerSep = " ",
-  headerStripText = "locus=")
+# coming soon
 }
+
+
 }

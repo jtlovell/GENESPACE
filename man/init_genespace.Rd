@@ -5,90 +5,198 @@
 \title{Find files and directories for a GENESPACE run}
 \usage{
 init_genespace(
-  genomeIDs,
   wd,
-  outgroup = NULL,
-  speciesIDs,
-  versionIDs,
-  rawGenomeDir,
-  ploidy,
-  diamondMode = "more-sensitive",
-  orthofinderMethod = "default",
-  orthofinderInBlk = any(ploidy > 1),
-  nCores = detectCores()/2,
-  minPepLen = 20,
-  overwrite = T,
+  genomeIDs = NULL,
+  ploidy = 1,
+  ignoreTheseGenomes = NULL,
   path2orthofinder = "orthofinder",
-  path2mcscanx = "MCScanX",
   path2diamond = "diamond",
-  gffString = "gff",
-  pepString = "pep|prot",
-  verbose = TRUE
+  path2mcscanx = "MCScanX",
+  onewayBlast = FALSE,
+  orthofinderInBlk = any(ploidy > 1),
+  useHOGs = TRUE,
+  rawOrthofinderDir = NA,
+  diamondUltraSens = FALSE,
+  nCores = min(c(detectCores()/2, 16)),
+  maxOgPlaces = 8,
+  blkSize = 5,
+  nGaps = 5,
+  blkRadius = blkSize * 5,
+  synBuff = 100,
+  arrayJump = ceiling(synBuff/2),
+  onlyOgAnchors = TRUE,
+  nSecondaryHits = 0,
+  nGapsSecond = nGaps * 2,
+  blkSizeSecond = blkSize,
+  blkRadiusSecond = blkRadius,
+  onlyOgAnchorsSelf = TRUE,
+  onlyOgAnchorsSecond = FALSE,
+  maskBuffer = 500,
+  onlySameChrs = FALSE,
+  dotplots = "check",
+  outgroup = ignoreTheseGenomes,
+  nSecondHits = nSecondaryHits,
+  synBuffSecond = NULL,
+  orthofinderMethod = NULL,
+  speciesIDs = NULL,
+  minPepLen = NULL,
+  versionIDs = NULL,
+  rawGenomeDir = NULL,
+  diamondMode = NULL,
+  overwrite = NULL,
+  gffString = NULL,
+  pepString = NULL,
+  verbose = NULL
 )
 }
 \arguments{
+\item{wd}{file.path where the analysis will be run}
+
 \item{genomeIDs}{character vector of length > 1, matching length
 of speciesIDs, versions and ploidy. Specifies the name to assign
 to each genome. This vector must be unique and can be any string
-that begins with a letter (a-z, A-Z). An X will be appended to
-IDs starting with special characters or numbers.}
-
-\item{wd}{file.path where the analysis will be run}
-
-\item{outgroup}{character string matching one of the genomeIDs that will
-be used in the orthofinder -og run but not in the synteny search. Suggested
-to ensure that there is an outgroup that predates any WGD that the user
-would like to study.}
-
-\item{speciesIDs}{file path character vector. This is the subdirectory in
-rawGenomeDir containing the files for each genomeID.}
-
-\item{versionIDs}{file path character vector. This is the subdirectory in
-each speciesID with the genome version that contains the files for
-each genomeID.}
-
-\item{rawGenomeDir}{single file path, pointing to the directory that
-contains all the genome annotation raw files.}
+that begins with a letter (a-z, A-Z) and is alphanumeric. '.' and '_' are
+allowed as long as they are not the first character.}
 
 \item{ploidy}{integer string specifying ploidy of genome assemblies. This is
 usually half of the actual ploidy, that is an inbred diploid usually is
 represented by a haploid genome assembly.}
 
-\item{diamondMode}{character string to match one of the diamond search modes}
-
-\item{orthofinderMethod}{character string either 'fast' or 'default'. See
-build_OFdb for details.}
-
-\item{orthofinderInBlk}{logical, should orthofinder be re-run within
-syntenic regions? Highly recommended for polyploids}
-
-\item{nCores}{integer of length 1 specifying the number of parallel processes
-to run}
-
-\item{minPepLen}{integer, the shortest peptide to be analyzed}
-
-\item{overwrite}{logical, should existing directories be overwritten?}
+\item{ignoreTheseGenomes}{character string matching one of the genomeIDs that
+will be used in the orthofinder -og run but not in the synteny search.
+Suggested to ensure that there is an outgroup that predates any WGD that the
+user would like to study.}
 
 \item{path2orthofinder}{character string coercible to a file path that points
 to the orthofinder executable. If orthofinder is in the path, specify with
 "orthofinder"}
 
-\item{path2mcscanx}{see path2orthofinder, except to the mcscanx directory.
-This must contain the MCScanX_h folder.}
-
 \item{path2diamond}{character string coercible to a file path that points
 to the diamond executable. If diamond is in the path, specify with
 "diamond"}
 
-\item{gffString}{character string of length 1, coercable to a
-regular expression. File names in the 'annotation' subdirectories are
-screened for this string. If a single, unique file is found, it is returned
-as the gff source file. Otherwise an error is produced.}
+\item{path2mcscanx}{see path2orthofinder, except to the mcscanx directory.
+This must contain the MCScanX_h folder.}
 
-\item{pepString}{character string of length 1, coercable to a
-regular expression. See gffSearchString.}
+\item{onewayBlast}{logical of length 1, specifying whether one-way blasts
+should be run via `orthofinder -1 ...`. This replaces orthofinderMethod =
+"fast", but  uses `diamond2 --more-sensitive` whereas the previous method
+used --fast specification. Substantial speed improvements in large runs with
+little loss of fidelity.}
 
-\item{verbose}{logical length 1, should updates be printed to the console?}
+\item{orthofinderInBlk}{logical, should orthofinder be re-run within
+syntenic regions? Highly recommended for polyploids. When called, HOGs within
+blocks replace global HOGs or OGs. See useHOGs for more information.}
+
+\item{useHOGs}{logical of length 1 or NA, specifying whether to use
+phylogenetically hierarchical orthogroups (HOGs) or raw orthogroups. By
+default (NA), this is decided internally by `annotate_bed`, where the
+orthogroup type with members that best match the genome ploidy is used. In
+general, HOGs should be used for any run where all genomes are haploid, since
+they have been shown to have ~20% better precision than raw orthogroups.
+However, in cases where we want both homeologs, HOGs may be problematic and
+probably should not be used for syntenic region calculations. That said,
+HOGs are always used for within-block orthofinder, which is also the default
+when any genomes have ploidy > 1. So, the only way to use the deprecated
+orthogroups.tsv for pan-genome calculation is to set useHOGs = FALSE AND
+orthofinderInBlk = FALSE.}
+
+\item{rawOrthofinderDir}{file.path of length 1, specifying the location of
+an existing raw orthofinder run. Defaults to the $wd/orthofinder, but can
+be any path point to a valid orthofinder run. If not a valid path, this is
+ignored.}
+
+\item{diamondUltraSens}{logical of length 1, specifying whether the diamond
+mode run within orthofinder should be --more-sensitive (default, FALSE) or
+--ultra-sensitive.}
+
+\item{nCores}{integer of length 1 specifying the number of parallel processes
+to run}
+
+\item{maxOgPlaces}{integer of length 1, specifying the max number of unique
+placements that an orthogroup can have before being excluded from synteny}
+
+\item{blkSize}{integer of length 1, specifying the -s param to mcscanx}
+
+\item{nGaps}{integer of length 1, specifying the -m param to mcscanx
+for the primary MCScanX run. This acts on the results from the initial
+MCScanX run.}
+
+\item{blkRadius}{integer of length 1, specifying the search radius in 2d
+clustering to assign hits to the same block. This is a sensitive parameter
+as smaller values will result in more blocks, gaps and SV. Typically using
+2x or greater blkSize is fine.}
+
+\item{synBuff}{Numeric > 0, specifying the distance from an anchor
+to consider a hit syntenic. This parameter is also used to limit the search
+radius in dbscan-based blk calculation. Larger values will return larger
+tandem arrays but also may permit inclusion of spurious non-syntenic networks}
+
+\item{arrayJump}{integer of length 1, specifying the maximum distance in
+gene rank order between two genes in the same tandem array}
+
+\item{onlyOgAnchors}{logical, should only hits in orthogroups be considered
+for anchors?}
+
+\item{nSecondaryHits}{integer of length 1, specifying the number of
+secondary hits to look for after masking the primary syntenic regions}
+
+\item{nGapsSecond}{see nGaps, but passed to secondary hits after masking
+primary hits.}
+
+\item{blkSizeSecond}{see blkSize, but passed to the secondary scan if
+nSecondaryHits > 0.}
+
+\item{blkRadiusSecond}{see blkRadius, but passed to the secondary scan if
+nSecondaryHits > 0.}
+
+\item{onlyOgAnchorsSelf}{logical, should only hits in orthogroups be considered
+for anchors in self-hits (particularly polyploids)}
+
+\item{onlyOgAnchorsSecond}{logical should only hits in orthogroups be
+considered for anchors in secondary blocks?}
+
+\item{maskBuffer}{numeric (default = 500), the minimum distance that a
+secondary (or homeolog w/in polyploid genome) block can be created relative
+to an existing block.}
+
+\item{onlySameChrs}{logical - should synteny be only considered between
+chromosomes with the same name?}
+
+\item{dotplots}{character string either "always", "never", or "check".
+Default (check) only writes a dotplot if there are < 10k unique chromosome
+combinations (facets). "always" means that dotplots are made regardless of
+facet numbers, which can be very slow in some instances. "never" is by far
+the fastest method, but also never produces dotplots.}
+
+\item{outgroup}{deprecated in V1. See ignoreTheseGenomes.}
+
+\item{nSecondHits}{integer of length 1, specifying the number of blast
+hits to include after masking.}
+
+\item{synBuffSecond}{see syntenyBuffer. Applied only to synteny
+construction of secondary hits.}
+
+\item{orthofinderMethod}{deprecated in V1. See onewayBlast.}
+
+\item{speciesIDs}{deprecated in V1. See `parse_annotations`.}
+
+\item{minPepLen}{deprecated in V1. All genes in the peptide fasta are used.}
+
+\item{versionIDs}{deprecated in V1. See `parse_annotations`.}
+
+\item{rawGenomeDir}{deprecated in V1. See `parse_annotations`.}
+
+\item{diamondMode}{deprecated in V1. 'fast' mode is no longer available.
+--ultra-sensitive is available via diamondUltraSens.}
+
+\item{overwrite}{deprecated in V1. Results are never over-written.}
+
+\item{gffString}{deprecated in V1. See `parse_annotations`.}
+
+\item{pepString}{deprecated in V1. See `parse_annotations`.}
+
+\item{verbose}{deprecated in V1. All updates are printed to the console}
 }
 \value{
 A list containing paths to the raw files. If a file is not found,
@@ -104,68 +212,7 @@ annotation and assembly files.
 }
 \examples{
 \dontrun{
-runwd <- file.path(getwd(), "testGenespace")
-make_exampleDataDir(writeDir = runwd)
-
-#############################################################################
-###### Default method, can run orthofinder outside of R on a cluster etc. ###
-gpar <- init_genespace(
-  genomeIDs = c("human","chimp","rhesus"),
-  speciesIDs = c("human","chimp","rhesus"),
-  versionIDs = c("human","chimp","rhesus"),
-  ploidy = rep(1,3),
-  wd = runwd,
-  nCores = 4,
-  gffString = "gff",
-  pepString = "pep",
-  path2orthofinder = "orthofinder",
-  path2mcscanx = "~/MCScanX",
-  rawGenomeDir = file.path(runwd, "rawGenomes"))
-
-#############################################################################
-###### Slower but more accurate inference  ##################################
-###### especially for distantly related genomes or ploidy > 1 ###############
-# add in orthofinder in block orthogroup ...
-gpar <- init_genespace(
-  genomeIDs = c("human","chimp","rhesus"),
-  speciesIDs = c("human","chimp","rhesus"),
-  versionIDs = c("human","chimp","rhesus"),
-  ploidy = rep(1,3),
-  wd = runwd,
-  nCores = 4,
-  orthofinderInBlk = TRUE,
-  gffString = "gff",
-  pepString = "pep",
-  path2orthofinder = "orthofinder",
-  path2mcscanx = "~/MCScanX",
-  rawGenomeDir = file.path(runwd, "rawGenomes"))
-
-#############################################################################
-###### Fast visualization of closely related genome #########################
-# just a quick visualization ... not recommended for a full run, although
-# probably not much less sensitive with closely related genomes
-# **NOTE** this method can only be done when orthofinder is installed in the
-# path for this R session (e.g. opening R from a conda env with orthofinder)
-# **NOTE** increasing minPepLen results in a loss of fidelity, but an
-# increase in speed.
-
-# This is the parameterization used in the help files.
-
-gpar <- init_genespace(
-  genomeIDs = c("human","chimp","rhesus"),
-  speciesIDs = c("human","chimp","rhesus"),
-  versionIDs = c("human","chimp","rhesus"),
-  ploidy = rep(1,3),
-  diamondMode = "fast",
-  orthofinderMethod = "fast",
-  wd = runwd,
-  nCores = 4,
-  minPepLen = 50,
-  gffString = "gff",
-  pepString = "pep",
-  path2orthofinder = "orthofinder",
-  path2mcscanx = "~/MCScanX",
-  rawGenomeDir = file.path(runwd, "rawGenomes"))
-
+# coming soon
 }
+
 }
