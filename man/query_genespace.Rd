@@ -15,7 +15,8 @@ query_pangenes(
   transform = TRUE,
   showArrayMem = TRUE,
   showNSOrtho = TRUE,
-  maxMem2Show = Inf
+  maxMem2Show = Inf,
+  showUnPlacedPgs = FALSE
 )
 }
 \arguments{

@@ -25,6 +25,8 @@
 #' @param minScore numeric, the minimum scoring hit to plot
 #' @param minGenes2plot integer, the minimum number of hits to plot a chromosome
 #' combination.
+#' @param print2currentDevice logical, should the plot be printed to a pdf or
+#' to the current device?
 #'
 #' \cr
 #' If called, \code{plot_hits} returns its own arguments.
@@ -154,7 +156,8 @@ ggdotplot <- function(hits,
                       plotSize = 12,
                       minScore = 50,
                       maxFacets = 10000,
-                      verbose = is.null(outDir)){
+                      verbose = is.null(outDir),
+                      print2currentDevice = FALSE){
   ofID1 <- ofID2 <- sameOg <- ngene1 <- ngene2 <- ord1 <- ord2 <- blkID <-
     inBuffer <- rnd2 <- rnd1 <- n <- isArrayRep2 <- isArrayRep1 <- chr1 <-
     noAnchor <- bitScore <- quantile <- chr2 <- sameOG <- isAnchor <- NULL
@@ -381,14 +384,16 @@ ggdotplot <- function(hits,
                                 tp$genome1[1], tp$genome2[1], type))
     if(verbose)
       cat(sprintf("writing to file: %s", dpFile))
-    pdf(dpFile, height = ht, width = wd)
+    if(!print2currentDevice)
+      pdf(dpFile, height = ht, width = wd)
     if(!is.null(p0))
       print(p0)
     if(!is.null(p1))
       print(p1)
     if(!is.null(p2))
       print(p2)
-    dev.off()
+    if(!print2currentDevice)
+      dev.off()
   }
 }
 

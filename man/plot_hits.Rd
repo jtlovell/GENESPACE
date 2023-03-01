@@ -27,7 +27,8 @@ ggdotplot(
   plotSize = 12,
   minScore = 50,
   maxFacets = 10000,
-  verbose = is.null(outDir)
+  verbose = is.null(outDir),
+  print2currentDevice = FALSE
 )
 
 gghits(
@@ -61,15 +62,18 @@ type of dotplot to generate.}
 \item{outDir}{file.path where pdf should be written}
 
 \item{minGenes2plot}{integer, the minimum number of hits to plot a chromosome
-combination.
-
-\cr
-If called, \code{plot_hits} returns its own arguments.}
+combination.}
 
 \item{appendName}{character with text to append to the file name}
 
 \item{maxFacets}{integer the maximum number of facets to plot (doesn't plot
 for genomes with lots of small chrs/scaffolds)}
+
+\item{print2currentDevice}{logical, should the plot be printed to a pdf or
+to the current device?
+
+\cr
+If called, \code{plot_hits} returns its own arguments.}
 
 \item{colorByBlks}{logical, should blocks be colored?}
 
