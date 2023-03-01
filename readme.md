@@ -2,7 +2,13 @@
 
 This is version 1 of GENESPACE. GENESPACE is an analytical pipeline to syntenic regions across multiple genomes. The manuscript describing GENESPACE is now pubished in eLife. [Find the article here](https://elifesciences.org/articles/78526). Please cite this if you use GENESPACE. 
 
+There are currently two tutorials that (1) illustrate (what GENESPACE does)[] and (2) demostrate how to (customize your riparian plots)[https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/riparianGuide.html]. 
+
 **NOTE** v0.9.x is no longer supported. Please upgrade to v1.1+. There are some significant changes to the structure of GENESPACE in V1 (but few changes to the underlying algorithms). These changes are detailed below in '4.1: Changes to GENESPACE in v1'. 
+
+**NOTE** This is the first major release of GENESPACE version 1. It is possible that updates and/or bug fixes will be required. Check back to ensure you are working with the most up-to-date version. 
+
+**NOTE** The next planned release will be v1.2.x during the spring or summer 2023, which will include Rscript integration so that GENESPACE can be called directly from the command line without an interactive R session. 
 
 ##################
 ## 1. Quick start
@@ -87,6 +93,8 @@ You can then explore the results by giving the query (`query_pangenes`, `query_h
 #### 1.6 Riparian plots
 
 The primary visual output of GENESPACE is the riparian plot, which stacks the genomes vertically, orders chromosomes by synteny to a reference genome, then plots syntenic regions as 'braids'. By default, two plots are made and stored in /riparian for each haploid genome, one using gene rank order positions and one with physical (base-pair) positions. The function `plot_riparian` can be re-called by the user to generate custom plots.
+
+For more information and examples of customization, see the (plot_riparian tutorial)[https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/riparianGuide.html].
 
 ##################
 
@@ -305,134 +313,6 @@ convert_input2v1(
   13. a new function `query_genespace()`, allows positional or orthology based queries of pan-genome, pairwise hits, or raw orthogroups/orthologues. 
   14. Use of phylogenetically hierarchical orthogroups (HOGs) instead of default orthogroups (in most cases) to be inline with orthofinder best practices
 
-#### 4.2 Running orthofinder
 
-By default, GENESPACE runs the full OrthoFinder program internally from R. If an orthofinder run is already available (and uses exactly the same genomeIDs as the GENESPACE run), GENESPACE will detect this and not run OrthoFinder. 
-
-For very large runs, we highly recommend running OrthoFinder outside of R. You can do this by using `init_genespace(..., path2orthofinder = NA)`. When you use `run_genespace` with the resulting gs parameters, GENESPACE will prepare the input files and print the OrthoFinder command to the console before killing the run. You can then run that command in your shell or on a server separately. 
-
-Once orthofinder is run, you can point to the output directory via `init_genespace(..., rawOrthofinderDir = "/path/to/run")`, or just put it in the /orthofinder directory in your GENESPACE wd. GENESPACE will find the necessary results, QC them, and if all looks good, move them to the /results directory and begin the pipeline. 
-
-#### 4.3 Aggregating orthofinder information
-
-The bed files are concatenated and a genomeID column is added so that all gene position is in one file: /results/combBed.txt. OrthoFinder ofIDs (unique gene identifiers), OGs (orthogroup.tsv) and HOGs (phylogenetically hierarchical orthogroups, N0.tsv) are parsed and added as new columns to the combBed file. This provides all the raw information needed for all further steps. 
-
-Problematic genes and chromosomes are flagged by two rules: chromosomes must have > `blkSize` (default = 5) unique orthogroups. Orthogroups must hit < `ploidy * maxOgPlaces` (default maxOgPlaces = 8) unique positions in the genome (separated by > `synBuffer`, default = 150). Genes in either the problematic orthogroups or chromosomes are flagged as `noAnchor`, meaning they will still be considered for the pangenome steps, but cannot be used as syntenic anchors or to infer sytenic positions across genomes. 
-
-With HOGs (or OGs if `useHOGs = FALSE`) in hand, tandem arrays are calculated as follows: 1) any OG with multiple members on a single genome-by-chromosome combination are 'potential tandem arrays'; 2) potential tandem arrays with a gap between members > synBuffer are split into their own clusters; 3) clusters with > 1 member are tandem arrays; 4) genes in the most physically central position in the array are 'arrayReps'. Gene order is re-calculated for just the array reps and steps 1-4 are run iteratively until convergence. Genes that are not array representatives are also falgged as `noAnchor`. 
-
-The information from the combBed file are added to the blast files to produce annotated blast files, aka synHits. Of particular importance is whether both the query and target genes are in the same orthogroup "sameOg" and are not flagged as `noAnchor`. Reciprocal query/target blast hits are aggregated into a single file where the larger genome is the query and the smaller the target. 
-
-#### 4.4 Calculating pairwise synteny
-
-The information stored in the combined/annotated bed file is merged with the blast results to make synHits matrices. The function `synteny` annotates each unique pairwise synHits file with three columns: "isAnchor", "inBuffer", "isSyntenic" and "blkID". If blkID is NA and inBuffer == FALSE, that blast hit is not syntenic. Otherwise, the hit is syntenic and may be used for direct syntenic position interpolation if isAnchor == TRUE. 
-
-Synteny is inferred by the following pipeline:
-
-  1. Hits are culled to the topN hits which is the ploidy of the target genome. 
-  2. If onlyOgAnchors == TRUE, these topN hits are further culled to only hits where the query and target genomes are in the same phylogenetically hierarchical orthogroup. 
-  3. Gene rank order positions (order of genes along the chromosomes) are re-calculated for these culled query and target genes separately and MCScanX is run on the culled and re-ordered hits.  
-  4. Euclidean distances between rank order positions of MCScanX-culled hits and hits (including not topN hits, but potentially excluding non-OG hits if onlyOgAnchors == TRUE) are calculated. Those hits that are within synBuffer radius of MCScanX-culled hits are retained. 
-  5. MCScanX is re-run on the hits within the buffer radius
-  6. Initial syntenic blocks are calculated by 2d clustering via dbscan
-  7. Overlapping non-duplicated blocks (e.g. interleaved) are split using run-length equivalent decoding
-  8. Hits within block intervals are extracted and those within synBuffer radius of anchors are flagged as "inBuffer". 
-  
 ################################################################################
-
-## 5. GENESPACE output specifications
-
-#### 5.1 blast and synHits files
-Starting in v1.0.9, GENESPACE produces two 'synHits' files. The first, with the format `$QUERY_vs_$TARGET.allBlast.txt.gz` contains all blast hits with a set of columns that contain the information needed for synteny (see below). The function `finalize_synteny` (see below) take only hits with TRUE in the flag `isSyntenic` and puts these in a simplified text file with the format: `$QUERY_vs_$TARGET.synHits.txt.gz`, which only have the bitScore column from the blast8 specification and also drops the "sameInblkOg", "isSyntenic", and "inBuffer" columns. The splitting out syntenic hits dramatically improves read/write speed for all downstream functions that only see syntenic hits. 
-
-allBlast files have the following columns:
-
-columns 1-8:          annotation positions of the query genes
-columns 9-16:         annotation positions of the target genes
-columns 17-26:        standard blast8-formatted fields
-col 27 (sameOg):      logical, query and target in same orthogroup?
-col 28 (noAnchor):    logical, should this hit never be an anchor?
-col 29 (isAnchor):    logical, is this hit a syntenic anchor?
-col 30 (inBuffer):    logical, is this hit in the synteny buffer?
-col 31 (isSyntenic):  logical, is this hit in the blkRadius?
-col 32 (regID):       character, large region ID of syntenic hits
-col 33 (blkID):       character, blockID of syntenic hits
-
-
-synHits files have the following columns:
-
-columns 1-8:          annotation positions of the query genes
-columns 9-16:         annotation positions of the target genes
-column 17:            bit score from the blast file
-col 18 (sameOg):      logical, query and target in same orthogroup?
-col 19 (noAnchor):    logical, should this hit never be an anchor?
-col 20 (isAnchor):    logical, is this hit a syntenic anchor?
-col 21 (regID):       character, large region ID of syntenic hits
-col 22 (blkID):       character, blockID of syntenic hits
-
-#### 5.2 Pangenes
-
-The function `syntenic_pangenes` converts orthogroup and position data into a single matrix. This is stored in the /pangenes directory. This is the raw data that goes into the pangenes output (position x genome matrix). The pangenes.txt file contains 11 columns:
-
-1. 'ofID': orthofinder-given unique gene ID
-2. 'pgID': the unique position-by-orthogroup combination identifier. Each row in the pangenome-annotation is a unique value of this field. 
-3. 'interpChr': the chromosome (syntenic or actual) on the reference genome
-4. 'interpOrd': the gene-rank order position (interpolated or actual) on the reference genome
-5. 'pgRepID': the ofID for the representative gene for each pgID
-6. 'genome': genome of the focal gene (id column)
-7. 'og': orthogroup ID taken from the combBed.txt file
-8. 'flag': specifies whether the gene is a syntenic ortholog ('PASS'), non-syntenic ortholog, or array member. 
-9. 'id': bed-specified gene ID
-10-13: chromosome, physical positions, and gene rank order for each id.
-
-The function `query_pangenes` transforms these data into a more easily read 'wide' format: columns 1:5 collow columns 2-5 above. The remaining columns aggregate genes within each genome (column). Genes flagged with '*' are non-syntenic orthologs; genes flagged with '+' are array members, but not the most central (representative) gene in the array. 
-
-#### 5.3 The combBed.txt file
-
-Here are the first two lines of the combBed.txt file for the human-chicken.
-
-```
-   chr     start       end           id    ofID pepLen  ord  genome  arrayID isArrayRep    globOG                 globHOG noAnchor    og
-1:   1 154464218 154465306    LOC418813 0_10171     98 2913 chicken Arr00001       TRUE OG0000006 N0.HOG0000007 OG0000006    FALSE 17571
-2:   1 171849899 171861579 LOC112532821  0_8262   1130 3029 chicken Arr00002       TRUE OG0000008 N0.HOG0000009 OG0000008    FALSE 20208
-
-```
-
-Column definitions:
-
-1. 'chr': chromosome identifier copied from the bed file
-2. 'start': gene start position copied from the bed file
-3. 'end': gene end position copied from the bed file
-4. 'id': gene identifier copied from the bed file
-5. 'ofID': unique orthofinder ID taken from SequenceIDs.txt
-6. 'pepLen': number of amino acids in the predicted peptide
-7. 'ord': gene rank order position along the entire genome
-8. 'genome': unique genome ID, taken from the bed file name
-9. 'arrayID': tandem array identifier, if the field begins with "NoArr", then this gene is not part of a tandem array
-10. 'isArrayRep': TRUE/FALSE specifying whether a gene is the representative (closest physically to the median position of the array)
-11. 'globOG': global orthogroup ID, taken from orthogroups.tsv
-12. 'globHOG': global phylogenetically hierarchical orthogroup, taken from N0.tsv
-13. 'noAnchor': TRUE/FALSE whether the gene can be considered for synteny
-14. 'og': changes depending on the stage of the run. Initially it is the globHOG or globOG. Then after synteny, it is populated with synOG. Lastly, may be populated with inblkOG. 
-
-#### 5.4 The syntenic block coordinates
-
-This file, stored in /results/syntenicBlock_coordinates.csv and /results/syntenicRegion_coordinates.csv, contain pairwise block coordinates for each pair of genomes (genome1, genome2; 1 or 2 appended to the column name indicates that this data is associated with either genome1 or genome2 respectively). For each genome, there are 15 columns:
-
-1. 'chr': chromosome ID
-2. 'minBp': lowest basepair (bp) position
-3. 'maxBp': greatest basepair (bp) position
-4. 'minOrd': lowest gene rank order (ord) position
-5. 'maxOrd': highest gene rank order (ord) position
-6. 'minGene': lowest position gene ID in the block
-7. 'maxGene': higest position gene ID in the block
-8. 'nHits': number of hits
-9. 'startBp': begining bp position (taking into account orientation)
-10. 'endBp': end bp position (taking into account orientation)
-11. 'startOrd': begining ord position (taking into account orientation)
-12. 'endOrd': end ord position  (taking into account orientation)
-13. 'firstGene': first gene in the block (taking into account orientation)
-14. 'lastGene': last gene in the block (taking into account orientation)
-
-For riparian plots, blocks need to be 'phased' by the reference genome. These coordinates are stored in /riparian/$GENOME_phasedBlks.csv.
 

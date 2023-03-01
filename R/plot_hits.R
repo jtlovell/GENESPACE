@@ -19,6 +19,12 @@
 #' @param minScore numeric the minimum score to be permitted in the first plot
 #' @param maxFacets integer the maximum number of facets to plot (doesn't plot
 #' for genomes with lots of small chrs/scaffolds)
+#' @param colorByBlks logical, should blocks be colored?
+#' @param alpha numeric [0-1], specifying the transparency of the points
+#' @param useOrder logical, should gene order or bp position be used?
+#' @param minScore numeric, the minimum scoring hit to plot
+#' @param minGenes2plot integer, the minimum number of hits to plot a chromosome
+#' combination.
 #'
 #' \cr
 #' If called, \code{plot_hits} returns its own arguments.
@@ -384,4 +390,89 @@ ggdotplot <- function(hits,
       print(p2)
     dev.off()
   }
+}
+
+
+#' @title simple dotplots from a hits data.table
+#' @description
+#' \code{gghits} ggplot2 integrated graphics to produce dotplots
+#' @rdname plot_hits
+#' @import data.table
+#' @import ggplot2
+#' @export
+gghits <- function(hits,
+                   colorByBlks = TRUE,
+                   alpha = ifelse(colorByBlks, 1, .25),
+                   useOrder = TRUE,
+                   minScore = 0,
+                   minGenes2plot = 0){
+  ofID1 <- ofID2 <- sameOg <- ngene1 <- ngene2 <- ord1 <- ord2 <- blkID <-
+    inBuffer <- rnd2 <- rnd1 <- n <- isArrayRep2 <- isArrayRep1 <- chr1 <-
+    noAnchor <- bitScore <- quantile <- chr2 <- sameOG <- isAnchor <- NULL
+
+  tp <- data.table(hits)
+
+  if(colorByBlks){
+    hc <- subset(tp, !is.na(blkID) & isAnchor)
+  }else{
+    hc <- subset(tp, bitScore > minScore)
+  }
+
+  ng1 <- as.integer(uniqueN(hc$ofID1))
+  ng2 <- as.integer(uniqueN(hc$ofID2))
+
+  hc[,ngene1 := uniqueN(ofID1[!noAnchor & isArrayRep1], na.rm = T), by = "chr1"]
+  hc[,ngene2 := uniqueN(ofID2[!noAnchor & isArrayRep2], na.rm = T), by = "chr2"]
+  hc <- subset(hc, ngene1 > minGenes2plot & ngene2 > minGenes2plot)
+
+  if(useOrder){
+    hc[,`:=`(x = ord1, y = ord2)]
+    xlab <- "query gene rank order position"
+    ylab <- "target gene rank order position"
+  }else{
+    hc[,`:=`(x = start1/1e6, y = start2/1e6)]
+    xlab <- "query physical (Mb) gene position"
+    ylab <- "target physical (Mb) gene position"
+  }
+
+  if(!colorByBlks){
+    p <- ggplot(hc, aes(x = x, y = y)) +
+      geom_point(pch = ".", alpha = alpha) +
+      scale_x_continuous(expand = c(0,0), breaks = pretty(hc$x, n = 10))+
+      scale_y_continuous(expand = c(0,0), breaks = pretty(hc$y, n = 10))+
+      facet_grid(genome2 + chr2 ~ genome1 + chr1, scales = "free",
+                 space = "free", as.table = F)+
+      labs(x = xlab, y = ylab)+
+      theme(panel.background = element_rect(fill = "black"),
+            panel.grid.minor = element_blank(),
+            panel.grid.major = element_line(
+              color = rgb(1, 1, 1, .2), size = .2, linetype = 2),
+            panel.spacing = unit(.1, "mm"),
+            axis.ticks = element_blank(),
+            strip.background = element_blank(),
+            axis.text = element_text(family = "Helvetica", size = 5),
+            axis.title = element_text(family = "Helvetica", size = 6),
+            plot.title = element_text(family = "Helvetica", size = 7))
+  }else{
+    blkCols <- sample(gs_colors(uniqueN(hc$blkID)))
+    p <- ggplot(hc, aes(x = x, y = y, col = blkID)) +
+      geom_point(pch = ".", alpha = alpha) +
+      scale_color_manual(values = blkCols, guide = "none") +
+      scale_x_continuous(expand = c(0,0), breaks = pretty(hc$x, n = 10))+
+      scale_y_continuous(expand = c(0,0), breaks = pretty(hc$y, n = 10))+
+      facet_grid(genome2 + chr2 ~ genome1 + chr1, scales = "free", space = "free",
+                 as.table = F)+
+      labs(x = xlab, y = ylab)+
+      theme(panel.background = element_rect(fill = "black"),
+            panel.grid.minor = element_blank(),
+            panel.grid.major = element_line(
+              color = rgb(1, 1, 1, .2), size = .2, linetype = 2),
+            panel.spacing = unit(.1, "mm"),
+            axis.ticks = element_blank(),
+            strip.background = element_blank(),
+            axis.text = element_text(family = "Helvetica", size = 5),
+            axis.title = element_text(family = "Helvetica", size = 6),
+            plot.title = element_text(family = "Helvetica", size = 7))
+  }
+  print(p)
 }

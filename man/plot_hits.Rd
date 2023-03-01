@@ -3,6 +3,7 @@
 \name{plot_hits}
 \alias{plot_hits}
 \alias{ggdotplot}
+\alias{gghits}
 \title{plot hits as a xy dotplot}
 \usage{
 plot_hits(
@@ -28,6 +29,15 @@ ggdotplot(
   maxFacets = 10000,
   verbose = is.null(outDir)
 )
+
+gghits(
+  hits,
+  colorByBlks = TRUE,
+  alpha = ifelse(colorByBlks, 1, 0.25),
+  useOrder = TRUE,
+  minScore = 0,
+  minGenes2plot = 0
+)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters. This should be created
@@ -44,22 +54,28 @@ type of dotplot to generate.}
 
 \item{plotSize}{numeric smalled dimension of the plot}
 
-\item{minScore}{numeric the minimum score to be permitted in the first plot}
+\item{minScore}{numeric, the minimum scoring hit to plot}
 
 \item{hits}{data.table containg hits. See read_allBlast.}
 
 \item{outDir}{file.path where pdf should be written}
 
-\item{minGenes2plot}{integer specifying the minimum number of genes that can
-be plotted}
+\item{minGenes2plot}{integer, the minimum number of hits to plot a chromosome
+combination.
+
+\cr
+If called, \code{plot_hits} returns its own arguments.}
 
 \item{appendName}{character with text to append to the file name}
 
 \item{maxFacets}{integer the maximum number of facets to plot (doesn't plot
-for genomes with lots of small chrs/scaffolds)
+for genomes with lots of small chrs/scaffolds)}
 
-\cr
-If called, \code{plot_hits} returns its own arguments.}
+\item{colorByBlks}{logical, should blocks be colored?}
+
+\item{alpha}{numeric [0-1], specifying the transparency of the points}
+
+\item{useOrder}{logical, should gene order or bp position be used?}
 }
 \description{
 \code{plot_hits} routines to make visually appealing dotplots
@@ -67,6 +83,8 @@ If called, \code{plot_hits} returns its own arguments.}
 \code{plot_hits} The pipeline to plot syntenic hits in parallel
 
 \code{ggdotplot} ggplot2 integrated graphics to produce dotplots
+
+\code{gghits} ggplot2 integrated graphics to produce dotplots
 }
 \details{
 Dotplots here aggregate across proximate positions to reduce file
