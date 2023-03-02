@@ -1,6 +1,6 @@
 ## GENESPACE: an R package for synteny- and orthology-constrained comparative genomics. 
 
-This is version 1 of GENESPACE. GENESPACE is an analytical pipeline to syntenic regions across multiple genomes. The manuscript describing GENESPACE is now pubished in eLife. [Find the article here](https://elifesciences.org/articles/78526). Please cite this if you use GENESPACE. 
+This is version 1 of GENESPACE. GENESPACE is an analytical pipeline to understand patterns of synteny and orthology across multiple genomes. The manuscript describing GENESPACE is now pubished in eLife. [Find the article here](https://elifesciences.org/articles/78526). Please cite this if you use GENESPACE. 
 
 There are currently two tutorials that (1) illustrate [what GENESPACE does and how to use it](https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/genespaceGuide.html) and (2) demostrate how to [customize your riparian plots](https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/riparianGuide.html). This README is primarily to show how to get GENESPACE up and running.
 
