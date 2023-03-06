@@ -365,7 +365,6 @@ ggdotplot <- function(hits,
     p2 <- NULL
   }
 
-
   if(is.null(outDir)){
     if(verbose)
       cat("writing to the present graphics device")
@@ -379,6 +378,7 @@ ggdotplot <- function(hits,
     dpFile <- file.path(outDir,
                         sprintf("%s_vs_%s.%sHits.pdf",
                                 tp$genome1[1], tp$genome2[1], type))
+    pdf(dpFile, height = ht, width = wd)
     if(verbose)
       cat(sprintf("writing to file: %s", dpFile))
     if(!is.null(p0))
@@ -387,6 +387,7 @@ ggdotplot <- function(hits,
       print(p1)
     if(!is.null(p2))
       print(p2)
+    de <- dev.off()
   }
 }
 
