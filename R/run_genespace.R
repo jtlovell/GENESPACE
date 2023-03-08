@@ -327,6 +327,7 @@ run_genespace <- function(gsParam,
   cat("\n############################", strwrap(
     "8. Constructing syntenic pan-gene sets ... ",
     indent = 0, exdent = 8), sep = "\n")
+  gsParam <<- gsParam
   gids <- gsParam$genomeIDs
   labs <- align_charLeft(gids)
   names(labs) <- gids

@@ -68,7 +68,9 @@ syntenic_orthogroups <- function(gsParam, updateArrays){
 
   beda <- data.table(bed)
   beda[,og := NULL]
-  bed <- merge(beda, ar, by = "arrayID", all = T)
+  beda <- subset(beda, !duplicated(beda))
+  ar <- subset(ar, !duplicated(ar))
+  bed <- merge(beda, ar, by = "arrayID", all = T, allow.cartesian = TRUE)
 
   if(updateArrays){
     reps <- add_array2bed(
@@ -81,9 +83,13 @@ syntenic_orthogroups <- function(gsParam, updateArrays){
     arrayMap <- subset(bed, !noAnchor & isArrayRep)[,c("ofID", "arrayID")]
     newMap <- subset(reps)[,c("ofID", "arrayID")]
     setnames(newMap, "arrayID", "newArrayID")
-    arrayMap <- merge(arrayMap, newMap, by = "ofID", all = T)[,c("arrayID", "newArrayID")]
     arrayMap <- subset(arrayMap, !duplicated(arrayMap))
-    bed <- merge(bed, arrayMap, by = "arrayID", all.x = T)
+    newMap <- subset(newMap, !duplicated(newMap))
+    arrayMap <- merge(arrayMap, newMap, by = "ofID", all = T, allow.cartesian = T)
+    arrayMap <- arrayMap[,c("arrayID", "newArrayID")]
+    arrayMap <- subset(arrayMap, !duplicated(arrayMap))
+    bed <- subset(bed, !duplicated(bed))
+    bed <- merge(bed, arrayMap, by = "arrayID", all.x = T, allow.cartesian = T)
     bed[,isArrayRep := ofID %in% reps$ofID[reps$isArrayRep]]
     bed[,`:=`(arrayID = newArrayID, newArrayID = NULL)]
   }
