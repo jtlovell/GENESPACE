@@ -507,14 +507,16 @@ parse_ogs <- function(filepath, genomeIDs){
 parse_hogs <- function(filepath){
   id <- genome <- HOG <- hogID <- OG <- NULL
   d <- fread(filepath, showProgress = FALSE)
+  setnames(d, 1:3, sprintf("orthofinderInternalData_XXX_%s",colnames(d)[1:3]))
   sd <- colnames(d)[-(1:3)]
-  d[,hogID := paste(HOG, OG)]
+  d[,orthofinderInternalData_XXX_hogID := paste(orthofinderInternalData_XXX_HOG, orthofinderInternalData_XXX_OG)]
   m <- melt(
-    d, id.vars = "hogID", measure.vars = sd,
+    d, id.vars = "orthofinderInternalData_XXX_hogID", measure.vars = sd,
     value.name = "id", variable.name = "genome")
   m <- subset(m, id != "")
-  tmp <- m[,list(id = strsplit(id, ",")[[1]]), by = c("hogID", "genome")]
+  tmp <- m[,list(id = strsplit(id, ",")[[1]]), by = c("orthofinderInternalData_XXX_hogID", "genome")]
   tmp[,id := trimws(id)]
+  setnames(tmp, "orthofinderInternalData_XXX_hogID", "hogID")
   return(tmp)
 }
 
