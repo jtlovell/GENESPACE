@@ -124,7 +124,7 @@ annotate_blast <- function(gsParam){
                           lab, nTotalHits, nGlobOgHits)))
     return(out)
   }))
-  if(any(out$nGlobOgHits == 0)){
+  if(any(outmd$nGlobOgHits == 0)){
     stop(
       "some blast files have 0 hits in the same orthogroup.
       This is not to be expected and indicates that there is a
