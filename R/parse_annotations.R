@@ -323,6 +323,10 @@ match_fasta2gff <- function(path2fasta,
     fa <- fa[!duplicated(names(fa)),]
   }
 
+  nDot <- sum(vcountPattern(pattern = "[.-]", subject = fa))
+  if(nDot > 0)
+    stop("some of the peptides have '.' or '-' in the sequence. Orthofinder can't handle this.\n")
+
   nfa <- length(fa)
   # -- read in the gff
   end <- start <- width <- id <- seqid <- chr <- NULL
