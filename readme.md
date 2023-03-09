@@ -4,11 +4,7 @@ This is version 1 of GENESPACE. GENESPACE is an analytical pipeline to understan
 
 There are currently two tutorials that (1) illustrate [what GENESPACE does and how to use it](https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/genespaceGuide.html) and (2) demostrate how to [customize your riparian plots](https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/riparianGuide.html). This README is primarily to show how to get GENESPACE up and running.
 
-**NOTE** v0.9.x is no longer supported. Please upgrade to v1.1+. There are some significant changes to the structure of GENESPACE in V1 (but few changes to the underlying algorithms). These changes are detailed below in '4.1: Changes to GENESPACE in v1'. 
-
-**NOTE** This is the first major release of GENESPACE version 1. It is possible that updates and/or bug fixes will be required. Check back to ensure you are working with the most up-to-date version. 
-
-**NOTE** The next planned release will be v1.2.x during the spring or summer 2023, which will include Rscript integration so that GENESPACE can be called directly from the command line without an interactive R session. 
+**NOTE** v0.9.x is no longer supported. Please upgrade to v1.1+. There are some significant changes to the structure of GENESPACE in V1 (but few changes to the underlying algorithms). There have been a few minor changes since the v1.1.4 release on 1-March 2023. Either install from the master branch or v1.1.5 release. The next planned release will be v1.2.x during the spring or summer 2023, which will include Rscript integration so that GENESPACE can be called directly from the command line without an interactive R session. 
 
 ##################
 ## 1. Quick start
@@ -267,33 +263,3 @@ convert_input2v1(
   v1Dir = wd, 
   existingDir = "/path/to/existing/run")
 ```
-
-################################################################################
-
-## 4. The GENESPACE pipeline
-
-#### 4.1 Changes to GENESPACE v0.9.4 --> v1.0.2+
-
-**MAJOR CHANGES** GENESPACE is now structured differently. This breaks backwards compatibility to < v1, but was required to reduce the issues with raw data input. 
-
-  1. The user must now specify pre-formatted bed files instead of raw gff3 formatted annotations. This allows GENESPACE to catch issues with data formatting before running orthofinder etc. We are truly sorry to alter the specification and input so much, but it is unavoidable -- we want GENESPACE to integrate with existing bioinformatic pipelines, and too much internal customization was required, which produced hard-to-resolve errors.
-  2. Plots are now ALWAYS printed to file and never to the R graphics panel: xy dotplots and riparian plots are now saved as vector pdfs in the new /dotplot and /riparian directories respectively. 
-  3. Better organization of results output. Previously all output went into /results. /results now only contains the parsed orthofinder results and annotated bed files. All other results are placed in /syntenicHits, /dotplots, /riparian, and /pangenome. 
-  4. All GENESPACE functions are now integrated into `run_genespace()`, which completes all steps internally. While the user can still run each step independently, we no longer provide step-by-step documentation and suggest that all runs use this pipeline.
-  5. Synteny is modeled differently (see 3.4: synteny methods below). The new method gives far more precision in estimates of syntenic block breakpoints, removes non-orthogroup hits that previously caused apparent duplications in paralogous region, and adds a new column `isSyntenic` to the syntenic hits files. This is a stricter definition of synteny than `inBuffer`, as it uses a new parameter `blkRadius` as the distance from a syntenic anchor. `blkRadius` defaults to `blkSize*2`. 
-  6. There are two changes to the actual algorithm. First, 'inBuffer' hits can no longer be outside of the syntenic block coordinates. This minor change proved important and allowed us to simplify the pangenome construction step since we were better able to estimate the syntenic positions of all genes. Second, we now handle proximate orthogroups (tandem arrays) a bit differently: large dispersed arrays are flagged and ignored (dramatically improving syntenic accuracy in poorly annotated regions like the pericentromere). 
-  
-**MINOR CHANGES**
-
-  7. code cleanup and better documentation, both in line and in help files
-  8. much better data QC and handing of errors in parameter specification
-  9. ggplot2-integrated graphics and R object output for potential downstream interactive viz.
-  10. internal position calculation for riparian plots and inferred syntenic positions transferred to a new function `integrate_synteny()`. This speeds up riparian plotting by 10x or more. 
-  11. `plot_riparian()` function generalization that allows the user to specify a block coordinate matrix and nothing else (allowing plotting of data from other packages). 
-  12. replace `orthofinderMethod = "fast"` with `onewayOF = TRUE` to match the new `orthofinder -1` specification. 
-  13. a new function `query_genespace()`, allows positional or orthology based queries of pan-genome, pairwise hits, or raw orthogroups/orthologues. 
-  14. Use of phylogenetically hierarchical orthogroups (HOGs) instead of default orthogroups (in most cases) to be inline with orthofinder best practices
-
-
-################################################################################
-
