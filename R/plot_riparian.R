@@ -36,6 +36,8 @@
 #' @param chrFill character or integer coercible to an R color for the interior
 #' fill of the chromosome regions
 #' @param chrLabFun function to parse chr IDs to make them more readible
+#' @param chrBorderCol color of the chromosome polygon borders
+#' @param chrBorderLwd line width of the chromosome polygon borders
 #' @param pdfFile file.path to the pdf device to store the file
 #' @param scalePlotWidth numeric, scaling factor for plot width. Larger values
 #' make wider plots
@@ -126,6 +128,8 @@ plot_riparian <- function(gsParam,
                           palette = gs_colors,
                           chrLabFontSize = 5,
                           chrExpand = 0.5,
+                          chrBorderCol = chrFill,
+                          chrBorderLwd = 0.2,
                           invertTheseChrs = NULL,
                           chrLabFun = function(x)
                             gsub("^0", "",
@@ -187,6 +191,7 @@ plot_riparian <- function(gsParam,
         customRefChrOrder = customRefChrOrder, addThemes = addThemes,
         invertTheseChrs = invertTheseChrs, chrLabFun = chrLabFun, xlabel = xlabel,
         chrExpand = chrExpand, scaleGapSize = scaleGapSize, palette = palette,
+        chrBorderCol = chrBorderCol, chrBorderLwd = chrBorderLwd,
         refChrOrdFun = refChrOrdFun)
       print(pltDat$ggplotObj)
     }else{
@@ -204,6 +209,7 @@ plot_riparian <- function(gsParam,
         customRefChrOrder = customRefChrOrder, addThemes = addThemes,
         invertTheseChrs = invertTheseChrs, chrLabFun = chrLabFun, xlabel = xlabel,
         chrExpand = chrExpand, scaleGapSize = scaleGapSize, palette = palette,
+        chrBorderCol = chrBorderCol, chrBorderLwd = chrBorderLwd,
         refChrOrdFun = refChrOrdFun)
       print(pltDat$ggplotObj)
       dev.off()
@@ -288,6 +294,7 @@ plot_riparian <- function(gsParam,
         customRefChrOrder = customRefChrOrder, addThemes = addThemes,
         invertTheseChrs = invertTheseChrs, chrLabFun = chrLabFun, xlabel = xlabel,
         scaleGapSize = scaleGapSize, refChrOrdFun = refChrOrdFun,
+        chrBorderCol = chrBorderCol, chrBorderLwd = chrBorderLwd,
         chrExpand = chrExpand, palette = colorRampPalette(backgroundColor))
       print(pltDat$ggplotObj)
     }else{
@@ -306,6 +313,7 @@ plot_riparian <- function(gsParam,
         customRefChrOrder = customRefChrOrder, addThemes = addThemes,
         invertTheseChrs = invertTheseChrs, chrLabFun = chrLabFun, xlabel = xlabel,
         scaleGapSize = scaleGapSize, refChrOrdFun = refChrOrdFun,
+        chrBorderCol = chrBorderCol, chrBorderLwd = chrBorderLwd,
         chrExpand = chrExpand, palette = colorRampPalette(backgroundColor))
       print(pltDat$ggplotObj)
       dev.off()
@@ -341,6 +349,8 @@ riparian_engine <- function(blk,
                             reorderBySynteny = TRUE,
                             howSquare = 0,
                             chrExpand = .5,
+                            chrBorderCol = NA,
+                            chrBorderLwd = 0,
                             customRefChrOrder = NULL,
                             palette = gs_colors,
                             invertTheseChrs = NULL,
@@ -762,10 +772,11 @@ riparian_engine <- function(blk,
     scale_fill_identity(guide = "none")+
 
     # -- chromosome label backgrounds
+
     geom_polygon(
       data = chrPolygons,
       aes(x = x, y = y, group = paste(genome, chr)),
-      fill = chrFill, lwd = NA)+
+      fill = chrFill, lwd = chrBorderLwd, col = chrBorderCol)+
 
     # -- chr label text
     geom_text(
@@ -777,12 +788,12 @@ riparian_engine <- function(blk,
     geom_segment(
       data = sbData$segments,
       aes(x = x, xend = xend, y = y, yend = yend),
-      lwd = .25, col = chrFill)+
+      lwd = chrBorderLwd, col = chrBorderCol)+
     geom_text(
       data = subset(sbData$segments, line == "mid"),
       aes(x = (x + xend)/2, y = y),
       label = sbData$label,
-      col = chrFill, size = chrLabFontSize*0.36, hjust = .5, vjust = 1.5)+
+      col = chrBorderCol, size = chrLabFontSize*0.36, hjust = .5, vjust = 1.5)+
 
     # -- genome labels
     scale_y_continuous(breaks = (glab$y1+glab$y2)/2, labels = glab$genome, expand = c(0.01, 0.01), name = NULL)+

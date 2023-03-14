@@ -31,6 +31,8 @@ plot_riparian(
   palette = gs_colors,
   chrLabFontSize = 5,
   chrExpand = 0.5,
+  chrBorderCol = chrFill,
+  chrBorderLwd = 0.2,
   invertTheseChrs = NULL,
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf|chromosome|scaffold|^lg|_", "",
     tolower(x))),
@@ -60,6 +62,8 @@ riparian_engine(
   reorderBySynteny = TRUE,
   howSquare = 0,
   chrExpand = 0.5,
+  chrBorderCol = NA,
+  chrBorderLwd = 0,
   customRefChrOrder = NULL,
   palette = gs_colors,
   invertTheseChrs = NULL,
@@ -169,6 +173,10 @@ the reference genome}
 
 \item{chrExpand}{numeric giving the expansion of the chromosome polygons
 surrounding the chromosome labels.}
+
+\item{chrBorderCol}{color of the chromosome polygon borders}
+
+\item{chrBorderLwd}{line width of the chromosome polygon borders}
 
 \item{invertTheseChrs}{data.table with two columns, genome and chr containing
 the lists of genomes and chromosomes that should be inverted in the plot.
