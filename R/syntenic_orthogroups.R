@@ -284,6 +284,7 @@ ofInBlk_engine <- function(gsParam,
     if(dir.exists(tmpDir))
       unlink(tmpDir, recursive = T)
     dir.create(tmpDir)
+    on.exit(expr = unlink(list.files(tmpDir, full.names = T), recursive = T))
 
     ########
     # -- 2.2 create the directories for each region
