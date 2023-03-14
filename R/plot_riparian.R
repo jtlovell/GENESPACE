@@ -161,15 +161,20 @@ plot_riparian <- function(gsParam,
       stop(sprintf("specified reference genome %s is not haploid, but haploid genomes %s are in this GENESPACE run. Either use one of the haploid references or use custom parameters in `riparian_engine`",
                    refGenome, paste(hapGs, collapse = ", ")))
 
-    blksTp <- phase_blks(
-      gsParam = gsParam,
-      refGenome = refGenome,
-      useRegions = useRegions,
-      blkSize = gsParam$params$blkSize,
-      synBuff = gsParam$params$synBuff,
-      refChr = NULL,
-      refStartBp = NULL,
-      refEndBp = NULL)
+    bf <- file.path(gsParam$paths$riparian, sprintf("%s_phasedBlks.csv", refGenome))
+    if(file.exists(bf)){
+      blksTp <- fread(bf)
+    }else{
+      blksTp <- phase_blks(
+        gsParam = gsParam,
+        refGenome = refGenome,
+        useRegions = useRegions,
+        blkSize = gsParam$params$blkSize,
+        synBuff = gsParam$params$synBuff,
+        refChr = NULL,
+        refStartBp = NULL,
+        refEndBp = NULL)
+    }
 
     if(is.null(pdfFile)){
       pltDat <- riparian_engine(
