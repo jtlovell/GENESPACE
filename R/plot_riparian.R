@@ -420,15 +420,16 @@ riparian_engine <- function(blk,
   ##############################################################################
   pull_synChrOrd <- function(refGenome, bed, clens){
 
+    bedi <- merge(bed, clens[,c("genome", "chr")], by = c("genome", "chr"))
     ordByFun <- genome <- noAnchor <- refchr <- reford <- ord <- median <-
       plotOrd <- meanPos <- NULL
 
     setkey(clens, ordByFun)
     refChrOrder <- clens$chr[clens$genome == refGenome]
 
-    bedr <- with(subset(bed, genome == refGenome & !noAnchor), data.table(
+    bedr <- with(subset(bedi, genome == refGenome & !noAnchor), data.table(
       refgenome = refGenome, refchr = chr, reford = ord, og = og))
-    beda <- subset(bed, genome != refGenome & !noAnchor)[,c("genome", "chr", "ord", "og")]
+    beda <- subset(bedi, genome != refGenome & !noAnchor)[,c("genome", "chr", "ord", "og")]
     bedm <- merge(
       subset(bedr, !duplicated(bedr)),
       subset(beda, !duplicated(beda)), by = "og", allow.cartesian = T)
@@ -436,7 +437,7 @@ riparian_engine <- function(blk,
     bedm[,reford := frank(reford, ties.method = "dense"), by = "refchr"]
     bedm[,ord := (1:.N)/.N, by = "refchr"]
 
-    chro <- bedm[,list(meanPos = round(median(refChrOrder + ord), 2)),
+    chro <- bedm[,list(meanPos = round(median(refChrOrder + ord, na.rm = T), 2)),
                  by = c("genome", "chr")]
 
     outa <- merge(clens, chro, by = c("genome", "chr"))
