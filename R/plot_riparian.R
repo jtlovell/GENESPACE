@@ -245,7 +245,7 @@ plot_riparian <- function(gsParam,
     if(!"color" %in%  names(highlightBed))
       highlightBed[,color := gs_colors(.N)]
     blksBed <- rbindlist(lapply(1:nrow(highlightBed), function(i){
-      blksTp <- with(highlightBed, phase_blks(
+      suppressWarnings(blksTp <- with(highlightBed, phase_blks(
         gsParam = gsParam,
         refGenome = genome[i],
         useRegions = useRegions,
@@ -253,13 +253,28 @@ plot_riparian <- function(gsParam,
         synBuff = gsParam$params$synBuff,
         refChr = chr[i],
         refStartBp = start[i],
-        refEndBp = end[i]))
+        refEndBp = end[i])))
       blksTp[,color := highlightBed$color[i]]
+      blksTp[,index := i]
       return(blksTp)
-    }))
+    }), fill = T)
 
-    blksTp <- rbind(allBlks, blksBed, fill = T)
+    if(!"genome1" %in% colnames(blksBed))
+      stop("none of the lines in highlightbed contain syntenic anchor genes\n")
 
+    bads <- subset(blksBed, !complete.cases(blksBed))
+    if(nrow(bads) > 0)
+      warning(sprintf(
+        "lines %s in highlight bed do not have any syntenic genes; these will be ignored",
+        paste(unique(bads$index), collapse = ",")))
+    goods <- subset(blksBed, complete.cases(blksBed))
+    goods[,hasAll := all(genomeIDs %in% c(genome1, genome2)), by = "index"]
+    bads <- subset(goods, !hasAll)
+    if(nrow(bads) > 0)
+      warning(sprintf(
+        "lines %s in highlight bed do not connect all genomes, these may look strange in the plot",
+        paste(unique(bads$index), collapse = ",")))
+    blksTp <- rbind(allBlks, goods, fill = T)
 
     if(is.null(pdfFile)){
       pltDat <- riparian_engine(
