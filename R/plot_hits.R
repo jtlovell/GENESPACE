@@ -101,13 +101,17 @@ plot_hits <- function(gsParam,
 
       l1 <- mean(table(rawHits$chr1[rawHits$sameOG]))/10
       l2 <- mean(table(rawHits$chr2[rawHits$sameOG]))/10
+      minGenes = max(min(c(l1, l2)), 5)
 
       dps <- gsParam$params$dotplots
       if(dps == "check"){
+        nchr1 <- uniqueN(rawHits$chr1)
+        nchr2 <- uniqueN(rawHits$chr2)
+
         ggdotplot(
           hits = data.table(rawHits),
           outDir = gsParam$paths$dotplots,
-          minGenes2plot = min(c(l1, l2)),
+          minGenes2plot = minGenes,
           maxFacets = 10000,
           type = type,
           dotsPerIn = dotsPerIn,
@@ -119,7 +123,7 @@ plot_hits <- function(gsParam,
           ggdotplot(
             hits = data.table(rawHits),
             outDir = gsParam$paths$dotplots,
-            minGenes2plot = min(c(l1, l2)),
+            minGenes2plot = minGenes,
             maxFacets = Inf,
             type = type,
             dotsPerIn = dotsPerIn,
@@ -193,6 +197,7 @@ ggdotplot <- function(hits,
   # 2. Make the plot with all hits, regardless of og
 
   # -- 2.1 subset the hits to those with high enough score
+  makeCrappyDotplots <- list(p0 = NULL, p1 = NULL, p2 = NULL)
   if(type %in% c("all", "raw")){
     hc <- subset(tp, bitScore > minScore)
     ng1 <- as.integer(uniqueN(hc$ofID1))
@@ -253,6 +258,7 @@ ggdotplot <- function(hits,
         labs(x = xlab, y = ylab, title = titlab)
     }else{
       p0 <- NULL
+      makeCrappyDotplots[["p0"]] <- subset(tp, bitScore > minScore)
     }
 
     ##############################################################################
@@ -315,6 +321,7 @@ ggdotplot <- function(hits,
         labs(x = xlab, y = ylab, title = titlab)
     }else{
       p1 <- NULL
+      makeCrappyDotplots[["p1"]] <- subset(tp, sameOG)
     }
   }else{
     p1 <- p0 <- NULL
@@ -360,6 +367,7 @@ ggdotplot <- function(hits,
       }
     }else{
       p2 <- NULL
+      makeCrappyDotplots[["p2"]] <- subset(tp, isAnchor)
     }
   }else{
     p2 <- NULL
@@ -381,12 +389,39 @@ ggdotplot <- function(hits,
     pdf(dpFile, height = ht, width = wd)
     if(verbose)
       cat(sprintf("writing to file: %s", dpFile))
-    if(!is.null(p0))
-      print(p0)
-    if(!is.null(p1))
-      print(p1)
-    if(!is.null(p2))
-      print(p2)
+    if(!is.null(makeCrappyDotplots[["p0"]])){
+      with(makeCrappyDotplots[["p0"]], plot(
+        rnd1, rnd2, pch = ".",
+        xlab = "all gene rank order (genome1)",
+        ylab = "all gene rank order (genome2)",
+        main = "these genomes have too many chromosomes to plot nicely."))
+    }else{
+      if(!is.null(p0))
+        print(p0)
+    }
+
+    if(!is.null(makeCrappyDotplots[["p0"]])){
+      with(makeCrappyDotplots[["p0"]], plot(
+        rnd1, rnd2, pch = ".",
+        xlab = "orthogroup hit gene rank order (genome1)",
+        ylab = "orthogroup gene rank order (genome2)",
+        main = "these genomes have too many chromosomes to plot nicely."))
+    }else{
+      if(!is.null(p0))
+        print(p1)
+    }
+
+    if(!is.null(makeCrappyDotplots[["p2"]])){
+      with(makeCrappyDotplots[["p2"]], plot(
+        rnd1, rnd2, pch = ".",
+        xlab = "syntenic hit gene rank order (genome1)",
+        ylab = "syntenic hit gene rank order (genome2)",
+        main = "these genomes have too many chromosomes to plot nicely."))
+    }else{
+      if(!is.null(p2))
+        print(p2)
+    }
+
     de <- dev.off()
   }
 }

@@ -286,40 +286,57 @@ run_genespace <- function(gsParam,
   fwrite(blk, file = file.path(gsParam$paths$results, "syntenicBlock_coordinates.csv"))
   hapGenomes <- names(gsParam$ploidy)[gsParam$ploidy == 1]
 
+  bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
+  minChrSize <- gsParam$params$blkSize * 2
+  bed[,isOK := uniqueN(og) >= minChrSize, by = c("genome", "chr")]
+  ok4pg <- bed[,list(propOK = (sum(isOK) / .N) > .75), by = "genome"]
+  ok4rip <- bed[,list(nGood = (uniqueN(chr[isOK]) < 100)), by = "genome"]
+
   if(length(hapGenomes) == 0){
     cat(strwrap("NOTE!!! No genomes provided with ploidy < 2. Phasing of polyploid references is not currently supported internally. You will need to make custom riparian plots",
                 indent = 8, exdent = 8), sep = "\n")
   }else{
-    cat("\t##############\n\tBuilding ref.-phased blks and riparian plots for haploid genomes:\n")
-    labs <- align_charLeft(hapGenomes)
-    names(labs) <- hapGenomes
-    for(i in hapGenomes){
-      plotf <- file.path(gsParam$paths$riparian,
-                      sprintf("%s_geneOrder.rip.pdf", i))
-      srcf <- file.path(gsParam$paths$riparian,
-                        sprintf("%s_geneOrder_rSourceData.rda", i))
-      blkf <- file.path(gsParam$paths$riparian,
-                        sprintf("%s_phasedBlks.csv", i))
-
-      rip <- plot_riparian(
-        gsParam = gsParam, useRegions = TRUE, refGenome = i, pdfFile = plotf)
-      cat(sprintf("\t\t%s: %s phased blocks\n", labs[i], nrow(rip$blks)))
-
-      srcd <- rip$plotData
-      save(srcd, file = srcf)
-      fwrite(rip$blks, file = blkf)
-
-      plotf <- file.path(gsParam$paths$riparian,
-                      sprintf("%s_bp.rip.pdf", i))
-      srcf <- file.path(gsParam$paths$riparian,
-                        sprintf("%s_bp_rSourceData.rda", i))
-      rip <- plot_riparian(
-        gsParam = gsParam, useOrder = FALSE, useRegions = TRUE,
-        refGenome = i, pdfFile = plotf)
-      srcd <- rip$plotData
-      save(srcd, file = srcf)
+    okg <- subset(ok4rip, genome %in% hapGenomes)
+    if(any(!okg$nGood)){
+      cat(strwrap(sprintf(
+        "**WARNING**: genomes %s have > 100 chromosomes in the synteny map. This is too complex to make riparian plots.\n",
+        paste(okg$genome[!okg$nGood], collapse = ", ")), indent = 8, exdent = 16),
+        sep = "\n")
+      hapGenomes <- hapGenomes[!hapGenomes %in% okg$genome[!okg$nGood]]
     }
-    cat("\tDone!\n")
+    if(length(hapGenomes) > 0){
+      cat("\t##############\n\tBuilding ref.-phased blks and riparian plots for haploid genomes:\n")
+      labs <- align_charLeft(hapGenomes)
+      names(labs) <- hapGenomes
+      for(i in hapGenomes){
+        plotf <- file.path(gsParam$paths$riparian,
+                           sprintf("%s_geneOrder.rip.pdf", i))
+
+        srcf <- file.path(gsParam$paths$riparian,
+                          sprintf("%s_geneOrder_rSourceData.rda", i))
+        blkf <- file.path(gsParam$paths$riparian,
+                          sprintf("%s_phasedBlks.csv", i))
+
+        rip <- plot_riparian(
+          gsParam = gsParam, useRegions = TRUE, refGenome = i, pdfFile = plotf)
+        cat(sprintf("\t\t%s: %s phased blocks\n", labs[i], nrow(rip$blks)))
+
+        srcd <- rip$plotData
+        save(srcd, file = srcf)
+        fwrite(rip$blks, file = blkf)
+
+        plotf <- file.path(gsParam$paths$riparian,
+                           sprintf("%s_bp.rip.pdf", i))
+        srcf <- file.path(gsParam$paths$riparian,
+                          sprintf("%s_bp_rSourceData.rda", i))
+        rip <- plot_riparian(
+          gsParam = gsParam, useOrder = FALSE, useRegions = TRUE,
+          refGenome = i, pdfFile = plotf)
+        srcd <- rip$plotData
+        save(srcd, file = srcf)
+      }
+      cat("\tDone!\n")
+    }
   }
 
   ##############################################################################
@@ -327,8 +344,13 @@ run_genespace <- function(gsParam,
   cat("\n############################", strwrap(
     "8. Constructing syntenic pan-gene sets ... ",
     indent = 0, exdent = 8), sep = "\n")
-  gsParam <<- gsParam
   gids <- gsParam$genomeIDs
+  tp <- paste(ok4pg$genome[!ok4pg$propOK], collapse = ", ")
+  if(any(!ok4pg$propOK))
+    cat(strwrap(sprintf(
+      "**WARNING**: genomes %s have < 75%% of genes on chromosomes that contain > %s genes. Synteny is not a useful metric for these genomes. Be very careful with your pan-gene sets.\n",
+      tp, minChrSize), indent = 8, exdent = 16),
+      sep = "\n")
   labs <- align_charLeft(gids)
   names(labs) <- gids
   for(i in gids){
