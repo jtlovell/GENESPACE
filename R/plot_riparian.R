@@ -78,6 +78,8 @@
 #' should be. 0 = no straight sections. Inf = no rounded sections
 #' @param customRefChrOrder character vector with the order of chromosomes in
 #' the reference genome
+#' @param forceRecalcBlocks logical, should the phased blocks be re-calculated
+#' even if there is a phased block file.
 #' @param palette function coercible to an R color palette
 #' @param xlabel label for the x axis of the plot
 #' @param bed data.table with combined bed file
@@ -131,6 +133,7 @@ plot_riparian <- function(gsParam,
                           chrBorderCol = chrFill,
                           chrBorderLwd = 0.2,
                           invertTheseChrs = NULL,
+                          forceRecalcBlocks = TRUE,
                           chrLabFun = function(x)
                             gsub("^0", "",
                                  gsub("chr|scaf|chromosome|scaffold|^lg|_", "", tolower(x))),
@@ -166,7 +169,7 @@ plot_riparian <- function(gsParam,
                    refGenome, paste(hapGs, collapse = ", ")))
 
     bf <- file.path(gsParam$paths$riparian, sprintf("%s_phasedBlks.csv", refGenome))
-    if(file.exists(bf)){
+    if(file.exists(bf) && !forceRecalcBlocks){
       blksTp <- fread(bf)
     }else{
       blksTp <- phase_blks(
