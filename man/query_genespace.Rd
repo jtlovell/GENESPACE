@@ -4,6 +4,7 @@
 \alias{query_genespace}
 \alias{query_hits}
 \alias{query_pangenes}
+\alias{query_cnv}
 \title{Query GENESPACE results}
 \usage{
 query_hits(gsParam, bed, synOnly = TRUE)
@@ -18,6 +19,8 @@ query_pangenes(
   maxMem2Show = Inf,
   showUnPlacedPgs = FALSE
 )
+
+query_cnv(gsParam, bed = NULL, onlyArrayReps = FALSE, maxCopyNumber = Inf)
 }
 \arguments{
 \item{gsParam}{A list of genespace parameters created by init_genespace.}
@@ -49,6 +52,12 @@ included in each entry-by-flag-by-genome combination.}
 
 \item{showUnPlacedPgs}{logical, when queried should un-located orthogroups be
 shown?}
+
+\item{onlyArrayReps}{logical, should only array representatives be considered
+for CNV counts?}
+
+\item{maxCopyNumber}{numeric, maximum copyNumber to tabulate. Orthogroups
+with more than this number are combined into the largest CNV category}
 }
 \value{
 a list of data.tables named $genome, $chr: $start-$end. One
@@ -60,6 +69,10 @@ and /syntenicHits directories
 
 \code{query_hits} extract syntenic (or all) hits that fall within a interval
 in a genome.
+
+\code{query_pangenes} the primary engine to explore genespace output, this
+lets you reformat the pan-genes to wide (entry - by - genome) matrix and
+only look at specified positional bounds.
 
 \code{query_pangenes} the primary engine to explore genespace output, this
 lets you reformat the pan-genes to wide (entry - by - genome) matrix and

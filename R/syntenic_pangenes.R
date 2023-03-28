@@ -187,27 +187,29 @@ syntenic_pangenes <- function(gsParam,
   hasu <- with(pgOut, paste(pgRepID, ofID))
   orthof <- unlist(gsParam$synteny$blast[,c("queryOrthologs", "targetOrthologs")])
   orthof <- orthof[!is.na(orthof)]
-  ogs <- rbindlist(mclapply(orthof, mc.cores = gsParam$params$nCores, function(i){
-    x <- parse_orthologues(i)
-    x[,`:=`(ofID1 = dict[paste(gen1, id1)],
-            ofID2 = dict[paste(gen2, id2)],
-            gen1 = NULL, gen2 = NULL, id1 = NULL, id2 = NULL, orthID = NULL)]
-    x <- subset(x, ofID1 %in% u)
-    x <- subset(x, !paste(ofID1, ofID2) %in% hasu)
-    return(x)
-  }))
-  setnames(ogs, c("pgRepID", "ofID"))
-  bedTmp <- bed[,c("genome", "og", "ofID")]
-  bedTmp <- subset(bedTmp, !duplicated(bedTmp))
-  ogs <- subset(ogs, !duplicated(ogs))
-  ogs <- merge(bedTmp, ogs, by = "ofID", allow.cartesian = T)
-  pgTmp <- pgOut[,c("pgID", "interpChr", "interpOrd", "pgRepID")]
-  pgTmp <- subset(pgTmp, !duplicated(pgTmp))
-  ogs <- subset(ogs, !duplicated(ogs))
-  nsogs <- merge(pgTmp, ogs, by = "pgRepID", allow.cartesian = T)
-  nsogs[,flag := "NSOrtho"]
+  if(length(orthof) > 0){
+    ogs <- rbindlist(mclapply(orthof, mc.cores = gsParam$params$nCores, function(i){
+      x <- parse_orthologues(i)
+      x[,`:=`(ofID1 = dict[paste(gen1, id1)],
+              ofID2 = dict[paste(gen2, id2)],
+              gen1 = NULL, gen2 = NULL, id1 = NULL, id2 = NULL, orthID = NULL)]
+      x <- subset(x, ofID1 %in% u)
+      x <- subset(x, !paste(ofID1, ofID2) %in% hasu)
+      return(x)
+    }))
+    setnames(ogs, c("pgRepID", "ofID"))
+    bedTmp <- bed[,c("genome", "og", "ofID")]
+    bedTmp <- subset(bedTmp, !duplicated(bedTmp))
+    ogs <- subset(ogs, !duplicated(ogs))
+    ogs <- merge(bedTmp, ogs, by = "ofID", allow.cartesian = T)
+    pgTmp <- pgOut[,c("pgID", "interpChr", "interpOrd", "pgRepID")]
+    pgTmp <- subset(pgTmp, !duplicated(pgTmp))
+    ogs <- subset(ogs, !duplicated(ogs))
+    nsogs <- merge(pgTmp, ogs, by = "pgRepID", allow.cartesian = T)
+    nsogs[,flag := "NSOrtho"]
+    pgOut <- rbind(pgOut, nsogs)
+  }
 
-  pgOut <- rbind(pgOut, nsogs)
   setcolorder(pgOut, c(
     "pgID", "interpChr", "interpOrd", "pgRepID", "genome", "og", "ofID", "flag"))
 

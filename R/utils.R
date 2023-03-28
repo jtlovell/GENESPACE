@@ -46,7 +46,7 @@
 #' @export
 .onAttach <- function(...) {
   packageStartupMessage(paste(strwrap(
-    "GENESPACE v1.1.7: synteny and orthology constrained
+    "GENESPACE v1.1.8: synteny and orthology constrained
     comparative genomics\n",
     indent = 0, exdent = 8), collapse = "\n"))
 }
@@ -505,16 +505,20 @@ parse_ogs <- function(filepath, genomeIDs){
 #' @import data.table
 #' @export
 parse_hogs <- function(filepath){
-  id <- genome <- HOG <- hogID <- OG <- NULL
+  id <- genome <- HOG <- hogID <- OG <- orthofinderInternalData_XXX_OG <-
+    orthofinderInternalData_XXX_hogID <- orthofinderInternalData_XXX_HOG <- NULL
   d <- fread(filepath, showProgress = FALSE)
-  setnames(d, 1:3, sprintf("orthofinderInternalData_XXX_%s",colnames(d)[1:3]))
+  setnames(d, 1:3, sprintf("orthofinderInternalData_XXX_%s", colnames(d)[1:3]))
   sd <- colnames(d)[-(1:3)]
-  d[,orthofinderInternalData_XXX_hogID := paste(orthofinderInternalData_XXX_HOG, orthofinderInternalData_XXX_OG)]
+  d[,orthofinderInternalData_XXX_hogID := paste(
+    orthofinderInternalData_XXX_HOG, orthofinderInternalData_XXX_OG)]
   m <- melt(
-    d, id.vars = "orthofinderInternalData_XXX_hogID", measure.vars = sd,
+    d, id.vars = "orthofinderInternalData_XXX_hogID",
+    measure.vars = sd,
     value.name = "id", variable.name = "genome")
   m <- subset(m, id != "")
-  tmp <- m[,list(id = strsplit(id, ",")[[1]]), by = c("orthofinderInternalData_XXX_hogID", "genome")]
+  tmp <- m[,list(id = strsplit(id, ",")[[1]]),
+           by = c("orthofinderInternalData_XXX_hogID", "genome")]
   tmp[,id := trimws(id)]
   setnames(tmp, "orthofinderInternalData_XXX_hogID", "hogID")
   return(tmp)

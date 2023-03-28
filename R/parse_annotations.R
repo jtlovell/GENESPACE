@@ -205,7 +205,7 @@ parse_annotations <- function(rawGenomeRepo,
 #' files
 #' @rdname parse_annotations
 #' @import data.table
-#' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet DNA_ALPHABET
+#' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet DNA_ALPHABET vcountPattern
 #' @importFrom utils head
 #' @export
 match_fasta2gff <- function(path2fasta,

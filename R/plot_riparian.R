@@ -146,7 +146,8 @@ plot_riparian <- function(gsParam,
                           refChrOrdFun = function(x)
                             frank(list(as.numeric(gsub('\\D+','', x)), x), ties.method = "random")){
 
-  color <- blkID <- pass <- genome <- chr <- start <- end <- NULL
+  color <- blkID <- pass <- genome <- chr <- start <- end <- index <- hasAll <-
+    genome1 <- genome2 <- NULL
   # -- there are two methods of plotting.
 
   # 1. Default phase the blocks by a reference genome chromosomes

@@ -131,7 +131,7 @@ run_genespace <- function(gsParam,
     tmp <- run_orthofinder(gsParam = gsParam, verbose = TRUE)
 
   gsParam <- set_syntenyParams(gsParam)
-
+  gsParam <<- gsParam
   ##############################################################################
   # -- 1.5 get the files in order if the run is complete
   if(noResults){
@@ -223,6 +223,7 @@ run_genespace <- function(gsParam,
   cat("\t##############\n\tGenerating dotplots for all hits ... ")
   nu <- plot_hits(gsParam = gsParam, type = "raw")
   cat("Done!\n")
+  gsParam <<- gsParam
 
   ##############################################################################
   # 4. Run synteny
@@ -232,6 +233,7 @@ run_genespace <- function(gsParam,
     "4. Flagging synteny for each pair of genomes ...",
     indent = 0, exdent = 8), sep = "\n")
   gsParam <- synteny(gsParam = gsParam)
+  gsParam <<- gsParam
 
   ##############################################################################
   # 5. Build syntenic orthogroups
@@ -254,6 +256,7 @@ run_genespace <- function(gsParam,
   gsParam <- syntenic_orthogroups(
     gsParam, updateArrays = gsParam$params$orthofinderInBlk)
   cat("\tDone!\n")
+  gsParam <<- gsParam
 
   ##############################################################################
   # 6. Make dotplots
@@ -269,6 +272,7 @@ run_genespace <- function(gsParam,
   cat("\t##############\n\tInterpolating syntenic positions of genes ... \n")
   nsynPos <- interp_synPos(gsParam)
   cat("\tDone!\n")
+  gsParam <<- gsParam
 
   ##############################################################################
   # 8. Phase syntenic blocks against reference chromosomes
@@ -288,6 +292,7 @@ run_genespace <- function(gsParam,
 
   bed <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
   minChrSize <- gsParam$params$blkSize * 2
+  isOK <- og <- chr <- genome <- NULL
   bed[,isOK := uniqueN(og) >= minChrSize, by = c("genome", "chr")]
   ok4pg <- bed[,list(propOK = (sum(isOK) / .N) > .75), by = "genome"]
   ok4rip <- bed[,list(nGood = (uniqueN(chr[isOK]) < 100)), by = "genome"]
@@ -338,6 +343,8 @@ run_genespace <- function(gsParam,
       cat("\tDone!\n")
     }
   }
+
+  gsParam <<- gsParam
 
   ##############################################################################
   # 9. Build pan-genes (aka pan-genome annotations)

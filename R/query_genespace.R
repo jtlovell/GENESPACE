@@ -25,6 +25,10 @@
 #' not provided
 #' @param showUnPlacedPgs logical, when queried should un-located orthogroups be
 #' shown?
+#' @param onlyArrayReps logical, should only array representatives be considered
+#' for CNV counts?
+#' @param maxCopyNumber numeric, maximum copyNumber to tabulate. Orthogroups
+#' with more than this number are combined into the largest CNV category
 
 #' @return a list of data.tables named $genome, $chr: $start-$end. One
 #' data.table for each line in the bed file.
@@ -199,4 +203,92 @@ query_pangenes <- function(gsParam,
 
     return(out)
   }
+}
+
+
+#' @title reformat and subset pan-gene sets
+#' @description
+#' \code{query_pangenes} the primary engine to explore genespace output, this
+#' lets you reformat the pan-genes to wide (entry - by - genome) matrix and
+#' only look at specified positional bounds.
+#' @rdname query_genespace
+#' @import data.table
+#' @export
+query_cnv <- function(gsParam,
+                      bed = NULL,
+                      onlyArrayReps = FALSE,
+                      maxCopyNumber = Inf){
+
+  count_cnv <- function(combBed, ofIDs){
+
+    ofID <- ogType <- genome <- og <- copyNumber <- nGenes <- nOgs <- NULL
+    cbl <- melt(
+      combBed,
+      measure.vars = c("globOG", "globHOG", "og"),
+      id.vars = c("genome", "ofID", "chr", "start", "end"),
+      variable.name = "ogType",
+      value.name = "og")
+
+    if(!is.null(ofIDs)){
+      cbogs <- subset(cbl, ofID %in% ofIDs)[,c("ogType", "og")]
+      cbogs <- subset(cbogs, !duplicated(cbogs))
+      cbl <- merge(cbl, cbogs, by = c("ogType", "og"))
+    }
+
+    cbl[,ogType := ifelse(ogType == "og", "syntenicHOGs",
+                          ifelse(ogType == "globHOG", "globalHOGs", "globalOGs"))]
+
+    cbn <- cbl[,list(copyNumber = .N), by = c("genome", "og", "ogType")]
+    cbn$copyNumber[cbn$copyNumber > maxCopyNumber] <- maxCopyNumber
+    eg <- cbl[,CJ(genome = unique(genome), og = unique(og)), by = "ogType"]
+    cbn <- merge(cbn, eg, by = colnames(eg), all = T)
+    cbn$copyNumber[is.na(cbn$copyNumber)] <- 0
+    cbo <- cbn[,list(nGenes = copyNumber*uniqueN(og), nOgs = uniqueN(og)),
+               by = c("genome", "ogType", "copyNumber")]
+    setkey(cbo, genome, ogType, copyNumber)
+    cbo[,`:=`(percGenes = 100*(nGenes/sum(nGenes)),
+              percOGs = 100*(nOgs/sum(nOgs))),
+        by = c("genome", "ogType")]
+    return(cbo)
+  }
+
+  isArrayRep <- pass <- genome <- chr <- start <- end <- regID <- genome <- NULL
+
+  cb <- read_combBed(file.path(gsParam$paths$results, "combBed.txt"))
+  if(onlyArrayReps){
+    cb <- subset(cb, isArrayRep)
+  }
+
+  if(!is.null(bed)){
+    bed <- data.table(bed)
+    if(nrow(bed) == 0)
+      stop("bed must be a data.table or data.frame with >= 1 rows\n")
+    if(!all(c("chr", "genome") %in% names(bed)))
+      stop("bed must be a data.table or data.frame with columns named chr and genome\n")
+    u <- unique(paste(cb$genome, cb$chr))
+    bed[,pass := paste(genome, chr) %in% u]
+
+    if(!all(bed$pass))
+      stop("the following genome/chr combinations are not in the run:",
+           subset(bed, !pass)[,1:2])
+    bed[,pass := NULL]
+    if(!"start" %in% names(bed))
+      bed[,start := 0]
+    if(!"end" %in% names(bed))
+      bed[,end := Inf]
+    bed[,regID := sprintf("%s, %s: %s-%s", genome, chr, start, end)]
+
+
+    out <- lapply(1:nrow(bed), function(i){
+      x <- bed[i,]
+      bogs <- subset(
+        cb, genome == x$genome & chr == x$chr & end >= x$start & start <= x$end)
+      outi <- count_cnv(combBed = cb, ofIDs = bogs$ofID)
+      return(outi)
+    })
+    names(out) <- bed$regID
+  }else{
+    out <- count_cnv(combBed = cb, ofIDs = NULL)
+  }
+ return(out)
 }
