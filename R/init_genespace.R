@@ -205,7 +205,7 @@ init_genespace <- function(wd,
     if(length(x) != length(genomeIDs))
       stop("problem with ploidy - length not same as genomeIDs (or 1)\n")
     names(x) <- genomeIDs
-    if(!is.null(outgroup) || !is.na(outgroup))
+    if(!is.null(outgroup) || !all(is.na(outgroup)))
       x <- x[!names(x) %in% outgroup]
     return(x)
   }
@@ -359,20 +359,17 @@ init_genespace <- function(wd,
   maxOgPlaces <- ploidy * maxOgPlaces; names(maxOgPlaces) <- names(ploidy)
 
   # -- if there are outgroups, strip these out of the genomeIDs and ploidy
-  if(!is.na(outgroup) && any(outgroup %in% genomeIDs) && !is.null(outgroup)){
+  if(!is.na(outgroup[1]) && any(outgroup %in% genomeIDs) && !is.null(outgroup)){
     genomeIDs <- genomeIDs[!genomeIDs %in% outgroup]
     ploidy <- ploidy[!names(ploidy) %in% outgroup]
     maxOgPlaces <- maxOgPlaces[!names(maxOgPlaces) %in% outgroup]
   }
 
-  if(is.na(outgroup)){
-    cat()
-  }
   cat(sprintf(
     "\n\t\t%s",
     paste(apply(cbind(align_charLeft(genomeIDs), ploidy), 1, function(x)
       paste(x, collapse = ": ")), collapse = "\n\t\t")), sep = "\n")
-  if(is.na(outgroup)){
+  if(is.na(outgroup[1])){
     cat("\tOutgroup ... NONE\n")
   }else{
     cat(strwrap(sprintf("\tOutgroup ... %s", paste(outgroup, collapse = ", ")),

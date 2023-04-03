@@ -197,7 +197,8 @@ parse_annotations <- function(rawGenomeRepo,
       headerEntryIndex = headerEntryIndex, presets = presets,
       gffIdColumn = gffIdColumn, headerSep = headerSep,
       gffStripText = gffStripText, headerStripText = headerStripText,
-      chrIdDictionary = chrIdDictionary,
+      chrIdDictionary = chrIdDictionary, removeNonAAs = removeNonAAs,
+      minPepLen = minPepLen, dropDuplicates = dropDuplicates,
       convertSpecialCharacters = convertSpecialCharacters)
 
     return(data.table(
@@ -431,9 +432,14 @@ match_fasta2gff <- function(path2fasta,
   wdBed <- file.path(wd, "bed")
   if(!dir.exists(wdBed))
     dir.create(wdBed)
-  cat(sprintf("%s: n unique sequences = %s, n matched to gff = %s\n",
-              genomeID, nfa, nrow(gff)))
 
+  if((nDot + nDash) > 0){
+    cat(sprintf("%s: n unique sequences = %s, n matched to gff = %s (dropped %s ./- chars)\n",
+                genomeID, nfa, nrow(gff), (nDot + nDash)))
+  }else{
+    cat(sprintf("%s: n unique sequences = %s, n matched to gff = %s\n",
+                genomeID, nfa, nrow(gff)))
+  }
   gffout <- file.path(wdBed, sprintf("%s.bed", genomeID))
   faout <- file.path(wdPep, sprintf("%s.fa", genomeID))
   fwrite(gff, file = gffout, col.names = FALSE, quote = FALSE, sep = "\t")
