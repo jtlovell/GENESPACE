@@ -27,6 +27,12 @@
 #' correctly. See details.
 #' @param gffIdColumn character, specifying the field name in the gff3
 #' attributes column.
+#' @param minPepLen numeric, specifying the shortest peptide (in daltons) to be
+#' kept
+#' @param dropDuplicates logical, should only one of a set of duplicated
+#' peptide sequences be kept?
+#' @param removeNonAAs logial, should "." and "-" characters be stripped from
+#' the amino acids?
 #' @param headerEntryIndex integer specifying the field index in the fasta
 #' header which contains the gene ID information to match with the gff.
 #' @param headerSep character used as a field delimiter in the fasta header.
@@ -101,6 +107,9 @@ parse_annotations <- function(rawGenomeRepo,
                               gffString = "gff$|gff3$|gff3\\.gz$|gff\\.gz",
                               faString = "fa$|fasta$|faa$|fa\\.gz$|fasta\\.gz|faa\\.gz",
                               genespaceWd,
+                              minPepLen = 0,
+                              dropDuplicates = FALSE,
+                              removeNonAAs = FALSE,
                               presets = "none",
                               gffIdColumn = "Name",
                               headerEntryIndex = 4,
@@ -205,7 +214,7 @@ parse_annotations <- function(rawGenomeRepo,
 #' files
 #' @rdname parse_annotations
 #' @import data.table
-#' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet DNA_ALPHABET vcountPattern
+#' @importFrom Biostrings writeXStringSet width readAAStringSet AAStringSet DNA_ALPHABET vcountPattern replaceAt vmatchPattern
 #' @importFrom utils head
 #' @export
 match_fasta2gff <- function(path2fasta,
@@ -216,6 +225,9 @@ match_fasta2gff <- function(path2fasta,
                             gffIdColumn,
                             headerEntryIndex,
                             headerSep,
+                            minPepLen,
+                            dropDuplicates,
+                            removeNonAAs,
                             gffStripText,
                             headerStripText,
                             chrIdDictionary,
@@ -292,6 +304,7 @@ match_fasta2gff <- function(path2fasta,
       headerStripText <- as.character(headerStripText[1])
     }
   }
+
   # -- read in the peptide annotations
   fa <- Biostrings::readAAStringSet(path2fasta)
   if(troubleShoot){
@@ -322,11 +335,6 @@ match_fasta2gff <- function(path2fasta,
     fa <- fa[order(-width(fa)),]
     fa <- fa[!duplicated(names(fa)),]
   }
-
-  nDot <- sum(vcountPattern(pattern = ".", subject = fa))
-  nDash <- sum(vcountPattern(pattern = "-", subject = fa))
-  if((nDot + nDash) > 0)
-    stop("some of the peptides have '.' or '-' in the sequence. Orthofinder can't handle this.\n")
 
   nfa <- length(fa)
   # -- read in the gff
@@ -372,6 +380,7 @@ match_fasta2gff <- function(path2fasta,
   }else{
     gff[,chr := seqid]
   }
+
   # -- convert to 0-index 1-open bed
   gff <- gff[,c("chr", "start", "end", "id")]
   gff[,start := start - 1]
@@ -380,6 +389,41 @@ match_fasta2gff <- function(path2fasta,
     cat("\n### first 6 bed lines after full parsing (and potential chr re-name)\n")
     print(head(gff))
   }
+
+  # -- check for .'s or -'s in the fa
+  nDot <- sum(vcountPattern(pattern = ".", subject = fa))
+  nDash <- sum(vcountPattern(pattern = "-", subject = fa))
+
+  if((nDot + nDash) > 0){
+    if(!removeNonAAs)
+      stop("some of the peptides have '.' or '-' in the sequence. Orthofinder can't handle this. Either remove them manually or set removeNonAAs to TRUE\n")
+
+    if(nDash > 0)
+      suppressWarnings(fa <- replaceAt(
+        x = fa,
+        at = vmatchPattern("-", fa, fixed = TRUE),
+        value = ""))
+
+    if(nDot > 0)
+      suppressWarnings(fa <- replaceAt(
+        x = fa,
+        at = vmatchPattern(".", fa, fixed = TRUE),
+        value = ""))
+  }
+
+  # -- drop short aas
+  if(minPepLen > 0)
+    fa <- fa[width(fa) >= minPepLen]
+
+  # -- drop duplicates
+  if(dropDuplicates)
+    fa <- fa[!duplicated(as.character(fa))]
+
+  # -- final match of ids
+  gff <- subset(gff, id %in% names(fa))
+  setkey(gff, chr, start, end, id)
+  fa <- fa[gff$id]
+
   # -- write output
   wdPep <- file.path(wd, "peptide")
   if(!dir.exists(wdPep))
@@ -389,6 +433,7 @@ match_fasta2gff <- function(path2fasta,
     dir.create(wdBed)
   cat(sprintf("%s: n unique sequences = %s, n matched to gff = %s\n",
               genomeID, nfa, nrow(gff)))
+
   gffout <- file.path(wdBed, sprintf("%s.bed", genomeID))
   faout <- file.path(wdPep, sprintf("%s.fa", genomeID))
   fwrite(gff, file = gffout, col.names = FALSE, quote = FALSE, sep = "\t")
@@ -408,7 +453,8 @@ parse_ncbi <- function(rawGenomeRepo,
                        gffString = "gff$|gff3$|gff3\\.gz$|gff\\.gz",
                        faString = "fa$|fasta$|faa$|fa\\.gz$|fasta\\.gz|faa\\.gz",
                        genespaceWd,
-                       troubleShoot = FALSE){
+                       troubleShoot = FALSE,
+                       ...){
 
   outPaths <- parse_annotations(
     rawGenomeRepo = rawGenomeRepo,
@@ -419,7 +465,8 @@ parse_ncbi <- function(rawGenomeRepo,
     genespaceWd = genespaceWd,
     presets = "ncbi",
     chrIdDictionary = NULL,
-    troubleShoot = troubleShoot)
+    troubleShoot = troubleShoot,
+    ...)
 
   return(outPaths)
 }
@@ -436,7 +483,8 @@ parse_phytozome <- function(rawGenomeRepo,
                             gffString = "gff$|gff3$|gff3\\.gz$|gff\\.gz",
                             faString = "fa$|fasta$|faa$|fa\\.gz$|fasta\\.gz|faa\\.gz",
                             genespaceWd,
-                            troubleShoot = FALSE){
+                            troubleShoot = FALSE,
+                            ...){
 
   outPaths <- parse_annotations(
     rawGenomeRepo = rawGenomeRepo,
@@ -447,7 +495,8 @@ parse_phytozome <- function(rawGenomeRepo,
     genespaceWd = genespaceWd,
     presets = "phytozome",
     chrIdDictionary = NULL,
-    troubleShoot = troubleShoot)
+    troubleShoot = troubleShoot,
+    ...)
 
   return(outPaths)
 }

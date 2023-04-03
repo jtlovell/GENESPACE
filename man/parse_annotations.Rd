@@ -15,6 +15,9 @@ parse_annotations(
   gffString = "gff$|gff3$|gff3\\\\.gz$|gff\\\\.gz",
   faString = "fa$|fasta$|faa$|fa\\\\.gz$|fasta\\\\.gz|faa\\\\.gz",
   genespaceWd,
+  minPepLen = 0,
+  dropDuplicates = FALSE,
+  removeNonAAs = FALSE,
   presets = "none",
   gffIdColumn = "Name",
   headerEntryIndex = 4,
@@ -36,6 +39,9 @@ match_fasta2gff(
   gffIdColumn,
   headerEntryIndex,
   headerSep,
+  minPepLen,
+  dropDuplicates,
+  removeNonAAs,
   gffStripText,
   headerStripText,
   chrIdDictionary,
@@ -50,7 +56,8 @@ parse_ncbi(
   gffString = "gff$|gff3$|gff3\\\\.gz$|gff\\\\.gz",
   faString = "fa$|fasta$|faa$|fa\\\\.gz$|fasta\\\\.gz|faa\\\\.gz",
   genespaceWd,
-  troubleShoot = FALSE
+  troubleShoot = FALSE,
+  ...
 )
 
 parse_phytozome(
@@ -60,7 +67,8 @@ parse_phytozome(
   gffString = "gff$|gff3$|gff3\\\\.gz$|gff\\\\.gz",
   faString = "fa$|fasta$|faa$|fa\\\\.gz$|fasta\\\\.gz|faa\\\\.gz",
   genespaceWd,
-  troubleShoot = FALSE
+  troubleShoot = FALSE,
+  ...
 )
 
 parse_faHeader(...)
@@ -86,6 +94,15 @@ annotation. Default is any text or .gz file ending in fa, fasta or faa.}
 \item{genespaceWd}{file.path of length 1 specifying the GENESPACE working
 directory. Will make two subdirectories: /bed and /peptide for the parsed
 annotations}
+
+\item{minPepLen}{numeric, specifying the shortest peptide (in daltons) to be
+kept}
+
+\item{dropDuplicates}{logical, should only one of a set of duplicated
+peptide sequences be kept?}
+
+\item{removeNonAAs}{logial, should "." and "-" characters be stripped from
+the amino acids?}
 
 \item{presets}{character string: "none", "phytozome" or "ncbi" which sets
 the below parameters to parse phytozome or ncbi-formatted annotations
