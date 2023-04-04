@@ -32,7 +32,7 @@ set_syntenyParams <- function(gsParam){
   genomeIDs  <- gsParam$genomeIDs
   ploidy     <- gsParam$ploidy
 
-  if(!is.na(gsParam$outgroup)){
+  if(!is.na(gsParam$outgroup[1])){
     gids <- c(genomeIDs, gsParam$outgroup)
     gids <- gids[!duplicated(gids)]
   }else{

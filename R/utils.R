@@ -46,7 +46,7 @@
 #' @export
 .onAttach <- function(...) {
   packageStartupMessage(paste(strwrap(
-    "GENESPACE v1.1.8: synteny and orthology constrained
+    "GENESPACE v1.1.9: synteny and orthology constrained
     comparative genomics\n",
     indent = 0, exdent = 8), collapse = "\n"))
 }
