@@ -17,7 +17,7 @@ parse_annotations(
   genespaceWd,
   minPepLen = 0,
   dropDuplicates = FALSE,
-  removeNonAAs = FALSE,
+  removeNonAAs = TRUE,
   presets = "none",
   gffIdColumn = "Name",
   headerEntryIndex = 4,
