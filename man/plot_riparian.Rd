@@ -32,7 +32,9 @@ plot_riparian(
   chrLabFontSize = 5,
   chrExpand = 0.5,
   chrBorderCol = chrFill,
+  syntenyWeight = 0.5,
   chrBorderLwd = 0.2,
+  inversionColor = NULL,
   invertTheseChrs = NULL,
   forceRecalcBlocks = TRUE,
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf|chromosome|scaffold|^lg|_", "",
@@ -67,7 +69,9 @@ riparian_engine(
   chrBorderLwd = 0,
   customRefChrOrder = NULL,
   palette = gs_colors,
+  inversionColor = NULL,
   invertTheseChrs = NULL,
+  syntenyWeight = 0.5,
   chrLabFun = function(x) gsub("^0", "", gsub("chr|scaf|chromosome|scaffold|^lg|_", "",
     tolower(x))),
   xlabel = sprintf("Chromosomes scaled by \%s", ifelse(useOrder, "gene rank order",
@@ -177,7 +181,13 @@ surrounding the chromosome labels.}
 
 \item{chrBorderCol}{color of the chromosome polygon borders}
 
+\item{syntenyWeight}{currently can be 0,.5,1. 0 is equivalent to
+reorderBySynteny = FALSE. 1 is the previous behavior (synteny is fully
+respected). Anything between 0}
+
 \item{chrBorderLwd}{line width of the chromosome polygon borders}
+
+\item{inversionColor}{= NULL,}
 
 \item{invertTheseChrs}{data.table with two columns, genome and chr containing
 the lists of genomes and chromosomes that should be inverted in the plot.

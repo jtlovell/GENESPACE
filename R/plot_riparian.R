@@ -78,6 +78,7 @@
 #' should be. 0 = no straight sections. Inf = no rounded sections
 #' @param customRefChrOrder character vector with the order of chromosomes in
 #' the reference genome
+#' @param inversionColor character or integer coercible to an R color
 #' @param forceRecalcBlocks logical, should the phased blocks be re-calculated
 #' even if there is a phased block file.
 #' @param palette function coercible to an R color palette
@@ -85,6 +86,10 @@
 #' @param bed data.table with combined bed file
 #' @param theseBlocksFirst internal parameter specifying which blocks should be
 #' plotted first
+#' @param syntenyWeight currently can be 0,.5,1. 0 is equivalent to
+#' reorderBySynteny = FALSE. 1 is the previous behavior (synteny is fully
+#' respected). Anything between 0
+#' @param inversionColor = NULL,
 #' @param chrExpand numeric giving the expansion of the chromosome polygons
 #'  surrounding the chromosome labels.
 #'
@@ -131,7 +136,9 @@ plot_riparian <- function(gsParam,
                           chrLabFontSize = 5,
                           chrExpand = 0.5,
                           chrBorderCol = chrFill,
+                          syntenyWeight = .5,
                           chrBorderLwd = 0.2,
+                          inversionColor = NULL,
                           invertTheseChrs = NULL,
                           forceRecalcBlocks = TRUE,
                           chrLabFun = function(x)
@@ -196,7 +203,8 @@ plot_riparian <- function(gsParam,
         invertTheseChrs = invertTheseChrs, chrLabFun = chrLabFun, xlabel = xlabel,
         chrExpand = chrExpand, scaleGapSize = scaleGapSize, palette = palette,
         chrBorderCol = chrBorderCol, chrBorderLwd = chrBorderLwd,
-        refChrOrdFun = refChrOrdFun)
+        syntenyWeight = syntenyWeight,
+        inversionColor = inversionColor, refChrOrdFun = refChrOrdFun)
       print(pltDat$ggplotObj)
     }else{
       pdf(
@@ -214,7 +222,8 @@ plot_riparian <- function(gsParam,
         invertTheseChrs = invertTheseChrs, chrLabFun = chrLabFun, xlabel = xlabel,
         chrExpand = chrExpand, scaleGapSize = scaleGapSize, palette = palette,
         chrBorderCol = chrBorderCol, chrBorderLwd = chrBorderLwd,
-        refChrOrdFun = refChrOrdFun)
+        syntenyWeight = syntenyWeight,
+        inversionColor = inversionColor, refChrOrdFun = refChrOrdFun)
       print(pltDat$ggplotObj)
       dev.off()
     }
@@ -299,6 +308,7 @@ plot_riparian <- function(gsParam,
         invertTheseChrs = invertTheseChrs, chrLabFun = chrLabFun, xlabel = xlabel,
         scaleGapSize = scaleGapSize, refChrOrdFun = refChrOrdFun,
         chrBorderCol = chrBorderCol, chrBorderLwd = chrBorderLwd,
+        inversionColor = inversionColor, syntenyWeight = syntenyWeight,
         chrExpand = chrExpand, palette = colorRampPalette(backgroundColor))
       print(pltDat$ggplotObj)
     }else{
@@ -318,6 +328,7 @@ plot_riparian <- function(gsParam,
         invertTheseChrs = invertTheseChrs, chrLabFun = chrLabFun, xlabel = xlabel,
         scaleGapSize = scaleGapSize, refChrOrdFun = refChrOrdFun,
         chrBorderCol = chrBorderCol, chrBorderLwd = chrBorderLwd,
+        inversionColor = inversionColor, syntenyWeight = syntenyWeight,
         chrExpand = chrExpand, palette = colorRampPalette(backgroundColor))
       print(pltDat$ggplotObj)
       dev.off()
@@ -336,6 +347,7 @@ plot_riparian <- function(gsParam,
 #' @import ggplot2
 #' @importFrom graphics par
 #' @importFrom grDevices dev.size
+#' @importFrom stats dist hclust cutree
 #' @export
 riparian_engine <- function(blk,
                             bed,
@@ -357,7 +369,9 @@ riparian_engine <- function(blk,
                             chrBorderLwd = 0,
                             customRefChrOrder = NULL,
                             palette = gs_colors,
+                            inversionColor = NULL,
                             invertTheseChrs = NULL,
+                            syntenyWeight = .5,
                             chrLabFun = function(x)
                               gsub("^0", "",
                                    gsub("chr|scaf|chromosome|scaffold|^lg|_", "", tolower(x))),
@@ -447,39 +461,74 @@ riparian_engine <- function(blk,
   }
 
   ##############################################################################
-  pull_synChrOrd <- function(refGenome, bed, clens){
+  pull_synChrOrd <- function(refGenome, bed, clens, syntenyWeight){
 
-    bedi <- merge(bed, clens[,c("genome", "chr")], by = c("genome", "chr"))
+    ct_clust <- function(chr, ord, nclus){
+      if(any(duplicated(chr)))
+        stop("can't have duplicated chr values")
+      y <- data.matrix(ord)
+      rownames(y) <- chr
+      di <- dist(y)
+      hc <- hclust(di, method = "ward.D2")
+      nclus <- min(c(length(ord), nclus))
+      ct <- cutree(hc, k = nclus)
+      return(ct[chr])
+    }
+
     ordByFun <- genome <- noAnchor <- refchr <- reford <- ord <- median <-
-      plotOrd <- meanPos <- NULL
+      plotOrd <- meanPos <- isArrayRep <- refChrOrder <- pSyn <- pName <-
+      synPos <- meanOrd <- NULL
 
-    setkey(clens, ordByFun)
-    refChrOrder <- clens$chr[clens$genome == refGenome]
+    tb <- subset(bed, !noAnchor & isArrayRep)[,c("genome", "chr", "ord", "og")]
+    tc <- clens[,c("genome", "chr", "ordByFun")]
+    bedi <- merge(
+      subset(tb, !duplicated(tb)),
+      subset(tc, !duplicated(tc)),
+      by = c("genome", "chr"), allow.cartesian = T)
 
-    bedr <- with(subset(bedi, genome == refGenome & !noAnchor), data.table(
-      refgenome = refGenome, refchr = chr, reford = ord, og = og))
-    beda <- subset(bedi, genome != refGenome & !noAnchor)[,c("genome", "chr", "ord", "og")]
+    bedr <- with(subset(bedi, genome == refGenome), data.table(
+      refgenome = refGenome, refchr = chr, refChrOrder = ordByFun,
+      reford = ord, og = og))
+    beda <- subset(bedi, genome != refGenome)
+
     bedm <- merge(
       subset(bedr, !duplicated(bedr)),
-      subset(beda, !duplicated(beda)), by = "og", allow.cartesian = T)
-    bedm[,refChrOrder := match(refchr, refChrOrder)]
-    bedm[,reford := frank(reford, ties.method = "dense"), by = "refchr"]
-    bedm[,ord := (1:.N)/.N, by = "refchr"]
+      subset(beda, !duplicated(beda)),
+      by = "og", allow.cartesian = T)
+    setkey(bedm, refChrOrder, reford, genome, ord)
+    bedm[,reford := (1:.N)/.N, by = "genome"]
+    bedm[,`:=`(pName = ordByFun / max(ordByFun),
+               pSyn = reford/max(reford)), by = "genome"]
 
-    chro <- bedm[,list(meanPos = round(median(refChrOrder + ord, na.rm = T), 2)),
-                 by = c("genome", "chr")]
+    chro <- bedm[,list(
+      meanPos = median(pSyn, na.rm = T),
+      meanOrd = median(pName, na.rm = T)),
+      by = c("genome", "chr")]
+
+    if(syntenyWeight <= 0){
+      nclus <- 1
+    }else{
+      if(syntenyWeight >= 1){
+        nclus <- Inf
+      }else{
+        nclus <- uniqueN(bedm$refchr)
+      }
+    }
+
+    chro[,`:=`(synClus = ct_clust(ord = meanPos, chr = chr, nclus = nclus)),
+         by = "genome"]
+    chro[,`:=`(synPos = mean(meanPos, na.rm = T)), by = c("genome", "synClus")]
+    setkey(chro, genome, synPos, meanOrd, chr)
 
     outa <- merge(clens, chro, by = c("genome", "chr"))
     outr <- subset(clens, genome == refGenome)
     outr[,plotOrd := ordByFun]
 
-    setkey(outa, meanPos, ordByFun, genome)
+    setkey(outa, synPos, ordByFun, genome)
     outa[,plotOrd := 1:.N, by = "genome"]
 
-    # outa <<- outa
-    # outr <<- outr
-
     outa <- outa[,colnames(outr), with = F]
+
     return(rbind(outr, outa))
   }
 
@@ -586,7 +635,12 @@ riparian_engine <- function(blk,
 
   # -- 1.4 [optional] replace non-reference genome chr order to max synteny
   if(reorderBySynteny){
-    clens <- pull_synChrOrd(refGenome = refG, bed = bed, clens = clens)
+    # refGenome <<- refG
+    # bed <<- bed
+    # clens <<- clens
+    # syntenyWeight <<- syntenyWeight
+    clens <- pull_synChrOrd(
+      refGenome = refG, bed = bed, clens = clens, syntenyWeight = syntenyWeight)
   }else{
     clens[,plotOrd := ordByFun]
   }
@@ -678,6 +732,10 @@ riparian_engine <- function(blk,
     dsychn <- merge(dsychn, ulevs, by = "refChr")
   }
 
+  if(!is.null(inversionColor)){
+    if(are_colors(inversionColor[1]))
+      dsychn$color[dsychn$orient == "-"] <- inversionColor[1]
+  }
 
   # -- 2.4 simplify and convert to projections depending on useOrder
   if(useOrder){
