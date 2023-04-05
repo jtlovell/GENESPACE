@@ -152,12 +152,15 @@ run_genespace <- function(gsParam,
   if(requireNamespace("ape", quietly = T)){
     if(!is.na(tmp) && !is.null(tmp)){
       if(file.exists(tmp) && length(gsParam$genomeIDs) > 2){
-        treLabs <- ape::ladderize(ape::read.tree(tmp))$tip.label
+        treLabs <- get_orderedTips(
+          treFile = gsParam$synteny$speciesTree,
+          ladderize = TRUE,
+          genomeIDs = gsParam$genomeIDs)
         cat(strwrap(sprintf(
           "re-ordering genomeIDs by the species tree: %s",
           paste(treLabs, collapse = ", ")), indent = 8, exdent = 16),
           sep = "\n")
-        gsParam$genomeIDs <- treLabs[treLabs %in% gsParam$genomeIDs]
+        gsParam$genomeIDs <- treLabs
       }
     }
   }

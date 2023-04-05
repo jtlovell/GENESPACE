@@ -1371,21 +1371,22 @@ flag_hitsInBlk <- function(x, y, blkID){
   }
 }
 
-#' @title flag hits within blocks
+#' @title get ordered tip labels from a phylogenetic tree
 #' @description
-#' \code{flag_hitsInBlk} finds hits within the bounding coordinates of blocks
+#' \code{get_orderedTips} Respect ordering of tree when ladderized
 #' @rdname utils
-#' @import data.table
 #' @export
 get_orderedTips <- function(treFile, ladderize = TRUE, genomeIDs){
   if(requireNamespace("ape", quietly = T)){
     tre <- ape::read.tree(treFile)
-    if(all(genomeIDs %in% tre$tip.label) && all(tre$tip.label %in% genomeIDs)){
+    if(all(genomeIDs %in% tre$tip.label)){
       if(ladderize)
         tre <- ape::ladderize(tre)
       is_tip <- tre$edge[,2] <= length(tre$tip.label)
       ordered_tips <- tre$edge[is_tip, 2]
-      return(tre$tip.label[ordered_tips])
+      outlabs <- tre$tip.label[ordered_tips]
+      outlabs <- outlabs[outlabs %in% genomeIDs]
+      return(outlabs)
     }else{
       cat(" some genomeIDs are not in the tree file ")
       return(genomeIDs)

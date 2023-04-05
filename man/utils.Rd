@@ -52,6 +52,7 @@
 \alias{find_nnHit}
 \alias{flag_hitsInRadius}
 \alias{flag_hitsInBlk}
+\alias{get_orderedTips}
 \title{Generic internal functions used by genespace}
 \usage{
 .onAttach(...)
@@ -172,6 +173,8 @@ find_nnHit(x, y, isAnchor, radius)
 flag_hitsInRadius(x, y, isAnchor, radius)
 
 flag_hitsInBlk(x, y, blkID)
+
+get_orderedTips(treFile, ladderize = TRUE, genomeIDs)
 }
 \arguments{
 \item{...}{additional parameters passed on to other functions
@@ -363,4 +366,6 @@ files.
 radius of anchors using dbscan
 
 \code{flag_hitsInBlk} finds hits within the bounding coordinates of blocks
+
+\code{get_orderedTips} Respect ordering of tree when ladderized
 }
