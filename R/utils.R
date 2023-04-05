@@ -33,6 +33,8 @@
 #' @param isAnchor logical, is a hit an anchor?
 #' @param radius numeric, the 2d search radius.
 #' @param blkID vector of block IDs
+#' @param ladderize logical, should the tree be ladderized?
+#' @param treFile file.path to the tree file.
 #' @param ... additional parameters passed on to other functions
 #' \cr
 #' If called, \code{utils} returns its own arguments.

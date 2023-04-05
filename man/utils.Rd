@@ -236,6 +236,10 @@ If called, \code{utils} returns its own arguments.}
 \item{radius}{numeric, the 2d search radius.}
 
 \item{blkID}{vector of block IDs}
+
+\item{treFile}{file.path to the tree file.}
+
+\item{ladderize}{logical, should the tree be ladderized?}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called
