@@ -466,17 +466,22 @@ riparian_engine <- function(blk,
     ct_clust <- function(chr, ord, nclus){
       if(any(duplicated(chr)))
         stop("can't have duplicated chr values")
+
       if(length(ord) == 1){
         names(ord) <- chr[1]
         return(ord)
       }else{
-        y <- data.matrix(ord)
-        rownames(y) <- chr
-        di <- dist(y)
-        hc <- hclust(di, method = "ward.D2")
-        nclus <- min(c(length(ord), nclus))
-        ct <- cutree(hc, k = nclus)
-        return(ct[chr])
+        if(length(ord) == 0){
+          return(1)
+        }else{
+          y <- data.matrix(ord)
+          rownames(y) <- chr
+          di <- dist(y)
+          hc <- hclust(di, method = "ward.D2")
+          nclus <- min(c(length(ord), nclus))
+          ct <- cutree(hc, k = nclus)
+          return(ct[chr])
+        }
       }
     }
 
