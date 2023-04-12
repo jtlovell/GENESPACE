@@ -4,6 +4,8 @@ This is version 1 of GENESPACE. GENESPACE is an analytical pipeline to understan
 
 There are currently two tutorials that (1) illustrate [what GENESPACE does and how to use it](https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/genespaceGuide.html) and (2) demostrate how to [customize your riparian plots](https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/riparianGuide.html). This README is primarily to show how to get GENESPACE up and running.
 
+Beginning in v1.2.0, GENESPACE also supports some basic genome-level visualization and quality control methods. Find details on these new functions in the [tutorial on sliding windows and contig mapping](https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/genomeVizGuide.html). These are new functions and may have some bugs. Please report any issues that arise. 
+
 **NOTE** v0.9.x is no longer supported. Please upgrade to v1.1+. There are some significant changes to the structure of GENESPACE in V1 (but few changes to the underlying algorithms). There have been a few minor changes since the v1.1.4 release on 1-March 2023. Either install from the master branch or most recent release. The next planned major update will be v1.2.x during the spring or summer 2023, which will include Rscript integration so that GENESPACE can be called directly from the command line without an interactive R session. 
 
 ##################

@@ -4,10 +4,10 @@
 \alias{classify_genome}
 \title{classify the genome based on bed coordinates}
 \usage{
-classify_genome(seqInfo, listOfBeds, verbose)
+classify_genome(dnaSS, listOfBeds, verbose)
 }
 \arguments{
-\item{seqInfo}{seqinfo extracted from the genome assembly DNAstringset}
+\item{dnaSS}{DNAstringset object representing the genome assembly}
 
 \item{listOfBeds}{list of bed-like data.frames/data.tables with at least
 the columns chr, start and end.}

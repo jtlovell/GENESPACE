@@ -5,7 +5,7 @@
 #' the list of bed files. Sequences in the first bed file are masked in the
 #' second and so on.
 #'
-#' @param seqInfo seqinfo extracted from the genome assembly DNAstringset
+#' @param dnaSS DNAstringset object representing the genome assembly
 #' @param listOfBeds list of bed-like data.frames/data.tables with at least
 #' the columns chr, start and end.
 #' @param verbose logical, should updates be printed to the console?
@@ -22,7 +22,9 @@
 #' @import data.table
 #' @importFrom parallel mclapply
 #' @export
-classify_genome <- function(seqInfo, listOfBeds, verbose){
+classify_genome <- function(dnaSS,
+                            listOfBeds,
+                            verbose){
 
   if(!requireNamespace("GenomicRanges", quietly = TRUE))
     stop("to classify genome, install GenomicRanges from bioconductor\n")
@@ -50,12 +52,11 @@ classify_genome <- function(seqInfo, listOfBeds, verbose){
 
   ##############################################################################
   # 1. Read the sequence lengths
-  si <- seqInfo
   if(verbose)
     cat(sprintf(
       " (%s Mb in %s chrs)\n",
-      round(sum(GenomeInfoDb::seqlengths(si))/1e6, 2),
-      length(si)))
+      round(sum(GenomeInfoDb::seqlengths(dnaSS))/1e6, 2),
+      length(dnaSS)))
 
   ##############################################################################
   # 2. Loop through the bedfiles
@@ -64,7 +65,8 @@ classify_genome <- function(seqInfo, listOfBeds, verbose){
   maskThis <- NULL
   outList <- list()
   for(i in names(listOfBeds)){
-    inGr <- join_ranges(listOfBeds[[i]], seqInfo = si)
+    inGr <- join_ranges(listOfBeds[[i]],
+                        seqInfo = GenomeInfoDb::seqinfo(dnaSS))
     if(is.null(maskThis)){
       maskThis <- inGr
       outGr <- inGr

@@ -54,13 +54,13 @@ find_contigsGapsTelos <- function(dnass,
   # -- 1.2 subset to chromosomes bigger than minChrSize
   nchr <- length(ss)
   ss <- ss[width(ss) > minChrSize]
-  if(verbose & minChrSize > 0)
+  if(verbose && minChrSize > 0 && (nchr - length(ss)) > 0)
     cat(sprintf(
       "Dropping %s of %s chromosomes that are smaller than %sMb\n",
       nchr - length(ss), nchr, round(minChrSize/1e6, 2)))
 
-  # -- 1.3 re-name chromosomes if necessary
-  ss <- rename_chrs(ss)
+  # # -- 1.3 re-name chromosomes if necessary
+  # ss <- rename_chrs(ss)
 
   # -- 1.4 get chromosome lengths in the order they are in the fasta
   chrv <- width(ss); names(chrv) <- names(ss)
