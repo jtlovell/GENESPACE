@@ -40,7 +40,7 @@ gpar <- run_genespace(gsParam = gpar)
 6. Pan-genome annotation construction
 7. Multi-genome riparian plotting
 
-See section 4.2 for more details
+See the tutorial for more details
 
 #### 1.3 Running with example data
 
