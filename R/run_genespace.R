@@ -74,7 +74,8 @@
 run_genespace <- function(gsParam,
                           overwrite = FALSE,
                           overwriteBed = overwrite,
-                          overwriteSynHits = overwrite){
+                          overwriteSynHits = overwrite,
+                          overwriteInBlkOF = TRUE){
   gsParam$paths$rawOrthofinder <- gsParam$paths$orthofinder
   ##############################################################################
   # 1. Run orthofinder ...
@@ -223,20 +224,31 @@ run_genespace <- function(gsParam,
       sep = "\n")
   }
 
-  cat("\t##############\n\tGenerating dotplots for all hits ... ")
-  nu <- plot_hits(gsParam = gsParam, type = "raw")
-  cat("Done!\n")
+  dpFiles <- with(gsParam$synteny$blast, file.path(
+    file.path(wd, "dotplots",
+    sprintf("%s_vs_%s.rawHits.pdf",
+            query, target))))
+  if(!all(file.exists(dpFiles)) || overwrite){
+    cat("\t##############\n\tGenerating dotplots for all hits ... ")
+    nu <- plot_hits(gsParam = gsParam, type = "raw")
+    cat("Done!\n")
+  }
+
   gsParam <<- gsParam
 
   ##############################################################################
   # 4. Run synteny
   # -- goes through each pair of genomes and pulls syntenic anchors and the hits
   # nearby. This is the main engine of genespace
-  cat("\n############################", strwrap(
-    "4. Flagging synteny for each pair of genomes ...",
-    indent = 0, exdent = 8), sep = "\n")
-  gsParam <- synteny(gsParam = gsParam)
-  gsParam <<- gsParam
+  bed <- read_combBed(bedf)
+  hasSynFiles <- all(file.exists(gsParam$synteny$blast$synHits))
+  hasOg <- all(!is.na(bed$og))
+  if(!hasOg || !hasSynFiles || overwrite){
+    cat("\n############################", strwrap(
+      "4. Flagging synteny for each pair of genomes ...",
+      indent = 0, exdent = 8), sep = "\n")
+    gsParam <- synteny(gsParam = gsParam)
+  }
 
   ##############################################################################
   # 5. Build syntenic orthogroups
@@ -245,7 +257,7 @@ run_genespace <- function(gsParam,
     indent = 0, exdent = 8), sep = "\n")
   # -- in the case of polyploid genomes, this also runs orthofinder in blocks,
   # then re-runs synteny and re-aggregates blocks,.
-  if(gsParam$params$orthofinderInBlk){
+  if(gsParam$params$orthofinderInBlk & overwriteInBlkOF){
 
     # -- returns the gsparam obj and overwrites the bed file with a new og col
     cat("\t##############\n\tRunning Orthofinder within syntenic regions\n")
@@ -266,9 +278,16 @@ run_genespace <- function(gsParam,
   cat("\n############################", strwrap(
     "6. Integrating syntenic positions across genomes ... ",
     indent = 0, exdent = 8), sep = "\n")
-  cat("\t##############\n\tGenerating syntenic dotplots ... ")
-  nu <- plot_hits(gsParam = gsParam, type = "syntenic")
-  cat("Done!\n")
+
+  dpFiles <- with(gsParam$synteny$blast, file.path(
+    file.path(wd, "dotplots",
+              sprintf("%s_vs_%s.synHits.pdf",
+                      query, target))))
+  if(!all(file.exists(dpFiles)) || overwrite){
+    cat("\t##############\n\tGenerating syntenic dotplots ... ")
+    nu <- plot_hits(gsParam = gsParam, type = "syntenic")
+    cat("Done!\n")
+  }
 
   ##############################################################################
   # 7. Interpolate syntenic positions

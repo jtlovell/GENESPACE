@@ -8,7 +8,8 @@ run_genespace(
   gsParam,
   overwrite = FALSE,
   overwriteBed = overwrite,
-  overwriteSynHits = overwrite
+  overwriteSynHits = overwrite,
+  overwriteInBlkOF = TRUE
 )
 }
 \arguments{

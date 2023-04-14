@@ -48,7 +48,7 @@
 #' @export
 .onAttach <- function(...) {
   packageStartupMessage(paste(strwrap(
-    "GENESPACE v1.2.0: synteny and orthology constrained
+    "GENESPACE v1.2.1: synteny and orthology constrained
     comparative genomics\n",
     indent = 0, exdent = 8), collapse = "\n"))
 }
@@ -487,7 +487,7 @@ check_MCScanXhInstall <- function(filepath){
 #' @export
 parse_ogs <- function(filepath, genomeIDs){
   id <- genome <- Orthogroup <- NULL
-  tmp <- fread(filepath, showProgress = F, verbose = F)
+  tmp <- fread(filepath, showProgress = FALSE, header = TRUE, check.names = FALSE)
   tmp <- melt(
     tmp, id.vars = "Orthogroup", measure.vars = genomeIDs,
     variable.name = "genome", value.name = "id")
@@ -509,7 +509,7 @@ parse_ogs <- function(filepath, genomeIDs){
 parse_hogs <- function(filepath){
   id <- genome <- HOG <- hogID <- OG <- orthofinderInternalData_XXX_OG <-
     orthofinderInternalData_XXX_hogID <- orthofinderInternalData_XXX_HOG <- NULL
-  d <- fread(filepath, showProgress = FALSE)
+  d <- fread(filepath, showProgress = FALSE, header = TRUE, check.names = FALSE)
   setnames(d, 1:3, sprintf("orthofinderInternalData_XXX_%s", colnames(d)[1:3]))
   sd <- colnames(d)[-(1:3)]
   d[,orthofinderInternalData_XXX_hogID := paste(
@@ -534,7 +534,7 @@ parse_hogs <- function(filepath){
 #' @export
 parse_orthologues <- function(filepath){
   orthID <- id1 <- id2 <- NULL
-  x <- fread(filepath, showProgress = F)
+  x <- fread(filepath, showProgress = F, header = TRUE, check.names = FALSE)
   refID <- colnames(x)[2]
   altID <- colnames(x)[3]
   setnames(x, c("og", "id1", "id2"))
