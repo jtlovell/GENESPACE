@@ -11,6 +11,7 @@
 #' overwritten?
 #' @param overwriteSynHits logial, should the annotated blast files be
 #' overwritten?
+#' @param overwriteInBlkOF logical, should in-block orthogroups be overwritten?
 #'
 #' @details The function calls required to run the full genespace pipeline are
 #' printed below. See each function for detailed descriptions. Also, see
@@ -76,6 +77,7 @@ run_genespace <- function(gsParam,
                           overwriteBed = overwrite,
                           overwriteSynHits = overwrite,
                           overwriteInBlkOF = TRUE){
+
   gsParam$paths$rawOrthofinder <- gsParam$paths$orthofinder
   ##############################################################################
   # 1. Run orthofinder ...
@@ -225,7 +227,7 @@ run_genespace <- function(gsParam,
   }
 
   dpFiles <- with(gsParam$synteny$blast, file.path(
-    file.path(wd, "dotplots",
+    file.path(gsParam$paths$wd, "dotplots",
     sprintf("%s_vs_%s.rawHits.pdf",
             query, target))))
   if(!all(file.exists(dpFiles)) || overwrite){
@@ -234,7 +236,6 @@ run_genespace <- function(gsParam,
     cat("Done!\n")
   }
 
-  gsParam <<- gsParam
 
   ##############################################################################
   # 4. Run synteny
@@ -280,7 +281,7 @@ run_genespace <- function(gsParam,
     indent = 0, exdent = 8), sep = "\n")
 
   dpFiles <- with(gsParam$synteny$blast, file.path(
-    file.path(wd, "dotplots",
+    file.path(gsParam$paths$wd, "dotplots",
               sprintf("%s_vs_%s.synHits.pdf",
                       query, target))))
   if(!all(file.exists(dpFiles)) || overwrite){

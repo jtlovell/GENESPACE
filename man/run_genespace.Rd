@@ -23,6 +23,8 @@ overwritten?}
 
 \item{overwriteSynHits}{logial, should the annotated blast files be
 overwritten?}
+
+\item{overwriteInBlkOF}{logical, should in-block orthogroups be overwritten?}
 }
 \value{
 a gsParam list.
