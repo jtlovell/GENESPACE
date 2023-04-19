@@ -53,6 +53,7 @@
 \alias{flag_hitsInRadius}
 \alias{flag_hitsInBlk}
 \alias{get_orderedTips}
+\alias{pull_pairwise}
 \title{Generic internal functions used by genespace}
 \usage{
 .onAttach(...)
@@ -175,6 +176,8 @@ flag_hitsInRadius(x, y, isAnchor, radius)
 flag_hitsInBlk(x, y, blkID)
 
 get_orderedTips(treFile, ladderize = TRUE, genomeIDs)
+
+pull_pairwise(gsParam, verbose)
 }
 \arguments{
 \item{...}{additional parameters passed on to other functions
@@ -240,6 +243,8 @@ If called, \code{utils} returns its own arguments.}
 \item{treFile}{file.path to the tree file.}
 
 \item{ladderize}{logical, should the tree be ladderized?}
+
+\item{verbose}{logical, should updates be printed to the console?}
 }
 \description{
 \code{utils} Convience functions for genespace, not meant to be called
@@ -372,4 +377,6 @@ radius of anchors using dbscan
 \code{flag_hitsInBlk} finds hits within the bounding coordinates of blocks
 
 \code{get_orderedTips} Respect ordering of tree when ladderized
+
+\code{pull_pairwise} Builds new pairwise files in /syntenicHits
 }
