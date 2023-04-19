@@ -12,6 +12,8 @@
 #' @param overwriteSynHits logial, should the annotated blast files be
 #' overwritten?
 #' @param overwriteInBlkOF logical, should in-block orthogroups be overwritten?
+#' @param makePairwiseFiles logical, should pairwise hits in blocks files be
+#' generated?
 #'
 #' @details The function calls required to run the full genespace pipeline are
 #' printed below. See each function for detailed descriptions. Also, see
@@ -76,7 +78,8 @@ run_genespace <- function(gsParam,
                           overwrite = FALSE,
                           overwriteBed = overwrite,
                           overwriteSynHits = overwrite,
-                          overwriteInBlkOF = TRUE){
+                          overwriteInBlkOF = TRUE,
+                          makePairwiseFiles = FALSE){
 
   gsParam$paths$rawOrthofinder <- gsParam$paths$orthofinder
   ##############################################################################
@@ -125,8 +128,17 @@ run_genespace <- function(gsParam,
   }
 
   # noResults <- is.na(gsParam$synteny$SpeciesIDs)
-  if(!noResults)
-    cat("\t... found existing run, not re-running orthofinder\n")
+  if(!noResults){
+    spids <- names(read_orthofinderSpeciesIDs(
+      file.path(gsParam$paths$results, "SpeciesIDs.txt")))
+    ps <- all(gsParam$genomeIDs %in% spids) && all(spids %in% gsParam$genomeIDs)
+    if(ps){
+      cat("\t... found existing run, not re-running orthofinder\n")
+    }else{
+      stop("genomes in the existing orthofinder run do not exactly match specified genomeIDs\n")
+    }
+  }
+
 
   ##############################################################################
   # -- 1.4 if no orthofinder run, make one
@@ -391,8 +403,18 @@ run_genespace <- function(gsParam,
       uniqueN(pgID), sum(flag == "PASS"), sum(flag == "array"), sum(flag == "NSOrtho"))))
   }
 
+
+
   ##############################################################################
   # 8. Print summaries and return
+
+  # --- make pairwise files
+  if(makePairwiseFiles){
+      cat("Building pairiwse hits files ...\n")
+    pull_pairwise(gsParam, verbose = TRUE)
+      cat("Done!")
+  }
+
   gpFile <- file.path(gsParam$paths$results, "gsParams.rda")
   cat("\n############################", strwrap(sprintf(
     "GENESPACE run complete!\n All results are stored in %s in the following subdirectories:",
