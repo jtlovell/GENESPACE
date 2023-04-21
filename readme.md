@@ -116,7 +116,7 @@ Once in R, the easiest way to install GENESPACE uses the package `devtools` (whi
 ```
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
-devtools::install_github("jtlovell/GENESPACE@dev")
+devtools::install_github("jtlovell/GENESPACE")
 ```
 
 #### 2.5 Install R dependencies
