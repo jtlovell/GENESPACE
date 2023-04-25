@@ -22,7 +22,6 @@
 #' @param labelTheseGenomes character string of genomes that have labeled chrs
 #' @param invertTheseChrs data.table with two columns, genome and chr containing
 #' the lists of genomes and chromosomes that should be inverted in the plot.
-#' Not currently implemented.
 #' @param braidAlpha numeric (0-1) specifying the transparency of the braids
 #' @param genomeIDs character vector at least partially matching the genomeIDs
 #' in gsParam
