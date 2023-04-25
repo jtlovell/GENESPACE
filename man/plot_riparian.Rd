@@ -190,8 +190,7 @@ respected). Anything between 0}
 \item{inversionColor}{= NULL,}
 
 \item{invertTheseChrs}{data.table with two columns, genome and chr containing
-the lists of genomes and chromosomes that should be inverted in the plot.
-Not currently implemented.}
+the lists of genomes and chromosomes that should be inverted in the plot.}
 
 \item{forceRecalcBlocks}{logical, should the phased blocks be re-calculated
 even if there is a phased block file.}
