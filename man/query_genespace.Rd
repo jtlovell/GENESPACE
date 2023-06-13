@@ -74,7 +74,7 @@ in a genome.
 lets you reformat the pan-genes to wide (entry - by - genome) matrix and
 only look at specified positional bounds.
 
-\code{query_pangenes} the primary engine to explore genespace output, this
+\code{query_cnv} the primary engine to explore genespace output, this
 lets you reformat the pan-genes to wide (entry - by - genome) matrix and
 only look at specified positional bounds.
 }
