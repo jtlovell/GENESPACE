@@ -49,7 +49,7 @@
 #' @export
 .onAttach <- function(...) {
   packageStartupMessage(paste(strwrap(
-    "GENESPACE v1.2.3: synteny and orthology constrained
+    "GENESPACE v1.3.0: synteny and orthology constrained
     comparative genomics\n",
     indent = 0, exdent = 8), collapse = "\n"))
 }
@@ -250,7 +250,8 @@ check_filePathParam <- function(filepath){
 #' @export
 check_onlyDNA <- function(path){
   fa <- readAAStringSet(path)
-  tmp <- gsub("[^A-Za-z]", "", paste(fa[1:100], collapse = ""))
+  nfa <- min(c(length(fa), 100))
+  tmp <- gsub("[^A-Za-z]", "", paste(fa[1:nfa], collapse = ""))
   dnaa <- paste(DNA_ALPHABET, collapse = "|")
   tmp <- gsub(gsub("[^A-Za-z]", "", dnaa), "", tmp)
   return(nchar(tmp) == 0)
@@ -441,6 +442,8 @@ check_annotFiles <- function(filepath, genomeIDs){
     pf <- ifelse((ui/un) < .95, "FAIL", "PASS")
     cat(sprintf("\t%s: %s / %s geneIDs exactly match (%s)\n",
                 labs[i], ui, un, pf))
+    if(ui < 100)
+      cat(sprintf("\t\tWARNING! < 100 genes is too few for orthofinder\n"))
     if(any(grepl(":", names(aa), fixed = T)))
       stop("some genes have ':' in the names. This string cannot be in gene names as it is used as the dictionary separator by OrthoFinder")
     return(data.table(

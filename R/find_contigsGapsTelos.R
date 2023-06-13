@@ -79,14 +79,20 @@ find_contigsGapsTelos <- function(dnass,
   gapGr <- find_runsOfNs(
     dnass = ss,
     minRunLength = minContigGapSize)
-  contigGr <- find_gaps(gapGr)
+  if(is.null(gapGr)){
+    cat("\tThis genome is gapless, scaffold = contig stats\n")
+    contigGr <- NULL
+  }else{
+    gapGr <- gapGr[width(gapGr) >= minContigGapSize]
+    contigGr <- find_gaps(gapGr)
 
-  cat(strwrap(sprintf(
-    "\tN. contigs = %s (N50 = %sMb); total length = %sMb\n",
-    length(contigGr),
-    round(N50(width(contigGr) / 1e6), 2),
-    round(sum(width(contigGr) / 1e6, na.rm = T), 2)),
-    indent = 8, exdent = 16), sep = "\n")
+    cat(strwrap(sprintf(
+      "\tN. contigs = %s (N50 = %sMb); total length = %sMb\n",
+      length(contigGr),
+      round(N50(width(contigGr) / 1e6), 2),
+      round(sum(width(contigGr) / 1e6, na.rm = T), 2)),
+      indent = 8, exdent = 16), sep = "\n")
+  }
 
   ##############################################################################
   # 3. Get the telomere kmer positions and cluster

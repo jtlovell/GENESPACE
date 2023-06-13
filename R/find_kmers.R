@@ -129,12 +129,14 @@ find_runsOfNs <- function(dnass, minRunLength){
   # -- combine grs with Ns
   npos <- BiocGenerics::do.call(c, lapply(names(nposList), function(i)
     GenomicRanges::GRanges(i, nposList[[i]], seqinfo = si)))
+  if(!is.null(npos)){
+    npos <- GenomicRanges::reduce(
+      npos,
+      min.gapwidth = 2,
+      ignore.strand = TRUE,
+      drop.empty.ranges = TRUE)
+  }
 
-  npos <- GenomicRanges::reduce(
-    npos,
-    min.gapwidth = 2,
-    ignore.strand = TRUE,
-    drop.empty.ranges = TRUE)
   return(npos)
 }
 

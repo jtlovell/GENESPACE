@@ -131,7 +131,8 @@ run_genespace <- function(gsParam,
   if(!noResults){
     spids <- names(read_orthofinderSpeciesIDs(
       file.path(gsParam$paths$results, "SpeciesIDs.txt")))
-    ps <- all(gsParam$genomeIDs %in% spids) && all(spids %in% gsParam$genomeIDs)
+    gid <- unique(c(gsParam$genomeIDs, gsParam$outgroup))
+    ps <- all(gid %in% spids) && all(spids %in% gid)
     if(ps){
       cat("\t... found existing run, not re-running orthofinder\n")
     }else{
