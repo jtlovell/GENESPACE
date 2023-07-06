@@ -166,7 +166,7 @@ plot_2genomes <- function(genomeIDs,
         kmers = kmers,
         nCores = nCores,
         max.mismatch = kmerMisMatch)
-      if(!is.null(kmers1)){
+      if(!is.null(kmers2)){
         kmers2 <- with(as.data.frame(GenomicRanges::reduce(kmers2)), data.table(
           chr = seqnames, start = start, end = end))
       }else{
@@ -177,15 +177,24 @@ plot_2genomes <- function(genomeIDs,
         dnass = dnass1,
         kmers = kmers,
         nCores = nCores)
-      kmers1 <- with(as.data.frame(GenomicRanges::reduce(kmers1)), data.table(
-        chr = seqnames, start = start, end = end))
 
-      kmers2 <- find_fewKmers(
+      if(!is.null(kmers1)){
+        kmers1 <- with(as.data.frame(GenomicRanges::reduce(kmers1)), data.table(
+          chr = seqnames, start = start, end = end))
+      }else{
+        kmers1 <- data.table(chr = names(dnass1), start = 1, end = 2)
+      }
+      kmers2 <- find_manyKmers(
         dnass = dnass2,
         kmers = kmers,
         nCores = nCores)
-      kmers2 <- with(as.data.frame(GenomicRanges::reduce(kmers2)), data.table(
-        chr = seqnames, start = start, end = end))
+
+      if(!is.null(kmers2)){
+        kmers2 <- with(as.data.frame(GenomicRanges::reduce(kmers2)), data.table(
+          chr = seqnames, start = start, end = end))
+      }else{
+        kmers2 <- data.table(chr = names(dnass2), start = 1, end = 2)
+      }
     }
   }else{
     kmers1 <- data.table(chr = names(dnass1), start = 1, end = 2)
