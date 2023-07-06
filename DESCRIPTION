@@ -1,7 +1,7 @@
 Package: GENESPACE
 Type: Package
 Title: Synteny- and orthology-constrained comparative genomics
-Version: 1.3.0
+Version: 1.3.1
 Author: John T. Lovell
 Maintainer: John T. Lovell <jlovell@hudsonalpha.org>
 Description: Construct pan-gene sets and other comparative genomics
@@ -22,7 +22,8 @@ Suggests: knitr,
   IRanges,
   GenomicRanges,
   BiocGenerics,
-  GenomeInfoDb
+  GenomeInfoDb,
+  gridExtra
 SystemRequirements: MCScanX, 
   orthofinder,
   diamond

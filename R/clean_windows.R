@@ -63,8 +63,13 @@
 #'
 #' @examples
 #' \dontrun{
-#' hg38url <- "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.29_GRCh38.p14/GCA_000001405.29_GRCh38.p14_genomic.fna.gz"
-#' t2turl <- "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/009/914/755/GCA_009914755.3_T2T-CHM13v1.1/GCA_009914755.3_T2T-CHM13v1.1_genomic.fna.gz"
+#' st <- "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/"
+#' hg38url <- file.path(
+#'   st,
+#'   "000/001/405/GCA_000001405.29_GRCh38.p14/GCA_000001405.29_GRCh38.p14_genomic.fna.gz")
+#' t2turl <- file.path(
+#'   st,
+#'   "009/914/755/GCA_009914755.3_T2T-CHM13v1.1/GCA_009914755.3_T2T-CHM13v1.1_genomic.fna.gz")
 #' wd <- file.path("~/Downloads/test_genespace")
 #' hg38file <- file.path(wd, "hg38.fa.gz")
 #' t2tfile <- file.path(wd, "t2t.fa.gz")
@@ -146,32 +151,28 @@ clean_windows <- function(faFiles,
     stop("some faFiles do not exist\n")
 
   # -- 1. Make genome path and metadata information
-  if(!onlySameChrs){
-    md <- data.table(rawFile = faFiles)
-    if(!is.null(genomeIDs)){
-      if(length(genomeIDs) == length(faFiles)){
-        md[,genomeID := genomeIDs]
-      }else{
-        warning("genomeIDs are not NULL and do not match the length of faFiles; parsing using stripFaNames function\n")
-        md[,genomeID := stripFaNames(faFiles)]
-      }
+  md <- data.table(rawFile = faFiles)
+  if(!is.null(genomeIDs)){
+    if(length(genomeIDs) == length(faFiles)){
+      md[,genomeID := genomeIDs]
     }else{
+      warning("genomeIDs are not NULL and do not match the length of faFiles; parsing using stripFaNames function\n")
       md[,genomeID := stripFaNames(faFiles)]
     }
-
-    md[,`:=`(fastaFile = file.path(mm2Dir, sprintf("%s.fa", genomeID)),
-             windowFile = file.path(mm2Dir, sprintf("%s.window.fa", genomeID)))]
-    gv <- md$rawFile; names(gv) <- md$genomeID
-    # -- 2. Make the mapping paths and metadata
-    cmd <- as.data.table(t(combn(md$genomeID, 2)))
-    setnames(cmd, c("genome1", "genome2"))
-
-    cmd[,`:=`(
-      faFile1 = file.path(mm2Dir, sprintf("%s.fa", genome1)),
-      faFile2 = file.path(mm2Dir, sprintf("%s.fa", genome2)))]
   }else{
-
+    md[,genomeID := stripFaNames(faFiles)]
   }
+
+  md[,`:=`(fastaFile = file.path(mm2Dir, sprintf("%s.fa", genomeID)),
+           windowFile = file.path(mm2Dir, sprintf("%s.window.fa", genomeID)))]
+  gv <- md$rawFile; names(gv) <- md$genomeID
+  # -- 2. Make the mapping paths and metadata
+  cmd <- as.data.table(t(combn(md$genomeID, 2)))
+  setnames(cmd, c("genome1", "genome2"))
+
+  cmd[,`:=`(
+    faFile1 = file.path(mm2Dir, sprintf("%s.fa", genome1)),
+    faFile2 = file.path(mm2Dir, sprintf("%s.fa", genome2)))]
 
   # -- 3. Run for each combination
 
@@ -554,7 +555,7 @@ flag_pafSynteny <- function(paf,
                             windowSize){
 
   ord1 <- pos1 <- ord2 <- pos2 <- noAnchor <- chr2 <- mapScr <- mapq <- blkID <-
-    index <- chr1 <- inBuffer <- isAnchor <- NULL
+    index <- chr1 <- inBuffer <- isAnchor <- rnd1 <- rnd2 <- m1 <- m2 <- u <- NULL
 
   # -- subset to potential anchors
   paf <- data.table(paf)
@@ -706,6 +707,9 @@ window_fasta <- function(inFile,
                          stepSize,
                          verbose,
                          overwrite){
+
+  if(!requireNamespace("IRanges", quietly = TRUE))
+    stop("to find kmers, install IRanges from bioconductor\n")
 
   start <- chrlen <- end <- NULL
 

@@ -17,6 +17,7 @@
 #' the run
 #' @param maxDist2end numeric, the maximum distance to a chromosome end for a
 #' telomere to be called terminal (and not interstitial)
+#' @param ... additional arguments passed to vmatchpattern
 #' \cr
 #' If called, \code{find_kmers} returns its own arguments.
 #'
@@ -79,7 +80,8 @@ find_manyKmers <- function(dnass,
 #' @export
 find_fewKmers <- function(dnass,
                           kmers,
-                          nCores = 1){
+                          nCores = 1,
+                          ...){
 
   if(!requireNamespace("BiocGenerics", quietly = TRUE))
     stop("to find kmers, install BiocGenerics from bioconductor\n")
@@ -87,7 +89,7 @@ find_fewKmers <- function(dnass,
   si <- pull_seqInfo(dnass)
 
   kmerposList <- mclapply(kmers, mc.cores = nCores, function(i)
-    vmatchPattern(pattern = as.character(i), dnass))
+    vmatchPattern(pattern = as.character(i), subject = dnass, ...))
 
   # -- remove any chromosomes without any Ns
   kmerposList <- kmerposList[sapply(kmerposList, length) > 0]
