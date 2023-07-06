@@ -182,8 +182,13 @@ test for basepair-level differences.
 }
 \examples{
 \dontrun{
-hg38url <- "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.29_GRCh38.p14/GCA_000001405.29_GRCh38.p14_genomic.fna.gz"
-t2turl <- "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/009/914/755/GCA_009914755.3_T2T-CHM13v1.1/GCA_009914755.3_T2T-CHM13v1.1_genomic.fna.gz"
+st <- "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/"
+hg38url <- file.path(
+  st,
+  "000/001/405/GCA_000001405.29_GRCh38.p14/GCA_000001405.29_GRCh38.p14_genomic.fna.gz")
+t2turl <- file.path(
+  st,
+  "009/914/755/GCA_009914755.3_T2T-CHM13v1.1/GCA_009914755.3_T2T-CHM13v1.1_genomic.fna.gz")
 wd <- file.path("~/Downloads/test_genespace")
 hg38file <- file.path(wd, "hg38.fa.gz")
 t2tfile <- file.path(wd, "t2t.fa.gz")

@@ -10,7 +10,7 @@
 \usage{
 find_manyKmers(dnass, kmers, nCores = 1)
 
-find_fewKmers(dnass, kmers, nCores = 1)
+find_fewKmers(dnass, kmers, nCores = 1, ...)
 
 find_runsOfNs(dnass, minRunLength)
 
@@ -31,6 +31,10 @@ find_telomeres(
 
 \item{nCores}{integer, then number of cores to use}
 
+\item{...}{additional arguments passed to vmatchpattern
+\cr
+If called, \code{find_kmers} returns its own arguments.}
+
 \item{minRunLength}{numeric, the minimum size for a kmer run to be counted}
 
 \item{maxDistBtwTelo}{numeric, maximum distance between two telomere kmers
@@ -43,9 +47,7 @@ to be counted}
 the run}
 
 \item{maxDist2end}{numeric, the maximum distance to a chromosome end for a
-telomere to be called terminal (and not interstitial)
-\cr
-If called, \code{find_kmers} returns its own arguments.}
+telomere to be called terminal (and not interstitial)}
 }
 \description{
 \code{find_kmers} Convenience functions for gscTools, not meant to be called
