@@ -235,32 +235,32 @@ plot_2genomes <- function(genomeIDs,
   if(is.null(kmers)){
     beds1 <- list(
       cds = with(cds1, data.table(chr = seqid, start = start, end = end)),
-      rep1 = with(rep11, data.table(chr = seqid, start = start, end = end)),
-      rep2 = with(rep12, data.table(chr = seqid, start = start, end = end)),
-      otherRepeat = with(rep13, data.table(chr = seqid, start = start, end = end)),
+      rep1 = with(data.frame(rep11), data.table(chr = seqid, start = start, end = end)),
+      rep2 = with(data.frame(rep12), data.table(chr = seqid, start = start, end = end)),
+      otherRepeat = with(data.frame(rep13), data.table(chr = seqid, start = start, end = end)),
       introns = with(gene1, data.table(chr = seqid, start = start, end = end)))
 
     beds2 <- list(
       cds = with(cds2, data.table(chr = seqid, start = start, end = end)),
-      rep1 = with(rep21, data.table(chr = seqid, start = start, end = end)),
-      rep2 = with(rep22, data.table(chr = seqid, start = start, end = end)),
-      otherRepeat = with(rep23, data.table(chr = seqid, start = start, end = end)),
+      rep1 = with(data.frame(rep21), data.table(chr = seqid, start = start, end = end)),
+      rep2 = with(data.frame(rep22), data.table(chr = seqid, start = start, end = end)),
+      otherRepeat = with(data.frame(rep23), data.table(chr = seqid, start = start, end = end)),
       introns = with(gene2, data.table(chr = seqid, start = start, end = end)))
   }else{
     beds1 <- list(
       kmers = kmers1,
       cds = with(cds1, data.table(chr = seqid, start = start, end = end)),
-      rep1 = with(rep11, data.table(chr = seqid, start = start, end = end)),
-      rep2 = with(rep12, data.table(chr = seqid, start = start, end = end)),
-      otherRepeat = with(rep13, data.table(chr = seqid, start = start, end = end)),
+      rep1 = with(data.frame(rep11), data.table(chr = seqid, start = start, end = end)),
+      rep2 = with(data.frame(rep12), data.table(chr = seqid, start = start, end = end)),
+      otherRepeat = with(data.frame(rep13), data.table(chr = seqid, start = start, end = end)),
       introns = with(gene1, data.table(chr = seqid, start = start, end = end)))
 
     beds2 <- list(
       kmers = kmers2,
       cds = with(cds2, data.table(chr = seqid, start = start, end = end)),
-      rep1 = with(rep21, data.table(chr = seqid, start = start, end = end)),
-      rep2 = with(rep22, data.table(chr = seqid, start = start, end = end)),
-      otherRepeat = with(rep23, data.table(chr = seqid, start = start, end = end)),
+      rep1 = with(data.frame(rep21), data.table(chr = seqid, start = start, end = end)),
+      rep2 = with(data.frame(rep22), data.table(chr = seqid, start = start, end = end)),
+      otherRepeat = with(data.frame(rep23), data.table(chr = seqid, start = start, end = end)),
       introns = with(gene2, data.table(chr = seqid, start = start, end = end)))
   }
 
