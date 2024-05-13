@@ -22,7 +22,7 @@ run_orthofinder <- function(gsParam, verbose = TRUE){
   # 1. Get things set up
   # -- 1.1 combine genomeIDs and outgroups
   genomeIDs <- gsParam$genomeIDs
-  if(!is.na(gsParam$outgroup)){
+  if(!is.na(gsParam$outgroup)[1]){
     genomeIDs <- c(genomeIDs, gsParam$outgroup)
     genomeIDs <- genomeIDs[!duplicated(genomeIDs)]
   }
