@@ -1083,7 +1083,7 @@ get_bedInBlk <- function(hits, bed){
   # out <- subset(out, !duplicated(paste(ofID2, blkID)))
   setorder(out, blkID, ord1, ord2, na.last = T)
 
-  out <- merge(bc, out, by = "blkID")
+  out <- merge(bc, out, by = "blkID", allow.cartesian = TRUE)
   out[,`:=`(start1 = NULL, start2 = NULL, end1 = NULL, end2 = NULL)]
   return(out)
 }
