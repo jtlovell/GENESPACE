@@ -104,7 +104,7 @@ Regardless of how `OrthoFinder` is installed, ensure that you have `OrthoFinder`
 
 `MCScanX` should be installed from [github](https://github.com/wyp1125/MCScanX). 
 
-#### 2.4 Install GENESPACE
+#### 2.4 Install Bioconductor Depenencies
 
 Once the above 3rd party dependencies are installed, get into R. If you made a conda environment, its useful to open R directly from that environment so that OrthoFinder stays in the path. 
 
@@ -113,22 +113,23 @@ conda activate orthofinder
 open -na rstudio # if using rstudio, otherwise, simply `R`
 ```
 
-Once in R, the easiest way to install GENESPACE uses the package `devtools` (which may need to be installed separately):
+Once in R, there are several Bioconductor depedencies that need to be installed:
+```
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(c("Biostrings", "rtracklayer"))
+```
+
+#### 2.5 Install GENESPACE
+
+The easiest way to install GENESPACE uses the package `devtools` (which may need to be installed separately).  If they are not yet installed, install_github will install a few dependencies directly (ggplot2, igraph, dbscan, R.utils, parallel).
+
+While still in R:
 
 ```
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 devtools::install_github("jtlovell/GENESPACE")
-```
-
-#### 2.5 Install R dependencies
-
-If they are not yet installed, `install_github` will install a few dependencies directly (ggplot2, igraph, dbscan, R.utils, parallel). However, you will need to install the bioconductor packages separately:
-
-```
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install(c("Biostrings", "rtracklayer"))
 
 library(GENESPACE)
 ```
