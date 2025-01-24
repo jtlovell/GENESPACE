@@ -1,5 +1,7 @@
 ## GENESPACE: an R package for synteny- and orthology-constrained comparative genomics. 
 
+**NOTE** GENESPACE currently can only work with OrthoFinder 2.5 - the current release of OrthoFinder 3 is not compatable and won't be for some time. See below for instructions to install 2.5 and not 3. 
+
 This is version 1.4 of GENESPACE. GENESPACE is an analytical pipeline to understand patterns of synteny and orthology across multiple genomes. The manuscript describing GENESPACE is now pubished in eLife. [Find the article here](https://elifesciences.org/articles/78526). Please cite this if you use GENESPACE. 
 
 There are currently two tutorials that (1) illustrate [what GENESPACE does and how to use it](https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/genespaceGuide.html) and (2) demostrate how to [customize your riparian plots](https://htmlpreview.github.io/?https://github.com/jtlovell/tutorials/blob/main/riparianGuide.html). This README is primarily to show how to get GENESPACE up and running.
@@ -94,7 +96,7 @@ GENESPACE is meant to be run interactively in the R environment for statistical 
 ```
 conda create -n orthofinder
 conda activate orthofinder
-conda install -c bioconda orthofinder 
+conda install -c bioconda orthofinder=2.5.5
 ```
 
 If conda is not available on your machine, you can install orthofinder from a number of other sources. See [orthofinder documentation](https://github.com/davidemms/OrthoFinder) for details.  
